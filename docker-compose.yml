@@ -1,0 +1,59 @@
+name: backoffice-prod
+
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data
+
+    volumes:
+      - backoffice_pgdata_v18:/var/lib/postgresql/data
+
+    shm_size: 256m
+
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # container_name: backoffice-prd
+    image: backoffice-prd
+    ports:
+      - '4000:4000'
+    env_file:
+      - .env
+    volumes:
+      - .:/usr/src/app
+    restart: unless-stopped
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget --quiet --tries=1 --spider http://localhost:4000/api/health || curl -f http://localhost:4000/api/health || exit 1',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  backoffice_pgdata_v18:
+    name: backoffice-pgdata-v18
