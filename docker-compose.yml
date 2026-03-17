@@ -1,4 +1,4 @@
-name: backoffice-prod
+name: central-midias-api
 
 services:
   postgres:
@@ -14,7 +14,7 @@ services:
       PGDATA: /var/lib/postgresql/data
 
     volumes:
-      - backoffice_pgdata_v18:/var/lib/postgresql/data
+      - central_midias_api_pgdata_v18:/var/lib/postgresql/data
 
     shm_size: 256m
 
@@ -30,7 +30,7 @@ services:
       context: .
       dockerfile: Dockerfile
     # container_name: backoffice-prd
-    image: backoffice-prd
+    image: central-midias-api
     ports:
       - '4000:4000'
     env_file:
@@ -55,5 +55,5 @@ services:
       start_period: 40s
 
 volumes:
-  backoffice_pgdata_v18:
-    name: backoffice-pgdata-v18
+  central_midias_api_pgdata_v18:
+    name: central-midias-api-pgdata-v18
