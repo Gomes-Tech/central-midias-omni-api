@@ -33,10 +33,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
   private readonly sensitiveFields = [
     'password',
     'token',
-    'apikey',
+    'x-api-key',
     'secret',
     'authorization',
-    'cookie',
     'accesstoken',
     'access_token',
     'refreshtoken',
