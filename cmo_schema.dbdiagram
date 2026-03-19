@@ -5,135 +5,177 @@
   "detailLevel": "All",
   "tablePositions": [
     {
-      "name": "companies",
+      "name": "UserAdmin",
       "schemaName": "public",
       "x": 16,
       "y": 16
     },
     {
+      "name": "UserAdminAccess",
+      "schemaName": "public",
+      "x": 544,
+      "y": 16
+    },
+    {
+      "name": "companies",
+      "schemaName": "public",
+      "x": 16,
+      "y": 280
+    },
+    {
       "name": "users",
       "schemaName": "public",
       "x": 16,
-      "y": 336
+      "y": 608
     },
     {
       "name": "user_company_accesses",
       "schemaName": "public",
       "x": 544,
-      "y": 248
+      "y": 1400
     },
     {
       "name": "menu_sections",
       "schemaName": "public",
       "x": 544,
-      "y": 512
+      "y": 528
     },
     {
       "name": "materials",
       "schemaName": "public",
-      "x": 1240,
+      "x": 1280,
       "y": 72
     },
     {
       "name": "tags",
       "schemaName": "public",
       "x": 544,
-      "y": 16
+      "y": 248
     },
     {
       "name": "material_tags",
       "schemaName": "public",
-      "x": 1864,
+      "x": 1904,
       "y": 16
     },
     {
       "name": "material_views",
       "schemaName": "public",
-      "x": 1864,
+      "x": 1904,
       "y": 152
     },
     {
       "name": "material_downloads",
       "schemaName": "public",
-      "x": 1864,
+      "x": 1904,
       "y": 360
     },
     {
       "name": "document_categories",
       "schemaName": "public",
       "x": 544,
-      "y": 1040
+      "y": 1056
     },
     {
       "name": "documents",
       "schemaName": "public",
-      "x": 1240,
+      "x": 1280,
       "y": 728
     },
     {
       "name": "document_read_receipts",
       "schemaName": "public",
-      "x": 1864,
+      "x": 1904,
       "y": 872
     },
     {
       "name": "banners",
       "schemaName": "public",
       "x": 544,
-      "y": 1360
+      "y": 1640
     },
     {
       "name": "calendar_events",
       "schemaName": "public",
-      "x": 1864,
+      "x": 1904,
       "y": 1136
     },
     {
       "name": "personalizable_fields",
       "schemaName": "public",
-      "x": 1864,
+      "x": 1904,
       "y": 568
     },
     {
       "name": "gifts",
       "schemaName": "public",
-      "x": 1240,
+      "x": 1280,
       "y": 1296
     },
     {
       "name": "gift_download_requests",
       "schemaName": "public",
-      "x": 1864,
+      "x": 1904,
       "y": 1536
     },
     {
       "name": "faq_items",
       "schemaName": "public",
       "x": 544,
-      "y": 1824
+      "y": 2104
     },
     {
       "name": "notifications",
       "schemaName": "public",
       "x": 544,
-      "y": 2192
+      "y": 2472
     },
     {
       "name": "search_logs",
       "schemaName": "public",
       "x": 544,
-      "y": 2616
+      "y": 2896
     },
     {
       "name": "password_reset_tokens",
       "schemaName": "public",
       "x": 544,
-      "y": 2888
+      "y": 3168
     }
   ],
   "tableGroupCollapseStates": [],
   "stickyNoteLayouts": [],
   "referencePaths": [
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "UserAdmin",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "user_admin_id"
+      ],
+      "secondTableName": "UserAdminAccess",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "companies",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "company_id"
+      ],
+      "secondTableName": "UserAdminAccess",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
     {
       "firstFieldNames": [
         "id"
