@@ -76,6 +76,18 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "moduleNameMapper": {
+      "^@common/decorators$": "<rootDir>/test-utils/common-decorators.mock.ts",
+      "^@common/filters$": "<rootDir>/test-utils/common-filters.mock.ts",
+      "^@common/(.*)$": "<rootDir>/common/$1",
+      "^@infrastructure/log$": "<rootDir>/test-utils/infrastructure-log.mock.ts",
+      "^@infrastructure/prisma$": "<rootDir>/test-utils/infrastructure-prisma.mock.ts",
+      "^@infrastructure/(.*)$": "<rootDir>/infrastructure/$1",
+      "^@modules/(.*)$": "<rootDir>/modules/$1",
+      "^types/(.*)$": "<rootDir>/types/$1",
+      "^uuid$": "<rootDir>/test-utils/uuid.mock.ts",
+      "^sanitize-html$": "<rootDir>/test-utils/sanitize-html.mock.ts"
+    },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
