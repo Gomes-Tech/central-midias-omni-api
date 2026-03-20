@@ -112,7 +112,7 @@ model UserRole {
 
   userId    String @map("user_id")
   roleId    String @map("role_id")
-  companyId String @map("company_id") // 🔥 MULTI-TENANT AQUI
+  companyId String @map("company_id")
 
   user    User    @relation(fields: [userId], references: [id])
   role    Roles   @relation(fields: [roleId], references: [id])
@@ -121,7 +121,7 @@ model UserRole {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, roleId, companyId]) // 👈 regra correta
+  @@unique([userId, roleId, companyId])
   @@index([userId, companyId])
   @@index([roleId])
   @@map("user_roles")
@@ -160,9 +160,11 @@ model CategoryRolePermission {
 
   roleId     String @map("role_id")
   categoryId String @map("category_id")
+  actionId   String @map("action_id")
 
   role     Roles    @relation(fields: [roleId], references: [id])
   category Category @relation(fields: [categoryId], references: [id])
+  action   Action   @relation(fields: [actionId], references: [id])
 
   createdAt DateTime @default(now())
 
@@ -171,6 +173,19 @@ model CategoryRolePermission {
   @@index([categoryId])
   @@map("category_role_permissions")
 }
+
+model Action {
+  id    String @id @default(uuid())
+  name  String
+  label String
+
+  categoryRolePermissions CategoryRolePermission[]
+
+  @@unique([name])
+  @@map("actions")
+}
+
+
 // enum UserRole {
 //   ADMIN
 //   COLLABORATOR
