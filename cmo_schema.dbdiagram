@@ -7,26 +7,26 @@
     {
       "name": "UserAdmin",
       "schemaName": "public",
-      "x": 16,
-      "y": 16
+      "x": 1.722657755194632,
+      "y": -116.06541576444974
     },
     {
       "name": "UserAdminAccess",
       "schemaName": "public",
-      "x": 544,
-      "y": 16
+      "x": 522.5839866327922,
+      "y": -105.35740908084571
     },
     {
       "name": "companies",
       "schemaName": "public",
-      "x": 16,
-      "y": 280
+      "x": -75.01805681063422,
+      "y": 153.2885875773523
     },
     {
       "name": "users",
       "schemaName": "public",
-      "x": 16,
-      "y": 608
+      "x": -360.56490170674175,
+      "y": 408.11720857272473
     },
     {
       "name": "user_company_accesses",
