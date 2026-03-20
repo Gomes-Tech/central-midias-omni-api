@@ -6,8 +6,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Central Midias Omni API')
-    .setDescription('Documentacao da API do projeto Central Midias Omni')
+    .setTitle('Central Midias API')
+    .setDescription('Documentacao da API do projeto Central Midias')
     .setVersion('1.0.0')
     .addBearerAuth()
     .build();

@@ -8,4 +8,7 @@ export interface RequiredPermission {
 }
 
 export const RequirePermission = (category: string, action: string) =>
-  SetMetadata(PERMISSION_KEY, { category, action } satisfies RequiredPermission);
+  SetMetadata(PERMISSION_KEY, {
+    category,
+    action,
+  } satisfies RequiredPermission);

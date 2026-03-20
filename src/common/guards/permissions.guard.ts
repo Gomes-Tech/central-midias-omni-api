@@ -49,8 +49,9 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
 
-    const request =
-      context.switchToHttp().getRequest<RequestWithUser | undefined>();
+    const request = context
+      .switchToHttp()
+      .getRequest<RequestWithUser | undefined>();
 
     const userId = this.extractUserId(request?.user);
     if (!userId) {
@@ -75,7 +76,9 @@ export class PermissionsGuard implements CanActivate {
     });
 
     if (!userRoles.length) {
-      throw new ForbiddenException('Acesso negado: usuário sem perfil nesta empresa.');
+      throw new ForbiddenException(
+        'Acesso negado: usuário sem perfil nesta empresa.',
+      );
     }
 
     const allowed = await this.prisma.categoryRolePermission.findFirst({
