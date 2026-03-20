@@ -1,4 +1,4 @@
-import { RequirePermission, Roles, UserId } from '@common/decorators';
+import { RequirePermission, UserId } from '@common/decorators';
 import { AuthGuard, PermissionsGuard } from '@common/guards';
 import {
   Body,
@@ -34,7 +34,6 @@ export class UserController {
   ) {}
 
   @UseGuards(AuthGuard, PermissionsGuard)
-  @Roles('ADMIN')
   @RequirePermission('users', 'create')
   @Post()
   async create(@Body() dto: CreateUserDTO, @UserId() userId: string) {
@@ -46,7 +45,6 @@ export class UserController {
   }
 
   @UseGuards(AuthGuard, PermissionsGuard)
-  @Roles('ADMIN')
   @RequirePermission('users', 'read')
   @Get()
   async getList(
@@ -87,7 +85,6 @@ export class UserController {
   }
 
   @UseGuards(AuthGuard, PermissionsGuard)
-  @Roles('ADMIN')
   @RequirePermission('users', 'read')
   @Get('/:id')
   async findById(@Param('id') id: string) {
@@ -114,7 +111,6 @@ export class UserController {
   }
 
   @UseGuards(AuthGuard, PermissionsGuard)
-  @Roles('ADMIN')
   @RequirePermission('users', 'delete')
   @Delete('/:id')
   async delete(@Param('id') id: string) {
