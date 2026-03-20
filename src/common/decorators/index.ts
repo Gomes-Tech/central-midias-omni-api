@@ -5,7 +5,6 @@ export * from './strong-password.decorator';
 export * from './check-ownership.decorator';
 export * from './public.decorator';
 export * from './circuit-breaker.decorator';
-export * from './roles.decorator';
 export * from './sanitize.decorator';
 export * from './user-id.decorator';
 export * from './auth.decorator';

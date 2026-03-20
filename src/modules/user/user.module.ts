@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { UserRolesModule } from '@modules/user-roles';
 import { UserRepository } from './repository';
 import {
   CreateUserUseCase,
@@ -14,7 +15,7 @@ import {
 import { UserController } from './user.controller';
 
 @Module({
-  imports: [],
+  imports: [UserRolesModule],
   controllers: [UserController],
   providers: [
     FindAllUsersUseCase,

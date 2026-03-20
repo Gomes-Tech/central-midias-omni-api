@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
 import { Inject, Injectable } from '@nestjs/common';
+import { ReplaceUserRolesUseCase } from '@modules/user-roles';
 import { CreateUserDTO } from '../dto';
 import { UserRepository } from '../repository';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
@@ -16,6 +17,7 @@ export class CreateUserUseCase {
     private readonly findByTaxIdentifierUseCase: FindUserByTaxIdentifierUseCase,
     private readonly cryptographyService: CryptographyService,
     private readonly findUserRoleUseCase: FindUserRoleUseCase,
+    private readonly replaceUserRolesUseCase: ReplaceUserRolesUseCase,
   ) {}
 
   async execute(data: CreateUserDTO, userId: string) {
@@ -54,6 +56,12 @@ export class CreateUserUseCase {
         'Ocorreu um erro ao criar o usuário! Tente novamente mais tarde!',
       );
     }
+
+    await this.replaceUserRolesUseCase.execute(
+      newUser.id,
+      data.roles,
+      data.companyIds ?? [],
+    );
 
     return newUser;
   }

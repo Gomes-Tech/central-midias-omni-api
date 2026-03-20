@@ -172,42 +172,9 @@ export class UserRepository {
     }
   }
 
-  async findRoleByUserId(userId: string): Promise<UserRole | null> {
-    try {
-      const user = await this.prisma.user.findFirst({
-        where: { id: userId, isDeleted: false, isActive: true },
-        include: {
-          userRoles: {
-            where: {
-              role: {
-                deletedAt: null,
-              },
-            },
-            include: {
-              role: true,
-            },
-          },
-        },
-      });
-
-      if (!user) {
-        return null;
-      }
-
-      return (
-        getHighestUserRole(user.userRoles.map(({ role }) => role.role)) ?? null
-      );
-    } catch (error) {
-      this.handleError('UserRepository.findRoleByUserId falhou', error, {
-        userId,
-      });
-    }
-  }
-
   async create(data: CreateUserDTO & { password: string }): Promise<User> {
     try {
       const user = await this.prisma.$transaction(async (tx) => {
-        const resolvedRoles = await this.resolveRoles(tx, data.roles);
         const resolvedCompanyIds = await this.resolveCompanies(
           tx,
           data.companyIds ?? [],
@@ -226,18 +193,6 @@ export class UserRepository {
             isActive: data.isActive ?? true,
           },
         });
-
-        const roleAssignments = this.buildUserRoleAssignments(
-          createdUser.id,
-          resolvedRoles.map((role) => role.id),
-          resolvedCompanyIds,
-        );
-
-        if (roleAssignments.length) {
-          await tx.userRole.createMany({
-            data: roleAssignments,
-          });
-        }
 
         if (resolvedCompanyIds.length) {
           await tx.userCompanyAccess.createMany({
@@ -302,45 +257,6 @@ export class UserRepository {
             }),
           },
         });
-
-        if (data.roles || data.companyIds) {
-          const targetRoleNames =
-            data.roles ??
-            (
-              await tx.userRole.findMany({
-                where: { userId: id },
-                select: {
-                  role: {
-                    select: {
-                      role: true,
-                    },
-                  },
-                },
-              })
-            ).map(({ role }) => role.role as UserRole);
-          const resolvedRoles = await this.resolveRoles(tx, targetRoleNames);
-          const targetCompanyIds =
-            data.companyIds ??
-            (
-              await tx.userCompanyAccess.findMany({
-                where: { userId: id },
-                select: { companyId: true },
-              })
-            ).map(({ companyId }) => companyId);
-          const roleAssignments = this.buildUserRoleAssignments(
-            id,
-            resolvedRoles.map((role) => role.id),
-            targetCompanyIds,
-          );
-
-          await tx.userRole.deleteMany({ where: { userId: id } });
-
-          if (roleAssignments.length) {
-            await tx.userRole.createMany({
-              data: roleAssignments,
-            });
-          }
-        }
 
         if (data.companyIds) {
           const resolvedCompanyIds = await this.resolveCompanies(
@@ -488,29 +404,6 @@ export class UserRepository {
     };
   }
 
-  private async resolveRoles(
-    tx: Prisma.TransactionClient,
-    userRoles: UserRole[],
-  ) {
-    const roles = await tx.roles.findMany({
-      where: {
-        role: {
-          in: userRoles,
-        },
-        deletedAt: null,
-      },
-    });
-
-    if (roles.length !== new Set(userRoles).size) {
-      throw new HttpException(
-        'Uma ou mais funções informadas não existem',
-        400,
-      );
-    }
-
-    return roles;
-  }
-
   private async resolveCompanies(
     tx: Prisma.TransactionClient,
     companyIds: string[],
@@ -540,32 +433,6 @@ export class UserRepository {
 
     return companies.map((company) => company.id);
   }
-
-  private buildUserRoleAssignments(
-    userId: string,
-    roleIds: string[],
-    companyIds: string[],
-  ) {
-    if (!roleIds.length) {
-      return [];
-    }
-
-    if (!companyIds.length) {
-      throw new HttpException(
-        'É necessário informar ao menos uma empresa para vincular perfis ao usuário',
-        400,
-      );
-    }
-
-    return companyIds.flatMap((companyId) =>
-      roleIds.map((roleId) => ({
-        userId,
-        roleId,
-        companyId,
-      })),
-    );
-  }
-
   private handleError(
     message: string,
     error: unknown,
