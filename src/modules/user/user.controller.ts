@@ -1,4 +1,5 @@
-import { Roles, UserId } from '@common/decorators';
+import { RequirePermission, Roles, UserId } from '@common/decorators';
+import { AuthGuard, PermissionsGuard } from '@common/guards';
 import {
   Body,
   Controller,
@@ -8,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { UserRole } from 'types/role';
 import { CreateUserDTO, UpdateUserDTO } from './dto';
@@ -31,7 +33,9 @@ export class UserController {
     private readonly deleteUserUseCase: DeleteUserUseCase,
   ) {}
 
+  @UseGuards(AuthGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @RequirePermission('users', 'create')
   @Post()
   async create(@Body() dto: CreateUserDTO, @UserId() userId: string) {
     const user = await this.createUserUseCase.execute(dto, userId);
@@ -41,7 +45,9 @@ export class UserController {
     return user;
   }
 
+  @UseGuards(AuthGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @RequirePermission('users', 'read')
   @Get()
   async getList(
     @Query('page') page?: string,
@@ -65,6 +71,7 @@ export class UserController {
     });
   }
 
+  @UseGuards(AuthGuard)
   @Get('/me')
   async getMe(@UserId() userId: string) {
     const user = await this.findUserByIdUseCase.execute(userId);
@@ -79,7 +86,9 @@ export class UserController {
     return await this.findAllTechniciansUseCase.execute();
   }
 
+  @UseGuards(AuthGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @RequirePermission('users', 'read')
   @Get('/:id')
   async findById(@Param('id') id: string) {
     const user = await this.findUserByIdUseCase.execute(id);
@@ -89,6 +98,8 @@ export class UserController {
     return user;
   }
 
+  @UseGuards(AuthGuard, PermissionsGuard)
+  @RequirePermission('users', 'update')
   @Patch('/:id')
   async update(
     @Param('id') id: string,
@@ -102,7 +113,9 @@ export class UserController {
     return user;
   }
 
+  @UseGuards(AuthGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @RequirePermission('users', 'delete')
   @Delete('/:id')
   async delete(@Param('id') id: string) {
     return await this.deleteUserUseCase.execute(id);

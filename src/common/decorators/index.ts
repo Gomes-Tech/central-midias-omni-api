@@ -10,3 +10,4 @@ export * from './sanitize.decorator';
 export * from './user-id.decorator';
 export * from './auth.decorator';
 export * from './throttle.decorator';
+export * from './permissions.decorator';

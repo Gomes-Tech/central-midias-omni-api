@@ -227,12 +227,15 @@ export class UserRepository {
           },
         });
 
-        if (resolvedRoles.length) {
+        const roleAssignments = this.buildUserRoleAssignments(
+          createdUser.id,
+          resolvedRoles.map((role) => role.id),
+          resolvedCompanyIds,
+        );
+
+        if (roleAssignments.length) {
           await tx.userRole.createMany({
-            data: resolvedRoles.map((role) => ({
-              userId: createdUser.id,
-              roleId: role.id,
-            })),
+            data: roleAssignments,
           });
         }
 
@@ -300,17 +303,41 @@ export class UserRepository {
           },
         });
 
-        if (data.roles) {
-          const resolvedRoles = await this.resolveRoles(tx, data.roles);
+        if (data.roles || data.companyIds) {
+          const targetRoleNames =
+            data.roles ??
+            (
+              await tx.userRole.findMany({
+                where: { userId: id },
+                select: {
+                  role: {
+                    select: {
+                      role: true,
+                    },
+                  },
+                },
+              })
+            ).map(({ role }) => role.role as UserRole);
+          const resolvedRoles = await this.resolveRoles(tx, targetRoleNames);
+          const targetCompanyIds =
+            data.companyIds ??
+            (
+              await tx.userCompanyAccess.findMany({
+                where: { userId: id },
+                select: { companyId: true },
+              })
+            ).map(({ companyId }) => companyId);
+          const roleAssignments = this.buildUserRoleAssignments(
+            id,
+            resolvedRoles.map((role) => role.id),
+            targetCompanyIds,
+          );
 
           await tx.userRole.deleteMany({ where: { userId: id } });
 
-          if (resolvedRoles.length) {
+          if (roleAssignments.length) {
             await tx.userRole.createMany({
-              data: resolvedRoles.map((role) => ({
-                userId: id,
-                roleId: role.id,
-              })),
+              data: roleAssignments,
             });
           }
         }
@@ -512,6 +539,31 @@ export class UserRepository {
     }
 
     return companies.map((company) => company.id);
+  }
+
+  private buildUserRoleAssignments(
+    userId: string,
+    roleIds: string[],
+    companyIds: string[],
+  ) {
+    if (!roleIds.length) {
+      return [];
+    }
+
+    if (!companyIds.length) {
+      throw new HttpException(
+        'É necessário informar ao menos uma empresa para vincular perfis ao usuário',
+        400,
+      );
+    }
+
+    return companyIds.flatMap((companyId) =>
+      roleIds.map((roleId) => ({
+        userId,
+        roleId,
+        companyId,
+      })),
+    );
   }
 
   private handleError(

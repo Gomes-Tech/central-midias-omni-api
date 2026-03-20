@@ -168,7 +168,7 @@ model CategoryRolePermission {
 
   createdAt DateTime @default(now())
 
-  @@unique([roleId, categoryId])
+  @@unique([roleId, categoryId, actionId])
   @@index([roleId])
   @@index([categoryId])
   @@map("category_role_permissions")
