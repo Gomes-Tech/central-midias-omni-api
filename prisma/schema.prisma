@@ -11,54 +11,113 @@ datasource db {
 model User {
   id            String   @id @default(uuid())
   name          String
+  email         String   @unique
+  password      String
+  isActive  Boolean   @default(true) @map("is_active")
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  platformUserRoles PlatformUserRole[]
+  createdCategories Category[] @relation("CategoryCreatedBy")
+  updatedCategories Category[] @relation("CategoryUpdatedBy")
+  deletedCategories Category[] @relation("CategoryDeletedBy")
+
+  @@index([email])
+  @@map("users")
+}
+
+model TenantUser {
+  id            String   @id @default(uuid())
+  name          String
   socialReason  String   @map("social_reason")
   taxIdentifier String   @unique @map("tax_identifier")
-  phone         String   @map("phone")
+  phone         String
   birthDate     DateTime @map("birth_date")
   email         String   @unique
   password      String
 
-  isEmployee Boolean @default(false) @map("is_employee")
-  isActive   Boolean @default(true)  @map("is_active")
-  isDeleted  Boolean @default(false) @map("is_deleted")
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  isActive  Boolean   @default(true) @map("is_active")
+  isDeleted Boolean   @default(false) @map("is_deleted")
   deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
-  // RELAÇÕES
-  userCompanyAccesses UserCompanyAccess[]
-  userRoles           UserRole[]
-  userManager         UserManager?
-  userLogins          UserLogins[]
+  tenantMemberships TenantMembership[]
+  userLogins        UserLogin[]
 
-  createdCategory Category[] @relation("UserCreatedCategory")
-  updatedCategory Category[] @relation("UserUpdatedCategory")
-  deletedCategory Category[] @relation("UserDeletedCategory")
 
   @@index([email])
   @@index([taxIdentifier])
-  @@map("users")
+  @@map("tenant_users")
 }
 
-model UserLogins {
+model UserLogin {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
+  user      TenantUser     @relation(fields: [userId], references: [id])
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("user_logins")
 }
 
-model UserManager {
-  id        String   @id @default(uuid())
-  userId    String   @unique @map("user_id")
-  user      User     @relation(fields: [userId], references: [id])
+model PlatformRole {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  label       String
+  description String?
+  isSystem    Boolean @default(false) @map("is_system")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
-  @@map("user_managers")
+  platformUserRoles       PlatformUserRole[]
+  platformRolePermissions PlatformRolePermission[]
+
+  @@map("platform_roles")
+}
+
+model PlatformPermission {
+  id       String @id @default(uuid())
+  resource String
+  action   String
+  label    String
+
+  platformRolePermissions PlatformRolePermission[]
+
+  @@unique([resource, action])
+  @@map("platform_permissions")
+}
+
+model PlatformRolePermission {
+  id                   String @id @default(uuid())
+  platformRoleId       String @map("platform_role_id")
+  platformPermissionId String @map("platform_permission_id")
+
+  platformRole       PlatformRole       @relation(fields: [platformRoleId], references: [id])
+  platformPermission PlatformPermission @relation(fields: [platformPermissionId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([platformRoleId, platformPermissionId])
+  @@map("platform_role_permissions")
+}
+
+model PlatformUserRole {
+  id             String @id @default(uuid())
+  userId         String @map("user_id")
+  platformRoleId String @map("platform_role_id")
+  isSystem  Boolean @default(false) @map("is_system")
+  user         User         @relation(fields: [userId], references: [id])
+  platformRole PlatformRole @relation(fields: [platformRoleId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, platformRoleId])
+  @@map("platform_user_roles")
 }
 
 model Company {
@@ -68,132 +127,150 @@ model Company {
   logoUrl  String? @map("logo_url")
   isActive Boolean @default(true) @map("is_active")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  userCompanyAccesses UserCompanyAccess[]
-  userRoles           UserRole[] // 👈 importante pra relação reversa
+  tenantMemberships   TenantMembership[]
+  tenantRoles         TenantRole[]
+  tenantRoleHierarchies TenantRoleHierarchy[] // ← adicionado
+  categories          Category[]
 
   @@map("companies")
 }
 
-model UserCompanyAccess {
+model TenantRole {
   id        String  @id @default(uuid())
-  userId    String  @map("user_id")
   companyId String  @map("company_id")
+  name      String
+  label     String
 
-  user    User    @relation(fields: [userId], references: [id])
-  company Company @relation(fields: [companyId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, companyId]) // 👈 evita duplicidade
-  @@map("user_company_accesses")
-}
-
-model Roles {
-  id    String @id @default(uuid())
-  label String
-  role  String @unique
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  userRoles               UserRole[]
-  categoryRolePermissions CategoryRolePermission[]
+  company             Company             @relation(fields: [companyId], references: [id])
+  tenantMemberships   TenantMembership[]
+  categoryPermissions CategoryPermission[]
 
-  @@map("roles")
+  // Regras onde esta role é o chefe
+  asManagerRole  TenantRoleHierarchy[] @relation("ManagerRole")
+  // Regras onde esta role é o subordinado
+  asEmployeeRole TenantRoleHierarchy[] @relation("EmployeeRole")
+
+  @@unique([companyId, name])
+  @@map("tenant_roles")
 }
 
-model UserRole {
-  id        String @id @default(uuid())
+// Define quais roles podem ser subordinadas de quais dentro de uma empresa
+// Exemplo: AGENTE (manager) pode ter FUNCIONARIO (employee)
+model TenantRoleHierarchy {
+  id             String @id @default(uuid())
+  companyId      String @map("company_id")
+  managerRoleId  String @map("manager_role_id")
+  employeeRoleId String @map("employee_role_id")
 
-  userId    String @map("user_id")
-  roleId    String @map("role_id")
-  companyId String @map("company_id")
+  company      Company    @relation(fields: [companyId], references: [id])
+  managerRole  TenantRole @relation("ManagerRole",  fields: [managerRoleId],  references: [id])
+  employeeRole TenantRole @relation("EmployeeRole", fields: [employeeRoleId], references: [id])
 
-  user    User    @relation(fields: [userId], references: [id])
-  role    Roles   @relation(fields: [roleId], references: [id])
-  company Company @relation(fields: [companyId], references: [id])
+  @@unique([managerRoleId, employeeRoleId])
+  @@index([companyId])
+  @@map("tenant_role_hierarchies")
+}
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model TenantMembership {
+  id           String @id @default(uuid())
+  userId       String @map("user_id")
+  companyId    String @map("company_id")
+  tenantRoleId String @map("tenant_role_id")
 
-  @@unique([userId, roleId, companyId])
+  user       TenantUser       @relation(fields: [userId], references: [id])
+  company    Company    @relation(fields: [companyId], references: [id])
+  tenantRole TenantRole @relation(fields: [tenantRoleId], references: [id])
+
+  managerId String?            @map("manager_id")
+  manager   TenantMembership?  @relation("MemberHierarchy", fields: [managerId], references: [id])
+  employees TenantMembership[] @relation("MemberHierarchy")
+
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@unique([userId, companyId])
   @@index([userId, companyId])
-  @@index([roleId])
-  @@map("user_roles")
+  @@index([managerId])
+  @@map("tenant_memberships")
 }
 
 model Category {
-  id       String  @id @default(cuid())
-  name     String  @unique
-  slug     String  @unique
-  isActive Boolean @default(true) @map("is_active")
-  order    Int     @unique
+  id        String  @id @default(cuid())
+  companyId String  @map("company_id")
+  name      String
+  slug      String
+  isActive  Boolean @default(true) @map("is_active")
+  order     Int
 
   parentId String?
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children Category[] @relation("CategoryHierarchy")
 
-  createdBy   User     @relation("UserCreatedCategory", fields: [createdById], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+
   createdById String   @map("created_by")
+  createdBy   User     @relation("CategoryCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime @default(now()) @map("created_at")
 
-  updatedBy   User?    @relation("UserUpdatedCategory", fields: [updatedById], references: [id])
   updatedById String?  @map("updated_by")
+  updatedBy   User?    @relation("CategoryUpdatedBy", fields: [updatedById], references: [id])
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   isDeleted   Boolean  @default(false) @map("is_deleted")
-  deletedBy   User?    @relation("UserDeletedCategory", fields: [deletedById], references: [id])
   deletedById String?  @map("deleted_by")
+  deletedBy   User?    @relation("CategoryDeletedBy", fields: [deletedById], references: [id])
 
-  categoryRolePermissions CategoryRolePermission[]
+  categoryPermissions CategoryPermission[]
 
+  @@unique([companyId, slug])
+  @@unique([companyId, order])
+  @@index([companyId])
+  @@index([parentId])
   @@map("categories")
 }
 
-model CategoryRolePermission {
-  id String @id @default(uuid())
+model CategoryPermission {
+  id           String  @id @default(uuid())
+  tenantRoleId String  @map("tenant_role_id")
+  categoryId   String  @map("category_id")
+  canView      Boolean @default(false) @map("can_view")
+  canDownload  Boolean @default(false) @map("can_download")
 
-  roleId     String @map("role_id")
-  categoryId String @map("category_id")
-  actionId   String @map("action_id")
+  tenantRole TenantRole @relation(fields: [tenantRoleId], references: [id])
+  category   Category   @relation(fields: [categoryId], references: [id])
 
-  role     Roles    @relation(fields: [roleId], references: [id])
-  category Category @relation(fields: [categoryId], references: [id])
-  action   Action   @relation(fields: [actionId], references: [id])
+  createdAt DateTime @default(now()) @map("created_at")
 
-  createdAt DateTime @default(now())
-
-  @@unique([roleId, categoryId, actionId])
-  @@index([roleId])
+  @@unique([tenantRoleId, categoryId])
+  @@index([tenantRoleId])
   @@index([categoryId])
-  @@map("category_role_permissions")
+  @@map("category_permissions")
 }
 
-model Action {
-  id    String @id @default(uuid())
-  name  String
-  label String
+model Log {
+  id        String   @id @default(uuid())
+  level     LogLevel
+  message   String   @map("message")
+  context   Json?    @map("context")
+  requestId String?  @map("request_id")
+  path      String?  @map("path")
+  method    String?  @map("method")
+  userId    String?  @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  categoryRolePermissions CategoryRolePermission[]
-
-  @@unique([name])
-  @@map("actions")
+  @@map("logs")
 }
 
-
-// enum UserRole {
-//   ADMIN
-//   COLLABORATOR
-//   OWN_DIRECT_CHANNEL
-//   AGENT_DIRECT_CHANNEL
-//   SMALL_MASTER_AGENT
-//   MEDIUM_MASTER_AGENT
-//   LARGE_MASTER_AGENT
-//   PARTNER
-//   AGENT_EMPLOYEE
-// }
+enum LogLevel {
+  INFO
+  WARNING
+  ERROR
+}

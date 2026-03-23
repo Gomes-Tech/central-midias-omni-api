@@ -1,12 +1,8 @@
-import { UserRole } from 'types/role';
-
 export interface FindAllUsersFilters {
   page?: number;
   limit?: number;
-  name?: string;
-  email?: string;
-  role?: UserRole;
+  role?: string;
   companyId?: string;
   isActive?: boolean;
-  isEmployee?: boolean;
+  searchTerm?: string;
 }

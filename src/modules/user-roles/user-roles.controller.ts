@@ -1,5 +1,8 @@
 import { RequirePermission } from '@common/decorators';
-import { AuthGuard, PermissionsGuard } from '@common/guards';
+import {
+  TenantAccessGuard,
+  TenantPermissionGuard,
+} from '@common/guards';
 import {
   Body,
   Controller,
@@ -24,14 +27,14 @@ export class UserRolesController {
     private readonly findUserRolesUseCase: FindUserRolesUseCase,
   ) {}
 
-  @UseGuards(AuthGuard, PermissionsGuard)
+  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('user-roles', 'read')
   @Get('user/:userId')
   async findByUser(@Param('userId') userId: string) {
     return this.findUserRolesUseCase.execute(userId);
   }
 
-  @UseGuards(AuthGuard, PermissionsGuard)
+  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('user-roles', 'create')
   @Post()
   async assign(@Body() dto: AssignUserRoleDTO) {
@@ -42,7 +45,7 @@ export class UserRolesController {
     );
   }
 
-  @UseGuards(AuthGuard, PermissionsGuard)
+  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('user-roles', 'update')
   @Put('user/:userId')
   async replace(

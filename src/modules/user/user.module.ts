@@ -12,12 +12,15 @@ import {
   FindUserRoleUseCase,
   UpdateUserUseCase,
 } from './use-cases';
+import { PlatformPermissionGuard } from '@common/guards';
+import { AdminUsersController } from './admin-user.controller';
 import { UserController } from './user.controller';
 
 @Module({
   imports: [UserRolesModule],
-  controllers: [UserController],
+  controllers: [UserController, AdminUsersController],
   providers: [
+    PlatformPermissionGuard,
     FindAllUsersUseCase,
     FindAllTechniciansUseCase,
     FindUserByIdUseCase,

@@ -1,3 +1,4 @@
+import { NotFoundException } from '@common/filters';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import {
@@ -6,25 +7,8 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { getHighestUserRole, UserRole } from 'types/role';
 import { CreateUserDTO, FindAllUsersFilters, UpdateUserDTO } from '../dto';
-import { ListUser, User } from '../entities';
-
-type UserWithRelations = Prisma.UserGetPayload<{
-  include: {
-    userRoles: {
-      include: {
-        role: true;
-      };
-    };
-    userCompanyAccesses: {
-      include: {
-        company: true;
-      };
-    };
-    userManager: true;
-  };
-}>;
+import { User } from '../entities';
 
 @Injectable()
 export class UserRepository {
@@ -33,14 +17,17 @@ export class UserRepository {
     private readonly logger: LoggerService,
   ) {}
 
-  async findAll(filters: FindAllUsersFilters = {}): Promise<{
-    data: ListUser[];
+  async findAllPlatformUsers(
+    filters: FindAllUsersFilters = {},
+    isAdmin: boolean = false,
+  ): Promise<{
+    data: any[];
     total: number;
     page: number;
     totalPages: number;
   }> {
     try {
-      const { page = 1, limit = 10, name, email, role, companyId } = filters;
+      const { page = 1, limit = 10, searchTerm, role, companyId } = filters;
       const skip = (page - 1) * limit;
 
       const where: Prisma.UserWhereInput = {
@@ -48,27 +35,25 @@ export class UserRepository {
         ...(typeof filters.isActive === 'boolean' && {
           isActive: filters.isActive,
         }),
-        ...(typeof filters.isEmployee === 'boolean' && {
-          isEmployee: filters.isEmployee,
+        ...(companyId && {
+          tenantMemberships: {
+            some: {
+              companyId,
+            },
+          },
         }),
-        ...(name && { name: { contains: name, mode: 'insensitive' } }),
-        ...(email && {
-          email: { contains: email, mode: 'insensitive' },
+        ...(searchTerm && {
+          OR: [
+            { name: { contains: searchTerm, mode: 'insensitive' } },
+            { email: { contains: searchTerm, mode: 'insensitive' } },
+          ],
         }),
         ...(role && {
           userRoles: {
             some: {
               role: {
                 role,
-                deletedAt: null,
               },
-            },
-          },
-        }),
-        ...(companyId && {
-          userCompanyAccesses: {
-            some: {
-              companyId,
             },
           },
         }),
@@ -77,7 +62,20 @@ export class UserRepository {
       const [users, total] = await Promise.all([
         this.prisma.user.findMany({
           where,
-          include: this.userInclude,
+          select: {
+            id: true,
+            name: true,
+            taxIdentifier: true,
+            platformUserRoles: {
+              select: {
+                platformRole: {
+                  select: {
+                    label: true,
+                  },
+                },
+              },
+            },
+          },
           skip,
           take: limit,
           orderBy: { name: 'asc' },
@@ -86,53 +84,162 @@ export class UserRepository {
       ]);
 
       return {
-        data: users.map((user) => this.toListUser(user)),
+        data: users,
         total,
         page,
         totalPages: Math.ceil(total / limit),
       };
     } catch (error) {
-      this.handleError('UserRepository.findAll falhou', error, { filters });
+      void this.logger.error(String(error), {
+        filters: JSON.stringify(filters) ?? undefined,
+        path: 'UserRepository.findAllPlatformUsers',
+        method: 'GET',
+        userId: 'unknown',
+        requestId: 'unknown',
+      });
+      this.handleError('UserRepository.findAllPlatformUsers falhou', error, {
+        filters,
+      });
     }
   }
 
-  async findTechnicians(): Promise<{ id: string; name: string }[]> {
+  async findAllTenantUsers(
+    filters: FindAllUsersFilters = {},
+    companyId: string,
+  ): Promise<{
+    data: any[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
     try {
-      const users = await this.prisma.user.findMany({
+      const { page = 1, limit = 10, searchTerm, role } = filters;
+      const skip = (page - 1) * limit;
+
+      const where: Prisma.UserWhereInput = {
+        isDeleted: false,
+        ...(typeof filters.isActive === 'boolean' && {
+          isActive: filters.isActive,
+        }),
+        ...(companyId && {
+          tenantMemberships: {
+            some: {
+              companyId,
+            },
+          },
+        }),
+        ...(searchTerm && {
+          OR: [
+            { name: { contains: searchTerm, mode: 'insensitive' } },
+            { email: { contains: searchTerm, mode: 'insensitive' } },
+          ],
+        }),
+        ...(role && {
+          tenantMemberships: {
+            some: {
+              tenantRole: {
+                id: role,
+              },
+            },
+          },
+        }),
+      };
+
+      const [users, total] = await Promise.all([
+        this.prisma.user.findMany({
+          where,
+          select: {
+            id: true,
+            name: true,
+            taxIdentifier: true,
+            tenantMemberships: {
+              select: {
+                tenantRole: {
+                  select: {
+                    label: true,
+                  },
+                },
+              },
+            },
+          },
+          skip,
+          take: limit,
+          orderBy: { name: 'asc' },
+        }),
+        this.prisma.user.count({ where }),
+      ]);
+
+      return {
+        data: users,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      void this.logger.error(String(error), {
+        filters: JSON.stringify(filters) ?? undefined,
+        path: 'UserRepository.findAllTenantUsers',
+        method: 'GET',
+        userId: 'unknown',
+        requestId: 'unknown',
+      });
+      this.handleError('UserRepository.findAllTenantUsers falhou', error, {
+        filters,
+      });
+    }
+  }
+
+  async findById(id: string, companyId: string): Promise<any> {
+    try {
+      const user = await this.prisma.user.findUniqueOrThrow({
         where: {
+          id,
           isDeleted: false,
-          isActive: true,
-          isEmployee: true,
+          tenantMemberships: {
+            some: {
+              companyId: companyId,
+            },
+          },
         },
         select: {
           id: true,
           name: true,
-        },
-        orderBy: {
-          name: 'asc',
+          taxIdentifier: true,
+          socialReason: true,
+          phone: true,
+          birthDate: true,
+          email: true,
+          isActive: true,
+          tenantMemberships: {
+            select: {
+              tenantRole: {
+                select: {
+                  id: true,
+                },
+              },
+            },
+          },
         },
       });
 
-      return users;
+      const { tenantMemberships, ...rest } = user;
+
+      return {
+        ...rest,
+        role: tenantMemberships[0].tenantRole.id,
+      };
     } catch (error) {
-      this.handleError('UserRepository.findTechnicians falhou', error);
-    }
-  }
-
-  async findById(id: string): Promise<User | null> {
-    try {
-      const user = await this.prisma.user.findFirst({
-        where: { id, isDeleted: false },
-        include: this.userInclude,
-      });
-
-      if (!user) {
-        return null;
+      if (error.code === 'P2025') {
+        this.logger.error(String(error), {
+          method: 'UserRepository.findById',
+          path: 'UserRepository.findById',
+          userId: 'unknown',
+          requestId: 'unknown',
+          companyId,
+          id,
+        });
+        throw new NotFoundException('Usuário não encontrado');
       }
-
-      return this.toUser(user);
-    } catch (error) {
-      this.handleError('UserRepository.findById falhou', error, { id });
     }
   }
 
@@ -140,14 +247,11 @@ export class UserRepository {
     try {
       const user = await this.prisma.user.findFirst({
         where: { email, isDeleted: false },
-        include: this.userInclude,
       });
 
       if (!user) {
         return null;
       }
-
-      return this.toUser(user);
     } catch (error) {
       this.handleError('UserRepository.findByEmail falhou', error, { email });
     }
@@ -328,111 +432,6 @@ export class UserRepository {
     }
   }
 
-  private readonly userInclude = {
-    userRoles: {
-      where: {
-        role: {
-          deletedAt: null,
-        },
-      },
-      include: {
-        role: true,
-      },
-    },
-    userCompanyAccesses: {
-      include: {
-        company: true,
-      },
-    },
-    userManager: true,
-  } satisfies Prisma.UserInclude;
-
-  private toUser(user: UserWithRelations): User {
-    const roles = user.userRoles.map(({ role }) => ({
-      id: role.id,
-      label: role.label,
-      role: role.role as UserRole,
-    }));
-
-    return {
-      id: user.id,
-      name: user.name,
-      socialReason: user.socialReason,
-      taxIdentifier: user.taxIdentifier,
-      phone: user.phone,
-      birthDate: user.birthDate,
-      email: user.email,
-      password: user.password,
-      isEmployee: user.isEmployee,
-      isActive: user.isActive,
-      isDeleted: user.isDeleted,
-      isManager: Boolean(user.userManager),
-      roles,
-      primaryRole: getHighestUserRole(roles.map(({ role }) => role)),
-      companyAccesses: user.userCompanyAccesses.map(
-        ({ id, companyId, company }) => ({
-          id,
-          companyId,
-          companyName: company.name,
-          companySlug: company.slug,
-          companyLogoUrl: company.logoUrl,
-        }),
-      ),
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      deletedAt: user.deletedAt,
-    };
-  }
-
-  private toListUser(user: UserWithRelations): ListUser {
-    const mappedUser = this.toUser(user);
-
-    return {
-      id: mappedUser.id,
-      name: mappedUser.name,
-      socialReason: mappedUser.socialReason,
-      taxIdentifier: mappedUser.taxIdentifier,
-      email: mappedUser.email,
-      phone: mappedUser.phone,
-      isEmployee: mappedUser.isEmployee,
-      isActive: mappedUser.isActive,
-      isManager: mappedUser.isManager,
-      roles: mappedUser.roles,
-      primaryRole: mappedUser.primaryRole,
-      companyAccesses: mappedUser.companyAccesses,
-      createdAt: mappedUser.createdAt,
-    };
-  }
-
-  private async resolveCompanies(
-    tx: Prisma.TransactionClient,
-    companyIds: string[],
-  ) {
-    if (!companyIds.length) {
-      return [];
-    }
-
-    const companies = await tx.company.findMany({
-      where: {
-        id: {
-          in: companyIds,
-        },
-        isActive: true,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (companies.length !== new Set(companyIds).size) {
-      throw new HttpException(
-        'Uma ou mais empresas informadas não existem',
-        400,
-      );
-    }
-
-    return companies.map((company) => company.id);
-  }
   private handleError(
     message: string,
     error: unknown,

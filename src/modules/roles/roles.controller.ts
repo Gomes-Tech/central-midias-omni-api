@@ -1,5 +1,8 @@
 import { RequirePermission } from '@common/decorators';
-import { AuthGuard, PermissionsGuard } from '@common/guards';
+import {
+  TenantAccessGuard,
+  TenantPermissionGuard,
+} from '@common/guards';
 import {
   Body,
   Controller,
@@ -30,7 +33,7 @@ export class RolesController {
     private readonly deleteRoleUseCase: DeleteRoleUseCase,
   ) {}
 
-  @UseGuards(AuthGuard, PermissionsGuard)
+  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('roles', 'read')
   @Get()
   async findAll(@Query('includeDeleted') includeDeleted?: string) {
@@ -39,28 +42,28 @@ export class RolesController {
     });
   }
 
-  @UseGuards(AuthGuard, PermissionsGuard)
+  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('roles', 'read')
   @Get(':id')
   async findById(@Param('id') id: string) {
     return this.findRoleByIdUseCase.execute(id);
   }
 
-  @UseGuards(AuthGuard, PermissionsGuard)
+  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('roles', 'create')
   @Post()
   async create(@Body() dto: CreateRoleDTO) {
     return this.createRoleUseCase.execute(dto);
   }
 
-  @UseGuards(AuthGuard, PermissionsGuard)
+  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('roles', 'update')
   @Patch(':id')
   async update(@Param('id') id: string, @Body() dto: UpdateRoleDTO) {
     return this.updateRoleUseCase.execute(id, dto);
   }
 
-  @UseGuards(AuthGuard, PermissionsGuard)
+  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('roles', 'delete')
   @Delete(':id')
   async delete(@Param('id') id: string) {

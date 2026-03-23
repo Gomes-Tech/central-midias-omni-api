@@ -1,5 +1,5 @@
 import { RequirePermission, UserId } from '@common/decorators';
-import { AuthGuard, PermissionsGuard } from '@common/guards';
+import { TenantAccessGuard, TenantPermissionGuard } from '@common/guards';
 import {
   Body,
   Controller,
@@ -8,10 +8,8 @@ import {
   Param,
   Patch,
   Post,
-  Query,
   UseGuards,
 } from '@nestjs/common';
-import { UserRole } from 'types/role';
 import { CreateUserDTO, UpdateUserDTO } from './dto';
 import {
   CreateUserUseCase,
@@ -33,7 +31,7 @@ export class UserController {
     private readonly deleteUserUseCase: DeleteUserUseCase,
   ) {}
 
-  @UseGuards(AuthGuard, PermissionsGuard)
+  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('users', 'create')
   @Post()
   async create(@Body() dto: CreateUserDTO, @UserId() userId: string) {
@@ -44,32 +42,8 @@ export class UserController {
     return user;
   }
 
-  @UseGuards(AuthGuard, PermissionsGuard)
-  @RequirePermission('users', 'read')
-  @Get()
-  async getList(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('name') name?: string,
-    @Query('email') email?: string,
-    @Query('role') role?: UserRole,
-    @Query('companyId') companyId?: string,
-    @Query('isActive') isActive?: string,
-    @Query('isEmployee') isEmployee?: string,
-  ) {
-    return await this.findAllUsersUseCase.execute({
-      page: page ? Number(page) : undefined,
-      limit: limit ? Number(limit) : undefined,
-      name,
-      email,
-      role,
-      companyId,
-      isActive: isActive ? isActive === 'true' : undefined,
-      isEmployee: isEmployee ? isEmployee === 'true' : undefined,
-    });
-  }
-
-  @UseGuards(AuthGuard)
+  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
+  @UseGuards(TenantAccessGuard)
   @Get('/me')
   async getMe(@UserId() userId: string) {
     const user = await this.findUserByIdUseCase.execute(userId);
@@ -84,7 +58,7 @@ export class UserController {
     return await this.findAllTechniciansUseCase.execute();
   }
 
-  @UseGuards(AuthGuard, PermissionsGuard)
+  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('users', 'read')
   @Get('/:id')
   async findById(@Param('id') id: string) {
@@ -95,7 +69,7 @@ export class UserController {
     return user;
   }
 
-  @UseGuards(AuthGuard, PermissionsGuard)
+  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('users', 'update')
   @Patch('/:id')
   async update(
@@ -110,7 +84,7 @@ export class UserController {
     return user;
   }
 
-  @UseGuards(AuthGuard, PermissionsGuard)
+  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('users', 'delete')
   @Delete('/:id')
   async delete(@Param('id') id: string) {
