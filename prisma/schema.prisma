@@ -20,70 +20,41 @@ model User {
   updatedAt DateTime  @updatedAt @map("updated_at")
 
   platformUserRoles PlatformUserRole[]
-  createdCategories Category[] @relation("CategoryCreatedBy")
-  updatedCategories Category[] @relation("CategoryUpdatedBy")
-  deletedCategories Category[] @relation("CategoryDeletedBy")
+  // createdCategories Category[] @relation("CategoryCreatedBy")
+  // updatedCategories Category[] @relation("CategoryUpdatedBy")
+  // deletedCategories Category[] @relation("CategoryDeletedBy")
 
   @@index([email])
   @@map("users")
 }
 
-model TenantUser {
-  id            String   @id @default(uuid())
-  name          String
-  socialReason  String   @map("social_reason")
-  taxIdentifier String   @unique @map("tax_identifier")
-  phone         String
-  birthDate     DateTime @map("birth_date")
-  email         String   @unique
-  password      String
+// ============================================================
+// MUNDO 1: PLATAFORMA (Admin Backoffice)
+// Controla quem acessa o painel admin e o que pode fazer
+// ============================================================
 
-  isActive  Boolean   @default(true) @map("is_active")
-  isDeleted Boolean   @default(false) @map("is_deleted")
-  deletedAt DateTime? @map("deleted_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-
-  tenantMemberships TenantMembership[]
-  userLogins        UserLogin[]
-
-
-  @@index([email])
-  @@index([taxIdentifier])
-  @@map("tenant_users")
-}
-
-model UserLogin {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  user      TenantUser     @relation(fields: [userId], references: [id])
-  ipAddress String?  @map("ip_address")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@map("user_logins")
-}
-
+// Roles da plataforma: SUPER_ADMIN, MARKETING, REPORTS, etc.
 model PlatformRole {
   id          String  @id @default(uuid())
-  name        String  @unique
-  label       String
-  description String?
-  isSystem    Boolean @default(false) @map("is_system")
-
+  name        String  @unique // "SUPER_ADMIN", "MARKETING", "REPORTS_VIEWER"
+  label       String           // "Super Administrador", "Marketing"
+  isSystem    Boolean @default(false) @map("is_system") // roles protegidas (seed)
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  platformUserRoles       PlatformUserRole[]
+  platformUserRoles    PlatformUserRole[]
   platformRolePermissions PlatformRolePermission[]
 
   @@map("platform_roles")
 }
 
+// Quais permissões cada role admin tem
+// Permissões são granulares por recurso + ação
 model PlatformPermission {
   id       String @id @default(uuid())
-  resource String
-  action   String
+  resource String // "materials", "reports", "companies", "categories", "users"
+  action   String // "create", "read", "update", "delete", "publish"
   label    String
 
   platformRolePermissions PlatformRolePermission[]
@@ -93,7 +64,7 @@ model PlatformPermission {
 }
 
 model PlatformRolePermission {
-  id                   String @id @default(uuid())
+  id           String @id @default(uuid())
   platformRoleId       String @map("platform_role_id")
   platformPermissionId String @map("platform_permission_id")
 
@@ -106,11 +77,12 @@ model PlatformRolePermission {
   @@map("platform_role_permissions")
 }
 
+// Vínculo usuário ↔ role na plataforma (backoffice)
 model PlatformUserRole {
   id             String @id @default(uuid())
   userId         String @map("user_id")
   platformRoleId String @map("platform_role_id")
-  isSystem  Boolean @default(false) @map("is_system")
+
   user         User         @relation(fields: [userId], references: [id])
   platformRole PlatformRole @relation(fields: [platformRoleId], references: [id])
 
@@ -119,6 +91,7 @@ model PlatformUserRole {
   @@unique([userId, platformRoleId])
   @@map("platform_user_roles")
 }
+
 
 model Company {
   id       String  @id @default(uuid())
@@ -130,129 +103,12 @@ model Company {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  tenantMemberships   TenantMembership[]
-  tenantRoles         TenantRole[]
-  tenantRoleHierarchies TenantRoleHierarchy[] // ← adicionado
-  categories          Category[]
+  // tenantMemberships   TenantMembership[]
+  // tenantRoles         TenantRole[]
+  // tenantRoleHierarchies TenantRoleHierarchy[] // ← adicionado
+  // categories          Category[]
 
   @@map("companies")
-}
-
-model TenantRole {
-  id        String  @id @default(uuid())
-  companyId String  @map("company_id")
-  name      String
-  label     String
-
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  company             Company             @relation(fields: [companyId], references: [id])
-  tenantMemberships   TenantMembership[]
-  categoryPermissions CategoryPermission[]
-
-  // Regras onde esta role é o chefe
-  asManagerRole  TenantRoleHierarchy[] @relation("ManagerRole")
-  // Regras onde esta role é o subordinado
-  asEmployeeRole TenantRoleHierarchy[] @relation("EmployeeRole")
-
-  @@unique([companyId, name])
-  @@map("tenant_roles")
-}
-
-// Define quais roles podem ser subordinadas de quais dentro de uma empresa
-// Exemplo: AGENTE (manager) pode ter FUNCIONARIO (employee)
-model TenantRoleHierarchy {
-  id             String @id @default(uuid())
-  companyId      String @map("company_id")
-  managerRoleId  String @map("manager_role_id")
-  employeeRoleId String @map("employee_role_id")
-
-  company      Company    @relation(fields: [companyId], references: [id])
-  managerRole  TenantRole @relation("ManagerRole",  fields: [managerRoleId],  references: [id])
-  employeeRole TenantRole @relation("EmployeeRole", fields: [employeeRoleId], references: [id])
-
-  @@unique([managerRoleId, employeeRoleId])
-  @@index([companyId])
-  @@map("tenant_role_hierarchies")
-}
-
-model TenantMembership {
-  id           String @id @default(uuid())
-  userId       String @map("user_id")
-  companyId    String @map("company_id")
-  tenantRoleId String @map("tenant_role_id")
-
-  user       TenantUser       @relation(fields: [userId], references: [id])
-  company    Company    @relation(fields: [companyId], references: [id])
-  tenantRole TenantRole @relation(fields: [tenantRoleId], references: [id])
-
-  managerId String?            @map("manager_id")
-  manager   TenantMembership?  @relation("MemberHierarchy", fields: [managerId], references: [id])
-  employees TenantMembership[] @relation("MemberHierarchy")
-
-  isActive  Boolean   @default(true) @map("is_active")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-
-  @@unique([userId, companyId])
-  @@index([userId, companyId])
-  @@index([managerId])
-  @@map("tenant_memberships")
-}
-
-model Category {
-  id        String  @id @default(cuid())
-  companyId String  @map("company_id")
-  name      String
-  slug      String
-  isActive  Boolean @default(true) @map("is_active")
-  order     Int
-
-  parentId String?
-  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children Category[] @relation("CategoryHierarchy")
-
-  company Company @relation(fields: [companyId], references: [id])
-
-  createdById String   @map("created_by")
-  createdBy   User     @relation("CategoryCreatedBy", fields: [createdById], references: [id])
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  updatedById String?  @map("updated_by")
-  updatedBy   User?    @relation("CategoryUpdatedBy", fields: [updatedById], references: [id])
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  isDeleted   Boolean  @default(false) @map("is_deleted")
-  deletedById String?  @map("deleted_by")
-  deletedBy   User?    @relation("CategoryDeletedBy", fields: [deletedById], references: [id])
-
-  categoryPermissions CategoryPermission[]
-
-  @@unique([companyId, slug])
-  @@unique([companyId, order])
-  @@index([companyId])
-  @@index([parentId])
-  @@map("categories")
-}
-
-model CategoryPermission {
-  id           String  @id @default(uuid())
-  tenantRoleId String  @map("tenant_role_id")
-  categoryId   String  @map("category_id")
-  canView      Boolean @default(false) @map("can_view")
-  canDownload  Boolean @default(false) @map("can_download")
-
-  tenantRole TenantRole @relation(fields: [tenantRoleId], references: [id])
-  category   Category   @relation(fields: [categoryId], references: [id])
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@unique([tenantRoleId, categoryId])
-  @@index([tenantRoleId])
-  @@index([categoryId])
-  @@map("category_permissions")
 }
 
 model Log {
