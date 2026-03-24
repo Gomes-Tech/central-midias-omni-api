@@ -1,4 +1,4 @@
-// src/tenant/guards/category-permission.guard.ts
+import { authorizationToLoginPayload } from '@common/utils';
 import { PrismaService } from '@infrastructure/prisma';
 import {
   CanActivate,
@@ -6,6 +6,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 
 @Injectable()
@@ -14,22 +15,53 @@ export class CategoryPermissionGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const tenant = request.tenant;
-    const membership = request.membership; // colocado pelo TenantAccessGuard
 
-    // membership precisa estar no request — esse guard sempre vem depois do TenantAccessGuard
-    if (!membership) {
-      throw new ForbiddenException('Membership não resolvido.');
-    }
+    const { authorization, ['x-organization-id']: organizationId } =
+      request.headers;
 
-    const categorySlug: string = request.params.categorySlug;
+    const loginPayload = authorizationToLoginPayload(authorization ?? '');
+    const userId = loginPayload?.id;
+
+    const categorySlug: string = request.params.slug;
 
     if (!categorySlug) return true;
+    if (!userId) {
+      throw new UnauthorizedException('Usuário não autenticado.');
+    }
+    if (!organizationId) {
+      throw new ForbiddenException('Organização não informada.');
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: userId,
+        isActive: true,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        platformRoleId: true,
+        platformUserOrganizations: {
+          where: { organizationId },
+          select: { organizationId: true },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Usuário não encontrado ou inativo.');
+    }
+
+    const hasOrganizationAccess = user.platformUserOrganizations.length > 0;
+
+    if (!hasOrganizationAccess) {
+      throw new ForbiddenException('Você não tem acesso a esta organização.');
+    }
 
     const category = await this.prisma.category.findUnique({
       where: {
-        companyId_slug: {
-          companyId: tenant.id,
+        organizationId_slug: {
+          organizationId,
           slug: categorySlug,
         },
       },
@@ -39,23 +71,33 @@ export class CategoryPermissionGuard implements CanActivate {
       throw new NotFoundException('Categoria não encontrada.');
     }
 
-    const permission = await this.prisma.categoryPermission.findUnique({
+    const categoryRoleAccess = await this.prisma.categoryRoleAccess.findUnique({
       where: {
-        tenantRoleId_categoryId: {
-          tenantRoleId: membership.tenantRoleId,
+        categoryId_roleId_organizationId: {
           categoryId: category.id,
+          roleId: user.platformRoleId,
+          organizationId,
         },
+      },
+      select: {
+        id: true,
+        categoryId: true,
+        roleId: true,
+        organizationId: true,
       },
     });
 
-    if (!permission?.canView) {
+    if (!categoryRoleAccess) {
       throw new ForbiddenException(
         'Você não tem acesso ao conteúdo desta categoria.',
       );
     }
 
-    request.category = category;
-    request.categoryPermission = permission;
+    // request.organization = request.organization ?? { id: organizationId };
+    // request.category = category;
+    // request.categoryRoleAccess = categoryRoleAccess;
+    // request.categoryPermission = categoryRoleAccess;
+
     return true;
   }
 }
