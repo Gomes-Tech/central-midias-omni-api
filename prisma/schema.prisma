@@ -85,18 +85,18 @@ model PlatformRolePermission {
 model PlatformUserCompany {
   id        String @id @default(uuid())
   userId    String @map("user_id")
-  companyId String @map("company_id")
+  organizationId String @map("organization_id")
 
   user    User    @relation(fields: [userId], references: [id])
-  company Company @relation(fields: [companyId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@unique([userId, companyId])
+  @@unique([userId, organizationId])
   @@map("platform_user_companies")
 }
 
-model Company {
+model Organization {
   id       String  @id @default(uuid())
   name     String
   slug     String  @unique
@@ -113,12 +113,12 @@ model Company {
   // tenantRoleHierarchies TenantRoleHierarchy[]
   categories            Category[]
 
-  @@map("companies")
+  @@map("organizations")
 }
 
 model Category {
   id        String  @id @default(cuid())
-  companyId String  @map("company_id")
+  organizationId String  @map("organization_id")
   name      String
   slug      String
   isActive  Boolean @default(true) @map("is_active")
@@ -128,7 +128,7 @@ model Category {
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children Category[] @relation("CategoryHierarchy")
 
-  company Company @relation(fields: [companyId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
 
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -137,9 +137,9 @@ model Category {
 
   // categoryPermissions CategoryPermission[]
 
-  @@unique([companyId, slug])
-  @@unique([companyId, order])
-  @@index([companyId])
+  @@unique([organizationId, slug])
+  @@unique([organizationId, order])
+  @@index([organizationId])
   @@index([parentId])
   @@map("categories")
 }
