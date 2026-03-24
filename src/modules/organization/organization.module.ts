@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { CompanyController } from './company.controller';
+import { CompanyController } from './organization.controller';
 import { CompanyRepository } from './repositories';
 import {
   CreateCompanyUseCase,

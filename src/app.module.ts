@@ -9,7 +9,7 @@ import { TenantMiddleware } from '@common/middlewares/tenant.middleware';
 import { JwtModule } from '@infrastructure/jwt';
 import { PrismaModule } from '@infrastructure/prisma';
 import { SecurityModule } from '@infrastructure/security';
-import { CompanyModule } from '@modules/company';
+import { CompanyModule } from '@modules/organization';
 import { RolesModule } from '@modules/roles';
 import { UserModule } from '@modules/user';
 import { UserRolesModule } from '@modules/user-roles';

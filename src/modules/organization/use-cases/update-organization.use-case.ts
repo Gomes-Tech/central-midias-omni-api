@@ -2,7 +2,7 @@ import { BadRequestException } from '@common/filters';
 import { Inject, Injectable } from '@nestjs/common';
 import { UpdateCompanyDTO } from '../dto';
 import { CompanyRepository } from '../repositories';
-import { FindCompanyByIdUseCase } from './find-company-by-id.use-case';
+import { FindCompanyByIdUseCase } from './find-organization-by-id.use-case';
 
 @Injectable()
 export class UpdateCompanyUseCase {
@@ -19,7 +19,9 @@ export class UpdateCompanyUseCase {
       const companyBySlug = await this.companyRepository.findBySlug(data.slug);
 
       if (companyBySlug && companyBySlug.id !== id) {
-        throw new BadRequestException('Já existe uma organização com este slug');
+        throw new BadRequestException(
+          'Já existe uma organização com este slug',
+        );
       }
     }
 

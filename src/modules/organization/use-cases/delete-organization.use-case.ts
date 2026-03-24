@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CompanyRepository } from '../repositories';
-import { FindCompanyByIdUseCase } from './find-company-by-id.use-case';
+import { FindCompanyByIdUseCase } from './find-organization-by-id.use-case';
 
 @Injectable()
 export class DeleteCompanyUseCase {
