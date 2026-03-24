@@ -19,12 +19,32 @@ model User {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
-  platformRoleId String   @map("platform_role_id")
-  platformRole          PlatformRole         @relation(fields: [platformRoleId], references: [id])
-  platformUserCompanies PlatformUserCompany[] // ← adicionado
+  platformRoleId            String                     @map("platform_role_id")
+  platformRole              PlatformRole               @relation(fields: [platformRoleId], references: [id])
+  platformUserOrganizations PlatformUserOrganization[] // ← adicionado
+  managedUsers              UserHierarchy[]            @relation("ManagerRelation")
+  managerOf                 UserHierarchy[]            @relation("SubordinateRelation")
 
   @@index([email])
   @@map("users")
+}
+
+model UserHierarchy {
+  id String @id @default(uuid())
+
+  managerId      String @map("manager_id") // chefe
+  subordinateId  String @map("subordinate_id") // funcionário
+  organizationId String @map("organization_id")
+
+  manager      User         @relation("ManagerRelation", fields: [managerId], references: [id])
+  subordinate  User         @relation("SubordinateRelation", fields: [subordinateId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([subordinateId, organizationId]) // um funcionário só tem 1 chefe por org
+  @@index([managerId, organizationId])
+  @@map("user_hierarchies")
 }
 
 // ============================================================
@@ -36,16 +56,19 @@ model User {
 // Todas as roles são globais — a role define O QUE pode fazer
 // A PlatformUserCompany define ONDE (em quais companies) o usuário pode atuar
 model PlatformRole {
-  id        String    @id @default(uuid())
-  name      String    @unique // "ADMIN", "MARKETING", "REPORTS", "CADASTRO"
-  label     String            // "Administrador", "Marketing"
-  isSystem  Boolean   @default(false) @map("is_system") // roles protegidas (seed)
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id                  String    @id @default(uuid())
+  name                String    @unique // "ADMIN", "MARKETING", "REPORTS", "CADASTRO"
+  label               String // "Administrador", "Marketing"
+  isSystem            Boolean   @default(false) @map("is_system") // roles protegidas (seed)
+  isBackoffice        Boolean   @default(false) @map("is_backoffice") // role do backoffice
+  canHaveSubordinates Boolean   @default(false) @map("can_have_subordinates")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
 
   users                   User[]
   platformRolePermissions PlatformRolePermission[]
+  categoryRoleAccesses    CategoryRoleAccess[]
 
   @@map("platform_roles")
 }
@@ -54,7 +77,7 @@ model PlatformRole {
 model PlatformPermission {
   id       String @id @default(uuid())
   resource String // "materials", "reports", "companies", "categories", "users"
-  action   String // "create", "read", "update", "delete", "publish"
+  action   String // "create", "read", "update", "delete"
   label    String
 
   platformRolePermissions PlatformRolePermission[]
@@ -82,18 +105,18 @@ model PlatformRolePermission {
 // Regras de population:
 //   - Usuários ADMIN → vinculados automaticamente via código ao criar uma nova company
 //   - Demais roles   → vinculados manualmente por um admin
-model PlatformUserCompany {
-  id        String @id @default(uuid())
-  userId    String @map("user_id")
+model PlatformUserOrganization {
+  id             String @id @default(uuid())
+  userId         String @map("user_id")
   organizationId String @map("organization_id")
 
-  user    User    @relation(fields: [userId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
   organization Organization @relation(fields: [organizationId], references: [id])
 
   createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([userId, organizationId])
-  @@map("platform_user_companies")
+  @@map("platform_user_organizations")
 }
 
 model Organization {
@@ -106,23 +129,22 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  platformUserCompanies PlatformUserCompany[] // ← adicionado
+  platformUserOrganizations PlatformUserOrganization[]
 
-  // tenantMemberships     TenantMembership[]
-  // tenantRoles           TenantRole[]
-  // tenantRoleHierarchies TenantRoleHierarchy[]
-  categories            Category[]
+  categories           Category[]
+  categoryRoleAccesses CategoryRoleAccess[]
+  userHierarchies      UserHierarchy[]
 
   @@map("organizations")
 }
 
 model Category {
-  id        String  @id @default(cuid())
+  id             String  @id @default(cuid())
   organizationId String  @map("organization_id")
-  name      String
-  slug      String
-  isActive  Boolean @default(true) @map("is_active")
-  order     Int
+  name           String
+  slug           String
+  isActive       Boolean @default(true) @map("is_active")
+  order          Int
 
   parentId String?
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
@@ -130,18 +152,33 @@ model Category {
 
   organization Organization @relation(fields: [organizationId], references: [id])
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  isDeleted   Boolean  @default(false) @map("is_deleted")
-  deletedAt   DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  deletedAt DateTime? @map("deleted_at")
 
-  // categoryPermissions CategoryPermission[]
+  categoryRoleAccesses CategoryRoleAccess[]
 
   @@unique([organizationId, slug])
   @@unique([organizationId, order])
   @@index([organizationId])
   @@index([parentId])
   @@map("categories")
+}
+
+model CategoryRoleAccess {
+  id             String @id @default(uuid())
+  categoryId     String @map("category_id")
+  roleId         String @map("role_id")
+  organizationId String @map("organization_id") // ← VOLTA ISSO
+
+  category     Category     @relation(fields: [categoryId], references: [id])
+  role         PlatformRole @relation(fields: [roleId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([categoryId, roleId, organizationId]) // ← ATUALIZA A UNIQUE
+  @@index([roleId, organizationId])
+  @@map("category_role_accesses")
 }
 
 model Log {
