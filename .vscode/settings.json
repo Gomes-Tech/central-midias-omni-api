@@ -2,5 +2,6 @@
   "prisma.pinToPrisma6": true,
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "files.eol": "\n"
+  "files.eol": "\n",
+  "material-icon-theme.activeIconPack": "nest"
 }

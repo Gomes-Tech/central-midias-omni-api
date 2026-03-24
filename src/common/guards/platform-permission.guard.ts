@@ -3,6 +3,7 @@
 // Vai no banco buscar as permissões da role do usuário.
 // Não precisa estar no JWT porque só bate uma vez por request e o dado raramente muda.
 import { PERMISSION_KEY } from '@common/decorators';
+import { authorizationToLoginPayload } from '@common/utils';
 import { PrismaService } from '@infrastructure/prisma';
 import {
   CanActivate,
@@ -25,11 +26,21 @@ export class PlatformPermissionGuard implements CanActivate {
       [context.getHandler(), context.getClass()],
     );
 
-    const { user } = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest();
+
+    const { authorization } = request.headers;
+
+    const loginPayload = authorizationToLoginPayload(authorization ?? '');
+
+    const userId = loginPayload?.id;
 
     // Verifica se a role do usuário tem contexto de plataforma (platform roles)
-    const platformRole = await this.prisma.platformRole.findUnique({
-      where: { name: user.role },
+    const platformRole = await this.prisma.platformRole.findFirst({
+      where: {
+        users: {
+          some: { id: userId },
+        },
+      },
       include: {
         platformRolePermissions: {
           include: { platformPermission: true },
