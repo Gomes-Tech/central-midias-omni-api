@@ -12,6 +12,10 @@ export function RequirePermission(): MethodDecorator & ClassDecorator {
   return () => undefined;
 }
 
+export function Public(): MethodDecorator & ClassDecorator {
+  return () => undefined;
+}
+
 export function UserId(): ParameterDecorator {
   return () => undefined;
 }
