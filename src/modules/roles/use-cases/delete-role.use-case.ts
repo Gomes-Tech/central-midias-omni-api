@@ -1,8 +1,8 @@
 import { BadRequestException } from '@common/filters';
-import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@infrastructure/prisma';
-import { FindRoleByIdUseCase } from './find-role-by-id.use-case';
+import { Injectable } from '@nestjs/common';
 import { RolesRepository } from '../repository';
+import { FindRoleByIdUseCase } from './find-role-by-id.use-case';
 
 @Injectable()
 export class DeleteRoleUseCase {
@@ -15,9 +15,9 @@ export class DeleteRoleUseCase {
   async execute(id: string) {
     await this.findRoleByIdUseCase.execute(id);
 
-    const linkedUsers = await this.prisma.userRole.count({
+    const linkedUsers = await this.prisma.platformRole.count({
       where: {
-        roleId: id,
+        id: id,
       },
     });
 

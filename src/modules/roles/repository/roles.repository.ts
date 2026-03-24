@@ -5,11 +5,8 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { CreateRoleDTO, FindAllRolesFiltersDTO, UpdateRoleDTO } from '../dto';
 import { Role } from '../entities';
-
-type PrismaRole = Prisma.RolesGetPayload<Record<string, never>>;
 
 @Injectable()
 export class RolesRepository {
@@ -20,12 +17,12 @@ export class RolesRepository {
 
   async findAll(filters: FindAllRolesFiltersDTO = {}): Promise<Role[]> {
     try {
-      const roles = await this.prisma.roles.findMany({
+      const roles = await this.prisma.platformRole.findMany({
         where: filters.includeDeleted ? undefined : { deletedAt: null },
-        orderBy: [{ label: 'asc' }, { role: 'asc' }],
+        orderBy: [{ label: 'asc' }, { name: 'asc' }],
       });
 
-      return roles.map((role) => this.toRole(role));
+      return roles;
     } catch (error) {
       this.handleError('RolesRepository.findAll falhou', error, { filters });
     }
@@ -33,11 +30,11 @@ export class RolesRepository {
 
   async findById(id: string): Promise<Role | null> {
     try {
-      const role = await this.prisma.roles.findUnique({
+      const role = await this.prisma.platformRole.findUnique({
         where: { id },
       });
 
-      return role ? this.toRole(role) : null;
+      return role;
     } catch (error) {
       this.handleError('RolesRepository.findById falhou', error, { id });
     }
@@ -45,14 +42,14 @@ export class RolesRepository {
 
   async findByCode(roleCode: string): Promise<Role | null> {
     try {
-      const role = await this.prisma.roles.findFirst({
+      const role = await this.prisma.platformRole.findFirst({
         where: {
-          role: roleCode,
+          name: roleCode,
           deletedAt: null,
         },
       });
 
-      return role ? this.toRole(role) : null;
+      return role;
     } catch (error) {
       this.handleError('RolesRepository.findByCode falhou', error, {
         roleCode,
@@ -66,16 +63,16 @@ export class RolesRepository {
         return [];
       }
 
-      const roles = await this.prisma.roles.findMany({
+      const roles = await this.prisma.platformRole.findMany({
         where: {
-          role: {
+          name: {
             in: [...new Set(roleCodes)],
           },
           deletedAt: null,
         },
       });
 
-      return roles.map((role) => this.toRole(role));
+      return roles;
     } catch (error) {
       this.handleError('RolesRepository.findByCodes falhou', error, {
         roleCodes,
@@ -85,33 +82,41 @@ export class RolesRepository {
 
   async create(data: CreateRoleDTO): Promise<Role> {
     try {
-      const role = await this.prisma.roles.create({
+      const role = await this.prisma.platformRole.create({
         data: {
           label: data.label,
-          role: data.role,
+          name: data.name,
+          isBackoffice: data.isBackoffice,
+          canHaveSubordinates: data.canHaveSubordinates,
         },
       });
 
       void this.logger.info('Perfil criado', {
         roleId: role.id,
-        role: role.role,
+        role: role.name,
       });
 
-      return this.toRole(role);
+      return role;
     } catch (error) {
       this.handleError('RolesRepository.create falhou', error, {
-        role: data.role,
+        role: data.name,
       });
     }
   }
 
   async update(id: string, data: UpdateRoleDTO): Promise<Role> {
     try {
-      const role = await this.prisma.roles.update({
+      const role = await this.prisma.platformRole.update({
         where: { id },
         data: {
           ...(data.label !== undefined && { label: data.label }),
-          ...(data.role !== undefined && { role: data.role }),
+          ...(data.name !== undefined && { name: data.name }),
+          ...(data.isBackoffice !== undefined && {
+            isBackoffice: data.isBackoffice,
+          }),
+          ...(data.canHaveSubordinates !== undefined && {
+            canHaveSubordinates: data.canHaveSubordinates,
+          }),
         },
       });
 
@@ -119,7 +124,7 @@ export class RolesRepository {
         roleId: id,
       });
 
-      return this.toRole(role);
+      return role;
     } catch (error) {
       this.handleError('RolesRepository.update falhou', error, {
         roleId: id,
@@ -129,7 +134,7 @@ export class RolesRepository {
 
   async softDelete(id: string): Promise<void> {
     try {
-      await this.prisma.roles.update({
+      await this.prisma.platformRole.update({
         where: { id },
         data: {
           deletedAt: new Date(),
@@ -142,17 +147,6 @@ export class RolesRepository {
         roleId: id,
       });
     }
-  }
-
-  private toRole(role: PrismaRole): Role {
-    return {
-      id: role.id,
-      label: role.label,
-      role: role.role,
-      createdAt: role.createdAt,
-      updatedAt: role.updatedAt,
-      deletedAt: role.deletedAt,
-    };
   }
 
   private handleError(

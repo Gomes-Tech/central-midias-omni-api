@@ -1,5 +1,5 @@
 import { Sanitize } from '@common/decorators';
-import { IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class UpdateRoleDTO {
   @IsOptional()
@@ -10,5 +10,13 @@ export class UpdateRoleDTO {
   @IsOptional()
   @IsString()
   @Sanitize()
-  role?: string;
+  name?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isBackoffice?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  canHaveSubordinates?: boolean;
 }

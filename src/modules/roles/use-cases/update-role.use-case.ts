@@ -14,11 +14,11 @@ export class UpdateRoleUseCase {
   async execute(id: string, data: UpdateRoleDTO) {
     const role = await this.findRoleByIdUseCase.execute(id);
 
-    if (data.role && data.role !== role.role) {
-      const existingRole = await this.rolesRepository.findByCode(data.role);
+    if (data.name && data.name !== role.name) {
+      const existingRole = await this.rolesRepository.findByCode(data.name);
 
       if (existingRole && existingRole.id !== id) {
-        throw new BadRequestException('Já existe um perfil com este código');
+        throw new BadRequestException('Já existe um perfil com este nome');
       }
     }
 

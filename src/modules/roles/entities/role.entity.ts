@@ -1,7 +1,10 @@
 export interface Role {
   id: string;
   label: string;
-  role: string;
+  name: string;
+  isSystem: boolean;
+  isBackoffice: boolean;
+  canHaveSubordinates: boolean;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date | null;

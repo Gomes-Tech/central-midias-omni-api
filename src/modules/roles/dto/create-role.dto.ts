@@ -1,14 +1,22 @@
 import { Sanitize } from '@common/decorators';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateRoleDTO {
+  @IsNotEmpty()
+  @IsString()
+  @Sanitize()
+  name: string;
+
   @IsNotEmpty()
   @IsString()
   @Sanitize()
   label: string;
 
   @IsNotEmpty()
-  @IsString()
-  @Sanitize()
-  role: string;
+  @IsBoolean()
+  isBackoffice: boolean;
+
+  @IsNotEmpty()
+  @IsBoolean()
+  canHaveSubordinates: boolean;
 }
