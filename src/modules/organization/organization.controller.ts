@@ -1,8 +1,5 @@
-import { RequirePermission } from '@common/decorators';
-import {
-  TenantAccessGuard,
-  TenantPermissionGuard,
-} from '@common/guards';
+import { MaxFileSize, RequirePermission } from '@common/decorators';
+import { TenantAccessGuard, TenantPermissionGuard } from '@common/guards';
 import {
   Body,
   Controller,
@@ -13,57 +10,58 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { CreateCompanyDTO, UpdateCompanyDTO } from './dto';
+import { CreateOrganizationDTO, UpdateOrganizationDTO } from './dto';
 import {
-  CreateCompanyUseCase,
-  DeleteCompanyUseCase,
-  FindAllCompaniesUseCase,
-  FindCompanyByIdUseCase,
-  UpdateCompanyUseCase,
+  CreateOrganizationUseCase,
+  DeleteOrganizationUseCase,
+  FindAllOrganizationsUseCase,
+  FindOrganizationByIdUseCase,
+  UpdateOrganizationUseCase,
 } from './use-cases';
 
-@Controller('companies')
-export class CompanyController {
+@Controller('organizations')
+export class OrganizationController {
   constructor(
-    private readonly createCompanyUseCase: CreateCompanyUseCase,
-    private readonly findAllCompaniesUseCase: FindAllCompaniesUseCase,
-    private readonly findCompanyByIdUseCase: FindCompanyByIdUseCase,
-    private readonly updateCompanyUseCase: UpdateCompanyUseCase,
-    private readonly deleteCompanyUseCase: DeleteCompanyUseCase,
+    private readonly createOrganizationUseCase: CreateOrganizationUseCase,
+    private readonly findAllOrganizationsUseCase: FindAllOrganizationsUseCase,
+    private readonly findOrganizationByIdUseCase: FindOrganizationByIdUseCase,
+    private readonly updateOrganizationUseCase: UpdateOrganizationUseCase,
+    private readonly deleteOrganizationUseCase: DeleteOrganizationUseCase,
   ) {}
 
   @UseGuards(TenantAccessGuard, TenantPermissionGuard)
-  @RequirePermission('companies', 'create')
-  @Post()
-  async create(@Body() dto: CreateCompanyDTO) {
-    return await this.createCompanyUseCase.execute(dto);
-  }
-
-  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
-  @RequirePermission('companies', 'read')
+  @RequirePermission('organizations', 'read')
   @Get()
   async getList() {
-    return await this.findAllCompaniesUseCase.execute();
+    return await this.findAllOrganizationsUseCase.execute();
   }
 
   @UseGuards(TenantAccessGuard, TenantPermissionGuard)
-  @RequirePermission('companies', 'read')
+  @RequirePermission('organizations', 'read')
   @Get('/:id')
   async findById(@Param('id') id: string) {
-    return await this.findCompanyByIdUseCase.execute(id);
+    return await this.findOrganizationByIdUseCase.execute(id);
+  }
+
+  @MaxFileSize(undefined, 5)
+  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
+  @RequirePermission('organizations', 'create')
+  @Post()
+  async create(@Body() dto: CreateOrganizationDTO) {
+    return await this.createOrganizationUseCase.execute(dto);
   }
 
   @UseGuards(TenantAccessGuard, TenantPermissionGuard)
-  @RequirePermission('companies', 'update')
+  @RequirePermission('organizations', 'update')
   @Patch('/:id')
-  async update(@Param('id') id: string, @Body() dto: UpdateCompanyDTO) {
-    return await this.updateCompanyUseCase.execute(id, dto);
+  async update(@Param('id') id: string, @Body() dto: UpdateOrganizationDTO) {
+    return await this.updateOrganizationUseCase.execute(id, dto);
   }
 
   @UseGuards(TenantAccessGuard, TenantPermissionGuard)
-  @RequirePermission('companies', 'delete')
+  @RequirePermission('organizations', 'delete')
   @Delete('/:id')
   async delete(@Param('id') id: string) {
-    return await this.deleteCompanyUseCase.execute(id);
+    return await this.deleteOrganizationUseCase.execute(id);
   }
 }

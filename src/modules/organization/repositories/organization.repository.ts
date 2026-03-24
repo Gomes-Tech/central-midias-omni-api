@@ -2,18 +2,18 @@ import { BadRequestException } from '@common/filters';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
-import { Company, Prisma } from '@prisma/client';
+import { Organization, Prisma } from '@prisma/client';
 
 @Injectable()
-export class CompanyRepository {
+export class OrganizationRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
 
-  async findAll(): Promise<Company[]> {
+  async findAll(): Promise<Organization[]> {
     try {
-      return await this.prisma.company.findMany({
+      return await this.prisma.organization.findMany({
         where: {
           isActive: true,
         },
@@ -22,72 +22,75 @@ export class CompanyRepository {
         },
       });
     } catch (error) {
-      this.logger.error('CompanyRepository.findAll falhou', error);
+      this.logger.error('OrganizationRepository.findAll falhou', error);
       throw new BadRequestException('Erro ao buscar organizações');
     }
   }
 
-  async findById(id: string): Promise<Company | null> {
+  async findById(id: string): Promise<Organization | null> {
     try {
-      const company = await this.prisma.company.findUnique({
+      const organization = await this.prisma.organization.findUnique({
         where: { id },
       });
 
-      if (!company) {
+      if (!organization) {
         return null;
       }
 
-      return company;
+      return organization;
     } catch (error) {
-      this.logger.error('CompanyRepository.findById falhou', error);
+      this.logger.error('OrganizationRepository.findById falhou', error);
       throw new BadRequestException('Erro ao buscar organização');
     }
   }
 
-  async findBySlug(slug: string): Promise<Company | null> {
+  async findBySlug(slug: string): Promise<Organization | null> {
     try {
-      return await this.prisma.company.findUnique({
+      return await this.prisma.organization.findUnique({
         where: { slug },
       });
     } catch (error) {
-      this.logger.error('CompanyRepository.findBySlug falhou', error);
+      this.logger.error('OrganizationRepository.findBySlug falhou', error);
       throw new BadRequestException('Erro ao buscar organização');
     }
   }
 
-  async create(data: Prisma.CompanyCreateInput): Promise<Company> {
+  async create(data: Prisma.OrganizationCreateInput): Promise<Organization> {
     try {
-      return await this.prisma.company.create({
+      return await this.prisma.organization.create({
         data,
       });
     } catch (error) {
-      this.logger.error('CompanyRepository.create falhou', error);
+      this.logger.error('OrganizationRepository.create falhou', error);
       throw new BadRequestException('Erro ao criar organização');
     }
   }
 
-  async update(id: string, data: Prisma.CompanyUpdateInput): Promise<Company> {
+  async update(
+    id: string,
+    data: Prisma.OrganizationUpdateInput,
+  ): Promise<Organization> {
     try {
-      return await this.prisma.company.update({
+      return await this.prisma.organization.update({
         where: { id },
         data,
       });
     } catch (error) {
-      this.logger.error('CompanyRepository.update falhou', error);
+      this.logger.error('OrganizationRepository.update falhou', error);
       throw new BadRequestException('Erro ao atualizar organização');
     }
   }
 
   async delete(id: string): Promise<void> {
     try {
-      await this.prisma.company.update({
+      await this.prisma.organization.update({
         where: { id },
         data: {
           isActive: false,
         },
       });
     } catch (error) {
-      this.logger.error('CompanyRepository.delete falhou', error);
+      this.logger.error('OrganizationRepository.delete falhou', error);
       throw new BadRequestException('Erro ao deletar organização');
     }
   }

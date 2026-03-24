@@ -1,43 +1,43 @@
 import { Module } from '@nestjs/common';
-import { CompanyController } from './organization.controller';
-import { CompanyRepository } from './repositories';
+import { OrganizationController } from './organization.controller';
+import { OrganizationRepository } from './repositories';
 import {
-  CreateCompanyUseCase,
-  DeleteCompanyUseCase,
-  FindAllCompaniesUseCase,
-  FindCompanyByIdUseCase,
-  FindCompanyBySlugUseCase,
-  UpdateCompanyUseCase,
+  CreateOrganizationUseCase,
+  DeleteOrganizationUseCase,
+  FindAllOrganizationsUseCase,
+  FindOrganizationByIdUseCase,
+  FindOrganizationBySlugUseCase,
+  UpdateOrganizationUseCase,
 } from './use-cases';
 
 @Module({
   imports: [],
-  controllers: [CompanyController],
+  controllers: [OrganizationController],
   providers: [
-    FindAllCompaniesUseCase,
-    FindCompanyByIdUseCase,
-    FindCompanyBySlugUseCase,
-    CreateCompanyUseCase,
-    UpdateCompanyUseCase,
-    DeleteCompanyUseCase,
-    CompanyRepository,
+    FindAllOrganizationsUseCase,
+    FindOrganizationByIdUseCase,
+    FindOrganizationBySlugUseCase,
+    CreateOrganizationUseCase,
+    UpdateOrganizationUseCase,
+    DeleteOrganizationUseCase,
+    OrganizationRepository,
     {
-      provide: 'CompanyRepository',
-      useExisting: CompanyRepository,
+      provide: 'OrganizationRepository',
+      useExisting: OrganizationRepository,
     },
   ],
   exports: [
-    FindAllCompaniesUseCase,
-    FindCompanyByIdUseCase,
-    FindCompanyBySlugUseCase,
-    CreateCompanyUseCase,
-    UpdateCompanyUseCase,
-    DeleteCompanyUseCase,
-    CompanyRepository,
+    FindAllOrganizationsUseCase,
+    FindOrganizationByIdUseCase,
+    FindOrganizationBySlugUseCase,
+    CreateOrganizationUseCase,
+    UpdateOrganizationUseCase,
+    DeleteOrganizationUseCase,
+    OrganizationRepository,
     {
-      provide: 'CompanyRepository',
-      useExisting: CompanyRepository,
+      provide: 'OrganizationRepository',
+      useExisting: OrganizationRepository,
     },
   ],
 })
-export class CompanyModule {}
+export class OrganizationModule {}

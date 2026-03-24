@@ -1,15 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CompanyEntity } from '../entities';
-import { CompanyRepository } from '../repositories';
+import { OrganizationEntity } from '../entities';
+import { OrganizationRepository } from '../repositories';
 
 @Injectable()
-export class FindAllCompaniesUseCase {
+export class FindAllOrganizationsUseCase {
   constructor(
-    @Inject('CompanyRepository')
-    private readonly companyRepository: CompanyRepository,
+    @Inject('OrganizationRepository')
+    private readonly organizationRepository: OrganizationRepository,
   ) {}
 
-  async execute(): Promise<CompanyEntity[]> {
-    return this.companyRepository.findAll();
+  async execute(): Promise<OrganizationEntity[]> {
+    return this.organizationRepository.findAll();
   }
 }

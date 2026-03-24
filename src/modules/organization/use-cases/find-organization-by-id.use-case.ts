@@ -1,21 +1,21 @@
 import { NotFoundException } from '@common/filters';
 import { Inject, Injectable } from '@nestjs/common';
-import { CompanyRepository } from '../repositories';
+import { OrganizationRepository } from '../repositories';
 
 @Injectable()
-export class FindCompanyByIdUseCase {
+export class FindOrganizationByIdUseCase {
   constructor(
-    @Inject('CompanyRepository')
-    private readonly companyRepository: CompanyRepository,
+    @Inject('OrganizationRepository')
+    private readonly organizationRepository: OrganizationRepository,
   ) {}
 
   async execute(id: string) {
-    const company = await this.companyRepository.findById(id);
+    const organization = await this.organizationRepository.findById(id);
 
-    if (!company) {
+    if (!organization) {
       throw new NotFoundException('Organização não encontrada');
     }
 
-    return company;
+    return organization;
   }
 }

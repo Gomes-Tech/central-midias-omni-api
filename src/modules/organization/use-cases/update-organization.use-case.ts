@@ -1,34 +1,36 @@
 import { BadRequestException } from '@common/filters';
 import { Inject, Injectable } from '@nestjs/common';
-import { UpdateCompanyDTO } from '../dto';
-import { CompanyRepository } from '../repositories';
-import { FindCompanyByIdUseCase } from './find-organization-by-id.use-case';
+import { UpdateOrganizationDTO } from '../dto';
+import { OrganizationRepository } from '../repositories';
+import { FindOrganizationByIdUseCase } from './find-organization-by-id.use-case';
 
 @Injectable()
-export class UpdateCompanyUseCase {
+export class UpdateOrganizationUseCase {
   constructor(
-    @Inject('CompanyRepository')
-    private readonly companyRepository: CompanyRepository,
-    private readonly findCompanyByIdUseCase: FindCompanyByIdUseCase,
+    @Inject('OrganizationRepository')
+    private readonly organizationRepository: OrganizationRepository,
+    private readonly findOrganizationByIdUseCase: FindOrganizationByIdUseCase,
   ) {}
 
-  async execute(id: string, data: UpdateCompanyDTO) {
-    const company = await this.findCompanyByIdUseCase.execute(id);
+  async execute(id: string, data: UpdateOrganizationDTO) {
+    const organization = await this.findOrganizationByIdUseCase.execute(id);
 
-    if (data.slug && data.slug !== company.slug) {
-      const companyBySlug = await this.companyRepository.findBySlug(data.slug);
+    if (data.slug && data.slug !== organization.slug) {
+      const organizationBySlug = await this.organizationRepository.findBySlug(
+        data.slug,
+      );
 
-      if (companyBySlug && companyBySlug.id !== id) {
+      if (organizationBySlug && organizationBySlug.id !== id) {
         throw new BadRequestException(
           'Já existe uma organização com este slug',
         );
       }
     }
 
-    return this.companyRepository.update(id, {
+    return this.organizationRepository.update(id, {
       ...(data.name !== undefined && { name: data.name }),
       ...(data.slug !== undefined && { slug: data.slug }),
-      ...(data.logoUrl !== undefined && { logoUrl: data.logoUrl }),
+      // ...(data.logoUrl !== undefined && { logoUrl: data.logoUrl }),
       ...(typeof data.isActive === 'boolean' && { isActive: data.isActive }),
     });
   }

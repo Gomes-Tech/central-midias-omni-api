@@ -1,33 +1,43 @@
 import { BadRequestException } from '@common/filters';
+import { StorageService } from '@infrastructure/providers';
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateCompanyDTO } from '../dto';
-import { CompanyRepository } from '../repositories';
+import { CreateOrganizationDTO } from '../dto';
+import { OrganizationRepository } from '../repositories';
 
 @Injectable()
-export class CreateCompanyUseCase {
+export class CreateOrganizationUseCase {
   constructor(
-    @Inject('CompanyRepository')
-    private readonly companyRepository: CompanyRepository,
+    @Inject('OrganizationRepository')
+    private readonly organizationRepository: OrganizationRepository,
+    private readonly storageService: StorageService,
   ) {}
 
-  async execute(data: CreateCompanyDTO) {
-    const companyBySlug = await this.companyRepository.findBySlug(data.slug);
+  async execute(data: CreateOrganizationDTO, file?: Express.Multer.File) {
+    const organizationBySlug = await this.organizationRepository.findBySlug(
+      data.slug,
+    );
 
-    if (companyBySlug) {
+    if (organizationBySlug) {
       throw new BadRequestException('Já existe uma organização com este slug');
     }
 
-    const company = await this.companyRepository.create({
+    let logoUrl: string | null = null;
+
+    if (file) {
+      const fileData = await this.storageService.uploadFile(file);
+
+      logoUrl = fileData.publicUrl;
+    }
+
+    const organization = await this.organizationRepository.create({
       name: data.name,
       slug: data.slug,
-      logoUrl: data.logoUrl,
+      logoUrl: logoUrl,
       isActive: data.isActive ?? true,
     });
 
-    if (!company) {
+    if (!organization) {
       throw new BadRequestException('Erro ao criar organização');
     }
-
-    return company;
   }
 }

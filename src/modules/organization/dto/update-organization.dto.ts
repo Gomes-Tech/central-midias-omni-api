@@ -1,7 +1,7 @@
 import { Sanitize } from '@common/decorators';
-import { IsBoolean, IsOptional, IsString, IsUrl } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
-export class UpdateCompanyDTO {
+export class UpdateOrganizationDTO {
   @IsOptional()
   @IsString()
   @Sanitize()
@@ -11,12 +11,6 @@ export class UpdateCompanyDTO {
   @IsString()
   @Sanitize()
   slug?: string;
-
-  @IsOptional()
-  @IsString()
-  @IsUrl()
-  @Sanitize()
-  logoUrl?: string;
 
   @IsOptional()
   @IsBoolean()

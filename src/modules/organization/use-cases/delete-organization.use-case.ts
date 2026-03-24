@@ -1,17 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CompanyRepository } from '../repositories';
-import { FindCompanyByIdUseCase } from './find-organization-by-id.use-case';
+import { OrganizationRepository } from '../repositories';
+import { FindOrganizationByIdUseCase } from './find-organization-by-id.use-case';
 
 @Injectable()
-export class DeleteCompanyUseCase {
+export class DeleteOrganizationUseCase {
   constructor(
-    @Inject('CompanyRepository')
-    private readonly companyRepository: CompanyRepository,
-    private readonly findCompanyByIdUseCase: FindCompanyByIdUseCase,
+    @Inject('OrganizationRepository')
+    private readonly organizationRepository: OrganizationRepository,
+    private readonly findOrganizationByIdUseCase: FindOrganizationByIdUseCase,
   ) {}
 
   async execute(id: string) {
-    await this.findCompanyByIdUseCase.execute(id);
-    return this.companyRepository.delete(id);
+    await this.findOrganizationByIdUseCase.execute(id);
+    return this.organizationRepository.delete(id);
   }
 }

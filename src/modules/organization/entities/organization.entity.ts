@@ -1,4 +1,4 @@
-export interface CompanyEntity {
+export interface OrganizationEntity {
   id: string;
   name: string;
   slug: string;

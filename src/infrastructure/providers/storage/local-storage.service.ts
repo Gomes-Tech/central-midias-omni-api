@@ -18,6 +18,13 @@ export type MulterFile = Readonly<{
   path?: string;
 }>;
 
+export type LocalStorageFile = Readonly<{
+  id: string;
+  path: string;
+  fullPath: string;
+  publicUrl: string;
+}>;
+
 @Injectable()
 export class LocalStorageService {
   private readonly rootDir = join(process.cwd(), 'storage');
@@ -32,6 +39,53 @@ export class LocalStorageService {
 
   private async ensureDir(dirPath: string): Promise<void> {
     await fsp.mkdir(dirPath, { recursive: true });
+  }
+
+  async uploadFile(
+    file: MulterFile,
+    folder = 'organizations',
+  ): Promise<LocalStorageFile> {
+    const originalName = file.originalname.trim() || 'arquivo';
+    const mimeType = file.mimetype || 'application/octet-stream';
+    const ext = this.guessExt(originalName, mimeType);
+    const id = randomUUID();
+    const fileName = `${id}${ext}`;
+    const relativePath = join(folder, fileName);
+
+    const absolutePath = this.safeJoin(this.rootDir, relativePath);
+    const absoluteDir = this.safeJoin(this.rootDir, folder);
+
+    await this.ensureDir(absoluteDir);
+
+    try {
+      if (file.buffer && file.buffer.length >= 0) {
+        await fsp.writeFile(absolutePath, file.buffer);
+      } else {
+        throw new InternalServerErrorException(
+          'Upload sem buffer. Verifique se o FileInterceptor está usando memoryStorage().',
+        );
+      }
+    } catch {
+      throw new InternalServerErrorException(
+        'Falha ao salvar arquivo no disco.',
+      );
+    }
+
+    return {
+      id,
+      path: relativePath,
+      fullPath: absolutePath,
+      publicUrl: this.getPublicUrl(relativePath),
+    };
+  }
+
+  getPublicUrl(path: string): string {
+    const normalizedPath = path.replaceAll('\\', '/');
+    return `/storage/${normalizedPath}`;
+  }
+
+  async deleteFile(paths: string[]): Promise<void> {
+    await Promise.all(paths.map((path) => this.remove(path)));
   }
 
   async storePublicationAttachment(params: {
