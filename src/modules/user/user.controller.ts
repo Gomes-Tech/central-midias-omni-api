@@ -14,7 +14,6 @@ import { CreateUserDTO, UpdateUserDTO } from './dto';
 import {
   CreateUserUseCase,
   DeleteUserUseCase,
-  FindAllTechniciansUseCase,
   FindAllUsersUseCase,
   FindUserByIdUseCase,
   UpdateUserUseCase,
@@ -25,7 +24,6 @@ export class UserController {
   constructor(
     private readonly createUserUseCase: CreateUserUseCase,
     private readonly findAllUsersUseCase: FindAllUsersUseCase,
-    private readonly findAllTechniciansUseCase: FindAllTechniciansUseCase,
     private readonly findUserByIdUseCase: FindUserByIdUseCase,
     private readonly updateUserUseCase: UpdateUserUseCase,
     private readonly deleteUserUseCase: DeleteUserUseCase,
@@ -51,11 +49,6 @@ export class UserController {
     delete user.password;
 
     return user;
-  }
-
-  @Get('/technicians')
-  async findAllTechnicians() {
-    return await this.findAllTechniciansUseCase.execute();
   }
 
   @UseGuards(TenantAccessGuard, TenantPermissionGuard)

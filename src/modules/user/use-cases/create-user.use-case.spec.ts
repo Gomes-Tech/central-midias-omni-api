@@ -3,7 +3,6 @@ import { CryptographyService } from '@infrastructure/criptography';
 import { UserRepository } from '../repository';
 import { CreateUserUseCase } from './create-user.use-case';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
-import { FindUserByTaxIdentifierUseCase } from './find-user-by-tax-identifier.use-case';
 import { FindUserRoleUseCase } from './find-user-role.use-case';
 import { makeCreateUserDTO, makeUser } from './test-helpers';
 
@@ -11,7 +10,6 @@ describe('CreateUserUseCase', () => {
   let useCase: CreateUserUseCase;
   let userRepository: jest.Mocked<UserRepository>;
   let findByEmailUseCase: jest.Mocked<FindUserByEmailUseCase>;
-  let findByTaxIdentifierUseCase: jest.Mocked<FindUserByTaxIdentifierUseCase>;
   let cryptographyService: jest.Mocked<CryptographyService>;
   let findUserRoleUseCase: jest.Mocked<FindUserRoleUseCase>;
 
@@ -24,10 +22,6 @@ describe('CreateUserUseCase', () => {
       execute: jest.fn(),
     } as unknown as jest.Mocked<FindUserByEmailUseCase>;
 
-    findByTaxIdentifierUseCase = {
-      execute: jest.fn(),
-    } as unknown as jest.Mocked<FindUserByTaxIdentifierUseCase>;
-
     cryptographyService = {
       hash: jest.fn(),
     } as unknown as jest.Mocked<CryptographyService>;
@@ -39,7 +33,6 @@ describe('CreateUserUseCase', () => {
     useCase = new CreateUserUseCase(
       userRepository,
       findByEmailUseCase,
-      findByTaxIdentifierUseCase,
       cryptographyService,
       findUserRoleUseCase,
     );
@@ -56,12 +49,9 @@ describe('CreateUserUseCase', () => {
     expect(cryptographyService.hash).not.toHaveBeenCalled();
   });
 
-  it('deve impedir criação quando já existir usuário por email ou cpf/cnpj', async () => {
+  it('deve impedir criação quando já existir usuário por email', async () => {
     findUserRoleUseCase.execute.mockResolvedValue('ADMIN');
     findByEmailUseCase.execute.mockResolvedValue(makeUser());
-    findByTaxIdentifierUseCase.execute.mockRejectedValue(
-      new Error('not found'),
-    );
 
     await expect(
       useCase.execute(makeCreateUserDTO(), 'requester-id'),
@@ -76,9 +66,6 @@ describe('CreateUserUseCase', () => {
 
     findUserRoleUseCase.execute.mockResolvedValue('ADMIN');
     findByEmailUseCase.execute.mockRejectedValue(new Error('not found'));
-    findByTaxIdentifierUseCase.execute.mockRejectedValue(
-      new Error('not found'),
-    );
     cryptographyService.hash.mockResolvedValue('hashed-secret');
     userRepository.create.mockResolvedValue(createdUser);
 
@@ -90,21 +77,5 @@ describe('CreateUserUseCase', () => {
       password: 'hashed-secret',
     });
     expect(result).toEqual(createdUser);
-  });
-
-  it('deve usar o taxIdentifier como senha inicial quando password não for enviada', async () => {
-    const dto = makeCreateUserDTO({ password: undefined });
-
-    findUserRoleUseCase.execute.mockResolvedValue('ADMIN');
-    findByEmailUseCase.execute.mockRejectedValue(new Error('not found'));
-    findByTaxIdentifierUseCase.execute.mockRejectedValue(
-      new Error('not found'),
-    );
-    cryptographyService.hash.mockResolvedValue('hashed-tax-identifier');
-    userRepository.create.mockResolvedValue(makeUser());
-
-    await useCase.execute(dto, 'requester-id');
-
-    expect(cryptographyService.hash).toHaveBeenCalledWith(dto.taxIdentifier);
   });
 });

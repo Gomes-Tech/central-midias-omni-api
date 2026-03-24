@@ -2,11 +2,9 @@ import { NotFoundException as NestNotFoundException } from '@nestjs/common';
 import { NotFoundException } from '@common/filters';
 import { UserRepository } from '../repository';
 import { DeleteUserUseCase } from './delete-user.use-case';
-import { FindAllTechniciansUseCase } from './find-all-technicians.use-case';
 import { FindAllUsersUseCase } from './find-all-users.use-case';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
 import { FindUserByIdUseCase } from './find-user-by-id.use-case';
-import { FindUserByTaxIdentifierUseCase } from './find-user-by-tax-identifier.use-case';
 import { FindUserRoleUseCase } from './find-user-role.use-case';
 import { makeUser, makeUserRole } from './test-helpers';
 
@@ -16,10 +14,8 @@ describe('User read and delete use cases', () => {
   beforeEach(() => {
     userRepository = {
       findAll: jest.fn(),
-      findTechnicians: jest.fn(),
       findByEmail: jest.fn(),
       findById: jest.fn(),
-      findByTaxIdentifier: jest.fn(),
       findRoleByUserId: jest.fn(),
       delete: jest.fn(),
     } as unknown as jest.Mocked<UserRepository>;
@@ -44,15 +40,6 @@ describe('User read and delete use cases', () => {
       name: 'John',
     });
     expect(result).toEqual(response);
-  });
-
-  it('FindAllTechniciansUseCase deve retornar os técnicos do repositório', async () => {
-    const useCase = new FindAllTechniciansUseCase(userRepository);
-    const technicians = [{ id: '1', name: 'Tecnico 1' }];
-
-    userRepository.findTechnicians.mockResolvedValue(technicians);
-
-    await expect(useCase.execute()).resolves.toEqual(technicians);
   });
 
   it('FindUserByEmailUseCase deve retornar usuário por email', async () => {
@@ -89,25 +76,6 @@ describe('User read and delete use cases', () => {
     userRepository.findById.mockResolvedValue(null);
 
     await expect(useCase.execute('missing-id')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-  });
-
-  it('FindUserByTaxIdentifierUseCase deve retornar usuário por cpf/cnpj', async () => {
-    const useCase = new FindUserByTaxIdentifierUseCase(userRepository);
-    const user = makeUser();
-
-    userRepository.findByTaxIdentifier.mockResolvedValue(user);
-
-    await expect(useCase.execute(user.taxIdentifier)).resolves.toEqual(user);
-  });
-
-  it('FindUserByTaxIdentifierUseCase deve lançar not found quando usuário não existir', async () => {
-    const useCase = new FindUserByTaxIdentifierUseCase(userRepository);
-
-    userRepository.findByTaxIdentifier.mockResolvedValue(null);
-
-    await expect(useCase.execute('00000000000')).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });

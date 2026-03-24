@@ -1,13 +1,21 @@
-import { Injectable } from '@nestjs/common';
-import { FindPrimaryUserRoleUseCase } from '@modules/user-roles';
+import { NotFoundException } from '@common/filters';
+import { Inject, Injectable } from '@nestjs/common';
+import { UserRepository } from '../repository';
 
 @Injectable()
 export class FindUserRoleUseCase {
   constructor(
-    private readonly findPrimaryUserRoleUseCase: FindPrimaryUserRoleUseCase,
+    @Inject('UserRepository')
+    private readonly userRepository: UserRepository,
   ) {}
 
   async execute(userId: string) {
-    return this.findPrimaryUserRoleUseCase.execute(userId);
+    const role = await this.userRepository.findRoleByUserId(userId);
+
+    if (!role) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    return role;
   }
 }

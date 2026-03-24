@@ -1,16 +1,16 @@
 import { Sanitize } from '@common/decorators';
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
-  IsDateString,
   IsEmail,
-  IsEnum,
   IsOptional,
   IsString,
   IsStrongPassword,
   IsUUID,
+  ValidateNested,
 } from 'class-validator';
-import { roles, UserRole } from 'types/role';
+import { UserManagerAssignmentDTO } from './user-manager-assignment.dto';
 
 export class UpdateUserDTO {
   @IsOptional()
@@ -19,27 +19,8 @@ export class UpdateUserDTO {
   name?: string;
 
   @IsOptional()
-  @IsString()
-  @Sanitize()
-  socialReason?: string;
-
-  @IsOptional()
   @IsEmail({}, { message: 'Email inválido' })
   email?: string;
-
-  @IsOptional()
-  @IsString()
-  @Sanitize()
-  taxIdentifier?: string;
-
-  @IsOptional()
-  @IsString()
-  @Sanitize()
-  phone?: string;
-
-  @IsOptional()
-  @IsDateString()
-  birthDate?: string;
 
   @IsOptional()
   @IsString()
@@ -54,23 +35,20 @@ export class UpdateUserDTO {
 
   @IsOptional()
   @IsBoolean()
-  isEmployee?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
   isActive?: boolean;
 
   @IsOptional()
-  @IsArray()
-  @IsEnum(roles, { each: true, message: 'Função inválida' })
-  roles?: UserRole[];
+  @IsUUID('4', { message: 'Perfil de plataforma inválido' })
+  platformRoleId?: string;
 
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true, message: 'Empresa inválida' })
-  companyIds?: string[];
+  @IsUUID('4', { each: true, message: 'Organização inválida' })
+  organizationIds?: string[];
 
   @IsOptional()
-  @IsBoolean()
-  isManager?: boolean;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UserManagerAssignmentDTO)
+  managerAssignments?: UserManagerAssignmentDTO[];
 }

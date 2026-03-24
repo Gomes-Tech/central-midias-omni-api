@@ -19,27 +19,39 @@ export class AdminUsersController {
     @Query('limit') limit?: string,
     @Query('name') name?: string,
     @Query('email') email?: string,
+    @Query('searchTerm') searchTerm?: string,
     @Query('role') role?: string,
+    @Query('platformRoleId') platformRoleId?: string,
+    @Query('platformRoleName') platformRoleName?: string,
     @Query('companyId') companyId?: string,
+    @Query('organizationId') organizationId?: string,
+    @Query('managerId') managerId?: string,
     @Query('isActive') isActive?: string,
-    @Query('isEmployee') isEmployee?: string,
   ) {
     return await this.findAllUsersUseCase.execute({
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
       name,
       email,
+      searchTerm,
       role,
+      platformRoleId,
+      platformRoleName,
       companyId,
+      organizationId,
+      managerId,
       isActive: isActive ? isActive === 'true' : undefined,
-      isEmployee: isEmployee ? isEmployee === 'true' : undefined,
     });
   }
 
   @Post()
   @RequirePermission('users', 'create')
-  create(@Body() dto: CreateUserDTO, @UserId() userId: string) {
-    return this.createUserUseCase.execute(dto, userId);
+  async create(@Body() dto: CreateUserDTO, @UserId() userId: string) {
+    const user = await this.createUserUseCase.execute(dto, userId);
+
+    delete user.password;
+
+    return user;
   }
 
   // Troca a role de um usuário do backoffice

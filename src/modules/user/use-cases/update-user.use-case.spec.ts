@@ -4,7 +4,6 @@ import { UserRepository } from '../repository';
 import { UpdateUserUseCase } from './update-user.use-case';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
 import { FindUserByIdUseCase } from './find-user-by-id.use-case';
-import { FindUserByTaxIdentifierUseCase } from './find-user-by-tax-identifier.use-case';
 import { FindUserRoleUseCase } from './find-user-role.use-case';
 import { makeUpdateUserDTO, makeUser } from './test-helpers';
 
@@ -13,7 +12,6 @@ describe('UpdateUserUseCase', () => {
   let userRepository: jest.Mocked<UserRepository>;
   let findUserByIdUseCase: jest.Mocked<FindUserByIdUseCase>;
   let findUserByEmailUseCase: jest.Mocked<FindUserByEmailUseCase>;
-  let findUserByTaxIdentifierUseCase: jest.Mocked<FindUserByTaxIdentifierUseCase>;
   let findUserRoleUseCase: jest.Mocked<FindUserRoleUseCase>;
   let cryptographyService: jest.Mocked<CryptographyService>;
 
@@ -30,10 +28,6 @@ describe('UpdateUserUseCase', () => {
       execute: jest.fn(),
     } as unknown as jest.Mocked<FindUserByEmailUseCase>;
 
-    findUserByTaxIdentifierUseCase = {
-      execute: jest.fn(),
-    } as unknown as jest.Mocked<FindUserByTaxIdentifierUseCase>;
-
     findUserRoleUseCase = {
       execute: jest.fn(),
     } as unknown as jest.Mocked<FindUserRoleUseCase>;
@@ -47,7 +41,6 @@ describe('UpdateUserUseCase', () => {
       userRepository,
       findUserByIdUseCase,
       findUserByEmailUseCase,
-      findUserByTaxIdentifierUseCase,
       findUserRoleUseCase,
       cryptographyService,
     );
@@ -84,29 +77,6 @@ describe('UpdateUserUseCase', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('deve impedir atualização com cpf/cnpj duplicado', async () => {
-    findUserByIdUseCase.execute.mockResolvedValue(
-      makeUser({ id: 'target-id' }),
-    );
-    findUserRoleUseCase.execute.mockResolvedValue('ADMIN');
-    findUserByEmailUseCase.execute.mockRejectedValue(new Error('not found'));
-    findUserByTaxIdentifierUseCase.execute.mockResolvedValue(
-      makeUser({ id: 'another-user', taxIdentifier: '98765432100' }),
-    );
-
-    await expect(
-      useCase.execute(
-        'target-id',
-        makeUpdateUserDTO({
-          email: undefined,
-          taxIdentifier: '98765432100',
-          password: undefined,
-        }),
-        'admin-id',
-      ),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
   it('deve impedir reutilização da senha anterior', async () => {
     findUserByIdUseCase.execute.mockResolvedValue(
       makeUser({ id: 'target-id' }),
@@ -119,7 +89,6 @@ describe('UpdateUserUseCase', () => {
         'target-id',
         makeUpdateUserDTO({
           email: undefined,
-          taxIdentifier: undefined,
           password: 'NewStrongPass123',
         }),
         'admin-id',
@@ -137,7 +106,6 @@ describe('UpdateUserUseCase', () => {
     findUserByIdUseCase.execute.mockResolvedValue(targetUser);
     findUserRoleUseCase.execute.mockResolvedValue('COLLABORATOR');
     findUserByEmailUseCase.execute.mockResolvedValue(null as never);
-    findUserByTaxIdentifierUseCase.execute.mockResolvedValue(null as never);
     cryptographyService.compare.mockResolvedValue(false);
     cryptographyService.hash.mockResolvedValue('hashed-new-password');
     userRepository.update.mockResolvedValue(updatedUser);
@@ -147,11 +115,10 @@ describe('UpdateUserUseCase', () => {
     expect(userRepository.update).toHaveBeenCalledWith('self-id', {
       ...dto,
       password: 'hashed-new-password',
-      roles: undefined,
-      companyIds: undefined,
+      platformRoleId: undefined,
+      organizationIds: undefined,
+      managerAssignments: undefined,
       isActive: undefined,
-      isEmployee: undefined,
-      isManager: undefined,
     });
     expect(result).toEqual(updatedUser);
   });
@@ -166,7 +133,6 @@ describe('UpdateUserUseCase', () => {
     );
     findUserRoleUseCase.execute.mockResolvedValue('ADMIN');
     findUserByEmailUseCase.execute.mockResolvedValue(null as never);
-    findUserByTaxIdentifierUseCase.execute.mockResolvedValue(null as never);
     cryptographyService.compare.mockResolvedValue(false);
     cryptographyService.hash.mockResolvedValue('hashed-new-password');
     userRepository.update.mockResolvedValue(updatedUser);

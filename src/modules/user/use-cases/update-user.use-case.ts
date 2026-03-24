@@ -1,13 +1,13 @@
 import { BadRequestException, ForbiddenException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
 import { Inject, Injectable } from '@nestjs/common';
-import { ReplaceUserRolesUseCase } from '@modules/user-roles';
 import { UpdateUserDTO } from '../dto';
 import { UserRepository } from '../repository';
 import { FindUserByIdUseCase } from './find-user-by-id.use-case';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
-import { FindUserByTaxIdentifierUseCase } from './find-user-by-tax-identifier.use-case';
 import { FindUserRoleUseCase } from './find-user-role.use-case';
+
+const ADMIN_ROLE_NAMES = new Set(['ADMIN', 'SUPER_ADMIN']);
 
 @Injectable()
 export class UpdateUserUseCase {
@@ -16,17 +16,15 @@ export class UpdateUserUseCase {
     private readonly userRepository: UserRepository,
     private readonly findUserByIdUseCase: FindUserByIdUseCase,
     private readonly findUserByEmailUseCase: FindUserByEmailUseCase,
-    private readonly findUserByTaxIdentifierUseCase: FindUserByTaxIdentifierUseCase,
     private readonly findUserRoleUseCase: FindUserRoleUseCase,
     private readonly cryptographyService: CryptographyService,
-    private readonly replaceUserRolesUseCase: ReplaceUserRolesUseCase,
   ) {}
 
   async execute(id: string, data: UpdateUserDTO, userId: string) {
     const user = await this.findUserByIdUseCase.execute(id);
     const requesterRole = await this.findUserRoleUseCase.execute(userId);
 
-    if (requesterRole !== 'ADMIN' && user.id !== userId) {
+    if (!ADMIN_ROLE_NAMES.has(requesterRole) && user.id !== userId) {
       throw new ForbiddenException('Você só pode atualizar o próprio usuário');
     }
 
@@ -37,16 +35,6 @@ export class UpdateUserUseCase {
 
       if (userWithEmail && userWithEmail.id !== id) {
         throw new BadRequestException('Já existe um usuário com este email');
-      }
-    }
-
-    if (data.taxIdentifier && data.taxIdentifier !== user.taxIdentifier) {
-      const userWithTaxIdentifier = await this.findUserByTaxIdentifierUseCase
-        .execute(data.taxIdentifier)
-        .catch(() => null);
-
-      if (userWithTaxIdentifier && userWithTaxIdentifier.id !== id) {
-        throw new BadRequestException('Já existe um usuário com este CPF/CNPJ');
       }
     }
 
@@ -65,25 +53,13 @@ export class UpdateUserUseCase {
       data.password = await this.cryptographyService.hash(data.password);
     }
 
-    if (requesterRole !== 'ADMIN') {
-      delete data.roles;
-      delete data.companyIds;
+    if (!ADMIN_ROLE_NAMES.has(requesterRole)) {
+      delete data.platformRoleId;
+      delete data.organizationIds;
+      delete data.managerAssignments;
       delete data.isActive;
-      delete data.isEmployee;
-      delete data.isManager;
     }
 
-    const updatedUser = await this.userRepository.update(id, data);
-
-    if (data.roles || data.companyIds) {
-      const targetRoles = data.roles ?? user.roles.map(({ role }) => role);
-      const targetCompanyIds =
-        data.companyIds ??
-        user.companyAccesses.map(({ companyId }) => companyId);
-
-      await this.replaceUserRolesUseCase.execute(id, targetRoles, targetCompanyIds);
-    }
-
-    return updatedUser;
+    return this.userRepository.update(id, data);
   }
 }
