@@ -8,24 +8,24 @@ import {
 } from '@nestjs/common';
 
 @Injectable()
-export class TenantMiddleware implements NestMiddleware {
+export class OrganizationMiddleware implements NestMiddleware {
   constructor(private readonly prisma: PrismaService) {}
 
   async use(req: any, _res: any, next: () => void) {
-    const tenantId = req.headers['x-tenant-id'];
+    const organizationId = req.headers['x-organization-id'];
 
-    if (!tenantId) {
+    if (!organizationId) {
       throw new BadRequestException('Permissão insuficiente.');
     }
 
-    const company = await this.prisma.company.findUnique({
-      where: { id: tenantId, isActive: true },
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: organizationId, isActive: true },
       select: {
         id: true,
       },
     });
 
-    if (!company) {
+    if (!organization) {
       throw new NotFoundException('Organização não encontrada ou inativa.');
     }
 

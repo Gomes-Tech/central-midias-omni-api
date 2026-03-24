@@ -1,5 +1,4 @@
-import { MaxFileSize, RequirePermission } from '@common/decorators';
-import { TenantAccessGuard, TenantPermissionGuard } from '@common/guards';
+import { MaxFileSize, RequirePermission, UserId } from '@common/decorators';
 import {
   Body,
   Controller,
@@ -8,7 +7,7 @@ import {
   Param,
   Patch,
   Post,
-  UseGuards,
+  UploadedFile,
 } from '@nestjs/common';
 import { CreateOrganizationDTO, UpdateOrganizationDTO } from './dto';
 import {
@@ -29,14 +28,12 @@ export class OrganizationController {
     private readonly deleteOrganizationUseCase: DeleteOrganizationUseCase,
   ) {}
 
-  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('organizations', 'read')
   @Get()
   async getList() {
     return await this.findAllOrganizationsUseCase.execute();
   }
 
-  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('organizations', 'read')
   @Get('/:id')
   async findById(@Param('id') id: string) {
@@ -44,21 +41,27 @@ export class OrganizationController {
   }
 
   @MaxFileSize(undefined, 5)
-  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('organizations', 'create')
   @Post()
-  async create(@Body() dto: CreateOrganizationDTO) {
-    return await this.createOrganizationUseCase.execute(dto);
+  async create(
+    @Body() dto: CreateOrganizationDTO,
+    @UserId() userId: string,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return await this.createOrganizationUseCase.execute(dto, userId, file);
   }
 
-  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('organizations', 'update')
   @Patch('/:id')
-  async update(@Param('id') id: string, @Body() dto: UpdateOrganizationDTO) {
-    return await this.updateOrganizationUseCase.execute(id, dto);
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateOrganizationDTO,
+    @UserId() userId: string,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return await this.updateOrganizationUseCase.execute(id, dto, userId, file);
   }
 
-  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('organizations', 'delete')
   @Delete('/:id')
   async delete(@Param('id') id: string) {

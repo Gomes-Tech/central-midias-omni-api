@@ -1,3 +1,4 @@
+import { UserModule } from '@modules/user';
 import { Module } from '@nestjs/common';
 import { OrganizationController } from './organization.controller';
 import { OrganizationRepository } from './repositories';
@@ -11,7 +12,7 @@ import {
 } from './use-cases';
 
 @Module({
-  imports: [],
+  imports: [UserModule],
   controllers: [OrganizationController],
   providers: [
     FindAllOrganizationsUseCase,

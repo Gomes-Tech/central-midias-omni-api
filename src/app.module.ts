@@ -1,15 +1,10 @@
-import {
-  AuthGuard,
-  CategoryPermissionGuard,
-  TenantAccessGuard,
-  TenantPermissionGuard,
-} from '@common/guards';
+import { AuthGuard, CategoryPermissionGuard } from '@common/guards';
+import { OrganizationMiddleware } from '@common/middlewares/organization.middleware';
 import { requestIdMiddleware } from '@common/middlewares/request-id.middleware';
-import { TenantMiddleware } from '@common/middlewares/tenant.middleware';
 import { JwtModule } from '@infrastructure/jwt';
 import { PrismaModule } from '@infrastructure/prisma';
 import { SecurityModule } from '@infrastructure/security';
-import { CompanyModule } from '@modules/organization';
+import { OrganizationModule } from '@modules/organization';
 import { RolesModule } from '@modules/roles';
 import { UserModule } from '@modules/user';
 import { UserRolesModule } from '@modules/user-roles';
@@ -28,7 +23,7 @@ import { AppService } from './app.service';
     PrismaModule,
     JwtModule,
     SecurityModule,
-    CompanyModule,
+    OrganizationModule,
     RolesModule,
     UserRolesModule,
     UserModule,
@@ -36,10 +31,8 @@ import { AppService } from './app.service';
   controllers: [AppController],
   providers: [
     AppService,
-    TenantMiddleware,
-    TenantAccessGuard,
+    OrganizationMiddleware,
     CategoryPermissionGuard,
-    TenantPermissionGuard,
     { provide: APP_GUARD, useClass: AuthGuard },
   ],
 })
@@ -48,7 +41,7 @@ export class AppModule implements NestModule {
     consumer.apply(requestIdMiddleware).forRoutes('*');
 
     consumer
-      .apply(TenantMiddleware)
+      .apply(OrganizationMiddleware)
       .exclude(
         { path: '/', method: RequestMethod.GET },
         { path: 'health', method: RequestMethod.ALL },

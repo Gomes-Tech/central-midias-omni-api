@@ -1,4 +1,6 @@
-import { BadRequestException } from '@common/filters';
+import { BadRequestException, ForbiddenException } from '@common/filters';
+import { StorageService } from '@infrastructure/providers';
+import { FindUserRoleUseCase } from '@modules/user';
 import { Inject, Injectable } from '@nestjs/common';
 import { UpdateOrganizationDTO } from '../dto';
 import { OrganizationRepository } from '../repositories';
@@ -9,10 +11,25 @@ export class UpdateOrganizationUseCase {
   constructor(
     @Inject('OrganizationRepository')
     private readonly organizationRepository: OrganizationRepository,
+    private readonly findUserRoleUseCase: FindUserRoleUseCase,
     private readonly findOrganizationByIdUseCase: FindOrganizationByIdUseCase,
+    private readonly storageService: StorageService,
   ) {}
 
-  async execute(id: string, data: UpdateOrganizationDTO) {
+  async execute(
+    id: string,
+    data: UpdateOrganizationDTO,
+    userId: string,
+    file?: Express.Multer.File,
+  ) {
+    const userRole = await this.findUserRoleUseCase.execute(userId);
+
+    if (userRole !== 'ADMIN') {
+      throw new ForbiddenException(
+        'Você não tem permissão para atualizar organizações',
+      );
+    }
+
     const organization = await this.findOrganizationByIdUseCase.execute(id);
 
     if (data.slug && data.slug !== organization.slug) {
@@ -27,10 +44,18 @@ export class UpdateOrganizationUseCase {
       }
     }
 
+    let logoUrl: string | null = null;
+
+    if (file) {
+      const fileData = await this.storageService.uploadFile(file);
+
+      logoUrl = fileData.publicUrl;
+    }
+
     return this.organizationRepository.update(id, {
       ...(data.name !== undefined && { name: data.name }),
       ...(data.slug !== undefined && { slug: data.slug }),
-      // ...(data.logoUrl !== undefined && { logoUrl: data.logoUrl }),
+      ...(logoUrl !== null && { logoUrl: logoUrl }),
       ...(typeof data.isActive === 'boolean' && { isActive: data.isActive }),
     });
   }
