@@ -15,4 +15,13 @@ export class CreateOrganizationDTO {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @Sanitize()
+  domain?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  shouldAttachUsersByDomain?: boolean;
 }

@@ -44,18 +44,18 @@ export class UpdateOrganizationUseCase {
       }
     }
 
-    let logoUrl: string | null = null;
+    let avatarUrl: string | null = null;
 
     if (file) {
       const fileData = await this.storageService.uploadFile(file);
 
-      logoUrl = fileData.publicUrl;
+      avatarUrl = fileData.publicUrl;
     }
 
     return this.organizationRepository.update(id, {
       ...(data.name !== undefined && { name: data.name }),
       ...(data.slug !== undefined && { slug: data.slug }),
-      ...(logoUrl !== null && { logoUrl: logoUrl }),
+      ...(avatarUrl !== null && { avatarUrl: avatarUrl }),
       ...(typeof data.isActive === 'boolean' && { isActive: data.isActive }),
     });
   }
