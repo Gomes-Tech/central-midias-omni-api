@@ -16,6 +16,11 @@
       "@infrastructure/*": ["infrastructure/*"],
       "@modules/*": ["modules/*"]
     },
+    "plugins": [
+      {
+        "name": "@nestjs/swagger/plugin"
+      }
+    ],
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
