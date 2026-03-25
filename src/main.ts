@@ -7,7 +7,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import compress from 'compression';
 import cookieParser from 'cookie-parser';
-import { json, RequestHandler } from 'express';
+import { json } from 'express';
 import helmet from 'helmet';
 import { join } from 'path';
 import { AppModule } from './app.module';
@@ -26,7 +26,7 @@ async function bootstrap() {
     join(__dirname, 'infrastructure', 'providers', 'mail', 'templates'),
   );
 
-  app.use((cookieParser as unknown as () => RequestHandler)());
+  app.use(cookieParser());
   app.use(json({ limit: '3mb' }));
   app.use(requestIdMiddleware);
   app.set('trust proxy', 1);

@@ -1,9 +1,13 @@
 import { HttpExceptionFilter } from '@common/filters';
 import { AuthGuard, CategoryPermissionGuard } from '@common/guards';
-import { OrganizationMiddleware } from '@common/middlewares/organization.middleware';
-import { requestIdMiddleware } from '@common/middlewares/request-id.middleware';
+import {
+  OrganizationMiddleware,
+  requestIdMiddleware,
+} from '@common/middlewares';
 import { CacheModule } from '@infrastructure/cache';
 import { CircuitBreakerModule } from '@infrastructure/circuit-breaker';
+import { ConfigModule } from '@infrastructure/config';
+import { CryptographyModule } from '@infrastructure/criptography';
 import { JwtModule } from '@infrastructure/jwt';
 import { LogModule } from '@infrastructure/log';
 import { MetricsInterceptor, MetricsModule } from '@infrastructure/metrics';
@@ -20,7 +24,6 @@ import {
   NestModule,
   RequestMethod,
 } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
@@ -31,20 +34,17 @@ import { AppService } from './app.service';
     PrismaModule,
     JwtModule,
     SecurityModule,
-    OrganizationModule,
-    RolesModule,
-    UserModule,
     ConfigModule,
     LogModule,
     CacheModule,
+    CryptographyModule,
     CircuitBreakerModule,
     MetricsModule,
     MailModule,
     StorageModule,
-    PrismaModule,
-    SecurityModule,
     ThrottlerConfigModule,
-    JwtModule,
+    OrganizationModule,
+    RolesModule,
     UserModule,
   ],
   controllers: [AppController],
@@ -71,7 +71,6 @@ import { AppService } from './app.service';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(requestIdMiddleware).forRoutes('*');
-
     consumer
       .apply(OrganizationMiddleware)
       .exclude(
