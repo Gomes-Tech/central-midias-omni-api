@@ -29,6 +29,21 @@ export class UpdateUserUseCase {
       }
     }
 
+    if (
+      data.taxIdentifier !== undefined &&
+      data.taxIdentifier !== user.taxIdentifier
+    ) {
+      const userWithTax = await this.userRepository.findByTaxIdentifier(
+        data.taxIdentifier,
+      );
+
+      if (userWithTax && userWithTax.id !== id) {
+        throw new BadRequestException(
+          'Já existe um usuário com este documento',
+        );
+      }
+    }
+
     if (data.password) {
       const isOldPassword = await this.cryptographyService.compare(
         data.password,

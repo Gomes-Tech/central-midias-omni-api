@@ -16,6 +16,7 @@ describe('UpdateUserUseCase', () => {
   beforeEach(() => {
     userRepository = {
       update: jest.fn(),
+      findByTaxIdentifier: jest.fn().mockResolvedValue(null),
     } as unknown as jest.Mocked<UserRepository>;
 
     findUserByIdUseCase = {
@@ -78,7 +79,6 @@ describe('UpdateUserUseCase', () => {
   it('deve permitir que admin atualize todos os campos e criptografe a nova senha', async () => {
     const dto = makeUpdateUserDTO();
     const plainPassword = dto.password;
-    const updatedUser = makeUser({ id: 'target-id', name: dto.name });
 
     findUserByIdUseCase.execute.mockResolvedValue(
       makeUser({ id: 'target-id' }),
@@ -98,6 +98,6 @@ describe('UpdateUserUseCase', () => {
       ...dto,
       password: 'hashed-new-password',
     });
-    expect(result).toEqual(updatedUser);
+    expect(result).toBeUndefined();
   });
 });

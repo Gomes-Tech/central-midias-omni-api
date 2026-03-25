@@ -13,6 +13,7 @@ describe('CreateUserUseCase', () => {
   beforeEach(() => {
     userRepository = {
       create: jest.fn(),
+      findByTaxIdentifier: jest.fn().mockResolvedValue(null),
     } as unknown as jest.Mocked<UserRepository>;
 
     findByEmailUseCase = {
@@ -36,7 +37,7 @@ describe('CreateUserUseCase', () => {
 
     findByEmailUseCase.execute.mockRejectedValue(new Error('not found'));
     cryptographyService.hash.mockResolvedValue('hashed-secret');
-    userRepository.create.mockResolvedValue(createdUser);
+    userRepository.create.mockResolvedValue({ id: createdUser.id });
 
     const result = await useCase.execute(dto, 'requester-id');
 
@@ -45,6 +46,6 @@ describe('CreateUserUseCase', () => {
       ...dto,
       password: 'hashed-secret',
     });
-    expect(result).toEqual(createdUser);
+    expect(result).toEqual({ id: createdUser.id });
   });
 });

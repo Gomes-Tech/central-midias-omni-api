@@ -40,6 +40,25 @@ export class UpdateUserDTO {
   @IsOptional()
   @IsString()
   @Sanitize()
+  taxIdentifier?: string;
+
+  @IsOptional()
+  @IsString()
+  @Sanitize()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  @Sanitize()
+  socialReason?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isFirstAccess?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @Sanitize()
   avatarUrl?: string;
 
   @IsOptional()

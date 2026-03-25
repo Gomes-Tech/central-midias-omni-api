@@ -34,9 +34,28 @@ export class CreateUserDTO {
   )
   password: string;
 
+  @IsNotEmpty()
+  @IsString()
+  @Sanitize()
+  taxIdentifier: string;
+
+  @IsOptional()
+  @IsString()
+  @Sanitize()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  @Sanitize()
+  socialReason?: string;
+
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isFirstAccess?: boolean;
 
   @IsOptional()
   @IsString()

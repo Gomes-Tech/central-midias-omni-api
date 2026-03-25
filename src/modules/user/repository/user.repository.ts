@@ -70,6 +70,16 @@ export class UserRepository {
                 mode: 'insensitive',
               },
             },
+            ...(filters.searchTerm.replace(/\D/g, '').length > 0
+              ? [
+                  {
+                    taxIdentifier: {
+                      contains: filters.searchTerm.replace(/\D/g, ''),
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                ]
+              : []),
           ],
         }),
       };
@@ -226,8 +236,27 @@ export class UserRepository {
         error: String(error),
         email,
       });
+    }
+  }
 
-      throw new BadRequestException('Erro ao buscar usuário por email');
+  async findByTaxIdentifier(
+    taxIdentifier: string,
+  ): Promise<{ id: string; taxIdentifier: string } | null> {
+    try {
+      return await this.prisma.user.findFirst({
+        where: {
+          taxIdentifier,
+          isDeleted: false,
+        },
+        select: { id: true, taxIdentifier: true },
+      });
+    } catch (error) {
+      void this.logger.error('UserRepository.findByTaxIdentifier falhou', {
+        error: String(error),
+        taxIdentifier,
+      });
+
+      throw new BadRequestException('Erro ao buscar usuário por documento');
     }
   }
 
@@ -242,6 +271,16 @@ export class UserRepository {
           name: data.name,
           email: data.email,
           password: data.password,
+          taxIdentifier: data.taxIdentifier,
+          ...(data.phone !== undefined && { phone: data.phone }),
+          ...(data.socialReason !== undefined && {
+            socialReason: data.socialReason,
+          }),
+          ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
+          ...(data.isActive !== undefined && { isActive: data.isActive }),
+          ...(data.isFirstAccess !== undefined && {
+            isFirstAccess: data.isFirstAccess,
+          }),
         },
       });
 
@@ -269,7 +308,17 @@ export class UserRepository {
           ...(data.name !== undefined && { name: data.name }),
           ...(data.email !== undefined && { email: data.email }),
           ...(data.password !== undefined && { password: data.password }),
+          ...(data.taxIdentifier !== undefined && {
+            taxIdentifier: data.taxIdentifier,
+          }),
+          ...(data.phone !== undefined && { phone: data.phone }),
+          ...(data.socialReason !== undefined && {
+            socialReason: data.socialReason,
+          }),
           ...(data.isActive !== undefined && { isActive: data.isActive }),
+          ...(data.isFirstAccess !== undefined && {
+            isFirstAccess: data.isFirstAccess,
+          }),
           ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
         },
       });

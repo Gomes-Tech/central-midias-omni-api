@@ -24,6 +24,15 @@ export class CreateUserUseCase {
       throw new BadRequestException('Usuário já existe! Tente outro email.');
     }
 
+    const existingTax = await this.userRepository.findByTaxIdentifier(
+      data.taxIdentifier,
+    );
+    if (existingTax) {
+      throw new BadRequestException(
+        'Já existe um usuário com este documento. Tente outro.',
+      );
+    }
+
     const hashedPassword = await this.cryptographyService.hash(data.password);
 
     const newUser = await this.userRepository.create(

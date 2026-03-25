@@ -43,6 +43,11 @@ export interface User {
   name: string;
   email: string;
   password: string;
+  taxIdentifier: string;
+  phone?: string | null;
+  socialReason?: string | null;
+  avatarUrl?: string | null;
+  isFirstAccess: boolean;
   isActive: boolean;
   isDeleted: boolean;
   organizations: UserOrganizationAccess[];
@@ -57,6 +62,11 @@ export interface ListUser {
   id: string;
   name: string;
   email: string;
+  taxIdentifier: string;
+  phone?: string | null;
+  socialReason?: string | null;
+  avatarUrl?: string | null;
+  isFirstAccess: boolean;
   isActive: boolean;
   isDeleted: boolean;
   platformRoleId: string;
