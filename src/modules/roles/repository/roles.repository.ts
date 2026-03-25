@@ -17,9 +17,9 @@ export class RolesRepository {
 
   async findAll(filters: FindAllRolesFiltersDTO = {}): Promise<Role[]> {
     try {
-      const roles = await this.prisma.platformRole.findMany({
-        where: filters.includeDeleted ? undefined : { deletedAt: null },
-        orderBy: [{ label: 'asc' }, { name: 'asc' }],
+      const roles = await this.prisma.role.findMany({
+        where: { deletedAt: null },
+        orderBy: [{ label: 'asc' }],
       });
 
       return roles;
@@ -30,7 +30,7 @@ export class RolesRepository {
 
   async findById(id: string): Promise<Role | null> {
     try {
-      const role = await this.prisma.platformRole.findUnique({
+      const role = await this.prisma.role.findUnique({
         where: { id },
       });
 
@@ -40,11 +40,11 @@ export class RolesRepository {
     }
   }
 
-  async findByCode(roleCode: string): Promise<Role | null> {
+  async findByName(name: string): Promise<Role | null> {
     try {
-      const role = await this.prisma.platformRole.findFirst({
+      const role = await this.prisma.role.findFirst({
         where: {
-          name: roleCode,
+          name,
           deletedAt: null,
         },
       });
@@ -52,7 +52,7 @@ export class RolesRepository {
       return role;
     } catch (error) {
       this.handleError('RolesRepository.findByCode falhou', error, {
-        roleCode,
+        name,
       });
     }
   }
@@ -63,7 +63,7 @@ export class RolesRepository {
         return [];
       }
 
-      const roles = await this.prisma.platformRole.findMany({
+      const roles = await this.prisma.role.findMany({
         where: {
           name: {
             in: [...new Set(roleCodes)],
@@ -82,11 +82,11 @@ export class RolesRepository {
 
   async create(data: CreateRoleDTO): Promise<Role> {
     try {
-      const role = await this.prisma.platformRole.create({
+      const role = await this.prisma.role.create({
         data: {
           label: data.label,
           name: data.name,
-          isBackoffice: data.isBackoffice,
+          canAccessBackoffice: data.canAccessBackoffice,
           canHaveSubordinates: data.canHaveSubordinates,
         },
       });
@@ -106,13 +106,13 @@ export class RolesRepository {
 
   async update(id: string, data: UpdateRoleDTO): Promise<Role> {
     try {
-      const role = await this.prisma.platformRole.update({
+      const role = await this.prisma.role.update({
         where: { id },
         data: {
           ...(data.label !== undefined && { label: data.label }),
           ...(data.name !== undefined && { name: data.name }),
-          ...(data.isBackoffice !== undefined && {
-            isBackoffice: data.isBackoffice,
+          ...(data.canAccessBackoffice !== undefined && {
+            canAccessBackoffice: data.canAccessBackoffice,
           }),
           ...(data.canHaveSubordinates !== undefined && {
             canHaveSubordinates: data.canHaveSubordinates,
@@ -134,7 +134,7 @@ export class RolesRepository {
 
   async softDelete(id: string): Promise<void> {
     try {
-      await this.prisma.platformRole.update({
+      await this.prisma.role.update({
         where: { id },
         data: {
           deletedAt: new Date(),

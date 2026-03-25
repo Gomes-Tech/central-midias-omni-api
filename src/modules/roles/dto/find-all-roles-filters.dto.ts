@@ -1,7 +1,19 @@
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class FindAllRolesFiltersDTO {
   @IsOptional()
+  @IsString()
+  label?: string;
+
+  @IsOptional()
   @IsBoolean()
-  includeDeleted?: boolean;
+  isSystem?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  canAccessBackoffice?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  canHaveSubordinates?: boolean;
 }

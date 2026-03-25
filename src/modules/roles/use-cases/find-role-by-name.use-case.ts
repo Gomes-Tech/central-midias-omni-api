@@ -3,11 +3,11 @@ import { Injectable } from '@nestjs/common';
 import { RolesRepository } from '../repository';
 
 @Injectable()
-export class FindRoleByCodeUseCase {
+export class FindRoleByNameUseCase {
   constructor(private readonly rolesRepository: RolesRepository) {}
 
-  async execute(roleCode: string) {
-    const role = await this.rolesRepository.findByCode(roleCode);
+  async execute(name: string) {
+    const role = await this.rolesRepository.findByName(name);
 
     if (!role) {
       throw new NotFoundException('Perfil não encontrado');

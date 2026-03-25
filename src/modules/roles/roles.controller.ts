@@ -9,7 +9,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { CreateRoleDTO, UpdateRoleDTO } from './dto';
+import { CreateRoleDTO, FindAllRolesFiltersDTO, UpdateRoleDTO } from './dto';
 import {
   CreateRoleUseCase,
   DeleteRoleUseCase,
@@ -30,10 +30,8 @@ export class RolesController {
 
   @RequirePermission('roles', 'read')
   @Get()
-  async findAll(@Query('includeDeleted') includeDeleted?: string) {
-    return this.findAllRolesUseCase.execute({
-      includeDeleted: includeDeleted === 'true',
-    });
+  async findAll(@Query() filters: FindAllRolesFiltersDTO = {}) {
+    return this.findAllRolesUseCase.execute(filters);
   }
 
   @RequirePermission('roles', 'read')

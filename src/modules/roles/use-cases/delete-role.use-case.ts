@@ -13,11 +13,17 @@ export class DeleteRoleUseCase {
   ) {}
 
   async execute(id: string) {
-    await this.findRoleByIdUseCase.execute(id);
+    const role = await this.findRoleByIdUseCase.execute(id);
 
-    const linkedUsers = await this.prisma.platformRole.count({
+    if (role.isSystem) {
+      throw new BadRequestException(
+        'Não é possível inativar um perfil sistema',
+      );
+    }
+
+    const linkedUsers = await this.prisma.member.count({
       where: {
-        id: id,
+        roleId: id,
       },
     });
 

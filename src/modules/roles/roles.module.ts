@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
-import { RolesController } from './roles.controller';
 import { RolesRepository } from './repository';
+import { RolesController } from './roles.controller';
 import {
   CreateRoleUseCase,
   DeleteRoleUseCase,
   FindAllRolesUseCase,
-  FindRoleByCodeUseCase,
   FindRoleByIdUseCase,
+  FindRoleByNameUseCase,
   UpdateRoleUseCase,
 } from './use-cases';
 
@@ -16,7 +16,7 @@ import {
     RolesRepository,
     FindAllRolesUseCase,
     FindRoleByIdUseCase,
-    FindRoleByCodeUseCase,
+    FindRoleByNameUseCase,
     CreateRoleUseCase,
     UpdateRoleUseCase,
     DeleteRoleUseCase,
@@ -25,7 +25,7 @@ import {
     RolesRepository,
     FindAllRolesUseCase,
     FindRoleByIdUseCase,
-    FindRoleByCodeUseCase,
+    FindRoleByNameUseCase,
   ],
 })
 export class RolesModule {}

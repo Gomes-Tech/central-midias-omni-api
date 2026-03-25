@@ -15,7 +15,7 @@ export class UpdateRoleUseCase {
     const role = await this.findRoleByIdUseCase.execute(id);
 
     if (data.name && data.name !== role.name) {
-      const existingRole = await this.rolesRepository.findByCode(data.name);
+      const existingRole = await this.rolesRepository.findByName(data.name);
 
       if (existingRole && existingRole.id !== id) {
         throw new BadRequestException('Já existe um perfil com este nome');

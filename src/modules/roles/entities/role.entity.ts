@@ -3,7 +3,7 @@ export interface Role {
   label: string;
   name: string;
   isSystem: boolean;
-  isBackoffice: boolean;
+  canAccessBackoffice: boolean;
   canHaveSubordinates: boolean;
   createdAt: Date;
   updatedAt: Date;

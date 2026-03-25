@@ -14,7 +14,7 @@ export class CreateRoleDTO {
 
   @IsNotEmpty()
   @IsBoolean()
-  isBackoffice: boolean;
+  canAccessBackoffice: boolean;
 
   @IsNotEmpty()
   @IsBoolean()

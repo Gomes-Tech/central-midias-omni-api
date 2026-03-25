@@ -14,7 +14,7 @@ export class UpdateRoleDTO {
 
   @IsOptional()
   @IsBoolean()
-  isBackoffice?: boolean;
+  canAccessBackoffice?: boolean;
 
   @IsOptional()
   @IsBoolean()
