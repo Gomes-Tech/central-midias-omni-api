@@ -10,8 +10,10 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { Action } from '@prisma/client';
 
 @Injectable()
 export class PlatformPermissionGuard implements CanActivate {
@@ -34,35 +36,65 @@ export class PlatformPermissionGuard implements CanActivate {
 
     const userId = loginPayload?.id;
 
-    // Verifica se a role do usuário tem contexto de plataforma (platform roles)
-    const platformRole = await this.prisma.platformRole.findFirst({
-      where: {
-        users: {
-          some: { id: userId },
-        },
-      },
-      include: {
-        platformRolePermissions: {
-          include: { platformPermission: true },
-        },
-      },
-    });
-
-    if (!platformRole) {
-      throw new ForbiddenException(
-        'Acesso negado: você não tem acesso ao painel administrativo.',
-      );
+    if (!userId) {
+      throw new UnauthorizedException('Usuário não autenticado.');
     }
 
-    // Se não exige permissão específica, só precisava confirmar que é platform role
-    if (!requiredPermission) return true;
+    // RBAC atual: user -> Member(organization + role) -> RolePermission(Module + Action)
+    const roleWhere: {
+      canAccessBackoffice: boolean;
+      permissions?: {
+        some: {
+          module: { name: string };
+          action: Action;
+        };
+      };
+    } = {
+      canAccessBackoffice: true,
+    };
 
-    const permissions = platformRole.platformRolePermissions.map(
-      (rp) =>
-        `${rp.platformPermission.resource}:${rp.platformPermission.action}`,
-    );
+    if (requiredPermission) {
+      const [resourceRaw, actionRaw] = requiredPermission.split(':');
+      const resource = resourceRaw?.toLowerCase();
+      const action = actionRaw?.toUpperCase();
 
-    if (!permissions.includes(requiredPermission)) {
+      if (!resource || !action) {
+        throw new ForbiddenException(
+          `Acesso negado: permissão "${requiredPermission}" inválida.`,
+        );
+      }
+
+      const allowedActions = Object.values(Action);
+      if (!allowedActions.includes(action as Action)) {
+        throw new ForbiddenException(
+          `Acesso negado: permissão "${requiredPermission}" inválida.`,
+        );
+      }
+
+      roleWhere.permissions = {
+        some: {
+          module: { name: resource },
+          action: action as Action,
+        },
+      };
+    }
+
+    const member = await this.prisma.member.findFirst({
+      where: {
+        userId,
+        user: { isActive: true, isDeleted: false },
+        role: roleWhere,
+      },
+      select: { id: true },
+    });
+
+    if (!member) {
+      if (!requiredPermission) {
+        throw new ForbiddenException(
+          'Acesso negado: você não tem acesso ao painel administrativo.',
+        );
+      }
+
       throw new ForbiddenException(
         `Acesso negado: permissão "${requiredPermission}" necessária.`,
       );
