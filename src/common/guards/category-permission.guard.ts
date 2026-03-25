@@ -32,29 +32,17 @@ export class CategoryPermissionGuard implements CanActivate {
       throw new ForbiddenException('Organização não informada.');
     }
 
-    const user = await this.prisma.user.findFirst({
+    const member = await this.prisma.member.findFirst({
       where: {
-        id: userId,
-        isActive: true,
-        isDeleted: false,
+        userId,
+        organizationId,
+        user: { isActive: true, isDeleted: false },
       },
-      select: {
-        id: true,
-        platformRoleId: true,
-        platformUserOrganizations: {
-          where: { organizationId },
-          select: { organizationId: true },
-        },
-      },
+      select: { roleId: true },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('Usuário não encontrado ou inativo.');
-    }
-
-    const hasOrganizationAccess = user.platformUserOrganizations.length > 0;
-
-    if (!hasOrganizationAccess) {
+    if (!member) {
+      // Se não existe Member para (userId, organizationId), não há acesso à org.
       throw new ForbiddenException('Você não tem acesso a esta organização.');
     }
 
@@ -75,7 +63,7 @@ export class CategoryPermissionGuard implements CanActivate {
       where: {
         categoryId_roleId_organizationId: {
           categoryId: category.id,
-          roleId: user.platformRoleId,
+          roleId: member.roleId,
           organizationId,
         },
       },
