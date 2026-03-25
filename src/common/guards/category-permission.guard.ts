@@ -81,11 +81,6 @@ export class CategoryPermissionGuard implements CanActivate {
       );
     }
 
-    // request.organization = request.organization ?? { id: organizationId };
-    // request.category = category;
-    // request.categoryRoleAccess = categoryRoleAccess;
-    // request.categoryPermission = categoryRoleAccess;
-
     return true;
   }
 }
