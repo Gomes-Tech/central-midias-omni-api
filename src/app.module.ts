@@ -15,8 +15,10 @@ import { PrismaModule } from '@infrastructure/prisma';
 import { MailModule, StorageModule } from '@infrastructure/providers';
 import { SecurityModule } from '@infrastructure/security';
 import { ThrottlerConfigModule } from '@infrastructure/throttler';
+import { AuthModule } from '@modules/auth';
 import { OrganizationModule } from '@modules/organization';
 import { RolesModule } from '@modules/roles';
+import { TokenPasswordModule } from '@modules/token-password';
 import { UserModule } from '@modules/user';
 import {
   MiddlewareConsumer,
@@ -46,6 +48,8 @@ import { AppService } from './app.service';
     OrganizationModule,
     RolesModule,
     UserModule,
+    TokenPasswordModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
