@@ -1,5 +1,4 @@
 import { RequirePermission, UserId } from '@common/decorators';
-import { TenantAccessGuard, TenantPermissionGuard } from '@common/guards';
 import {
   Body,
   Controller,
@@ -8,7 +7,6 @@ import {
   Param,
   Patch,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import { CreateUserDTO, UpdateUserDTO } from './dto';
 import {
@@ -29,29 +27,6 @@ export class UserController {
     private readonly deleteUserUseCase: DeleteUserUseCase,
   ) {}
 
-  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
-  @RequirePermission('users', 'create')
-  @Post()
-  async create(@Body() dto: CreateUserDTO, @UserId() userId: string) {
-    const user = await this.createUserUseCase.execute(dto, userId);
-
-    delete user.password;
-
-    return user;
-  }
-
-  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
-  @UseGuards(TenantAccessGuard)
-  @Get('/me')
-  async getMe(@UserId() userId: string) {
-    const user = await this.findUserByIdUseCase.execute(userId);
-
-    delete user.password;
-
-    return user;
-  }
-
-  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('users', 'read')
   @Get('/:id')
   async findById(@Param('id') id: string) {
@@ -62,7 +37,21 @@ export class UserController {
     return user;
   }
 
-  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
+  @Get('/me')
+  async getMe(@UserId() userId: string) {
+    const user = await this.findUserByIdUseCase.execute(userId);
+
+    delete user.password;
+
+    return user;
+  }
+
+  @RequirePermission('users', 'create')
+  @Post()
+  async create(@Body() dto: CreateUserDTO, @UserId() userId: string) {
+    await this.createUserUseCase.execute(dto, userId);
+  }
+
   @RequirePermission('users', 'update')
   @Patch('/:id')
   async update(
@@ -70,17 +59,12 @@ export class UserController {
     @Body() dto: UpdateUserDTO,
     @UserId() userId: string,
   ) {
-    const user = await this.updateUserUseCase.execute(id, dto, userId);
-
-    delete user.password;
-
-    return user;
+    await this.updateUserUseCase.execute(id, dto, userId);
   }
 
-  @UseGuards(TenantAccessGuard, TenantPermissionGuard)
   @RequirePermission('users', 'delete')
   @Delete('/:id')
   async delete(@Param('id') id: string) {
-    return await this.deleteUserUseCase.execute(id);
+    await this.deleteUserUseCase.execute(id);
   }
 }

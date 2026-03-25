@@ -7,7 +7,6 @@ import { SecurityModule } from '@infrastructure/security';
 import { OrganizationModule } from '@modules/organization';
 import { RolesModule } from '@modules/roles';
 import { UserModule } from '@modules/user';
-import { UserRolesModule } from '@modules/user-roles';
 import {
   MiddlewareConsumer,
   Module,
@@ -25,7 +24,6 @@ import { AppService } from './app.service';
     SecurityModule,
     OrganizationModule,
     RolesModule,
-    UserRolesModule,
     UserModule,
   ],
   controllers: [AppController],

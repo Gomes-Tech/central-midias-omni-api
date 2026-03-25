@@ -38,8 +38,9 @@ export class UpdateUserDTO {
   isActive?: boolean;
 
   @IsOptional()
-  @IsUUID('4', { message: 'Perfil de plataforma inválido' })
-  platformRoleId?: string;
+  @IsString()
+  @Sanitize()
+  avatarUrl?: string;
 
   @IsOptional()
   @IsArray()

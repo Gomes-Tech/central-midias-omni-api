@@ -1,13 +1,11 @@
-import { BadRequestException, ForbiddenException } from '@common/filters';
+import { BadRequestException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
 import { Inject, Injectable } from '@nestjs/common';
 import { UpdateUserDTO } from '../dto';
 import { UserRepository } from '../repository';
-import { FindUserByIdUseCase } from './find-user-by-id.use-case';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
+import { FindUserByIdUseCase } from './find-user-by-id.use-case';
 import { FindUserRoleUseCase } from './find-user-role.use-case';
-
-const ADMIN_ROLE_NAMES = new Set(['ADMIN', 'SUPER_ADMIN']);
 
 @Injectable()
 export class UpdateUserUseCase {
@@ -22,11 +20,11 @@ export class UpdateUserUseCase {
 
   async execute(id: string, data: UpdateUserDTO, userId: string) {
     const user = await this.findUserByIdUseCase.execute(id);
-    const requesterRole = await this.findUserRoleUseCase.execute(userId);
+    // const requesterRole = await this.findUserRoleUseCase.execute(userId);
 
-    if (!ADMIN_ROLE_NAMES.has(requesterRole) && user.id !== userId) {
-      throw new ForbiddenException('Você só pode atualizar o próprio usuário');
-    }
+    // if (!ADMIN_ROLE_NAMES.has(requesterRole) && user.id !== userId) {
+    //   throw new ForbiddenException('Você só pode atualizar o próprio usuário');
+    // }
 
     if (data.email && data.email !== user.email) {
       const userWithEmail = await this.findUserByEmailUseCase
@@ -53,12 +51,11 @@ export class UpdateUserUseCase {
       data.password = await this.cryptographyService.hash(data.password);
     }
 
-    if (!ADMIN_ROLE_NAMES.has(requesterRole)) {
-      delete data.platformRoleId;
-      delete data.organizationIds;
-      delete data.managerAssignments;
-      delete data.isActive;
-    }
+    // if (!ADMIN_ROLE_NAMES.has(requesterRole)) {
+    //   delete data.organizationIds;
+    //   delete data.managerAssignments;
+    //   delete data.isActive;
+    // }
 
     return this.userRepository.update(id, data);
   }

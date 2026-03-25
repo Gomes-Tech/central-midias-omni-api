@@ -45,8 +45,6 @@ export interface User {
   password: string;
   isActive: boolean;
   isDeleted: boolean;
-  platformRoleId: string;
-  platformRole: PlatformRoleSummary;
   organizations: UserOrganizationAccess[];
   managers: UserManagerLink[];
   subordinates: UserSubordinateLink[];

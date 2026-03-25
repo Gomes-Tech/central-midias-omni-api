@@ -1,4 +1,3 @@
-import { NotFoundException } from '@common/filters';
 import { Inject, Injectable } from '@nestjs/common';
 import { UserRepository } from '../repository';
 
@@ -10,12 +9,11 @@ export class FindUserRoleUseCase {
   ) {}
 
   async execute(userId: string) {
-    const role = await this.userRepository.findRoleByUserId(userId);
-
-    if (!role) {
-      throw new NotFoundException('Usuário não encontrado');
-    }
-
-    return role;
+    console.log(userId);
+    // const role = await this.userRepository.findRoleByUserId(userId);
+    // if (!role) {
+    //   throw new NotFoundException('Usuário não encontrado');
+    // }
+    // return role;
   }
 }

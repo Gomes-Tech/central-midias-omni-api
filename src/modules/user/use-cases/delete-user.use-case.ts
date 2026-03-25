@@ -13,6 +13,6 @@ export class DeleteUserUseCase {
   async execute(id: string) {
     await this.findByIdUseCase.execute(id);
 
-    return this.userRepository.delete(id);
+    await this.userRepository.delete(id);
   }
 }

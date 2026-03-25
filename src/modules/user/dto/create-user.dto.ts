@@ -38,6 +38,11 @@ export class CreateUserDTO {
   @IsBoolean()
   isActive?: boolean;
 
+  @IsOptional()
+  @IsString()
+  @Sanitize()
+  avatarUrl?: string;
+
   @IsNotEmpty()
   @IsUUID('4', { message: 'Perfil de plataforma inválido' })
   platformRoleId: string;

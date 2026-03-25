@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException } from '@common/filters';
+import { BadRequestException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateUserDTO } from '../dto';
@@ -6,7 +6,7 @@ import { UserRepository } from '../repository';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
 import { FindUserRoleUseCase } from './find-user-role.use-case';
 
-const ADMIN_ROLE_NAMES = new Set(['ADMIN', 'SUPER_ADMIN']);
+// const ADMIN_ROLE_NAMES = new Set(['ADMIN', 'SUPER_ADMIN']);
 
 @Injectable()
 export class CreateUserUseCase {
@@ -19,13 +19,13 @@ export class CreateUserUseCase {
   ) {}
 
   async execute(data: CreateUserDTO, userId: string) {
-    const userRole = await this.findUserRoleUseCase.execute(userId);
+    // const userRole = await this.findUserRoleUseCase.execute(userId);
 
-    if (!ADMIN_ROLE_NAMES.has(userRole)) {
-      throw new ForbiddenException(
-        'Você não tem permissão para criar usuários',
-      );
-    }
+    // if (!ADMIN_ROLE_NAMES.has(userRole)) {
+    //   throw new ForbiddenException(
+    //     'Você não tem permissão para criar usuários',
+    //   );
+    // }
 
     const userByEmail = await this.findByEmailUseCase
       .execute(data.email)
