@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { UserModule } from '@modules/user';
 import { RolesRepository } from './repository';
 import { RolesController } from './roles.controller';
 import {
@@ -7,15 +8,18 @@ import {
   FindAllRolesUseCase,
   FindRoleByIdUseCase,
   FindRoleByNameUseCase,
+  FindRoleByUserIdUseCase,
   UpdateRoleUseCase,
 } from './use-cases';
 
 @Module({
+  imports: [UserModule],
   controllers: [RolesController],
   providers: [
     RolesRepository,
     FindAllRolesUseCase,
     FindRoleByIdUseCase,
+    FindRoleByUserIdUseCase,
     FindRoleByNameUseCase,
     CreateRoleUseCase,
     UpdateRoleUseCase,
@@ -25,6 +29,7 @@ import {
     RolesRepository,
     FindAllRolesUseCase,
     FindRoleByIdUseCase,
+    FindRoleByUserIdUseCase,
     FindRoleByNameUseCase,
   ],
 })

@@ -9,15 +9,6 @@ export function makeUser(overrides: Partial<User> = {}): User {
     password: 'hashed-password',
     isActive: true,
     isDeleted: false,
-    platformRoleId: 'platform-role-id',
-    platformRole: {
-      id: 'platform-role-id',
-      name: 'ADMIN',
-      label: 'Administrador',
-      isSystem: true,
-      isBackoffice: true,
-      canHaveSubordinates: true,
-    },
     organizations: [
       {
         id: 'access-id',
@@ -60,7 +51,6 @@ export function makeUpdateUserDTO(
     email: 'jane@doe.com',
     password: 'NewStrongPass123',
     isActive: false,
-    platformRoleId: 'platform-role-2',
     organizationIds: ['organization-2'],
     managerAssignments: [
       {

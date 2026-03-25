@@ -1,9 +1,16 @@
+import { HttpExceptionFilter } from '@common/filters';
 import { AuthGuard, CategoryPermissionGuard } from '@common/guards';
 import { OrganizationMiddleware } from '@common/middlewares/organization.middleware';
 import { requestIdMiddleware } from '@common/middlewares/request-id.middleware';
+import { CacheModule } from '@infrastructure/cache';
+import { CircuitBreakerModule } from '@infrastructure/circuit-breaker';
 import { JwtModule } from '@infrastructure/jwt';
+import { LogModule } from '@infrastructure/log';
+import { MetricsInterceptor, MetricsModule } from '@infrastructure/metrics';
 import { PrismaModule } from '@infrastructure/prisma';
+import { MailModule, StorageModule } from '@infrastructure/providers';
 import { SecurityModule } from '@infrastructure/security';
+import { ThrottlerConfigModule } from '@infrastructure/throttler';
 import { OrganizationModule } from '@modules/organization';
 import { RolesModule } from '@modules/roles';
 import { UserModule } from '@modules/user';
@@ -13,7 +20,9 @@ import {
   NestModule,
   RequestMethod,
 } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule } from '@nestjs/config';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -25,12 +34,37 @@ import { AppService } from './app.service';
     OrganizationModule,
     RolesModule,
     UserModule,
+    ConfigModule,
+    LogModule,
+    CacheModule,
+    CircuitBreakerModule,
+    MetricsModule,
+    MailModule,
+    StorageModule,
+    PrismaModule,
+    SecurityModule,
+    ThrottlerConfigModule,
+    JwtModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    AuthGuard,
     OrganizationMiddleware,
     CategoryPermissionGuard,
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: MetricsInterceptor,
+    },
     { provide: APP_GUARD, useClass: AuthGuard },
   ],
 })

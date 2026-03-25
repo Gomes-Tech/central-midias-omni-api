@@ -146,6 +146,67 @@ export class UserRepository {
     }
   }
 
+  async findRoleByUserId(userId: string): Promise<{
+    userId: string;
+    memberships: Array<{
+      organizationId: string;
+      role: {
+        id: string;
+        name: string;
+        label: string;
+        isSystem: boolean;
+        canAccessBackoffice: boolean;
+        canHaveSubordinates: boolean;
+      };
+    }>;
+  } | null> {
+    try {
+      const user = await this.prisma.user.findFirst({
+        where: {
+          id: userId,
+          isDeleted: false,
+        },
+        select: {
+          id: true,
+          members: {
+            select: {
+              organizationId: true,
+              role: {
+                select: {
+                  id: true,
+                  name: true,
+                  label: true,
+                  isSystem: true,
+                  canAccessBackoffice: true,
+                  canHaveSubordinates: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        return null;
+      }
+
+      return {
+        userId: user.id,
+        memberships: user.members.map((m) => ({
+          organizationId: m.organizationId,
+          role: m.role,
+        })),
+      };
+    } catch (error) {
+      void this.logger.error('UserRepository.findRoleByUserId falhou', {
+        error: String(error),
+        userId,
+      });
+
+      throw new BadRequestException('Erro ao buscar perfil do usuário');
+    }
+  }
+
   async findByEmail(email: string): Promise<any> {
     try {
       const user = await this.prisma.user.findUniqueOrThrow({
@@ -172,6 +233,7 @@ export class UserRepository {
 
   async create(
     data: CreateUserDTO & { password: string },
+    userId: string,
   ): Promise<{ id: string }> {
     try {
       const user = await this.prisma.user.create({
@@ -185,6 +247,7 @@ export class UserRepository {
 
       void this.logger.info('Usuário criado', {
         userId: user.id,
+        createdBy: userId,
       });
 
       return { id: user.id };
@@ -198,7 +261,7 @@ export class UserRepository {
     }
   }
 
-  async update(id: string, data: UpdateUserDTO): Promise<void> {
+  async update(id: string, data: UpdateUserDTO, userId: string): Promise<void> {
     try {
       await this.prisma.user.update({
         where: { id },
@@ -211,7 +274,10 @@ export class UserRepository {
         },
       });
 
-      void this.logger.info('Usuário atualizado', { userId: id });
+      void this.logger.info('Usuário atualizado', {
+        userId: id,
+        updatedBy: userId,
+      });
     } catch (error) {
       void this.logger.error('UserRepository.update falhou', {
         error: String(error),

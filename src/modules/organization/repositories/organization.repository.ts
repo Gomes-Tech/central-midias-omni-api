@@ -1,8 +1,10 @@
 import { BadRequestException } from '@common/filters';
+import { generateId } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
-import { Organization, Prisma } from '@prisma/client';
+import { Organization } from '@prisma/client';
+import { CreateOrganizationDTO, UpdateOrganizationDTO } from '../dto';
 
 @Injectable()
 export class OrganizationRepository {
@@ -55,10 +57,26 @@ export class OrganizationRepository {
     }
   }
 
-  async create(data: Prisma.OrganizationCreateInput): Promise<Organization> {
+  async create(
+    data: CreateOrganizationDTO & { avatarUrl: string | null },
+    userId: string,
+  ): Promise<void> {
     try {
-      return await this.prisma.organization.create({
-        data,
+      const organization = await this.prisma.organization.create({
+        data: {
+          id: generateId(),
+          name: data.name,
+          slug: data.slug,
+          isActive: data.isActive ?? true,
+          avatarUrl: data.avatarUrl ?? null,
+          domain: data.domain ?? null,
+          shouldAttachUsersByDomain: data.shouldAttachUsersByDomain ?? false,
+        },
+      });
+
+      void this.logger.info('Organização criada', {
+        organizationId: organization.id,
+        userId,
       });
     } catch (error) {
       this.logger.error('OrganizationRepository.create falhou', error);
@@ -68,12 +86,18 @@ export class OrganizationRepository {
 
   async update(
     id: string,
-    data: Prisma.OrganizationUpdateInput,
-  ): Promise<Organization> {
+    data: UpdateOrganizationDTO,
+    userId: string,
+  ): Promise<void> {
     try {
-      return await this.prisma.organization.update({
+      await this.prisma.organization.update({
         where: { id },
         data,
+      });
+
+      void this.logger.info('Organização atualizada', {
+        organizationId: id,
+        userId,
       });
     } catch (error) {
       this.logger.error('OrganizationRepository.update falhou', error);

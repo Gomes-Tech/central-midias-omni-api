@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { CreateUserDTO, UpdateUserDTO } from './dto';
 import {
@@ -26,6 +27,38 @@ export class UserController {
     private readonly updateUserUseCase: UpdateUserUseCase,
     private readonly deleteUserUseCase: DeleteUserUseCase,
   ) {}
+
+  @RequirePermission('users', 'read')
+  @Get()
+  async getList(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('name') name?: string,
+    @Query('email') email?: string,
+    @Query('searchTerm') searchTerm?: string,
+    @Query('role') role?: string,
+    @Query('platformRoleId') platformRoleId?: string,
+    @Query('platformRoleName') platformRoleName?: string,
+    @Query('companyId') companyId?: string,
+    @Query('organizationId') organizationId?: string,
+    @Query('managerId') managerId?: string,
+    @Query('isActive') isActive?: string,
+  ) {
+    return await this.findAllUsersUseCase.execute({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      name,
+      email,
+      searchTerm,
+      role,
+      platformRoleId,
+      platformRoleName,
+      companyId,
+      organizationId,
+      managerId,
+      isActive: isActive ? isActive === 'true' : undefined,
+    });
+  }
 
   @RequirePermission('users', 'read')
   @Get('/:id')

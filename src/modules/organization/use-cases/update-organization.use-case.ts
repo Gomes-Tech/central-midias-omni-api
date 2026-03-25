@@ -1,6 +1,5 @@
-import { BadRequestException, ForbiddenException } from '@common/filters';
+import { BadRequestException } from '@common/filters';
 import { StorageService } from '@infrastructure/providers';
-import { FindUserRoleUseCase } from '@modules/user';
 import { Inject, Injectable } from '@nestjs/common';
 import { UpdateOrganizationDTO } from '../dto';
 import { OrganizationRepository } from '../repositories';
@@ -11,7 +10,6 @@ export class UpdateOrganizationUseCase {
   constructor(
     @Inject('OrganizationRepository')
     private readonly organizationRepository: OrganizationRepository,
-    private readonly findUserRoleUseCase: FindUserRoleUseCase,
     private readonly findOrganizationByIdUseCase: FindOrganizationByIdUseCase,
     private readonly storageService: StorageService,
   ) {}
@@ -22,14 +20,6 @@ export class UpdateOrganizationUseCase {
     userId: string,
     file?: Express.Multer.File,
   ) {
-    const userRole = await this.findUserRoleUseCase.execute(userId);
-
-    if (userRole !== 'ADMIN') {
-      throw new ForbiddenException(
-        'Você não tem permissão para atualizar organizações',
-      );
-    }
-
     const organization = await this.findOrganizationByIdUseCase.execute(id);
 
     if (data.slug && data.slug !== organization.slug) {
@@ -52,11 +42,15 @@ export class UpdateOrganizationUseCase {
       avatarUrl = fileData.publicUrl;
     }
 
-    return this.organizationRepository.update(id, {
-      ...(data.name !== undefined && { name: data.name }),
-      ...(data.slug !== undefined && { slug: data.slug }),
-      ...(avatarUrl !== null && { avatarUrl: avatarUrl }),
-      ...(typeof data.isActive === 'boolean' && { isActive: data.isActive }),
-    });
+    return this.organizationRepository.update(
+      id,
+      {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.slug !== undefined && { slug: data.slug }),
+        ...(avatarUrl !== null && { avatarUrl: avatarUrl }),
+        ...(typeof data.isActive === 'boolean' && { isActive: data.isActive }),
+      },
+      userId,
+    );
   }
 }

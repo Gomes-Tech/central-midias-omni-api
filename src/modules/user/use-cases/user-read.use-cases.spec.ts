@@ -1,12 +1,11 @@
-import { NotFoundException as NestNotFoundException } from '@nestjs/common';
 import { NotFoundException } from '@common/filters';
+import { NotFoundException as NestNotFoundException } from '@nestjs/common';
 import { UserRepository } from '../repository';
 import { DeleteUserUseCase } from './delete-user.use-case';
 import { FindAllUsersUseCase } from './find-all-users.use-case';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
 import { FindUserByIdUseCase } from './find-user-by-id.use-case';
-import { FindUserRoleUseCase } from './find-user-role.use-case';
-import { makeUser, makeUserRole } from './test-helpers';
+import { makeUser } from './test-helpers';
 
 describe('User read and delete use cases', () => {
   let userRepository: jest.Mocked<UserRepository>;
@@ -74,24 +73,6 @@ describe('User read and delete use cases', () => {
     const useCase = new FindUserByIdUseCase(userRepository);
 
     userRepository.findById.mockResolvedValue(null);
-
-    await expect(useCase.execute('missing-id')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-  });
-
-  it('FindUserRoleUseCase deve retornar a role principal do usuário', async () => {
-    const useCase = new FindUserRoleUseCase(userRepository);
-
-    userRepository.findRoleByUserId.mockResolvedValue(makeUserRole('ADMIN'));
-
-    await expect(useCase.execute('user-id')).resolves.toBe('ADMIN');
-  });
-
-  it('FindUserRoleUseCase deve lançar not found quando usuário não existir', async () => {
-    const useCase = new FindUserRoleUseCase(userRepository);
-
-    userRepository.findRoleByUserId.mockResolvedValue(null);
 
     await expect(useCase.execute('missing-id')).rejects.toBeInstanceOf(
       NotFoundException,

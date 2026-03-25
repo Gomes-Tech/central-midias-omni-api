@@ -5,7 +5,6 @@ import { UpdateUserDTO } from '../dto';
 import { UserRepository } from '../repository';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
 import { FindUserByIdUseCase } from './find-user-by-id.use-case';
-import { FindUserRoleUseCase } from './find-user-role.use-case';
 
 @Injectable()
 export class UpdateUserUseCase {
@@ -14,17 +13,11 @@ export class UpdateUserUseCase {
     private readonly userRepository: UserRepository,
     private readonly findUserByIdUseCase: FindUserByIdUseCase,
     private readonly findUserByEmailUseCase: FindUserByEmailUseCase,
-    private readonly findUserRoleUseCase: FindUserRoleUseCase,
     private readonly cryptographyService: CryptographyService,
   ) {}
 
   async execute(id: string, data: UpdateUserDTO, userId: string) {
     const user = await this.findUserByIdUseCase.execute(id);
-    // const requesterRole = await this.findUserRoleUseCase.execute(userId);
-
-    // if (!ADMIN_ROLE_NAMES.has(requesterRole) && user.id !== userId) {
-    //   throw new ForbiddenException('Você só pode atualizar o próprio usuário');
-    // }
 
     if (data.email && data.email !== user.email) {
       const userWithEmail = await this.findUserByEmailUseCase
@@ -57,6 +50,6 @@ export class UpdateUserUseCase {
     //   delete data.isActive;
     // }
 
-    return this.userRepository.update(id, data);
+    return this.userRepository.update(id, data, userId);
   }
 }
