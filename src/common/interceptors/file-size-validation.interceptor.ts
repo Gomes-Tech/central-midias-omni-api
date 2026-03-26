@@ -29,6 +29,10 @@ export class FileSizeValidationInterceptor implements NestInterceptor {
     // Se não houver limite configurado, usar padrão de 5MB
     const maxSize = maxFileSize || 5 * 1024 * 1024; // 5MB padrão
 
+    if (!request.file && !request.files) {
+      return next.handle();
+    }
+
     // Validar arquivo único
     if (request.file) {
       this.validateFile(request.file, maxSize);

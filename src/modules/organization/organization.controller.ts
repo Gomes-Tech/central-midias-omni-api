@@ -40,7 +40,7 @@ export class OrganizationController {
     return await this.findOrganizationByIdUseCase.execute(id);
   }
 
-  @MaxFileSize(undefined, 5)
+  @MaxFileSize(undefined, 1)
   @RequirePermission('organizations', 'create')
   @Post()
   async create(
@@ -48,9 +48,11 @@ export class OrganizationController {
     @UserId() userId: string,
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    console.log(dto);
     return await this.createOrganizationUseCase.execute(dto, userId, file);
   }
 
+  @MaxFileSize(undefined, 5)
   @RequirePermission('organizations', 'update')
   @Patch('/:id')
   async update(

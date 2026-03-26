@@ -108,8 +108,6 @@ export class PlatformPermissionGuard implements CanActivate {
         },
       });
 
-      console.log(user);
-
       if (!user?.globalRole) {
         throw new ForbiddenException(
           `Acesso negado: permissão "${requiredPermission}" necessária.`,

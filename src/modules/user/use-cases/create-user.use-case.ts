@@ -58,6 +58,8 @@ export class CreateUserUseCase {
         template: 'welcome',
         context: {
           name: data.name,
+          email: data.email,
+          taxIdentifier: data.taxIdentifier,
         },
       });
     }

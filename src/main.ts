@@ -1,4 +1,4 @@
-import { requestIdMiddleware } from '@common/middlewares';
+import { multipartMiddleware, requestIdMiddleware } from '@common/middlewares';
 import { getEnv } from '@infrastructure/config';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
@@ -27,6 +27,7 @@ async function bootstrap() {
   );
 
   app.use(cookieParser());
+  app.use(multipartMiddleware);
   app.use(json({ limit: '3mb' }));
   app.use(requestIdMiddleware);
   app.set('trust proxy', 1);

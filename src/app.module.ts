@@ -1,6 +1,10 @@
 import { HttpExceptionFilter } from '@common/filters';
 import { AuthGuard, CategoryPermissionGuard } from '@common/guards';
 import {
+  FileSizeValidationInterceptor,
+  FileTypeValidationInterceptor,
+} from '@common/interceptors';
+import {
   OrganizationMiddleware,
   requestIdMiddleware,
 } from '@common/middlewares';
@@ -69,6 +73,14 @@ import { AppService } from './app.service';
       provide: APP_INTERCEPTOR,
       useClass: MetricsInterceptor,
     },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: FileTypeValidationInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: FileSizeValidationInterceptor,
+    },
     { provide: APP_GUARD, useClass: AuthGuard },
   ],
 })
@@ -91,6 +103,8 @@ export class AppModule implements NestModule {
         { path: 'api-docs', method: RequestMethod.ALL },
         { path: 'api-docs/(.*)', method: RequestMethod.ALL },
         { path: 'users', method: RequestMethod.GET },
+        { path: 'organizations', method: RequestMethod.POST },
+        { path: 'organizations', method: RequestMethod.GET },
         { path: 'admin', method: RequestMethod.ALL },
         { path: 'roles', method: RequestMethod.ALL },
         { path: 'admin/(.*)', method: RequestMethod.ALL },
