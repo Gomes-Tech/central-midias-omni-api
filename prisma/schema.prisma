@@ -24,6 +24,9 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
+  globalRoleId String? @map("global_role_id")
+  globalRole   Role?   @relation(fields: [globalRoleId], references: [id])
+
   managedUsers UserHierarchy[] @relation("ManagerRelation")
   managerOf    UserHierarchy[] @relation("SubordinateRelation")
   members      Member[]
@@ -79,6 +82,7 @@ model Role {
   permissions          RolePermission[]
   members              Member[]
   categoryRoleAccesses CategoryRoleAccess[]
+  users                User[]
 
   @@map("roles")
 }

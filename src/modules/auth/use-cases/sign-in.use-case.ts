@@ -21,7 +21,7 @@ export class SignInUseCase {
   ) {}
 
   async execute(dto: LoginDTO, ip?: string, userAgent?: string) {
-    const userExisting = await this.findUserByEmailUseCase.execute(dto.login);
+    const userExisting = await this.findUserByEmailUseCase.execute(dto.email);
 
     // Hash dummy para manter tempo de resposta consistente
     // Isso previne timing attacks que poderiam revelar se email existe
@@ -39,7 +39,7 @@ export class SignInUseCase {
 
     if (!userExisting || !passwordMatch) {
       this.securityLogger.logFailedLogin(
-        dto.login,
+        dto.email,
         ip || 'unknown',
         userAgent,
         'Credenciais inválidas',

@@ -23,7 +23,7 @@ async function main() {
 
   const moduleRows = [
     { id: uuidv4(), name: 'organizations', label: 'Organizações' },
-    { id: uuidv4(), name: 'roles', label: 'Papéis' },
+    { id: uuidv4(), name: 'roles', label: 'Perfis' },
     { id: uuidv4(), name: 'users', label: 'Usuários' },
   ];
 
@@ -51,7 +51,7 @@ async function main() {
         label: 'Administrador',
         isSystem: true,
         canAccessBackoffice: true,
-        canHaveSubordinates: true,
+        canHaveSubordinates: false,
       },
     });
 
@@ -66,6 +66,11 @@ async function main() {
         taxIdentifier: '93978425017',
         isActive: true,
         isFirstAccess: false,
+        globalRole: {
+          connect: {
+            id: roleId,
+          },
+        },
       },
     });
 

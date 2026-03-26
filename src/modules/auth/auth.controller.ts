@@ -104,7 +104,7 @@ export class AuthController {
   @UsePipes(ValidationPipe)
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() dto: ForgotPasswordDTO) {
-    return await this.forgotPasswordUseCase.execute(dto.taxIdentifier);
+    return await this.forgotPasswordUseCase.execute(dto.email);
   }
 
   @Public()

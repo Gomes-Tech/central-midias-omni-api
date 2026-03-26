@@ -1,4 +1,5 @@
 import { RequirePermission, UserId } from '@common/decorators';
+import { PlatformPermissionGuard } from '@common/guards';
 import {
   Body,
   Controller,
@@ -8,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CreateUserDTO, UpdateUserDTO } from './dto';
 import {
@@ -28,7 +30,8 @@ export class UserController {
     private readonly deleteUserUseCase: DeleteUserUseCase,
   ) {}
 
-  @RequirePermission('users', 'read')
+  @UseGuards(PlatformPermissionGuard)
+  @RequirePermission('users', 'READ')
   @Get()
   async getList(
     @Query('page') page?: string,

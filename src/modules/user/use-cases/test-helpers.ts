@@ -39,7 +39,6 @@ export function makeCreateUserDTO(
   return {
     name: 'John Doe',
     email: 'john@doe.com',
-    password: 'StrongPass123',
     taxIdentifier: '12345678901',
     isActive: true,
     platformRoleId: 'platform-role-id',

@@ -1,6 +1,7 @@
-import { IsString } from 'class-validator';
+import { IsEmail, IsString } from 'class-validator';
 
 export class ForgotPasswordDTO {
   @IsString()
-  taxIdentifier: string;
+  @IsEmail({}, { message: 'Email inválido' })
+  email: string;
 }

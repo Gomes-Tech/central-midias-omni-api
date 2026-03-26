@@ -87,6 +87,14 @@ export class UserRepository {
       const [users, total] = await Promise.all([
         this.prisma.user.findMany({
           where,
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+            isActive: true,
+            globalRoleId: true,
+          },
           skip,
           take: limit,
           orderBy: {
@@ -112,37 +120,50 @@ export class UserRepository {
     }
   }
 
-  async findById(id: string): Promise<any | null> {
+  async findById(id: string, isBackoffice?: boolean): Promise<any | null> {
+    const include = {
+      ...(isBackoffice
+        ? {
+            globalRole: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          }
+        : {
+            members: {
+              select: {
+                organization: {
+                  select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                    avatarUrl: true,
+                  },
+                },
+                role: {
+                  select: {
+                    id: true,
+                    name: true,
+                    label: true,
+                    isSystem: true,
+                    canAccessBackoffice: true,
+                    canHaveSubordinates: true,
+                  },
+                },
+              },
+            },
+          }),
+    };
+
     try {
       const user = await this.prisma.user.findUniqueOrThrow({
         where: {
           id,
           isDeleted: false,
         },
-        include: {
-          members: {
-            select: {
-              organization: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                  avatarUrl: true,
-                },
-              },
-              role: {
-                select: {
-                  id: true,
-                  name: true,
-                  label: true,
-                  isSystem: true,
-                  canAccessBackoffice: true,
-                  canHaveSubordinates: true,
-                },
-              },
-            },
-          },
-        },
+        include: include,
       });
 
       return user;

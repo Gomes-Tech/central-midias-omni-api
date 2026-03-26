@@ -1,11 +1,10 @@
 import { BadRequestException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
+import { MailService } from '@infrastructure/providers';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateUserDTO } from '../dto';
 import { UserRepository } from '../repository';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
-
-// const ADMIN_ROLE_NAMES = new Set(['ADMIN', 'SUPER_ADMIN']);
 
 @Injectable()
 export class CreateUserUseCase {
@@ -14,6 +13,7 @@ export class CreateUserUseCase {
     private readonly userRepository: UserRepository,
     private readonly findByEmailUseCase: FindUserByEmailUseCase,
     private readonly cryptographyService: CryptographyService,
+    private readonly mailService: MailService,
   ) {}
 
   async execute(data: CreateUserDTO, userId: string) {
@@ -33,7 +33,9 @@ export class CreateUserUseCase {
       );
     }
 
-    const hashedPassword = await this.cryptographyService.hash(data.password);
+    const hashedPassword = await this.cryptographyService.hash(
+      data.taxIdentifier,
+    );
 
     const newUser = await this.userRepository.create(
       {
@@ -49,6 +51,15 @@ export class CreateUserUseCase {
       );
     }
 
-    return newUser;
+    if (process.env.NODE_ENV === 'prod') {
+      await this.mailService.sendMail({
+        to: data.email,
+        subject: 'Bem-vindo ao sistema',
+        template: 'welcome',
+        context: {
+          name: data.name,
+        },
+      });
+    }
   }
 }

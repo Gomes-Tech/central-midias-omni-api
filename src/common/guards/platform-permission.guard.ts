@@ -40,7 +40,7 @@ export class PlatformPermissionGuard implements CanActivate {
       throw new UnauthorizedException('Usuário não autenticado.');
     }
 
-    // RBAC atual: user -> Member(organization + role) -> RolePermission(Module + Action)
+    // RBAC global: user -> globalRole -> RolePermission(Module + Action)
     const roleWhere: {
       canAccessBackoffice: boolean;
       permissions?: {
@@ -77,29 +77,83 @@ export class PlatformPermissionGuard implements CanActivate {
           action: action as Action,
         },
       };
-    }
 
-    const member = await this.prisma.member.findFirst({
-      where: {
-        userId,
-        user: { isActive: true, isDeleted: false },
-        role: roleWhere,
-      },
-      select: { id: true },
-    });
+      const user = await this.prisma.user.findFirst({
+        where: {
+          id: userId,
+          isActive: true,
+          isDeleted: false,
+          globalRole: {
+            ...roleWhere,
+          },
+        },
+        select: {
+          globalRole: {
+            select: {
+              id: true,
+              name: true,
+              canAccessBackoffice: true,
+              permissions: {
+                select: {
+                  action: true,
+                  module: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
 
-    if (!member) {
-      if (!requiredPermission) {
+      console.log(user);
+
+      if (!user?.globalRole) {
         throw new ForbiddenException(
-          'Acesso negado: você não tem acesso ao painel administrativo.',
+          `Acesso negado: permissão "${requiredPermission}" necessária.`,
         );
       }
 
-      throw new ForbiddenException(
-        `Acesso negado: permissão "${requiredPermission}" necessária.`,
-      );
-    }
+      const hasPermission = user.globalRole.permissions.some((permission) => {
+        return (
+          permission.module.name === resource && permission.action === action
+        );
+      });
 
-    return true;
+      if (hasPermission && user.globalRole.name === 'ADMIN') {
+        return true;
+      }
+
+      const { ['x-organization-id']: organizationId } = request.headers;
+
+      const member = await this.prisma.member.findFirst({
+        where: {
+          userId: userId,
+          organizationId: organizationId,
+          role: {
+            canAccessBackoffice: true,
+            permissions: {
+              some: {
+                module: { name: resource },
+                action: action as Action,
+              },
+            },
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!member) {
+        throw new ForbiddenException(
+          `Acesso negado: permissão "${requiredPermission}" necessária.`,
+        );
+      }
+
+      return true;
+    }
   }
 }

@@ -1,4 +1,5 @@
 import { RequirePermission } from '@common/decorators';
+import { PlatformPermissionGuard } from '@common/guards';
 import {
   Body,
   Controller,
@@ -8,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CreateRoleDTO, FindAllRolesFiltersDTO, UpdateRoleDTO } from './dto';
 import {
@@ -18,6 +20,7 @@ import {
   UpdateRoleUseCase,
 } from './use-cases';
 
+@UseGuards(PlatformPermissionGuard)
 @Controller('roles')
 export class RolesController {
   constructor(
@@ -31,34 +34,30 @@ export class RolesController {
   @RequirePermission('roles', 'read')
   @Get()
   async findAll(@Query() filters: FindAllRolesFiltersDTO = {}) {
-    return this.findAllRolesUseCase.execute(filters);
+    return await this.findAllRolesUseCase.execute(filters);
   }
 
   @RequirePermission('roles', 'read')
   @Get(':id')
   async findById(@Param('id') id: string) {
-    return this.findRoleByIdUseCase.execute(id);
+    return await this.findRoleByIdUseCase.execute(id);
   }
 
   @RequirePermission('roles', 'create')
   @Post()
   async create(@Body() dto: CreateRoleDTO) {
-    return this.createRoleUseCase.execute(dto);
+    return await this.createRoleUseCase.execute(dto);
   }
 
   @RequirePermission('roles', 'update')
   @Patch(':id')
   async update(@Param('id') id: string, @Body() dto: UpdateRoleDTO) {
-    return this.updateRoleUseCase.execute(id, dto);
+    return await this.updateRoleUseCase.execute(id, dto);
   }
 
   @RequirePermission('roles', 'delete')
   @Delete(':id')
   async delete(@Param('id') id: string) {
-    await this.deleteRoleUseCase.execute(id);
-
-    return {
-      success: true,
-    };
+    return await this.deleteRoleUseCase.execute(id);
   }
 }
