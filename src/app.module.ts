@@ -106,7 +106,7 @@ export class AppModule implements NestModule {
         { path: 'organizations', method: RequestMethod.POST },
         { path: 'organizations', method: RequestMethod.GET },
         { path: 'admin', method: RequestMethod.ALL },
-        { path: 'roles', method: RequestMethod.ALL },
+        { path: 'roles/(.*)', method: RequestMethod.ALL },
         { path: 'admin/(.*)', method: RequestMethod.ALL },
         { path: '*', method: RequestMethod.OPTIONS },
       )
