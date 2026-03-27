@@ -371,9 +371,32 @@ export class CategoryRepository {
     userId: string,
   ): Promise<void> {
     try {
-      await this.prisma.category.update({
+      const hierarchy = await this.findHierarchyReferences(organizationId);
+      const idsToDelete = new Set<string>([id]);
+      const queue = [id];
+
+      while (queue.length > 0) {
+        const currentId = queue.shift();
+
+        if (!currentId) {
+          continue;
+        }
+
+        for (const category of hierarchy) {
+          if (category.parentId !== currentId || idsToDelete.has(category.id)) {
+            continue;
+          }
+
+          idsToDelete.add(category.id);
+          queue.push(category.id);
+        }
+      }
+
+      await this.prisma.category.updateMany({
         where: {
-          id,
+          id: {
+            in: Array.from(idsToDelete),
+          },
           organizationId,
           isDeleted: false,
         },
@@ -388,6 +411,7 @@ export class CategoryRepository {
         categoryId: id,
         organizationId,
         userId,
+        deletedCount: idsToDelete.size,
       });
     } catch (error) {
       void this.logger.error('CategoryRepository.delete falhou', {
