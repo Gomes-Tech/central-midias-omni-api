@@ -20,6 +20,7 @@ import { MailModule, StorageModule } from '@infrastructure/providers';
 import { SecurityModule } from '@infrastructure/security';
 import { ThrottlerConfigModule } from '@infrastructure/throttler';
 import { AuthModule } from '@modules/auth';
+import { CategoryModule } from '@modules/category';
 import { MemberModule } from '@modules/member';
 import { OrganizationModule } from '@modules/organization';
 import { RolesModule } from '@modules/roles';
@@ -50,6 +51,7 @@ import { AppService } from './app.service';
     MailModule,
     StorageModule,
     ThrottlerConfigModule,
+    CategoryModule,
     MemberModule,
     OrganizationModule,
     RolesModule,
