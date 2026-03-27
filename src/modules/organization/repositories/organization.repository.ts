@@ -62,20 +62,50 @@ export class OrganizationRepository {
     userId: string,
   ): Promise<void> {
     try {
-      const organization = await this.prisma.organization.create({
-        data: {
-          id: generateId(),
-          name: data.name,
-          slug: data.slug,
-          isActive: data.isActive ?? true,
-          avatarUrl: data.avatarUrl ?? null,
-          domain: data.domain ?? null,
-          shouldAttachUsersByDomain: data.shouldAttachUsersByDomain ?? false,
-        },
+      const transaction = await this.prisma.$transaction(async (tx) => {
+        const organization = await tx.organization.create({
+          data: {
+            id: generateId(),
+            name: data.name,
+            slug: data.slug,
+            isActive: data.isActive ?? true,
+            avatarUrl: data.avatarUrl ?? null,
+            domain: data.domain ?? null,
+            shouldAttachUsersByDomain: data.shouldAttachUsersByDomain ?? false,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        const role = await tx.role.findFirstOrThrow({
+          where: {
+            name: 'ADMIN',
+            users: {
+              some: {
+                id: userId,
+              },
+            },
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        await tx.member.create({
+          data: {
+            id: generateId(),
+            organizationId: organization.id,
+            userId,
+            roleId: role.id,
+          },
+        });
+
+        return organization;
       });
 
       void this.logger.info('Organização criada', {
-        organizationId: organization.id,
+        organizationId: transaction.id,
         userId,
       });
     } catch (error) {

@@ -27,6 +27,7 @@ export class CreateMemberWithUserUseCase {
     const existingUserByEmail = await this.userRepository.findByEmail(
       data.email,
     );
+
     if (existingUserByEmail) {
       throw new BadRequestException('Usuário já existe! Tente outro email.');
     }
@@ -46,7 +47,7 @@ export class CreateMemberWithUserUseCase {
       data.taxIdentifier,
     );
 
-    const member = await this.memberRepository.createWithNewUser(
+    await this.memberRepository.createWithNewUser(
       organizationId,
       {
         ...data,
@@ -67,7 +68,5 @@ export class CreateMemberWithUserUseCase {
         },
       });
     }
-
-    return member;
   }
 }

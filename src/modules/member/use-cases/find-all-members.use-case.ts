@@ -9,7 +9,12 @@ export class FindAllMembersUseCase {
   async execute(
     organizationId: string,
     filters: FindAllMembersFiltersDTO = {},
-  ) {
+  ): Promise<{
+    data: any[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
     return this.memberRepository.findAll(organizationId, filters);
   }
 }

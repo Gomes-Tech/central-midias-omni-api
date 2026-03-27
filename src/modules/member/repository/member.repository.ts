@@ -10,7 +10,6 @@ import {
   FindAllMembersFiltersDTO,
   UpdateMemberDTO,
 } from '../dto';
-import { Member } from '../entities';
 
 @Injectable()
 export class MemberRepository {
@@ -21,11 +20,6 @@ export class MemberRepository {
 
   private readonly memberSelect = {
     id: true,
-    organizationId: true,
-    userId: true,
-    roleId: true,
-    createdAt: true,
-    updatedAt: true,
     user: {
       select: {
         id: true,
@@ -37,12 +31,7 @@ export class MemberRepository {
     },
     role: {
       select: {
-        id: true,
-        name: true,
         label: true,
-        isSystem: true,
-        canAccessBackoffice: true,
-        canHaveSubordinates: true,
       },
     },
   } satisfies Prisma.MemberSelect;
@@ -50,18 +39,23 @@ export class MemberRepository {
   async findAll(
     organizationId: string,
     filters: FindAllMembersFiltersDTO = {},
-  ): Promise<Member[]> {
+  ): Promise<{
+    data: any[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const { page = 1, limit = 25, roleId, searchTerm } = filters;
     try {
       const where: Prisma.MemberWhereInput = {
         organizationId,
-        ...(filters.roleId && { roleId: filters.roleId }),
-        ...(filters.userId && { userId: filters.userId }),
-        ...(filters.searchTerm && {
+        ...(roleId && { roleId: roleId }),
+        ...(searchTerm && {
           OR: [
             {
               user: {
                 name: {
-                  contains: filters.searchTerm,
+                  contains: searchTerm,
                   mode: 'insensitive',
                 },
               },
@@ -69,23 +63,7 @@ export class MemberRepository {
             {
               user: {
                 email: {
-                  contains: filters.searchTerm,
-                  mode: 'insensitive',
-                },
-              },
-            },
-            {
-              role: {
-                name: {
-                  contains: filters.searchTerm,
-                  mode: 'insensitive',
-                },
-              },
-            },
-            {
-              role: {
-                label: {
-                  contains: filters.searchTerm,
+                  contains: searchTerm,
                   mode: 'insensitive',
                 },
               },
@@ -94,11 +72,27 @@ export class MemberRepository {
         }),
       };
 
-      return await this.prisma.member.findMany({
-        where,
-        select: this.memberSelect,
-        orderBy: [{ user: { name: 'asc' } }],
-      });
+      const [data, total] = await Promise.all([
+        this.prisma.member.findMany({
+          where,
+          select: this.memberSelect,
+          orderBy: [{ user: { name: 'asc' } }],
+        }),
+        this.prisma.member.count({ where }),
+      ]);
+
+      return {
+        data: data.map((member) => ({
+          id: member.id,
+          name: member.user.name,
+          email: member.user.email,
+          isActive: member.user.isActive,
+          role: member.role.label,
+        })),
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      };
     } catch (error) {
       void this.logger.error('MemberRepository.findAll falhou', {
         error: String(error),
@@ -110,7 +104,7 @@ export class MemberRepository {
     }
   }
 
-  async findById(id: string, organizationId: string): Promise<Member | null> {
+  async findById(id: string, organizationId: string): Promise<any | null> {
     try {
       return await this.prisma.member.findFirst({
         where: {
@@ -133,7 +127,7 @@ export class MemberRepository {
   async findByOrganizationAndUser(
     organizationId: string,
     userId: string,
-  ): Promise<Member | null> {
+  ): Promise<any | null> {
     try {
       return await this.prisma.member.findUnique({
         where: {
@@ -162,7 +156,7 @@ export class MemberRepository {
     organizationId: string,
     data: CreateMemberDTO,
     createdBy: string,
-  ): Promise<Member> {
+  ): Promise<void> {
     try {
       const member = await this.prisma.member.create({
         data: {
@@ -171,7 +165,9 @@ export class MemberRepository {
           userId: data.userId,
           roleId: data.roleId,
         },
-        select: this.memberSelect,
+        select: {
+          id: true,
+        },
       });
 
       void this.logger.info('Membro criado', {
@@ -181,8 +177,6 @@ export class MemberRepository {
         userId: data.userId,
         roleId: data.roleId,
       });
-
-      return member;
     } catch (error) {
       void this.logger.error('MemberRepository.create falhou', {
         error: String(error),
@@ -200,7 +194,7 @@ export class MemberRepository {
     organizationId: string,
     data: CreateMemberWithUserDTO & { password: string },
     createdBy: string,
-  ): Promise<Member> {
+  ): Promise<void> {
     try {
       const member = await this.prisma.$transaction(async (tx) => {
         const user = await tx.user.create({
@@ -243,11 +237,9 @@ export class MemberRepository {
         memberId: member.id,
         organizationId,
         createdBy,
-        userId: member.userId,
+        userId: member.user.id,
         roleId: data.roleId,
       });
-
-      return member;
     } catch (error) {
       void this.logger.error('MemberRepository.createWithNewUser falhou', {
         error: String(error),
@@ -266,9 +258,9 @@ export class MemberRepository {
     organizationId: string,
     data: UpdateMemberDTO,
     updatedBy: string,
-  ): Promise<Member> {
+  ): Promise<void> {
     try {
-      const member = await this.prisma.$transaction(async (tx) => {
+      await this.prisma.$transaction(async (tx) => {
         await tx.member.updateMany({
           where: {
             id,
@@ -294,8 +286,6 @@ export class MemberRepository {
         updatedBy,
         roleId: data.roleId,
       });
-
-      return member;
     } catch (error) {
       void this.logger.error('MemberRepository.update falhou', {
         error: String(error),

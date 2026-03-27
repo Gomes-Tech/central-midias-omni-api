@@ -50,9 +50,9 @@ export class CreateUserDTO {
   @Sanitize()
   avatarUrl?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsUUID('4', { message: 'Perfil de plataforma inválido' })
-  platformRoleId: string;
+  platformRoleId?: string;
 
   @IsOptional()
   @IsArray()
