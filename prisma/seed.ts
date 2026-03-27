@@ -25,6 +25,7 @@ async function main() {
     { id: uuidv4(), name: 'organizations', label: 'Organizações' },
     { id: uuidv4(), name: 'roles', label: 'Perfis' },
     { id: uuidv4(), name: 'users', label: 'Usuários' },
+    { id: uuidv4(), name: 'members', label: 'Membros' },
   ];
 
   const roleId = uuidv4();
