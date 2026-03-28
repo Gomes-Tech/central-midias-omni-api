@@ -365,14 +365,18 @@ export class CategoryRepository {
     }
   }
 
+  // Remoção lógica que desativa a categoria e todas as suas subcategorias
   async delete(
     id: string,
     organizationId: string,
     userId: string,
   ): Promise<void> {
     try {
+      // Para garantir a integridade da hierarquia, buscamos todas as categorias e identificamos quais precisam ser desativadas
       const hierarchy = await this.findHierarchyReferences(organizationId);
       const idsToDelete = new Set<string>([id]);
+
+      // Usamos uma fila para percorrer a hierarquia e encontrar todas as subcategorias do item a ser deletado
       const queue = [id];
 
       while (queue.length > 0) {
@@ -382,16 +386,18 @@ export class CategoryRepository {
           continue;
         }
 
+        // Para cada categoria na hierarquia, verificamos se ela é filha da categoria atual e ainda não foi marcada para deleção
         for (const category of hierarchy) {
           if (category.parentId !== currentId || idsToDelete.has(category.id)) {
             continue;
           }
-
+          // Se for filha e ainda não estiver marcada, adicionamos à lista de deleção e à fila para verificar suas subcategorias
           idsToDelete.add(category.id);
           queue.push(category.id);
         }
       }
 
+      // Realizamos a atualização em massa para marcar todas as categorias identificadas como deletadas
       await this.prisma.category.updateMany({
         where: {
           id: {
