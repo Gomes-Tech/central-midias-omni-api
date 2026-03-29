@@ -21,6 +21,7 @@ import { SecurityModule } from '@infrastructure/security';
 import { ThrottlerConfigModule } from '@infrastructure/throttler';
 import { AuthModule } from '@modules/auth';
 import { CategoryModule } from '@modules/category';
+import { CategoryRoleAccessModule } from '@modules/category-role-access/category-role-access.module';
 import { MemberModule } from '@modules/member';
 import { OrganizationModule } from '@modules/organization';
 import { RolesModule } from '@modules/roles';
@@ -58,6 +59,7 @@ import { AppService } from './app.service';
     UserModule,
     TokenPasswordModule,
     AuthModule,
+    CategoryRoleAccessModule,
   ],
   controllers: [AppController],
   providers: [
