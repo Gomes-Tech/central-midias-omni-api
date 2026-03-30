@@ -62,7 +62,14 @@ export class BannerController {
       desktopImage?: Express.Multer.File[];
     },
   ) {
-    await this.createBannerUseCase.execute(organizationId, dto, userId, files);
+    // A seguinte linha foi comentada porque não estava de acordo com a assinatura o execute do use case:
+    // await this.createBannerUseCase.execute(organizationId, dto, userId, files);
+
+    // No lugar dela, usei o seguinte:
+    await this.createBannerUseCase.execute(organizationId, dto, userId, {
+      mobile: files?.mobileImage?.[0],
+      desktop: files?.desktopImage?.[0],
+    });
   }
 
   @UseGuards(PlatformPermissionGuard)
