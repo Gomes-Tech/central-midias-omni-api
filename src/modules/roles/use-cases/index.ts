@@ -1,3 +1,4 @@
+export * from './create-global-role.use-case';
 export * from './create-role.use-case';
 export * from './delete-role.use-case';
 export * from './find-all-roles.use-case';

@@ -1,4 +1,4 @@
-import { RequirePermission } from '@common/decorators';
+import { OrgId, RequirePermission } from '@common/decorators';
 import { PlatformPermissionGuard } from '@common/guards';
 import {
   Body,
@@ -11,8 +11,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { CreateRoleDTO, FindAllRolesFiltersDTO, UpdateRoleDTO } from './dto';
 import {
+  CreateGlobalRoleDTO,
+  CreateRoleDTO,
+  FindAllRolesFiltersDTO,
+  UpdateRoleDTO,
+} from './dto';
+import {
+  CreateGlobalRoleUseCase,
   CreateRoleUseCase,
   DeleteRoleUseCase,
   FindAllRolesUseCase,
@@ -27,6 +33,7 @@ export class RolesController {
     private readonly findAllRolesUseCase: FindAllRolesUseCase,
     private readonly findRoleByIdUseCase: FindRoleByIdUseCase,
     private readonly createRoleUseCase: CreateRoleUseCase,
+    private readonly createGlobalRoleUseCase: CreateGlobalRoleUseCase,
     private readonly updateRoleUseCase: UpdateRoleUseCase,
     private readonly deleteRoleUseCase: DeleteRoleUseCase,
   ) {}
@@ -45,8 +52,17 @@ export class RolesController {
 
   @RequirePermission('roles', 'create')
   @Post()
-  async create(@Body() dto: CreateRoleDTO) {
-    return await this.createRoleUseCase.execute(dto);
+  async create(@Body() dto: CreateGlobalRoleDTO) {
+    return await this.createGlobalRoleUseCase.execute(dto);
+  }
+
+  @RequirePermission('roles', 'create')
+  @Post('/permissions')
+  async createPermissions(
+    @Body() dto: CreateRoleDTO,
+    @OrgId() organizationId: string,
+  ) {
+    return await this.createRoleUseCase.execute(dto, organizationId);
   }
 
   @RequirePermission('roles', 'update')

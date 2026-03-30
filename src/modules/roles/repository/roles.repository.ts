@@ -1,3 +1,5 @@
+import { BadRequestException } from '@common/filters';
+import { generateId } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import {
@@ -5,7 +7,9 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { Action } from '@prisma/client';
 import { CreateRoleDTO, FindAllRolesFiltersDTO, UpdateRoleDTO } from '../dto';
+import { CreateGlobalRoleDTO } from '../dto/create-global-role.dto';
 import { Role } from '../entities';
 
 @Injectable()
@@ -80,14 +84,17 @@ export class RolesRepository {
     }
   }
 
-  async create(data: CreateRoleDTO): Promise<Role> {
+  async create(data: CreateRoleDTO): Promise<{ id: string; name: string }> {
     try {
       const role = await this.prisma.role.create({
         data: {
           label: data.label,
           name: data.name,
-          canAccessBackoffice: data.canAccessBackoffice,
           canHaveSubordinates: data.canHaveSubordinates,
+        },
+        select: {
+          id: true,
+          name: true,
         },
       });
 
@@ -101,6 +108,42 @@ export class RolesRepository {
       this.handleError('RolesRepository.create falhou', error, {
         role: data.name,
       });
+    }
+  }
+
+  async createGlobalRole(data: CreateGlobalRoleDTO): Promise<void> {
+    try {
+      const role = await this.prisma.$transaction(async (tx) => {
+        const role = await tx.role.create({
+          data: {
+            id: generateId(),
+            label: data.label,
+            name: data.name,
+            canAccessBackoffice: true,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        const permissions = data.permissions.map((permission) => ({
+          id: generateId(),
+          roleId: role.id,
+          moduleId: permission.moduleId,
+          action: permission.action as Action,
+        }));
+
+        await tx.rolePermission.createMany({ data: permissions });
+
+        return role;
+      });
+
+      void this.logger.info('Perfil global criado', {
+        roleId: role.id,
+      });
+    } catch (error) {
+      void this.logger.error('RolesRepository.createGlobalRole falhou', error);
+      throw new BadRequestException('Erro ao criar perfil global');
     }
   }
 

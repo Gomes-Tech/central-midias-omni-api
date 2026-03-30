@@ -28,7 +28,9 @@ export class CategoryRoleAccessController {
   @RequirePermission('categories', 'read')
   @Get()
   async findAll(@OrgId() organizationId: string) {
-    return await this.findAllCategoryRoleAccessesUseCase.execute(organizationId);
+    return await this.findAllCategoryRoleAccessesUseCase.execute(
+      organizationId,
+    );
   }
 
   @RequirePermission('categories', 'read')
@@ -57,10 +59,7 @@ export class CategoryRoleAccessController {
 
   @RequirePermission('categories', 'update')
   @Delete(':id')
-  async delete(
-    @Param('id') id: string,
-    @OrgId() organizationId: string,
-  ) {
+  async delete(@Param('id') id: string, @OrgId() organizationId: string) {
     await this.deleteCategoryRoleAccessUseCase.execute(id, organizationId);
   }
 }

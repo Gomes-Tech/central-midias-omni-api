@@ -1,5 +1,12 @@
 import { Sanitize } from '@common/decorators';
-import { IsBoolean, IsNotEmpty, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsNotEmpty,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
 export class CreateRoleDTO {
   @IsNotEmpty()
@@ -14,9 +21,18 @@ export class CreateRoleDTO {
 
   @IsNotEmpty()
   @IsBoolean()
-  canAccessBackoffice: boolean;
+  canHaveSubordinates: boolean;
 
   @IsNotEmpty()
-  @IsBoolean()
-  canHaveSubordinates: boolean;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateCategoryRoleAccessDTO)
+  categoryRoleAccesses: CreateCategoryRoleAccessDTO[];
+}
+
+class CreateCategoryRoleAccessDTO {
+  @IsNotEmpty()
+  @IsString()
+  @Sanitize()
+  categoryId: string;
 }
