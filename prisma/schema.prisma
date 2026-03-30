@@ -156,6 +156,7 @@ model Organization {
 
   members                Member[]
   categories             Category[]
+  banners                Banner[]
   category_role_accesses CategoryRoleAccess[]
   userHierarchies        UserHierarchy[]
 
@@ -215,6 +216,29 @@ model CategoryRoleAccess {
   @@index([roleId, organizationId])
   @@index([categoryId])
   @@map("category_role_accesses")
+}
+
+
+model Banner {
+  id              String    @id @default(cuid())
+  organizationId  String    @map("organization_id")
+  mobileImageUrl  String    @map("mobile_image_url")
+  desktopImageUrl String    @map("desktop_image_url")
+  name            String
+  link            String?
+  order           Int
+  isActive        Boolean   @default(true) @map("is_active")
+  initialDate     DateTime? @map("initial_date")
+  finishDate      DateTime? @map("finish_date")
+
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@map("banners")
 }
 
 // ============================================================

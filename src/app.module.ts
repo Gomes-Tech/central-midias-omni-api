@@ -20,6 +20,7 @@ import { MailModule, StorageModule } from '@infrastructure/providers';
 import { SecurityModule } from '@infrastructure/security';
 import { ThrottlerConfigModule } from '@infrastructure/throttler';
 import { AuthModule } from '@modules/auth';
+import { BannerModule } from '@modules/banner';
 import { CategoryModule } from '@modules/category';
 import { CategoryRoleAccessModule } from '@modules/category-role-access/category-role-access.module';
 import { MemberModule } from '@modules/member';
@@ -60,6 +61,7 @@ import { AppService } from './app.service';
     TokenPasswordModule,
     AuthModule,
     CategoryRoleAccessModule,
+    BannerModule,
   ],
   controllers: [AppController],
   providers: [
@@ -114,7 +116,6 @@ export class AppModule implements NestModule {
         { path: 'organizations', method: RequestMethod.GET },
         { path: 'roles', method: RequestMethod.POST },
         { path: 'roles', method: RequestMethod.GET },
-
         { path: 'admin', method: RequestMethod.ALL },
         { path: 'admin/(.*)', method: RequestMethod.ALL },
         { path: '*', method: RequestMethod.OPTIONS },
