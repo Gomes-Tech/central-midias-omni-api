@@ -40,7 +40,7 @@ export class OrganizationController {
     return await this.findOrganizationByIdUseCase.execute(id);
   }
 
-  @MaxFileSize(undefined, 1)
+  @MaxFileSize(undefined, 5)
   @RequirePermission('organizations', 'create')
   @Post()
   async create(
