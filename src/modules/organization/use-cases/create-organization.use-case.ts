@@ -1,3 +1,9 @@
+/**
+ *  Anotação: o atual use-case não está utilizando os campos domain e shouldAttachUsersByDomain,
+ *  então o teste também não validou esses campos.
+ *  Quando a implementação estiver finalizada, devemos repassar esse caso de testes.
+ */
+
 import { BadRequestException } from '@common/filters';
 import { StorageService } from '@infrastructure/providers';
 import { Inject, Injectable } from '@nestjs/common';

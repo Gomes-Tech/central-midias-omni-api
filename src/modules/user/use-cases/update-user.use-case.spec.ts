@@ -94,10 +94,14 @@ describe('UpdateUserUseCase', () => {
       plainPassword,
       'hashed-password',
     );
-    expect(userRepository.update).toHaveBeenCalledWith('target-id', {
-      ...dto,
-      password: 'hashed-new-password',
-    });
+    expect(userRepository.update).toHaveBeenCalledWith(
+      'target-id',
+      {
+        ...dto,
+        password: 'hashed-new-password',
+      },
+      'admin-id',
+    );
     expect(result).toBeUndefined();
   });
 });

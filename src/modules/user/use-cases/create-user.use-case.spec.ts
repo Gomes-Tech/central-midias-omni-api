@@ -1,4 +1,5 @@
 import { CryptographyService } from '@infrastructure/criptography';
+import { MailService } from '@infrastructure/providers';
 import { UserRepository } from '../repository';
 import { CreateUserUseCase } from './create-user.use-case';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
@@ -9,6 +10,7 @@ describe('CreateUserUseCase', () => {
   let userRepository: jest.Mocked<UserRepository>;
   let findByEmailUseCase: jest.Mocked<FindUserByEmailUseCase>;
   let cryptographyService: jest.Mocked<CryptographyService>;
+  let mailService: jest.Mocked<MailService>;
 
   beforeEach(() => {
     userRepository = {
@@ -24,10 +26,15 @@ describe('CreateUserUseCase', () => {
       hash: jest.fn(),
     } as unknown as jest.Mocked<CryptographyService>;
 
+    mailService = {
+      sendMail: jest.fn(),
+    } as unknown as jest.Mocked<MailService>;
+
     useCase = new CreateUserUseCase(
       userRepository,
       findByEmailUseCase,
       cryptographyService,
+      mailService,
     );
   });
 
@@ -41,11 +48,15 @@ describe('CreateUserUseCase', () => {
 
     const result = await useCase.execute(dto, 'requester-id');
 
-    expect(cryptographyService.hash).toHaveBeenCalledWith(dto.password);
-    expect(userRepository.create).toHaveBeenCalledWith({
-      ...dto,
-      password: 'hashed-secret',
-    });
-    expect(result).toEqual({ id: createdUser.id });
+    expect(cryptographyService.hash).toHaveBeenCalledWith(dto.taxIdentifier);
+    expect(userRepository.create).toHaveBeenCalledWith(
+      {
+        ...dto,
+        password: 'hashed-secret',
+      },
+      'requester-id',
+    );
+    expect(mailService.sendMail).not.toHaveBeenCalled();
+    expect(result).toBeUndefined();
   });
 });
