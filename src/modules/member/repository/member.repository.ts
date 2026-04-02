@@ -6,7 +6,6 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
   CreateMemberDTO,
-  CreateMemberWithUserDTO,
   FindAllMembersFiltersDTO,
   UpdateMemberDTO,
 } from '../dto';
@@ -187,69 +186,6 @@ export class MemberRepository {
       });
 
       throw new BadRequestException('Erro ao criar membro');
-    }
-  }
-
-  async createWithNewUser(
-    organizationId: string,
-    data: CreateMemberWithUserDTO & { password: string },
-    createdBy: string,
-  ): Promise<void> {
-    try {
-      const member = await this.prisma.$transaction(async (tx) => {
-        const user = await tx.user.create({
-          data: {
-            id: generateId(),
-            name: data.name,
-            email: data.email,
-            password: data.password,
-            taxIdentifier: data.taxIdentifier,
-            ...(data.phone !== undefined && { phone: data.phone }),
-            ...(data.socialReason !== undefined && {
-              socialReason: data.socialReason,
-            }),
-            ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
-            ...(data.isActive !== undefined && { isActive: data.isActive }),
-            ...(data.isFirstAccess !== undefined && {
-              isFirstAccess: data.isFirstAccess,
-            }),
-            ...(data.platformRoleId !== undefined && {
-              globalRoleId: data.platformRoleId,
-            }),
-          },
-          select: {
-            id: true,
-          },
-        });
-
-        return tx.member.create({
-          data: {
-            id: generateId(),
-            organizationId,
-            userId: user.id,
-            roleId: data.roleId,
-          },
-          select: this.memberSelect,
-        });
-      });
-
-      void this.logger.info('Usuário e membro criados', {
-        memberId: member.id,
-        organizationId,
-        createdBy,
-        userId: member.user.id,
-        roleId: data.roleId,
-      });
-    } catch (error) {
-      void this.logger.error('MemberRepository.createWithNewUser falhou', {
-        error: String(error),
-        organizationId,
-        createdBy,
-        email: data.email,
-        roleId: data.roleId,
-      });
-
-      throw new BadRequestException('Erro ao criar usuário e membro');
     }
   }
 

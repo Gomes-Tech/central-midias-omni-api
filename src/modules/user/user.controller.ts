@@ -1,4 +1,4 @@
-import { RequirePermission, UserId } from '@common/decorators';
+import { OrgId, RequirePermission, UserId } from '@common/decorators';
 import { PlatformPermissionGuard } from '@common/guards';
 import {
   Body,
@@ -11,8 +11,9 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { CreateUserDTO, UpdateUserDTO } from './dto';
+import { CreateGlobalUserDTO, CreateUserDTO, UpdateUserDTO } from './dto';
 import {
+  CreateGlobalUserUseCase,
   CreateUserUseCase,
   DeleteUserUseCase,
   FindAllUsersUseCase,
@@ -24,6 +25,7 @@ import {
 export class UserController {
   constructor(
     private readonly createUserUseCase: CreateUserUseCase,
+    private readonly createGlobalUserUseCase: CreateGlobalUserUseCase,
     private readonly findAllUsersUseCase: FindAllUsersUseCase,
     private readonly findUserByIdUseCase: FindUserByIdUseCase,
     private readonly updateUserUseCase: UpdateUserUseCase,
@@ -84,8 +86,21 @@ export class UserController {
 
   @RequirePermission('users', 'create')
   @Post()
-  async create(@Body() dto: CreateUserDTO, @UserId() userId: string) {
-    await this.createUserUseCase.execute(dto, userId);
+  async create(
+    @Body() dto: CreateUserDTO,
+    @UserId() userId: string,
+    @OrgId() organizationId: string,
+  ) {
+    await this.createUserUseCase.execute(dto, userId, organizationId);
+  }
+
+  @RequirePermission('users', 'create')
+  @Post('global')
+  async createGlobal(
+    @Body() dto: CreateGlobalUserDTO,
+    @UserId() userId: string,
+  ) {
+    await this.createGlobalUserUseCase.execute(dto, userId);
   }
 
   @RequirePermission('users', 'update')

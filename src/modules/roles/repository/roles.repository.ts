@@ -142,7 +142,9 @@ export class RolesRepository {
         roleId: role.id,
       });
     } catch (error) {
-      void this.logger.error('RolesRepository.createGlobalRole falhou', error);
+      void this.logger.error('RolesRepository.createGlobalRole falhou', {
+        error: String(error),
+      });
       throw new BadRequestException('Erro ao criar perfil global');
     }
   }

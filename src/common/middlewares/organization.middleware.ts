@@ -19,7 +19,7 @@ export class OrganizationMiddleware implements NestMiddleware {
     }
 
     const organization = await this.prisma.organization.findUnique({
-      where: { id: organizationId, isActive: true },
+      where: { id: organizationId, isActive: true, isDeleted: false },
       select: {
         id: true,
       },

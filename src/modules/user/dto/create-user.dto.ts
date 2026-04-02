@@ -2,7 +2,6 @@ import { Sanitize } from '@common/decorators';
 import { Type } from 'class-transformer';
 import {
   IsArray,
-  IsBoolean,
   IsEmail,
   IsNotEmpty,
   IsOptional,
@@ -27,37 +26,29 @@ export class CreateUserDTO {
   @Sanitize()
   taxIdentifier: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
   @Sanitize()
-  phone?: string;
+  phone: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
   @Sanitize()
-  socialReason?: string;
+  socialReason: string;
 
-  @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isFirstAccess?: boolean;
-
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
   @Sanitize()
-  avatarUrl?: string;
+  birthDate: string;
 
-  @IsOptional()
-  @IsUUID('4', { message: 'Perfil de plataforma inválido' })
-  platformRoleId?: string;
+  @IsNotEmpty()
+  @IsString()
+  @Sanitize()
+  admissionDate: string;
 
-  @IsOptional()
-  @IsArray()
-  @IsUUID('4', { each: true, message: 'Organização inválida' })
-  organizationIds?: string[];
+  @IsNotEmpty()
+  @IsUUID('4', { message: 'Permissão inválida' })
+  roleId: string;
 
   @IsOptional()
   @IsArray()

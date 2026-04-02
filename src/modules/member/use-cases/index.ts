@@ -1,4 +1,4 @@
-export * from './create-member.use-case';
+export * from './add-user-member.use-case';
 export * from './create-member-with-user.use-case';
 export * from './delete-member.use-case';
 export * from './find-all-members.use-case';

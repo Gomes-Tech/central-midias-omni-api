@@ -1,3 +1,4 @@
+export * from './create-global-user.use-case';
 export * from './create-user.use-case';
 export * from './delete-user.use-case';
 export * from './find-all-users.use-case';

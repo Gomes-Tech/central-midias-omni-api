@@ -5,7 +5,7 @@ import { Module } from '@nestjs/common';
 import { MemberController } from './member.controller';
 import { MemberRepository } from './repository';
 import {
-  CreateMemberUseCase,
+  AddUserMemberUseCase,
   CreateMemberWithUserUseCase,
   DeleteMemberUseCase,
   FindAllMembersUseCase,
@@ -20,7 +20,7 @@ import {
     PlatformPermissionGuard,
     FindAllMembersUseCase,
     FindMemberByIdUseCase,
-    CreateMemberUseCase,
+    AddUserMemberUseCase,
     CreateMemberWithUserUseCase,
     UpdateMemberUseCase,
     DeleteMemberUseCase,
@@ -33,7 +33,7 @@ import {
   exports: [
     FindAllMembersUseCase,
     FindMemberByIdUseCase,
-    CreateMemberUseCase,
+    AddUserMemberUseCase,
     CreateMemberWithUserUseCase,
     UpdateMemberUseCase,
     DeleteMemberUseCase,

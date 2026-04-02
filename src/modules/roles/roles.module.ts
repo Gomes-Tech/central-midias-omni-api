@@ -1,5 +1,4 @@
 import { CategoryRoleAccessModule } from '@modules/category-role-access/category-role-access.module';
-import { UserModule } from '@modules/user';
 import { Module } from '@nestjs/common';
 import { RolesRepository } from './repository';
 import { RolesController } from './roles.controller';
@@ -10,30 +9,39 @@ import {
   FindAllRolesUseCase,
   FindRoleByIdUseCase,
   FindRoleByNameUseCase,
-  FindRoleByUserIdUseCase,
   UpdateRoleUseCase,
 } from './use-cases';
 
 @Module({
-  imports: [UserModule, CategoryRoleAccessModule],
+  imports: [CategoryRoleAccessModule],
   controllers: [RolesController],
   providers: [
     RolesRepository,
     FindAllRolesUseCase,
     FindRoleByIdUseCase,
-    FindRoleByUserIdUseCase,
     FindRoleByNameUseCase,
     CreateRoleUseCase,
     CreateGlobalRoleUseCase,
     UpdateRoleUseCase,
     DeleteRoleUseCase,
+    {
+      provide: 'RolesRepository',
+      useExisting: RolesRepository,
+    },
   ],
   exports: [
-    RolesRepository,
     FindAllRolesUseCase,
     FindRoleByIdUseCase,
-    FindRoleByUserIdUseCase,
     FindRoleByNameUseCase,
+    CreateRoleUseCase,
+    CreateGlobalRoleUseCase,
+    UpdateRoleUseCase,
+    DeleteRoleUseCase,
+    RolesRepository,
+    {
+      provide: 'RolesRepository',
+      useExisting: RolesRepository,
+    },
   ],
 })
 export class RolesModule {}

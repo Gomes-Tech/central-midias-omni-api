@@ -17,6 +17,8 @@ model User {
   phone         String?   @map("phone")
   socialReason  String?   @map("social_reason")
   avatarUrl     String?   @map("avatar_url")
+  birthDate     DateTime? @map("birth_date")
+  admissionDate DateTime? @map("admission_date")
   isFirstAccess Boolean   @default(true) @map("is_first_access")
   isActive      Boolean   @default(true) @map("is_active")
   isDeleted     Boolean   @default(false) @map("is_deleted")
@@ -218,7 +220,6 @@ model CategoryRoleAccess {
   @@map("category_role_accesses")
 }
 
-
 model Banner {
   id              String    @id @default(cuid())
   organizationId  String    @map("organization_id")
@@ -231,10 +232,10 @@ model Banner {
   initialDate     DateTime? @map("initial_date")
   finishDate      DateTime? @map("finish_date")
 
-  isDeleted   Boolean  @default(false) @map("is_deleted")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
+  isDeleted    Boolean      @default(false) @map("is_deleted")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at")
+  deletedAt    DateTime?    @map("deleted_at")
   organization Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId])

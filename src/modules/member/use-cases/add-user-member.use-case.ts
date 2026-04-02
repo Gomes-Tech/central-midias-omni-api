@@ -6,7 +6,7 @@ import { CreateMemberDTO } from '../dto';
 import { MemberRepository } from '../repository';
 
 @Injectable()
-export class CreateMemberUseCase {
+export class AddUserMemberUseCase {
   constructor(
     @Inject('MemberRepository')
     private readonly memberRepository: MemberRepository,

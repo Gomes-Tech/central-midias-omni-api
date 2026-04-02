@@ -1,4 +1,5 @@
 import { MaxFileSize, RequirePermission, UserId } from '@common/decorators';
+import { PlatformPermissionGuard } from '@common/guards';
 import {
   Body,
   Controller,
@@ -8,6 +9,7 @@ import {
   Patch,
   Post,
   UploadedFile,
+  UseGuards,
 } from '@nestjs/common';
 import { CreateOrganizationDTO, UpdateOrganizationDTO } from './dto';
 import {
@@ -18,6 +20,7 @@ import {
   UpdateOrganizationUseCase,
 } from './use-cases';
 
+@UseGuards(PlatformPermissionGuard)
 @Controller('organizations')
 export class OrganizationController {
   constructor(

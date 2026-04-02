@@ -1,21 +1,12 @@
-import { BadRequestException } from '@common/filters';
-import { CryptographyService } from '@infrastructure/criptography';
 import { MailService } from '@infrastructure/providers';
-import { FindRoleByIdUseCase } from '@modules/roles/use-cases/find-role-by-id.use-case';
-import { Inject, Injectable } from '@nestjs/common';
-import { UserRepository } from '../../user/repository';
+import { CreateUserUseCase } from '@modules/user';
+import { Injectable } from '@nestjs/common';
 import { CreateMemberWithUserDTO } from '../dto';
-import { MemberRepository } from '../repository';
 
 @Injectable()
 export class CreateMemberWithUserUseCase {
   constructor(
-    @Inject('MemberRepository')
-    private readonly memberRepository: MemberRepository,
-    @Inject('UserRepository')
-    private readonly userRepository: UserRepository,
-    private readonly findRoleByIdUseCase: FindRoleByIdUseCase,
-    private readonly cryptographyService: CryptographyService,
+    private readonly createUserUseCase: CreateUserUseCase,
     private readonly mailService: MailService,
   ) {}
 
@@ -24,36 +15,12 @@ export class CreateMemberWithUserUseCase {
     data: CreateMemberWithUserDTO,
     userId: string,
   ) {
-    const existingUserByEmail = await this.userRepository.findByEmail(
-      data.email,
-    );
-
-    if (existingUserByEmail) {
-      throw new BadRequestException('Usuário já existe! Tente outro email.');
-    }
-
-    const existingTax = await this.userRepository.findByTaxIdentifier(
-      data.taxIdentifier,
-    );
-    if (existingTax) {
-      throw new BadRequestException(
-        'Já existe um usuário com este documento. Tente outro.',
-      );
-    }
-
-    await this.findRoleByIdUseCase.execute(data.roleId);
-
-    const hashedPassword = await this.cryptographyService.hash(
-      data.taxIdentifier,
-    );
-
-    await this.memberRepository.createWithNewUser(
-      organizationId,
+    await this.createUserUseCase.execute(
       {
         ...data,
-        password: hashedPassword,
       },
       userId,
+      organizationId,
     );
 
     if (process.env.NODE_ENV === 'prod') {

@@ -35,6 +35,8 @@ export class BannerController {
     private readonly deleteBannerUseCase: DeleteBannerUseCase,
   ) {}
 
+  @UseGuards(PlatformPermissionGuard)
+  @RequirePermission('banners', 'read')
   @Get()
   async list(
     @OrgId() organizationId: string,

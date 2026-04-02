@@ -4,7 +4,12 @@ import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { CreateUserDTO, FindAllUsersFilters, UpdateUserDTO } from '../dto';
+import {
+  CreateGlobalUserDTO,
+  CreateUserDTO,
+  FindAllUsersFilters,
+  UpdateUserDTO,
+} from '../dto';
 
 @Injectable()
 export class UserRepository {
@@ -284,25 +289,93 @@ export class UserRepository {
   async create(
     data: CreateUserDTO & { password: string },
     userId: string,
+    organizationId: string,
   ): Promise<{ id: string }> {
     try {
-      const user = await this.prisma.user.create({
-        data: {
-          id: generateId(),
-          name: data.name,
-          email: data.email,
-          password: data.password,
-          taxIdentifier: data.taxIdentifier,
-          ...(data.phone !== undefined && { phone: data.phone }),
-          ...(data.socialReason !== undefined && {
+      const user = await this.prisma.$transaction(async (tx) => {
+        const user = await this.prisma.user.create({
+          data: {
+            id: generateId(),
+            name: data.name,
+            email: data.email,
+            password: data.password,
+            taxIdentifier: data.taxIdentifier,
+            phone: data.phone,
             socialReason: data.socialReason,
-          }),
-          ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
-          ...(data.isActive !== undefined && { isActive: data.isActive }),
-          ...(data.isFirstAccess !== undefined && {
-            isFirstAccess: data.isFirstAccess,
-          }),
-        },
+            birthDate: data.birthDate,
+            admissionDate: data.admissionDate,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        await tx.member.create({
+          data: {
+            id: generateId(),
+            organizationId: organizationId,
+            userId: user.id,
+            roleId: data.roleId,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        return user;
+      });
+
+      void this.logger.info('Usuário criado', {
+        userId: user.id,
+        createdBy: userId,
+      });
+
+      return { id: user.id };
+    } catch (error) {
+      void this.logger.error('UserRepository.create falhou', {
+        error: String(error),
+        email: data.email,
+      });
+
+      throw new BadRequestException('Erro ao criar usuário');
+    }
+  }
+
+  async createGlobalUser(
+    data: CreateGlobalUserDTO & { password: string },
+    userId: string,
+  ): Promise<{ id: string }> {
+    try {
+      const user = await this.prisma.$transaction(async (tx) => {
+        const user = await this.prisma.user.create({
+          data: {
+            id: generateId(),
+            name: data.name,
+            email: data.email,
+            password: data.password,
+            taxIdentifier: data.taxIdentifier,
+            globalRoleId: data.globalRoleId,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        for (const organizationId of data.organizationIds) {
+          await tx.member.create({
+            data: {
+              id: generateId(),
+              organizationId,
+              userId: user.id,
+              roleId: data.globalRoleId,
+            },
+            select: {
+              id: true,
+            },
+          });
+        }
+
+        return user;
       });
 
       void this.logger.info('Usuário criado', {

@@ -1,28 +1,25 @@
 import { BadRequestException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
 import { MailService } from '@infrastructure/providers';
-import { FindRoleByIdUseCase } from '@modules/roles';
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateUserDTO } from '../dto';
+import { CreateGlobalUserDTO } from '../dto';
 import { UserRepository } from '../repository';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
 
 @Injectable()
-export class CreateUserUseCase {
+export class CreateGlobalUserUseCase {
   constructor(
     @Inject('UserRepository')
     private readonly userRepository: UserRepository,
     private readonly findByEmailUseCase: FindUserByEmailUseCase,
     private readonly cryptographyService: CryptographyService,
     private readonly mailService: MailService,
-    private readonly findRoleByIdUseCase: FindRoleByIdUseCase,
   ) {}
 
-  async execute(data: CreateUserDTO, userId: string, organizationId: string) {
+  async execute(data: CreateGlobalUserDTO, userId: string) {
     const userByEmail = await this.findByEmailUseCase
       .execute(data.email)
       .catch(() => null);
-
     if (userByEmail) {
       throw new BadRequestException('Usuário já existe! Tente outro email.');
     }
@@ -36,19 +33,16 @@ export class CreateUserUseCase {
       );
     }
 
-    await this.findRoleByIdUseCase.execute(data.roleId);
-
     const hashedPassword = await this.cryptographyService.hash(
       data.taxIdentifier,
     );
 
-    const newUser = await this.userRepository.create(
+    const newUser = await this.userRepository.createGlobalUser(
       {
         ...data,
         password: hashedPassword,
       },
       userId,
-      organizationId,
     );
 
     if (!newUser) {

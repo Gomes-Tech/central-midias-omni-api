@@ -18,7 +18,7 @@ import {
   UpdateMemberDTO,
 } from './dto';
 import {
-  CreateMemberUseCase,
+  AddUserMemberUseCase,
   CreateMemberWithUserUseCase,
   DeleteMemberUseCase,
   FindAllMembersUseCase,
@@ -30,7 +30,7 @@ import {
 @Controller('members')
 export class MemberController {
   constructor(
-    private readonly createMemberUseCase: CreateMemberUseCase,
+    private readonly addUserMemberUseCase: AddUserMemberUseCase,
     private readonly createMemberWithUserUseCase: CreateMemberWithUserUseCase,
     private readonly findAllMembersUseCase: FindAllMembersUseCase,
     private readonly findMemberByIdUseCase: FindMemberByIdUseCase,
@@ -74,7 +74,7 @@ export class MemberController {
     @OrgId() organizationId: string,
     @UserId() userId: string,
   ) {
-    return await this.createMemberUseCase.execute(organizationId, dto, userId);
+    return await this.addUserMemberUseCase.execute(organizationId, dto, userId);
   }
 
   @RequirePermission('members', 'update')
