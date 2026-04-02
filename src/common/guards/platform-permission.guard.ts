@@ -129,7 +129,7 @@ export class PlatformPermissionGuard implements CanActivate {
       const member = await this.prisma.member.findFirst({
         where: {
           userId: userId,
-          organizationId: organizationId,
+          organizationId,
           role: {
             canAccessBackoffice: true,
             permissions: {

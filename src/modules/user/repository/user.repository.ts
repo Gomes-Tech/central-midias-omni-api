@@ -313,7 +313,7 @@ export class UserRepository {
         await tx.member.create({
           data: {
             id: generateId(),
-            organizationId: organizationId,
+            organizationId,
             userId: user.id,
             roleId: data.roleId,
           },

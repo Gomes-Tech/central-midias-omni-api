@@ -62,7 +62,6 @@ export function makeUpdateUserDTO(
     managerAssignments: [
       {
         managerId: 'manager-id',
-        organizationId: 'organization-2',
       },
     ],
     ...overrides,
