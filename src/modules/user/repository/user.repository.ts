@@ -413,7 +413,6 @@ export class UserRepository {
           ...(data.isFirstAccess !== undefined && {
             isFirstAccess: data.isFirstAccess,
           }),
-          ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
         },
       });
 

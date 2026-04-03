@@ -1,5 +1,6 @@
 import { CryptographyService } from '@infrastructure/criptography';
 import { MailService } from '@infrastructure/providers';
+import { FindRoleByIdUseCase } from '@modules/roles';
 import { UserRepository } from '../repository';
 import { CreateUserUseCase } from './create-user.use-case';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
@@ -11,6 +12,7 @@ describe('CreateUserUseCase', () => {
   let findByEmailUseCase: jest.Mocked<FindUserByEmailUseCase>;
   let cryptographyService: jest.Mocked<CryptographyService>;
   let mailService: jest.Mocked<MailService>;
+  let findRoleByIdUseCase: jest.Mocked<FindRoleByIdUseCase>;
 
   beforeEach(() => {
     userRepository = {
@@ -30,11 +32,16 @@ describe('CreateUserUseCase', () => {
       sendMail: jest.fn(),
     } as unknown as jest.Mocked<MailService>;
 
+    findRoleByIdUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<FindRoleByIdUseCase>;
+
     useCase = new CreateUserUseCase(
       userRepository,
       findByEmailUseCase,
       cryptographyService,
       mailService,
+      findRoleByIdUseCase,
     );
   });
 
@@ -46,7 +53,11 @@ describe('CreateUserUseCase', () => {
     cryptographyService.hash.mockResolvedValue('hashed-secret');
     userRepository.create.mockResolvedValue({ id: createdUser.id });
 
-    const result = await useCase.execute(dto, 'requester-id');
+    const result = await useCase.execute(
+      dto,
+      'requester-id',
+      'organization-id',
+    );
 
     expect(cryptographyService.hash).toHaveBeenCalledWith(dto.taxIdentifier);
     expect(userRepository.create).toHaveBeenCalledWith(
@@ -55,6 +66,7 @@ describe('CreateUserUseCase', () => {
         password: 'hashed-secret',
       },
       'requester-id',
+      'organization-id',
     );
     expect(mailService.sendMail).not.toHaveBeenCalled();
     expect(result).toBeUndefined();

@@ -65,6 +65,6 @@ export class UpdateUserUseCase {
     //   delete data.isActive;
     // }
 
-    return this.userRepository.update(id, data, userId);
+    await this.userRepository.update(id, data, userId);
   }
 }

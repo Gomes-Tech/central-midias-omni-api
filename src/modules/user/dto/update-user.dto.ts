@@ -57,11 +57,6 @@ export class UpdateUserDTO {
   isFirstAccess?: boolean;
 
   @IsOptional()
-  @IsString()
-  @Sanitize()
-  avatarUrl?: string;
-
-  @IsOptional()
   @IsArray()
   @IsUUID('4', { each: true, message: 'Organização inválida' })
   organizationIds?: string[];

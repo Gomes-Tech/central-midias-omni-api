@@ -18,7 +18,11 @@ export class CreateUserUseCase {
     private readonly findRoleByIdUseCase: FindRoleByIdUseCase,
   ) {}
 
-  async execute(data: CreateUserDTO, userId: string, organizationId: string) {
+  async execute(
+    data: CreateUserDTO,
+    userId: string,
+    organizationId: string,
+  ): Promise<void> {
     const userByEmail = await this.findByEmailUseCase
       .execute(data.email)
       .catch(() => null);

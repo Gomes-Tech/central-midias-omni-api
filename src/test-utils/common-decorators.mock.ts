@@ -1,3 +1,7 @@
+import { createParamDecorator } from '@nestjs/common';
+
+export const OrgId = createParamDecorator(() => 'test-organization-id');
+
 export function Sanitize(): PropertyDecorator {
   return () => undefined;
 }
