@@ -18,17 +18,15 @@ export class UpdateMemberUseCase {
     organizationId: string,
     data: UpdateMemberDTO,
     userId: string,
-  ) {
+  ): Promise<void> {
     const member = await this.findMemberByIdUseCase.execute(id, organizationId);
 
     if (member.roleId === data.roleId) {
-      throw new BadRequestException(
-        'O membro já está vinculado a este perfil',
-      );
+      throw new BadRequestException('O membro já está vinculado a este perfil');
     }
 
     await this.findRoleByIdUseCase.execute(data.roleId);
 
-    return this.memberRepository.update(id, organizationId, data, userId);
+    await this.memberRepository.update(id, organizationId, data, userId);
   }
 }
