@@ -12,6 +12,12 @@ export class ForbiddenException extends HttpException {
   }
 }
 
+export class LoginException extends HttpException {
+  constructor(message = 'E-mail ou senha inválidos!') {
+    super(message, HttpStatus.BAD_REQUEST);
+  }
+}
+
 export class NotFoundException extends HttpException {
   constructor(message = 'Not found') {
     super(message, HttpStatus.NOT_FOUND);
