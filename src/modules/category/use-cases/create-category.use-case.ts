@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateCategoryDTO } from '../dto';
 import { CategoryRepository } from '../repository';
 import { FindCategoryByIdUseCase } from './find-category-by-id.use-case';
+import { FindCategoryBySlugUseCase } from './find-category-by-slug.use-case';
 
 @Injectable()
 export class CreateCategoryUseCase {
@@ -10,6 +11,7 @@ export class CreateCategoryUseCase {
     @Inject('CategoryRepository')
     private readonly categoryRepository: CategoryRepository,
     private readonly findCategoryByIdUseCase: FindCategoryByIdUseCase,
+    private readonly fincCategoryBySlugUseCase: FindCategoryBySlugUseCase,
   ) {}
 
   async execute(
@@ -17,10 +19,9 @@ export class CreateCategoryUseCase {
     data: CreateCategoryDTO,
     userId: string,
   ): Promise<void> {
-    const existingSlug = await this.categoryRepository.findBySlug(
-      data.slug,
-      organizationId,
-    );
+    const existingSlug = await this.fincCategoryBySlugUseCase
+      .execute(data.slug, organizationId)
+      .catch(() => null);
 
     if (existingSlug) {
       throw new BadRequestException('Já existe uma categoria com este slug');

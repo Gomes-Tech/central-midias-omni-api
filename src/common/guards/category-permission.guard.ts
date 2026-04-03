@@ -5,7 +5,6 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
-  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 
@@ -48,34 +47,28 @@ export class CategoryPermissionGuard implements CanActivate {
 
     const category = await this.prisma.category.findUnique({
       where: {
+        isActive: true,
+        isDeleted: false,
         organizationId_slug: {
           organizationId,
           slug: categorySlug,
         },
-      },
-    });
-
-    if (!category || !category.isActive || category.isDeleted) {
-      throw new NotFoundException('Categoria não encontrada.');
-    }
-
-    const categoryRoleAccess = await this.prisma.categoryRoleAccess.findUnique({
-      where: {
-        categoryId_roleId_organizationId: {
-          categoryId: category.id,
-          roleId: member.roleId,
-          organizationId,
+        categoryRoleAccesses: {
+          some: {
+            role: {
+              members: {
+                some: {
+                  organizationId,
+                  userId: userId,
+                },
+              },
+            },
+          },
         },
       },
-      select: {
-        id: true,
-        categoryId: true,
-        roleId: true,
-        organizationId: true,
-      },
     });
 
-    if (!categoryRoleAccess) {
+    if (!category) {
       throw new ForbiddenException(
         'Você não tem acesso ao conteúdo desta categoria.',
       );

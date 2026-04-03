@@ -77,12 +77,27 @@ export class CategoryRepository {
     }
   }
 
-  async findTree(organizationId: string): Promise<CategoryTreeItem[]> {
+  async findTree(
+    organizationId: string,
+    userId: string,
+  ): Promise<CategoryTreeItem[]> {
     try {
       const categories = await this.prisma.category.findMany({
         where: {
           organizationId,
           isDeleted: false,
+          categoryRoleAccesses: {
+            some: {
+              role: {
+                members: {
+                  some: {
+                    organizationId,
+                    userId: userId,
+                  },
+                },
+              },
+            },
+          },
         },
         orderBy: [{ order: 'asc' }, { name: 'asc' }],
         select: {
@@ -211,8 +226,110 @@ export class CategoryRepository {
         organizationId,
       });
 
-      throw new BadRequestException('Erro ao buscar categoria por slug');
+      throw new BadRequestException('Erro ao buscar categoria');
     }
+  }
+
+  async findTreeBySlug(slug: string, organizationId: string, userId: string) {
+    const result = await this.prisma.$queryRawUnsafe<
+      { type: string; data: any[] | null }[]
+    >(
+      `
+      WITH RECURSIVE
+
+      -- 🔒 Categorias acessíveis pelo usuário
+      accessible_categories AS (
+        SELECT c.*
+        FROM "Category" c
+        WHERE
+          c."organizationId" = $1
+          AND c."isDeleted" = false
+          AND c."isActive" = true
+          AND EXISTS (
+            SELECT 1
+            FROM "CategoryRoleAccess" cra
+            JOIN "Role" r ON r.id = cra."roleId"
+            JOIN "Member" m ON m."roleId" = r.id
+            WHERE
+              cra."categoryId" = c.id
+              AND m."userId" = $2
+              AND m."organizationId" = $1
+          )
+      ),
+
+      -- 🎯 Categoria inicial
+      start_node AS (
+        SELECT *
+        FROM accessible_categories
+        WHERE slug = $3
+        LIMIT 1
+      ),
+
+      -- 🔼 SUBINDO (pais)
+      up_tree AS (
+        SELECT * FROM start_node
+        UNION ALL
+        SELECT parent.*
+        FROM accessible_categories parent
+        JOIN up_tree ut ON ut."parentId" = parent.id
+      ),
+
+      -- 🔽 DESCENDO (filhos)
+      down_tree AS (
+        SELECT * FROM start_node
+        UNION ALL
+        SELECT child.*
+        FROM accessible_categories child
+        JOIN down_tree dt ON child."parentId" = dt.id
+      )
+
+      SELECT
+        'path' as type,
+        json_agg(
+          json_build_object(
+            'id', ut.id,
+            'name', ut.name,
+            'slug', ut.slug
+          )
+        ) as data
+      FROM up_tree ut
+
+      UNION ALL
+
+      SELECT
+        'tree' as type,
+        json_agg(
+          json_build_object(
+            'id', dt.id,
+            'name', dt.name,
+            'slug', dt.slug,
+            'parentId', dt."parentId"
+          )
+        ) as data
+      FROM down_tree dt;
+    `,
+      organizationId,
+      userId,
+      slug,
+    );
+
+    if (!result || result.length === 0) {
+      throw new BadRequestException('Você não tem acesso a esta categoria');
+    }
+
+    const pathRaw = result.find((r: any) => r.type === 'path')?.data || [];
+    const treeRaw = result.find((r: any) => r.type === 'tree')?.data || [];
+
+    // 🧠 Ordenar breadcrumb (root → leaf)
+    const path = this.buildPath(pathRaw);
+
+    // 🌳 Montar árvore hierárquica
+    const tree = this.buildTree(treeRaw);
+
+    return {
+      path,
+      tree,
+    };
   }
 
   async findByOrder(
@@ -429,5 +546,49 @@ export class CategoryRepository {
 
       throw new BadRequestException('Erro ao remover categoria');
     }
+  }
+
+  private buildPath(nodes: any[]) {
+    // cria mapa
+    const map = new Map(nodes.map((n) => [n.id, n]));
+
+    // encontra leaf (único que não é parent de ninguém)
+    const parentIds = new Set(nodes.map((n) => n.parentId));
+    let current = nodes.find((n) => !parentIds.has(n.id));
+
+    const path = [];
+
+    while (current) {
+      path.unshift({
+        id: current.id,
+        name: current.name,
+        slug: current.slug,
+      });
+
+      current = map.get(current.parentId);
+    }
+
+    return path;
+  }
+
+  private buildTree(nodes: any[]) {
+    const map = new Map();
+
+    // inicializa todos
+    nodes.forEach((node) => {
+      map.set(node.id, { ...node, children: [] });
+    });
+
+    let root = null;
+
+    nodes.forEach((node) => {
+      if (node.parentId && map.has(node.parentId)) {
+        map.get(node.parentId).children.push(map.get(node.id));
+      } else {
+        root = map.get(node.id);
+      }
+    });
+
+    return root;
   }
 }

@@ -1,5 +1,8 @@
 import { OrgId, RequirePermission, UserId } from '@common/decorators';
-import { PlatformPermissionGuard } from '@common/guards';
+import {
+  CategoryPermissionGuard,
+  PlatformPermissionGuard,
+} from '@common/guards';
 import {
   Body,
   Controller,
@@ -21,11 +24,11 @@ import {
   DeleteCategoryUseCase,
   FindAllCategoriesUseCase,
   FindCategoryByIdUseCase,
+  FindCategoryTreeBySlugUseCase,
   FindCategoryTreeUseCase,
   UpdateCategoryUseCase,
 } from './use-cases';
 
-@UseGuards(PlatformPermissionGuard)
 @Controller('categories')
 export class CategoryController {
   constructor(
@@ -33,10 +36,12 @@ export class CategoryController {
     private readonly deleteCategoryUseCase: DeleteCategoryUseCase,
     private readonly findAllCategoriesUseCase: FindAllCategoriesUseCase,
     private readonly findCategoryByIdUseCase: FindCategoryByIdUseCase,
+    private readonly findCategoryTreeBySlugUseCase: FindCategoryTreeBySlugUseCase,
     private readonly findCategoryTreeUseCase: FindCategoryTreeUseCase,
     private readonly updateCategoryUseCase: UpdateCategoryUseCase,
   ) {}
 
+  @UseGuards(PlatformPermissionGuard)
   @RequirePermission('categories', 'read')
   @Get()
   async findAll(
@@ -46,18 +51,33 @@ export class CategoryController {
     return await this.findAllCategoriesUseCase.execute(organizationId, filters);
   }
 
-  @RequirePermission('categories', 'read')
   @Get('tree')
-  async findTree(@OrgId() organizationId: string) {
-    return await this.findCategoryTreeUseCase.execute(organizationId);
+  async findTree(@OrgId() organizationId: string, @UserId() userId: string) {
+    return await this.findCategoryTreeUseCase.execute(organizationId, userId);
   }
 
+  @UseGuards(CategoryPermissionGuard)
+  @Get('slug/:slug')
+  async findBySlug(
+    @Param('slug') slug: string,
+    @OrgId() organizationId: string,
+    @UserId() userId: string,
+  ) {
+    return await this.findCategoryTreeBySlugUseCase.execute(
+      slug,
+      organizationId,
+      userId,
+    );
+  }
+
+  @UseGuards(PlatformPermissionGuard)
   @RequirePermission('categories', 'read')
   @Get(':id')
   async findById(@Param('id') id: string, @OrgId() organizationId: string) {
     return await this.findCategoryByIdUseCase.execute(id, organizationId);
   }
 
+  @UseGuards(PlatformPermissionGuard)
   @RequirePermission('categories', 'create')
   @Post()
   async create(
@@ -68,6 +88,7 @@ export class CategoryController {
     await this.createCategoryUseCase.execute(organizationId, dto, userId);
   }
 
+  @UseGuards(PlatformPermissionGuard)
   @RequirePermission('categories', 'update')
   @Patch(':id')
   async update(
@@ -79,6 +100,7 @@ export class CategoryController {
     await this.updateCategoryUseCase.execute(id, organizationId, dto, userId);
   }
 
+  @UseGuards(PlatformPermissionGuard)
   @RequirePermission('categories', 'delete')
   @Delete(':id')
   async delete(
