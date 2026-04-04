@@ -119,4 +119,17 @@ describe('SignInUseCase', () => {
     expect(cryptographyService.compare).not.toHaveBeenCalled();
     expect(securityLogger.logSuccessfulLogin).not.toHaveBeenCalled();
   });
+
+  it('deve comparar com hash dummy quando usuário for null (timing)', async () => {
+    const dto = makeLoginDTO();
+    findUserByEmailUseCase.execute.mockResolvedValue(null as never);
+    cryptographyService.compare.mockResolvedValue(false);
+
+    await expect(useCase.execute(dto)).rejects.toBeInstanceOf(LoginException);
+
+    expect(cryptographyService.compare).toHaveBeenCalledWith(
+      dto.password,
+      expect.stringContaining('$2b$10$dummy'),
+    );
+  });
 });

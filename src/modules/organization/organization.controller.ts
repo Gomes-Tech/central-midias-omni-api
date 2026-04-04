@@ -51,7 +51,6 @@ export class OrganizationController {
     @UserId() userId: string,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    console.log(dto);
     return await this.createOrganizationUseCase.execute(dto, userId, file);
   }
 

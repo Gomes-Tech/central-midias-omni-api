@@ -56,6 +56,26 @@ describe('UpdateUserUseCase', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('deve seguir quando busca por novo email falhar (email disponível)', async () => {
+    findUserByIdUseCase.execute.mockResolvedValue(
+      makeUser({ id: 'target-id', email: 'old@test.com' }),
+    );
+    findUserByEmailUseCase.execute.mockRejectedValue(new Error('not found'));
+
+    await expect(
+      useCase.execute(
+        'target-id',
+        makeUpdateUserDTO({
+          email: 'brand-new@test.com',
+          password: undefined,
+        }),
+        'admin-id',
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(userRepository.update).toHaveBeenCalled();
+  });
+
   it('deve impedir reutilização da senha anterior', async () => {
     findUserByIdUseCase.execute.mockResolvedValue(
       makeUser({ id: 'target-id' }),
@@ -103,5 +123,69 @@ describe('UpdateUserUseCase', () => {
       'admin-id',
     );
     expect(result).toBeUndefined();
+  });
+
+  it('deve permitir email igual ao do próprio usuário', async () => {
+    const dto = makeUpdateUserDTO({
+      email: 'john@doe.com',
+      password: undefined,
+    });
+
+    findUserByIdUseCase.execute.mockResolvedValue(
+      makeUser({ id: 'target-id', email: 'john@doe.com' }),
+    );
+
+    await expect(
+      useCase.execute('target-id', dto, 'admin-id'),
+    ).resolves.toBeUndefined();
+
+    expect(findUserByEmailUseCase.execute).not.toHaveBeenCalled();
+    expect(userRepository.update).toHaveBeenCalledWith(
+      'target-id',
+      dto,
+      'admin-id',
+    );
+  });
+
+  it('deve permitir manter o mesmo documento do usuário', async () => {
+    const dto = makeUpdateUserDTO({
+      email: undefined,
+      password: undefined,
+      taxIdentifier: '12345678901',
+    });
+
+    findUserByIdUseCase.execute.mockResolvedValue(
+      makeUser({ id: 'target-id', taxIdentifier: '12345678901' }),
+    );
+
+    await expect(
+      useCase.execute('target-id', dto, 'admin-id'),
+    ).resolves.toBeUndefined();
+
+    expect(userRepository.findByTaxIdentifier).not.toHaveBeenCalled();
+  });
+
+  it('deve lançar BadRequest quando outro usuário usar o mesmo documento', async () => {
+    findUserByIdUseCase.execute.mockResolvedValue(
+      makeUser({ id: 'target-id', taxIdentifier: '111' }),
+    );
+    userRepository.findByTaxIdentifier.mockResolvedValue({
+      id: 'other-id',
+      taxIdentifier: '999',
+    });
+
+    await expect(
+      useCase.execute(
+        'target-id',
+        makeUpdateUserDTO({
+          email: undefined,
+          password: undefined,
+          taxIdentifier: '999',
+        }),
+        'admin-id',
+      ),
+    ).rejects.toMatchObject({
+      message: 'Já existe um usuário com este documento',
+    });
   });
 });

@@ -62,4 +62,47 @@ describe('LogoutUserUseCase', () => {
     await expect(useCase.execute(undefined, undefined)).resolves.toBeUndefined();
     expect(jwtService.verifyAsync).not.toHaveBeenCalled();
   });
+
+  it('deve ignorar access token expirado sem blacklist', async () => {
+    const err = new Error('expired');
+    err.name = 'TokenExpiredError';
+    jwtService.verifyAsync.mockRejectedValue(err);
+
+    await expect(useCase.execute('at', undefined)).resolves.toBeUndefined();
+    expect(tokenBlacklistService.addToBlacklist).not.toHaveBeenCalled();
+  });
+
+  it('não deve blacklistar access quando payload não tiver jti', async () => {
+    jwtService.verifyAsync.mockResolvedValue({ sub: 'u1' });
+
+    await expect(useCase.execute('at', undefined)).resolves.toBeUndefined();
+    expect(tokenBlacklistService.addToBlacklist).not.toHaveBeenCalled();
+  });
+
+  it('deve ignorar refresh expirado sem blacklist', async () => {
+    const err = new Error('expired');
+    err.name = 'TokenExpiredError';
+    jwtService.verifyAsync.mockRejectedValue(err);
+
+    await expect(useCase.execute(undefined, 'rt')).resolves.toBeUndefined();
+    expect(
+      tokenBlacklistService.addRefreshTokenToBlacklist,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('não deve blacklistar refresh quando payload não tiver jti', async () => {
+    jwtService.verifyAsync.mockResolvedValue({ sub: 'u1' });
+
+    await expect(useCase.execute(undefined, 'rt')).resolves.toBeUndefined();
+    expect(
+      tokenBlacklistService.addRefreshTokenToBlacklist,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('deve engolir erro de verify no access que não seja expiração', async () => {
+    jwtService.verifyAsync.mockRejectedValue(new Error('malformed'));
+
+    await expect(useCase.execute('at', undefined)).resolves.toBeUndefined();
+    expect(tokenBlacklistService.addToBlacklist).not.toHaveBeenCalled();
+  });
 });
