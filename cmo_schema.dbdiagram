@@ -5,10 +5,28 @@
   "detailLevel": "All",
   "tablePositions": [
     {
-      "name": "companies",
+      "name": "organizations",
       "schemaName": "public",
-      "x": 16,
-      "y": 16
+      "x": 305.51025390625,
+      "y": 3532
+    },
+    {
+      "name": "roles",
+      "schemaName": "public",
+      "x": 305.51025390625,
+      "y": 3162
+    },
+    {
+      "name": "modules",
+      "schemaName": "public",
+      "x": 720.97705078125,
+      "y": 3162
+    },
+    {
+      "name": "role_permissions",
+      "schemaName": "public",
+      "x": 1010.4873046875,
+      "y": 3162
     },
     {
       "name": "users",
@@ -17,64 +35,34 @@
       "y": 336
     },
     {
-      "name": "user_company_accesses",
+      "name": "user_hierarchies",
+      "schemaName": "public",
+      "x": 16,
+      "y": 3162
+    },
+    {
+      "name": "password_reset_tokens",
       "schemaName": "public",
       "x": 544,
-      "y": 248
+      "y": 2888
     },
     {
-      "name": "menu_sections",
+      "name": "members",
       "schemaName": "public",
-      "x": 544,
-      "y": 512
+      "x": 16,
+      "y": 3404
     },
     {
-      "name": "materials",
+      "name": "categories",
       "schemaName": "public",
-      "x": 1240,
-      "y": 72
+      "x": 720.97705078125,
+      "y": 3340
     },
     {
-      "name": "tags",
+      "name": "category_role_accesses",
       "schemaName": "public",
-      "x": 544,
-      "y": 16
-    },
-    {
-      "name": "material_tags",
-      "schemaName": "public",
-      "x": 1864,
-      "y": 16
-    },
-    {
-      "name": "material_views",
-      "schemaName": "public",
-      "x": 1864,
-      "y": 152
-    },
-    {
-      "name": "material_downloads",
-      "schemaName": "public",
-      "x": 1864,
-      "y": 360
-    },
-    {
-      "name": "document_categories",
-      "schemaName": "public",
-      "x": 544,
-      "y": 1040
-    },
-    {
-      "name": "documents",
-      "schemaName": "public",
-      "x": 1240,
-      "y": 728
-    },
-    {
-      "name": "document_read_receipts",
-      "schemaName": "public",
-      "x": 1864,
-      "y": 872
+      "x": 1010.4873046875,
+      "y": 3372
     },
     {
       "name": "banners",
@@ -83,52 +71,16 @@
       "y": 1360
     },
     {
-      "name": "calendar_events",
+      "name": "logs",
       "schemaName": "public",
-      "x": 1864,
-      "y": 1136
+      "x": 16,
+      "y": 3678
     },
     {
-      "name": "personalizable_fields",
+      "name": "seed_status",
       "schemaName": "public",
-      "x": 1864,
-      "y": 568
-    },
-    {
-      "name": "gifts",
-      "schemaName": "public",
-      "x": 1240,
-      "y": 1296
-    },
-    {
-      "name": "gift_download_requests",
-      "schemaName": "public",
-      "x": 1864,
-      "y": 1536
-    },
-    {
-      "name": "faq_items",
-      "schemaName": "public",
-      "x": 544,
-      "y": 1824
-    },
-    {
-      "name": "notifications",
-      "schemaName": "public",
-      "x": 544,
-      "y": 2192
-    },
-    {
-      "name": "search_logs",
-      "schemaName": "public",
-      "x": 544,
-      "y": 2616
-    },
-    {
-      "name": "password_reset_tokens",
-      "schemaName": "public",
-      "x": 544,
-      "y": 2888
+      "x": 305.51025390625,
+      "y": 3966
     }
   ],
   "tableGroupCollapseStates": [],
@@ -138,11 +90,41 @@
       "firstFieldNames": [
         "id"
       ],
-      "firstTableName": "users",
+      "firstTableName": "roles",
       "firstSchemaName": "public",
       "firstRelation": "1",
       "secondFieldNames": [
-        "boss_id"
+        "role_id"
+      ],
+      "secondTableName": "role_permissions",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "modules",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "module_id"
+      ],
+      "secondTableName": "role_permissions",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "roles",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "global_role_id"
       ],
       "secondTableName": "users",
       "secondSchemaName": "public",
@@ -157,54 +139,9 @@
       "firstSchemaName": "public",
       "firstRelation": "1",
       "secondFieldNames": [
-        "user_id"
+        "manager_id"
       ],
-      "secondTableName": "user_company_accesses",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "companies",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "company_id"
-      ],
-      "secondTableName": "user_company_accesses",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "companies",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "company_id"
-      ],
-      "secondTableName": "menu_sections",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "menu_sections",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "parent_id"
-      ],
-      "secondTableName": "menu_sections",
+      "secondTableName": "user_hierarchies",
       "secondSchemaName": "public",
       "secondRelation": "*",
       "checkPoints": []
@@ -217,9 +154,9 @@
       "firstSchemaName": "public",
       "firstRelation": "1",
       "secondFieldNames": [
-        "created_by"
+        "subordinate_id"
       ],
-      "secondTableName": "menu_sections",
+      "secondTableName": "user_hierarchies",
       "secondSchemaName": "public",
       "secondRelation": "*",
       "checkPoints": []
@@ -228,13 +165,13 @@
       "firstFieldNames": [
         "id"
       ],
-      "firstTableName": "companies",
+      "firstTableName": "organizations",
       "firstSchemaName": "public",
       "firstRelation": "1",
       "secondFieldNames": [
-        "company_id"
+        "organization_id"
       ],
-      "secondTableName": "materials",
+      "secondTableName": "user_hierarchies",
       "secondSchemaName": "public",
       "secondRelation": "*",
       "checkPoints": []
@@ -243,88 +180,13 @@
       "firstFieldNames": [
         "id"
       ],
-      "firstTableName": "menu_sections",
+      "firstTableName": "organizations",
       "firstSchemaName": "public",
       "firstRelation": "1",
       "secondFieldNames": [
-        "section_id"
+        "organization_id"
       ],
-      "secondTableName": "materials",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "users",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "created_by"
-      ],
-      "secondTableName": "materials",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "companies",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "company_id"
-      ],
-      "secondTableName": "tags",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "materials",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "material_id"
-      ],
-      "secondTableName": "material_tags",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "tags",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "tag_id"
-      ],
-      "secondTableName": "material_tags",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "materials",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "material_id"
-      ],
-      "secondTableName": "material_views",
+      "secondTableName": "members",
       "secondSchemaName": "public",
       "secondRelation": "*",
       "checkPoints": []
@@ -339,7 +201,7 @@
       "secondFieldNames": [
         "user_id"
       ],
-      "secondTableName": "material_views",
+      "secondTableName": "members",
       "secondSchemaName": "public",
       "secondRelation": "*",
       "checkPoints": []
@@ -348,13 +210,13 @@
       "firstFieldNames": [
         "id"
       ],
-      "firstTableName": "materials",
+      "firstTableName": "roles",
       "firstSchemaName": "public",
       "firstRelation": "1",
       "secondFieldNames": [
-        "material_id"
+        "role_id"
       ],
-      "secondTableName": "material_downloads",
+      "secondTableName": "members",
       "secondSchemaName": "public",
       "secondRelation": "*",
       "checkPoints": []
@@ -363,13 +225,13 @@
       "firstFieldNames": [
         "id"
       ],
-      "firstTableName": "users",
+      "firstTableName": "organizations",
       "firstSchemaName": "public",
       "firstRelation": "1",
       "secondFieldNames": [
-        "user_id"
+        "organization_id"
       ],
-      "secondTableName": "material_downloads",
+      "secondTableName": "categories",
       "secondSchemaName": "public",
       "secondRelation": "*",
       "checkPoints": []
@@ -378,13 +240,13 @@
       "firstFieldNames": [
         "id"
       ],
-      "firstTableName": "companies",
+      "firstTableName": "categories",
       "firstSchemaName": "public",
       "firstRelation": "1",
       "secondFieldNames": [
-        "company_id"
+        "parentId"
       ],
-      "secondTableName": "document_categories",
+      "secondTableName": "categories",
       "secondSchemaName": "public",
       "secondRelation": "*",
       "checkPoints": []
@@ -393,28 +255,13 @@
       "firstFieldNames": [
         "id"
       ],
-      "firstTableName": "companies",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "company_id"
-      ],
-      "secondTableName": "documents",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "document_categories",
+      "firstTableName": "categories",
       "firstSchemaName": "public",
       "firstRelation": "1",
       "secondFieldNames": [
         "category_id"
       ],
-      "secondTableName": "documents",
+      "secondTableName": "category_role_accesses",
       "secondSchemaName": "public",
       "secondRelation": "*",
       "checkPoints": []
@@ -423,13 +270,13 @@
       "firstFieldNames": [
         "id"
       ],
-      "firstTableName": "users",
+      "firstTableName": "roles",
       "firstSchemaName": "public",
       "firstRelation": "1",
       "secondFieldNames": [
-        "created_by"
+        "role_id"
       ],
-      "secondTableName": "documents",
+      "secondTableName": "category_role_accesses",
       "secondSchemaName": "public",
       "secondRelation": "*",
       "checkPoints": []
@@ -438,13 +285,13 @@
       "firstFieldNames": [
         "id"
       ],
-      "firstTableName": "documents",
+      "firstTableName": "organizations",
       "firstSchemaName": "public",
       "firstRelation": "1",
       "secondFieldNames": [
-        "document_id"
+        "organization_id"
       ],
-      "secondTableName": "document_read_receipts",
+      "secondTableName": "category_role_accesses",
       "secondSchemaName": "public",
       "secondRelation": "*",
       "checkPoints": []
@@ -453,298 +300,13 @@
       "firstFieldNames": [
         "id"
       ],
-      "firstTableName": "users",
+      "firstTableName": "organizations",
       "firstSchemaName": "public",
       "firstRelation": "1",
       "secondFieldNames": [
-        "user_id"
-      ],
-      "secondTableName": "document_read_receipts",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "companies",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "company_id"
+        "organization_id"
       ],
       "secondTableName": "banners",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "users",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "created_by"
-      ],
-      "secondTableName": "banners",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "companies",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "company_id"
-      ],
-      "secondTableName": "calendar_events",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "materials",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "material_id"
-      ],
-      "secondTableName": "calendar_events",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "users",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "created_by"
-      ],
-      "secondTableName": "calendar_events",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "materials",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "material_id"
-      ],
-      "secondTableName": "personalizable_fields",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "companies",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "company_id"
-      ],
-      "secondTableName": "gifts",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "menu_sections",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "section_id"
-      ],
-      "secondTableName": "gifts",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "users",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "created_by"
-      ],
-      "secondTableName": "gifts",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "gifts",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "gift_id"
-      ],
-      "secondTableName": "gift_download_requests",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "users",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "user_id"
-      ],
-      "secondTableName": "gift_download_requests",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "users",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "reviewed_by"
-      ],
-      "secondTableName": "gift_download_requests",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "companies",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "company_id"
-      ],
-      "secondTableName": "faq_items",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "users",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "created_by"
-      ],
-      "secondTableName": "faq_items",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "companies",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "company_id"
-      ],
-      "secondTableName": "notifications",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "users",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "user_id"
-      ],
-      "secondTableName": "notifications",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "companies",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "company_id"
-      ],
-      "secondTableName": "search_logs",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "users",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "user_id"
-      ],
-      "secondTableName": "search_logs",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "users",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "user_id"
-      ],
-      "secondTableName": "password_reset_tokens",
       "secondSchemaName": "public",
       "secondRelation": "*",
       "checkPoints": []
