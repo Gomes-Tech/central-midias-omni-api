@@ -10,6 +10,7 @@
   "transformIgnorePatterns": ["/node_modules/(?!uuid)/"],
   "moduleNameMapper": {
     "^@common/(.*)$": "<rootDir>/src/common/$1",
+    "^@infrastructure/prisma$": "<rootDir>/src/test-utils/infrastructure-prisma.mock.ts",
     "^@infrastructure/(.*)$": "<rootDir>/src/infrastructure/$1",
     "^@modules/(.*)$": "<rootDir>/src/modules/$1",
     "^types/(.*)$": "<rootDir>/src/types/$1"
