@@ -34,12 +34,12 @@ export class UpdateOrganizationUseCase {
       }
     }
 
-    let avatarUrl: string | null = null;
+    let avatarKey: string | null = null;
 
     if (file) {
       const fileData = await this.storageService.uploadFile(file);
 
-      avatarUrl = fileData.publicUrl;
+      avatarKey = fileData.publicUrl;
     }
 
     return this.organizationRepository.update(
@@ -47,7 +47,7 @@ export class UpdateOrganizationUseCase {
       {
         ...(data.name !== undefined && { name: data.name }),
         ...(data.slug !== undefined && { slug: data.slug }),
-        ...(avatarUrl !== null && { avatarUrl: avatarUrl }),
+        ...(avatarKey !== null && { avatarKey: avatarKey }),
         ...(typeof data.isActive === 'boolean' && { isActive: data.isActive }),
       },
       userId,

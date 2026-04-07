@@ -24,7 +24,7 @@ export class MemberRepository {
         id: true,
         name: true,
         email: true,
-        avatarUrl: true,
+        avatarKey: true,
         isActive: true,
       },
     },

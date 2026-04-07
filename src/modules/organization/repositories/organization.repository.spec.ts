@@ -134,7 +134,7 @@ describe('OrganizationRepository', () => {
 
       const dto = makeCreateOrganizationDTO();
       await repository.create(
-        { ...dto, avatarUrl: 'https://cdn.example/avatar.png' },
+        { ...dto, avatarKey: 'https://cdn.example/avatar.png' },
         'user-1',
       );
 
@@ -144,7 +144,7 @@ describe('OrganizationRepository', () => {
             name: dto.name,
             slug: dto.slug,
             isActive: true,
-            avatarUrl: 'https://cdn.example/avatar.png',
+            avatarKey: 'https://cdn.example/avatar.png',
             domain: dto.domain,
             shouldAttachUsersByDomain: true,
           }),
@@ -191,7 +191,7 @@ describe('OrganizationRepository', () => {
       );
 
       await repository.create(
-        { name: 'Só nome', slug: 'so-nome', avatarUrl: null },
+        { name: 'Só nome', slug: 'so-nome', avatarKey: null },
         'u1',
       );
 
@@ -199,7 +199,7 @@ describe('OrganizationRepository', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             isActive: true,
-            avatarUrl: null,
+            avatarKey: null,
             domain: null,
             shouldAttachUsersByDomain: false,
           }),
@@ -212,7 +212,7 @@ describe('OrganizationRepository', () => {
 
       await expect(
         repository.create(
-          { ...makeCreateOrganizationDTO(), avatarUrl: null },
+          { ...makeCreateOrganizationDTO(), avatarKey: null },
           'user-1',
         ),
       ).rejects.toBeInstanceOf(BadRequestException);

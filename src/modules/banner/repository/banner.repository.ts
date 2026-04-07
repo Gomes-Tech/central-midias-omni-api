@@ -83,7 +83,7 @@ export class BannerRepository {
 
   async create(
     organizationId: string,
-    data: CreateBannerDTO & { mobileImageUrl: string; desktopImageUrl: string },
+    data: CreateBannerDTO & { mobileImageKey: string; desktopImageKey: string },
     userId: string,
   ) {
     try {
@@ -96,8 +96,8 @@ export class BannerRepository {
           isActive: data.isActive ?? true,
           initialDate: data.initialDate ?? null,
           finishDate: data.finishDate ?? null,
-          mobileImageUrl: data.mobileImageUrl,
-          desktopImageUrl: data.desktopImageUrl,
+          mobileImageKey: data.mobileImageKey,
+          desktopImageKey: data.desktopImageKey,
         },
       });
 
@@ -122,8 +122,8 @@ export class BannerRepository {
     id: string,
     organizationId: string,
     data: UpdateBannerDTO & {
-      mobileImageUrl?: string;
-      desktopImageUrl?: string;
+      mobileImageKey?: string;
+      desktopImageKey?: string;
     },
     userId: string,
   ) {
@@ -143,11 +143,11 @@ export class BannerRepository {
             initialDate: data.initialDate,
           }),
           ...(data.finishDate !== undefined && { finishDate: data.finishDate }),
-          ...(data.mobileImageUrl !== undefined && {
-            mobileImageUrl: data.mobileImageUrl,
+          ...(data.mobileImageKey !== undefined && {
+            mobileImageKey: data.mobileImageKey,
           }),
-          ...(data.desktopImageUrl !== undefined && {
-            desktopImageUrl: data.desktopImageUrl,
+          ...(data.desktopImageKey !== undefined && {
+            desktopImageKey: data.desktopImageKey,
           }),
         },
       });

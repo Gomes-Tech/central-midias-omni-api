@@ -55,8 +55,8 @@ export class UpdateBannerUseCase {
     }
 
     const updatePayload: UpdateBannerDTO & {
-      mobileImageUrl?: string;
-      desktopImageUrl?: string;
+      mobileImageKey?: string;
+      desktopImageKey?: string;
     } = { ...data };
 
     if (mobileImage) {
@@ -64,9 +64,9 @@ export class UpdateBannerUseCase {
         mobileImage,
         'banners',
       );
-      updatePayload.mobileImageUrl = uploaded.publicUrl;
+      updatePayload.mobileImageKey = uploaded.publicUrl;
       await this.storageService.deleteFile([
-        this.toStoragePath(banner.mobileImageUrl),
+        this.toStoragePath(banner.mobileImageKey),
       ]);
     }
 
@@ -75,9 +75,9 @@ export class UpdateBannerUseCase {
         desktopImage,
         'banners',
       );
-      updatePayload.desktopImageUrl = uploaded.publicUrl;
+      updatePayload.desktopImageKey = uploaded.publicUrl;
       await this.storageService.deleteFile([
-        this.toStoragePath(banner.desktopImageUrl),
+        this.toStoragePath(banner.desktopImageKey),
       ]);
     }
 

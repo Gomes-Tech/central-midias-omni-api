@@ -135,8 +135,8 @@ describe('UpdateBannerUseCase', () => {
 
     getBannerUseCase.execute.mockResolvedValue(
       makeBanner({
-        mobileImageUrl: '/storage/banners/mobile/banner-old-mobile.png',
-        desktopImageUrl: '/storage/banners/banner-old-desktop.png',
+        mobileImageKey: '/storage/banners/mobile/banner-old-mobile.png',
+        desktopImageKey: '/storage/banners/banner-old-desktop.png',
       }),
     );
     storageService.uploadFile
@@ -189,8 +189,8 @@ describe('UpdateBannerUseCase', () => {
       'organization-id',
       {
         ...makeUpdateBannerDTO(),
-        mobileImageUrl: '/storage/banners/banner-new-mobile.png',
-        desktopImageUrl: '/storage/banners/banner-new-desktop.png',
+        mobileImageKey: '/storage/banners/banner-new-mobile.png',
+        desktopImageKey: '/storage/banners/banner-new-desktop.png',
       },
       'user-id',
     );
@@ -203,8 +203,8 @@ describe('UpdateBannerUseCase', () => {
 
     getBannerUseCase.execute.mockResolvedValue(
       makeBanner({
-        mobileImageUrl: '/storage/banners/mobile/banner-old-mobile.png',
-        desktopImageUrl: '/storage/banners/banner-old-desktop.png',
+        mobileImageKey: '/storage/banners/mobile/banner-old-mobile.png',
+        desktopImageKey: '/storage/banners/banner-old-desktop.png',
       }),
     );
     storageService.uploadFile.mockResolvedValue(
@@ -241,7 +241,7 @@ describe('UpdateBannerUseCase', () => {
       'organization-id',
       {
         ...makeUpdateBannerDTO(),
-        mobileImageUrl: '/storage/banners/banner-new-mobile.png',
+        mobileImageKey: '/storage/banners/banner-new-mobile.png',
       },
       'user-id',
     );
@@ -254,8 +254,8 @@ describe('UpdateBannerUseCase', () => {
 
     getBannerUseCase.execute.mockResolvedValue(
       makeBanner({
-        mobileImageUrl: '/storage/banners/mobile/banner-old-mobile.png',
-        desktopImageUrl: '/storage/banners/banner-old-desktop.png',
+        mobileImageKey: '/storage/banners/mobile/banner-old-mobile.png',
+        desktopImageKey: '/storage/banners/banner-old-desktop.png',
       }),
     );
     storageService.uploadFile.mockResolvedValue(
@@ -292,7 +292,7 @@ describe('UpdateBannerUseCase', () => {
       'organization-id',
       {
         ...makeUpdateBannerDTO(),
-        desktopImageUrl: '/storage/banners/banner-new-desktop.png',
+        desktopImageKey: '/storage/banners/banner-new-desktop.png',
       },
       'user-id',
     );
@@ -344,7 +344,7 @@ describe('UpdateBannerUseCase', () => {
 
     getBannerUseCase.execute.mockResolvedValue(
       makeBanner({
-        mobileImageUrl: '/storage/banners/mobile/banner-old-mobile.png',
+        mobileImageKey: '/storage/banners/mobile/banner-old-mobile.png',
       }),
     );
     storageService.uploadFile.mockResolvedValue(

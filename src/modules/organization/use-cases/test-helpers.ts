@@ -10,7 +10,7 @@ export function makeOrganization(
     slug: 'organization',
     domain: 'organization.com',
     shouldAttachUsersByDomain: true,
-    avatarUrl: null,
+    avatarKey: null,
     isActive: true,
     isDeleted: false,
     createdAt: new Date('2024-01-01T00:00:00.000Z'),

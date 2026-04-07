@@ -43,8 +43,8 @@ export class CreateBannerUseCase {
       organizationId,
       {
         ...data,
-        mobileImageUrl: mobileUpload.publicUrl,
-        desktopImageUrl: desktopUpload.publicUrl,
+        mobileImageKey: mobileUpload.publicUrl,
+        desktopImageKey: desktopUpload.publicUrl,
       },
       userId,
     );

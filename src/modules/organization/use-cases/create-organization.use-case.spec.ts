@@ -68,7 +68,7 @@ describe('CreateOrganizationUseCase', () => {
       {
         name: dto.name,
         slug: dto.slug,
-        avatarUrl: 'https://cdn.test/organization/logo.png',
+        avatarKey: 'https://cdn.test/organization/logo.png',
         isActive: true,
       },
       'requester-id',
@@ -91,7 +91,7 @@ describe('CreateOrganizationUseCase', () => {
       {
         name: dto.name,
         slug: dto.slug,
-        avatarUrl: null,
+        avatarKey: null,
         isActive: true,
       },
       'requester-id',
@@ -113,7 +113,7 @@ describe('CreateOrganizationUseCase', () => {
       {
         name: dto.name,
         slug: dto.slug,
-        avatarUrl: null,
+        avatarKey: null,
         isActive: false,
       },
       'requester-id',

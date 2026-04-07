@@ -10,7 +10,7 @@ export function makeUser(overrides: Partial<User> = {}): User {
     taxIdentifier: '12345678901',
     phone: null,
     socialReason: null,
-    avatarUrl: null,
+    avatarKey: null,
     isFirstAccess: true,
     isActive: true,
     isDeleted: false,

@@ -16,7 +16,7 @@ model User {
   taxIdentifier String    @unique @map("tax_identifier")
   phone         String?   @map("phone")
   socialReason  String?   @map("social_reason")
-  avatarUrl     String?   @map("avatar_url")
+  avatarKey     String?   @map("avatar_key")
   birthDate     DateTime? @map("birth_date")
   admissionDate DateTime? @map("admission_date")
   isFirstAccess Boolean   @default(true) @map("is_first_access")
@@ -148,7 +148,7 @@ model Organization {
   slug                      String  @unique
   domain                    String? @unique
   shouldAttachUsersByDomain Boolean @default(false) @map("should_attach_users_by_domain")
-  avatarUrl                 String? @map("avatar_url")
+  avatarKey                 String? @map("avatar_key")
 
   isActive  Boolean   @default(true) @map("is_active")
   isDeleted Boolean   @default(false) @map("is_deleted")
@@ -191,6 +191,7 @@ model Category {
   deletedAt DateTime? @map("deleted_at")
 
   categoryRoleAccesses CategoryRoleAccess[]
+  materials            Material[]
 
   @@unique([organizationId, slug])
   @@unique([organizationId, order])
@@ -223,8 +224,8 @@ model CategoryRoleAccess {
 model Banner {
   id              String    @id @default(cuid())
   organizationId  String    @map("organization_id")
-  mobileImageUrl  String    @map("mobile_image_url")
-  desktopImageUrl String    @map("desktop_image_url")
+  mobileImageKey  String    @map("mobile_image_key")
+  desktopImageKey String    @map("desktop_image_key")
   name            String
   link            String?
   order           Int
@@ -240,6 +241,62 @@ model Banner {
 
   @@index([organizationId])
   @@map("banners")
+}
+
+model Material {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String?
+
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  deletedAt     DateTime?      @map("deleted_at")
+  materialFiles MaterialFile[]
+  categoryId    String         @map("category_id")
+  category      Category       @relation(fields: [categoryId], references: [id])
+
+  @@unique([categoryId, name])
+  @@index([categoryId])
+  @@map("materials")
+}
+
+model MaterialFile {
+  id         String @id @default(uuid())
+  materialId String @map("material_id")
+  imageKey   String @map("image_key")
+  mimeType   String @map("mime_type")
+  size       Int    @map("size")
+
+  material Material @relation(fields: [materialId], references: [id])
+  tags     Tag[]    @relation("MaterialTag")
+
+  @@map("material_files")
+}
+
+model Tag {
+  id   String @id @default(uuid())
+  name String @unique
+
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  materialFile MaterialFile[] @relation("MaterialTag")
+  tagSearches  TagSearch[]
+
+  @@map("tags")
+}
+
+model TagSearch {
+  id        String   @id @default(uuid())
+  term      String
+  search    String
+  tagId     String   @map("tag_id")
+  tag       Tag      @relation(fields: [tagId], references: [id])
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([tagId])
+  @@index([term])
+  @@index([search])
+  @@map("tag_searches")
 }
 
 // ============================================================

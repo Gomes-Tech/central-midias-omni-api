@@ -31,19 +31,19 @@ export class CreateOrganizationUseCase {
       throw new BadRequestException('Já existe uma organização com este slug');
     }
 
-    let avatarUrl: string | null = null;
+    let avatarKey: string | null = null;
 
     if (file) {
       const fileData = await this.storageService.uploadFile(file);
 
-      avatarUrl = fileData.publicUrl;
+      avatarKey = fileData.publicUrl;
     }
 
     await this.organizationRepository.create(
       {
         name: data.name,
         slug: data.slug,
-        avatarUrl: avatarUrl,
+        avatarKey: avatarKey,
         isActive: data.isActive ?? true,
       },
       userId,

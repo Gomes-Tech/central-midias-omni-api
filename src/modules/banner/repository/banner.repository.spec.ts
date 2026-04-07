@@ -148,8 +148,8 @@ describe('BannerRepository', () => {
         {
           name: 'Banner mínimo',
           order: 0,
-          mobileImageUrl: '/m.png',
-          desktopImageUrl: '/d.png',
+          mobileImageKey: '/m.png',
+          desktopImageKey: '/d.png',
         },
         'user-1',
       );
@@ -163,8 +163,8 @@ describe('BannerRepository', () => {
           isActive: true,
           initialDate: null,
           finishDate: null,
-          mobileImageUrl: '/m.png',
-          desktopImageUrl: '/d.png',
+          mobileImageKey: '/m.png',
+          desktopImageKey: '/d.png',
         },
       });
       expect(logger.info).toHaveBeenCalledWith(
@@ -186,8 +186,8 @@ describe('BannerRepository', () => {
           'org-1',
           {
             ...dto,
-            mobileImageUrl: '/m.png',
-            desktopImageUrl: '/d.png',
+            mobileImageKey: '/m.png',
+            desktopImageKey: '/d.png',
           },
           'user-1',
         ),
@@ -221,13 +221,13 @@ describe('BannerRepository', () => {
       await repository.update(
         'bid',
         'org-1',
-        { mobileImageUrl: '/new-m.png', order: 3 },
+        { mobileImageKey: '/new-m.png', order: 3 },
         'user-1',
       );
 
       expect(prisma.banner.updateMany).toHaveBeenCalledWith({
         where: { id: 'bid', organizationId: 'org-1', isDeleted: false },
-        data: { order: 3, mobileImageUrl: '/new-m.png' },
+        data: { order: 3, mobileImageKey: '/new-m.png' },
       });
     });
 

@@ -46,7 +46,7 @@ export interface User {
   taxIdentifier: string;
   phone?: string | null;
   socialReason?: string | null;
-  avatarUrl?: string | null;
+  avatarKey?: string | null;
   isFirstAccess: boolean;
   isActive: boolean;
   isDeleted: boolean;
@@ -65,7 +65,7 @@ export interface ListUser {
   taxIdentifier: string;
   phone?: string | null;
   socialReason?: string | null;
-  avatarUrl?: string | null;
+  avatarKey?: string | null;
   isFirstAccess: boolean;
   isActive: boolean;
   isDeleted: boolean;

@@ -162,8 +162,8 @@ describe('CreateBannerUseCase', () => {
       'organization-id',
       {
         ...dto,
-        mobileImageUrl: '/storage/banners/mobile/banner-mobile.png',
-        desktopImageUrl: '/storage/banners/banner-desktop.png',
+        mobileImageKey: '/storage/banners/mobile/banner-mobile.png',
+        desktopImageKey: '/storage/banners/banner-desktop.png',
       },
       'user-id',
     );

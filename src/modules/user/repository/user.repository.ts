@@ -96,7 +96,7 @@ export class UserRepository {
             id: true,
             name: true,
             email: true,
-            avatarUrl: true,
+            avatarKey: true,
             isActive: true,
             globalRoleId: true,
           },
@@ -121,7 +121,7 @@ export class UserRepository {
         filters,
       });
 
-      throw new BadRequestException('Erro ao buscar usuários');
+      throw new BadRequestException('Erro ao buscar usu?rios');
     }
   }
 
@@ -144,7 +144,7 @@ export class UserRepository {
                     id: true,
                     name: true,
                     slug: true,
-                    avatarUrl: true,
+                    avatarKey: true,
                   },
                 },
                 role: {
@@ -178,7 +178,7 @@ export class UserRepository {
         id,
       });
 
-      throw new BadRequestException('Erro ao buscar usuário por id');
+      throw new BadRequestException('Erro ao buscar usu?rio por id');
     }
   }
 
@@ -239,7 +239,7 @@ export class UserRepository {
         userId,
       });
 
-      throw new BadRequestException('Erro ao buscar perfil do usuário');
+      throw new BadRequestException('Erro ao buscar perfil do usu?rio');
     }
   }
 
@@ -282,7 +282,7 @@ export class UserRepository {
         taxIdentifier,
       });
 
-      throw new BadRequestException('Erro ao buscar usuário por documento');
+      throw new BadRequestException('Erro ao buscar usu?rio por documento');
     }
   }
 
@@ -325,7 +325,7 @@ export class UserRepository {
         return user;
       });
 
-      void this.logger.info('Usuário criado', {
+      void this.logger.info('Usu?rio criado', {
         userId: user.id,
         createdBy: userId,
       });
@@ -337,7 +337,7 @@ export class UserRepository {
         email: data.email,
       });
 
-      throw new BadRequestException('Erro ao criar usuário');
+      throw new BadRequestException('Erro ao criar usu?rio');
     }
   }
 
@@ -378,7 +378,7 @@ export class UserRepository {
         return user;
       });
 
-      void this.logger.info('Usuário criado', {
+      void this.logger.info('Usu?rio criado', {
         userId: user.id,
         createdBy: userId,
       });
@@ -390,7 +390,7 @@ export class UserRepository {
         email: data.email,
       });
 
-      throw new BadRequestException('Erro ao criar usuário');
+      throw new BadRequestException('Erro ao criar usu?rio');
     }
   }
 
@@ -416,7 +416,7 @@ export class UserRepository {
         },
       });
 
-      void this.logger.info('Usuário atualizado', {
+      void this.logger.info('Usu?rio atualizado', {
         userId: id,
         updatedBy: userId,
       });
@@ -426,7 +426,7 @@ export class UserRepository {
         userId: id,
       });
 
-      throw new BadRequestException('Erro ao atualizar usuário');
+      throw new BadRequestException('Erro ao atualizar usu?rio');
     }
   }
 
@@ -441,14 +441,14 @@ export class UserRepository {
         },
       });
 
-      void this.logger.info('Usuário excluído (soft delete)', { userId: id });
+      void this.logger.info('Usu?rio exclu?do (soft delete)', { userId: id });
     } catch (error) {
       void this.logger.error('UserRepository.delete falhou', {
         error: String(error),
         userId: id,
       });
 
-      throw new BadRequestException('Erro ao deletar usuário');
+      throw new BadRequestException('Erro ao deletar usu?rio');
     }
   }
 }

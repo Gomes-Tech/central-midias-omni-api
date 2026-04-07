@@ -33,8 +33,8 @@ describe('DeleteBannerUseCase', () => {
   it('deve validar o banner antes de excluir e remover os arquivos associados', async () => {
     getBannerUseCase.execute.mockResolvedValue(
       makeBanner({
-        mobileImageUrl: '/storage/banners/mobile/banner-mobile.png',
-        desktopImageUrl: 'https://cdn.test/banners/banner-desktop.png',
+        mobileImageKey: '/storage/banners/mobile/banner-mobile.png',
+        desktopImageKey: 'https://cdn.test/banners/banner-desktop.png',
       }),
     );
     bannerRepository.softDelete.mockResolvedValue();

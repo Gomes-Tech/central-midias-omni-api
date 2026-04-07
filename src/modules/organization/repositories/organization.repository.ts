@@ -58,7 +58,7 @@ export class OrganizationRepository {
   }
 
   async create(
-    data: CreateOrganizationDTO & { avatarUrl: string | null },
+    data: CreateOrganizationDTO & { avatarKey: string | null },
     userId: string,
   ): Promise<void> {
     try {
@@ -69,7 +69,7 @@ export class OrganizationRepository {
             name: data.name,
             slug: data.slug,
             isActive: data.isActive ?? true,
-            avatarUrl: data.avatarUrl ?? null,
+            avatarKey: data.avatarKey ?? null,
             domain: data.domain ?? null,
             shouldAttachUsersByDomain: data.shouldAttachUsersByDomain ?? false,
           },

@@ -23,8 +23,8 @@ export class DeleteBannerUseCase {
     await this.bannerRepository.softDelete(id, organizationId, userId);
 
     await this.storageService.deleteFile([
-      this.toStoragePath(banner.mobileImageUrl),
-      this.toStoragePath(banner.desktopImageUrl),
+      this.toStoragePath(banner.mobileImageKey),
+      this.toStoragePath(banner.desktopImageKey),
     ]);
   }
 }

@@ -130,7 +130,7 @@ describe('UpdateOrganizationUseCase', () => {
       {
         name: 'Updated Organization',
         slug: 'new-slug',
-        avatarUrl: 'https://cdn.test/organization/logo.png',
+        avatarKey: 'https://cdn.test/organization/logo.png',
         isActive: false,
       },
       'admin-id',
