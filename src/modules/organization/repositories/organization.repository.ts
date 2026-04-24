@@ -24,7 +24,9 @@ export class OrganizationRepository {
         },
       });
     } catch (error) {
-      this.logger.error('OrganizationRepository.findAll falhou', error);
+      this.logger.error('OrganizationRepository.findAll falhou', {
+        error: String(error),
+      });
       throw new BadRequestException('Erro ao buscar organizações');
     }
   }
@@ -41,7 +43,9 @@ export class OrganizationRepository {
 
       return organization;
     } catch (error) {
-      this.logger.error('OrganizationRepository.findById falhou', error);
+      this.logger.error('OrganizationRepository.findById falhou', {
+        error: String(error),
+      });
       throw new BadRequestException('Erro ao buscar organização');
     }
   }
@@ -52,7 +56,9 @@ export class OrganizationRepository {
         where: { slug },
       });
     } catch (error) {
-      this.logger.error('OrganizationRepository.findBySlug falhou', error);
+      this.logger.error('OrganizationRepository.findBySlug falhou', {
+        error: String(error),
+      });
       throw new BadRequestException('Erro ao buscar organização');
     }
   }
@@ -109,7 +115,9 @@ export class OrganizationRepository {
         userId,
       });
     } catch (error) {
-      this.logger.error('OrganizationRepository.create falhou', error);
+      this.logger.error('OrganizationRepository.create falhou', {
+        error: String(error),
+      });
       throw new BadRequestException('Erro ao criar organização');
     }
   }
@@ -130,7 +138,9 @@ export class OrganizationRepository {
         userId,
       });
     } catch (error) {
-      this.logger.error('OrganizationRepository.update falhou', error);
+      this.logger.error('OrganizationRepository.update falhou', {
+        error: String(error),
+      });
       throw new BadRequestException('Erro ao atualizar organização');
     }
   }
@@ -144,7 +154,9 @@ export class OrganizationRepository {
         },
       });
     } catch (error) {
-      this.logger.error('OrganizationRepository.delete falhou', error);
+      this.logger.error('OrganizationRepository.delete falhou', {
+        error: String(error),
+      });
       throw new BadRequestException('Erro ao deletar organização');
     }
   }

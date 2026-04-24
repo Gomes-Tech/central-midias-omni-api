@@ -58,7 +58,7 @@ describe('OrganizationRepository', () => {
       );
       expect(logger.error).toHaveBeenCalledWith(
         'OrganizationRepository.findAll falhou',
-        expect.any(Error),
+        expect.objectContaining({ error: expect.any(String) }),
       );
     });
   });
@@ -218,7 +218,7 @@ describe('OrganizationRepository', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(logger.error).toHaveBeenCalledWith(
         'OrganizationRepository.create falhou',
-        expect.any(Error),
+        expect.objectContaining({ error: expect.any(String) }),
       );
     });
   });

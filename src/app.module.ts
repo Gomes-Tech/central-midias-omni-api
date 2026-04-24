@@ -24,6 +24,7 @@ import { BannerModule } from '@modules/banner';
 import { CategoryModule } from '@modules/category';
 import { CategoryRoleAccessModule } from '@modules/category-role-access/category-role-access.module';
 import { MemberModule } from '@modules/member';
+import { ModuleModule } from '@modules/module';
 import { OrganizationModule } from '@modules/organization';
 import { RolesModule } from '@modules/roles';
 import { TokenPasswordModule } from '@modules/token-password';
@@ -55,6 +56,7 @@ import { AppService } from './app.service';
     ThrottlerConfigModule,
     CategoryModule,
     MemberModule,
+    ModuleModule,
     OrganizationModule,
     RolesModule,
     UserModule,
@@ -117,6 +119,8 @@ export class AppModule implements NestModule {
         { path: 'organizations', method: RequestMethod.GET },
         { path: 'roles', method: RequestMethod.POST },
         { path: 'roles', method: RequestMethod.GET },
+        { path: 'modules', method: RequestMethod.POST },
+        { path: 'modules', method: RequestMethod.GET },
         { path: 'admin', method: RequestMethod.ALL },
         { path: 'admin/(.*)', method: RequestMethod.ALL },
         { path: '*', method: RequestMethod.OPTIONS },
