@@ -68,6 +68,48 @@ describe('RolesRepository', () => {
     });
   });
 
+  describe('findAllSelect', () => {
+    it('deve listar perfis não deletados retornando apenas id e name', async () => {
+      const rows = [
+        { id: '1', name: 'ROLE_A' },
+        { id: '2', name: 'ROLE_B' },
+      ];
+      prisma.role.findMany.mockResolvedValue(rows);
+
+      const result = await repository.findAllSelect();
+
+      expect(result).toEqual(rows);
+      expect(prisma.role.findMany).toHaveBeenCalledWith({
+        where: { deletedAt: null },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: [{ label: 'asc' }],
+      });
+    });
+
+    it('deve propagar HttpException sem envolver', async () => {
+      prisma.role.findMany.mockRejectedValue(new NotFoundException('x'));
+
+      await expect(repository.findAllSelect()).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('deve lançar InternalServerError quando findMany falhar com erro genérico', async () => {
+      prisma.role.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(repository.findAllSelect()).rejects.toBeInstanceOf(
+        InternalServerErrorException,
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'RolesRepository.findAllSelect falhou',
+        expect.objectContaining({ error: expect.any(String) }),
+      );
+    });
+  });
+
   describe('findById', () => {
     it('deve retornar null quando não existir', async () => {
       prisma.role.findUnique.mockResolvedValue(null);

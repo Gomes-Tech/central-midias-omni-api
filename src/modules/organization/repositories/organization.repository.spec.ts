@@ -63,6 +63,40 @@ describe('OrganizationRepository', () => {
     });
   });
 
+  describe('findAllSelect', () => {
+    it('deve listar organizações ativas retornando apenas id e name', async () => {
+      const rows = [
+        { id: '1', name: 'Alpha' },
+        { id: '2', name: 'Beta' },
+      ];
+      prisma.organization.findMany.mockResolvedValue(rows);
+
+      const result = await repository.findAllSelect();
+
+      expect(result).toEqual(rows);
+      expect(prisma.organization.findMany).toHaveBeenCalledWith({
+        where: { isActive: true },
+        orderBy: { name: 'asc' },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+    });
+
+    it('deve lançar BadRequest quando findMany falhar', async () => {
+      prisma.organization.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(repository.findAllSelect()).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'OrganizationRepository.findAllSelect falhou',
+        expect.objectContaining({ error: expect.any(String) }),
+      );
+    });
+  });
+
   describe('findById', () => {
     it('deve retornar null quando não existir', async () => {
       prisma.organization.findUnique.mockResolvedValue(null);

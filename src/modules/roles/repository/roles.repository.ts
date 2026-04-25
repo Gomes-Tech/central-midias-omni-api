@@ -32,6 +32,23 @@ export class RolesRepository {
     }
   }
 
+  async findAllSelect(): Promise<{ id: string; name: string }[]> {
+    try {
+      const roles = await this.prisma.role.findMany({
+        where: { deletedAt: null },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: [{ label: 'asc' }],
+      });
+
+      return roles;
+    } catch (error) {
+      this.handleError('RolesRepository.findAllSelect falhou', error);
+    }
+  }
+
   async findById(id: string): Promise<Role | null> {
     try {
       const role = await this.prisma.role.findUnique({

@@ -22,6 +22,7 @@ import {
   CreateRoleUseCase,
   DeleteRoleUseCase,
   FindAllRolesUseCase,
+  FindAllSelectRolesUseCase,
   FindRoleByIdUseCase,
   UpdateRoleUseCase,
 } from './use-cases';
@@ -31,6 +32,7 @@ import {
 export class RolesController {
   constructor(
     private readonly findAllRolesUseCase: FindAllRolesUseCase,
+    private readonly findAllSelectRolesUseCase: FindAllSelectRolesUseCase,
     private readonly findRoleByIdUseCase: FindRoleByIdUseCase,
     private readonly createRoleUseCase: CreateRoleUseCase,
     private readonly createGlobalRoleUseCase: CreateGlobalRoleUseCase,
@@ -42,6 +44,12 @@ export class RolesController {
   @Get()
   async findAll(@Query() filters: FindAllRolesFiltersDTO = {}) {
     return await this.findAllRolesUseCase.execute(filters);
+  }
+
+  @RequirePermission('roles', 'read')
+  @Get('select')
+  async findAllSelect() {
+    return await this.findAllSelectRolesUseCase.execute();
   }
 
   @RequirePermission('roles', 'read')

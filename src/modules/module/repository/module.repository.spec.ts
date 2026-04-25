@@ -57,6 +57,36 @@ describe('ModuleRepository', () => {
     });
   });
 
+  describe('findAllSelect', () => {
+    it('deve listar módulos retornando apenas id e name', async () => {
+      const rows = [
+        { id: 'm1', name: 'roles' },
+        { id: 'm2', name: 'users' },
+      ];
+      prisma.module.findMany.mockResolvedValue(rows);
+
+      const result = await repository.findAllSelect();
+
+      expect(result).toEqual(rows);
+      expect(prisma.module.findMany).toHaveBeenCalledWith({
+        select: { id: true, name: true },
+        orderBy: [{ label: 'asc' }],
+      });
+    });
+
+    it('deve lançar BadRequest quando findMany falhar', async () => {
+      prisma.module.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(repository.findAllSelect()).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'ModuleRepository.findAllSelect falhou',
+        expect.objectContaining({ error: expect.any(String) }),
+      );
+    });
+  });
+
   describe('findById', () => {
     it('deve buscar por id', async () => {
       const row = makeModule({ id: 'm1' });

@@ -16,6 +16,7 @@ import {
   CreateOrganizationUseCase,
   DeleteOrganizationUseCase,
   FindAllOrganizationsUseCase,
+  FindAllSelectOrganizationsUseCase,
   FindOrganizationByIdUseCase,
   UpdateOrganizationUseCase,
 } from './use-cases';
@@ -26,6 +27,7 @@ export class OrganizationController {
   constructor(
     private readonly createOrganizationUseCase: CreateOrganizationUseCase,
     private readonly findAllOrganizationsUseCase: FindAllOrganizationsUseCase,
+    private readonly findAllSelectOrganizationsUseCase: FindAllSelectOrganizationsUseCase,
     private readonly findOrganizationByIdUseCase: FindOrganizationByIdUseCase,
     private readonly updateOrganizationUseCase: UpdateOrganizationUseCase,
     private readonly deleteOrganizationUseCase: DeleteOrganizationUseCase,
@@ -35,6 +37,12 @@ export class OrganizationController {
   @Get()
   async getList() {
     return await this.findAllOrganizationsUseCase.execute();
+  }
+
+  @RequirePermission('organizations', 'read')
+  @Get('select')
+  async getListSelect() {
+    return await this.findAllSelectOrganizationsUseCase.execute();
   }
 
   @RequirePermission('organizations', 'read')

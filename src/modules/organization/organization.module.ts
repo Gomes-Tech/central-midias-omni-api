@@ -6,6 +6,7 @@ import {
   CreateOrganizationUseCase,
   DeleteOrganizationUseCase,
   FindAllOrganizationsUseCase,
+  FindAllSelectOrganizationsUseCase,
   FindOrganizationByIdUseCase,
   FindOrganizationBySlugUseCase,
   UpdateOrganizationUseCase,
@@ -16,6 +17,7 @@ import {
   controllers: [OrganizationController],
   providers: [
     FindAllOrganizationsUseCase,
+    FindAllSelectOrganizationsUseCase,
     FindOrganizationByIdUseCase,
     FindOrganizationBySlugUseCase,
     CreateOrganizationUseCase,
@@ -29,6 +31,7 @@ import {
   ],
   exports: [
     FindAllOrganizationsUseCase,
+    FindAllSelectOrganizationsUseCase,
     FindOrganizationByIdUseCase,
     FindOrganizationBySlugUseCase,
     CreateOrganizationUseCase,

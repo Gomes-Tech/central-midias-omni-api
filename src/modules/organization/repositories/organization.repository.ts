@@ -31,6 +31,28 @@ export class OrganizationRepository {
     }
   }
 
+  async findAllSelect(): Promise<{ id: string; name: string }[]> {
+    try {
+      return await this.prisma.organization.findMany({
+        where: {
+          isActive: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+    } catch (error) {
+      this.logger.error('OrganizationRepository.findAllSelect falhou', {
+        error: String(error),
+      });
+      throw new BadRequestException('Erro ao buscar organizações');
+    }
+  }
+
   async findById(id: string): Promise<Organization | null> {
     try {
       const organization = await this.prisma.organization.findUnique({

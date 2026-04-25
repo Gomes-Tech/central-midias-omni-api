@@ -5,6 +5,7 @@ import {
   CreateOrganizationUseCase,
   DeleteOrganizationUseCase,
   FindAllOrganizationsUseCase,
+  FindAllSelectOrganizationsUseCase,
   FindOrganizationByIdUseCase,
   UpdateOrganizationUseCase,
 } from './use-cases';
@@ -13,6 +14,7 @@ describe('OrganizationController', () => {
   let controller: OrganizationController;
   let createOrganizationUseCase: { execute: jest.Mock };
   let findAllOrganizationsUseCase: { execute: jest.Mock };
+  let findAllSelectOrganizationsUseCase: { execute: jest.Mock };
   let findOrganizationByIdUseCase: { execute: jest.Mock };
   let updateOrganizationUseCase: { execute: jest.Mock };
   let deleteOrganizationUseCase: { execute: jest.Mock };
@@ -20,6 +22,7 @@ describe('OrganizationController', () => {
   beforeEach(async () => {
     createOrganizationUseCase = { execute: jest.fn() };
     findAllOrganizationsUseCase = { execute: jest.fn() };
+    findAllSelectOrganizationsUseCase = { execute: jest.fn() };
     findOrganizationByIdUseCase = { execute: jest.fn() };
     updateOrganizationUseCase = { execute: jest.fn() };
     deleteOrganizationUseCase = { execute: jest.fn() };
@@ -34,6 +37,10 @@ describe('OrganizationController', () => {
         {
           provide: FindAllOrganizationsUseCase,
           useValue: findAllOrganizationsUseCase,
+        },
+        {
+          provide: FindAllSelectOrganizationsUseCase,
+          useValue: findAllSelectOrganizationsUseCase,
         },
         {
           provide: FindOrganizationByIdUseCase,
@@ -67,6 +74,16 @@ describe('OrganizationController', () => {
       await controller.getList();
 
       expect(findAllOrganizationsUseCase.execute).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('getListSelect', () => {
+    it('deve delegar ao FindAllSelectOrganizationsUseCase', async () => {
+      findAllSelectOrganizationsUseCase.execute.mockResolvedValue([]);
+
+      await controller.getListSelect();
+
+      expect(findAllSelectOrganizationsUseCase.execute).toHaveBeenCalledWith();
     });
   });
 

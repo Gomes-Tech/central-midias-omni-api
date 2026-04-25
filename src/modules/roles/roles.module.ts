@@ -7,6 +7,7 @@ import {
   CreateRoleUseCase,
   DeleteRoleUseCase,
   FindAllRolesUseCase,
+  FindAllSelectRolesUseCase,
   FindRoleByIdUseCase,
   FindRoleByNameUseCase,
   UpdateRoleUseCase,
@@ -18,6 +19,7 @@ import {
   providers: [
     RolesRepository,
     FindAllRolesUseCase,
+    FindAllSelectRolesUseCase,
     FindRoleByIdUseCase,
     FindRoleByNameUseCase,
     CreateRoleUseCase,
@@ -31,6 +33,7 @@ import {
   ],
   exports: [
     FindAllRolesUseCase,
+    FindAllSelectRolesUseCase,
     FindRoleByIdUseCase,
     FindRoleByNameUseCase,
     CreateRoleUseCase,

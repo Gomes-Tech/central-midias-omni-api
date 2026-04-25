@@ -6,6 +6,7 @@ import {
   CreateModuleUseCase,
   DeleteModuleUseCase,
   FindAllModuleUseCase,
+  FindAllSelectModuleUseCase,
   FindModuleByIdUseCase,
   UpdateModuleUseCase,
 } from './use-cases';
@@ -16,6 +17,7 @@ import {
     PlatformPermissionGuard,
     ModuleRepository,
     FindAllModuleUseCase,
+    FindAllSelectModuleUseCase,
     FindModuleByIdUseCase,
     CreateModuleUseCase,
     UpdateModuleUseCase,
@@ -28,6 +30,7 @@ import {
   exports: [
     ModuleRepository,
     FindAllModuleUseCase,
+    FindAllSelectModuleUseCase,
     FindModuleByIdUseCase,
     CreateModuleUseCase,
     UpdateModuleUseCase,

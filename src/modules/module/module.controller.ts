@@ -15,6 +15,7 @@ import {
   CreateModuleUseCase,
   DeleteModuleUseCase,
   FindAllModuleUseCase,
+  FindAllSelectModuleUseCase,
   FindModuleByIdUseCase,
   UpdateModuleUseCase,
 } from './use-cases';
@@ -28,12 +29,19 @@ export class ModuleController {
     private readonly createModuleUseCase: CreateModuleUseCase,
     private readonly updateModuleUseCase: UpdateModuleUseCase,
     private readonly deleteModuleUseCase: DeleteModuleUseCase,
+    private readonly findAllSelectModuleUseCase: FindAllSelectModuleUseCase,
   ) {}
 
   @RequirePermission('roles', 'read')
   @Get()
   async findAll() {
     return await this.findAllModuleUseCase.execute();
+  }
+
+  @RequirePermission('roles', 'read')
+  @Get('select')
+  async findAllSelect() {
+    return await this.findAllSelectModuleUseCase.execute();
   }
 
   @RequirePermission('roles', 'read')

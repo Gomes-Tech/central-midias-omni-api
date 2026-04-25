@@ -11,6 +11,7 @@ import {
   CreateRoleUseCase,
   DeleteRoleUseCase,
   FindAllRolesUseCase,
+  FindAllSelectRolesUseCase,
   FindRoleByIdUseCase,
   UpdateRoleUseCase,
 } from './use-cases';
@@ -18,6 +19,7 @@ import {
 describe('RolesController', () => {
   let controller: RolesController;
   let findAllRolesUseCase: { execute: jest.Mock };
+  let findAllSelectRolesUseCase: { execute: jest.Mock };
   let findRoleByIdUseCase: { execute: jest.Mock };
   let createRoleUseCase: { execute: jest.Mock };
   let createGlobalRoleUseCase: { execute: jest.Mock };
@@ -26,6 +28,7 @@ describe('RolesController', () => {
 
   beforeEach(async () => {
     findAllRolesUseCase = { execute: jest.fn() };
+    findAllSelectRolesUseCase = { execute: jest.fn() };
     findRoleByIdUseCase = { execute: jest.fn() };
     createRoleUseCase = { execute: jest.fn() };
     createGlobalRoleUseCase = { execute: jest.fn() };
@@ -36,6 +39,10 @@ describe('RolesController', () => {
       controllers: [RolesController],
       providers: [
         { provide: FindAllRolesUseCase, useValue: findAllRolesUseCase },
+        {
+          provide: FindAllSelectRolesUseCase,
+          useValue: findAllSelectRolesUseCase,
+        },
         { provide: FindRoleByIdUseCase, useValue: findRoleByIdUseCase },
         { provide: CreateRoleUseCase, useValue: createRoleUseCase },
         { provide: CreateGlobalRoleUseCase, useValue: createGlobalRoleUseCase },
@@ -66,6 +73,16 @@ describe('RolesController', () => {
       await controller.findAll();
 
       expect(findAllRolesUseCase.execute).toHaveBeenCalledWith({});
+    });
+  });
+
+  describe('findAllSelect', () => {
+    it('deve delegar ao FindAllSelectRolesUseCase', async () => {
+      findAllSelectRolesUseCase.execute.mockResolvedValue([]);
+
+      await controller.findAllSelect();
+
+      expect(findAllSelectRolesUseCase.execute).toHaveBeenCalledWith();
     });
   });
 

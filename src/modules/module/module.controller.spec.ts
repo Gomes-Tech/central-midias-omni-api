@@ -5,6 +5,7 @@ import {
   CreateModuleUseCase,
   DeleteModuleUseCase,
   FindAllModuleUseCase,
+  FindAllSelectModuleUseCase,
   FindModuleByIdUseCase,
   UpdateModuleUseCase,
 } from './use-cases';
@@ -13,6 +14,7 @@ import { makeCreateModuleDTO, makeUpdateModuleDTO } from './use-cases/test-helpe
 describe('ModuleController', () => {
   let controller: ModuleController;
   let findAllModuleUseCase: { execute: jest.Mock };
+  let findAllSelectModuleUseCase: { execute: jest.Mock };
   let findModuleByIdUseCase: { execute: jest.Mock };
   let createModuleUseCase: { execute: jest.Mock };
   let updateModuleUseCase: { execute: jest.Mock };
@@ -20,6 +22,7 @@ describe('ModuleController', () => {
 
   beforeEach(async () => {
     findAllModuleUseCase = { execute: jest.fn() };
+    findAllSelectModuleUseCase = { execute: jest.fn() };
     findModuleByIdUseCase = { execute: jest.fn() };
     createModuleUseCase = { execute: jest.fn() };
     updateModuleUseCase = { execute: jest.fn() };
@@ -29,6 +32,10 @@ describe('ModuleController', () => {
       controllers: [ModuleController],
       providers: [
         { provide: FindAllModuleUseCase, useValue: findAllModuleUseCase },
+        {
+          provide: FindAllSelectModuleUseCase,
+          useValue: findAllSelectModuleUseCase,
+        },
         { provide: FindModuleByIdUseCase, useValue: findModuleByIdUseCase },
         { provide: CreateModuleUseCase, useValue: createModuleUseCase },
         { provide: UpdateModuleUseCase, useValue: updateModuleUseCase },
@@ -49,6 +56,16 @@ describe('ModuleController', () => {
       await controller.findAll();
 
       expect(findAllModuleUseCase.execute).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('findAllSelect', () => {
+    it('deve delegar ao FindAllSelectModuleUseCase', async () => {
+      findAllSelectModuleUseCase.execute.mockResolvedValue([]);
+
+      await controller.findAllSelect();
+
+      expect(findAllSelectModuleUseCase.execute).toHaveBeenCalledWith();
     });
   });
 

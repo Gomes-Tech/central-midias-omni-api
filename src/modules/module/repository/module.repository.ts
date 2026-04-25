@@ -25,6 +25,20 @@ export class ModuleRepository {
     }
   }
 
+  async findAllSelect(): Promise<{ id: string; name: string }[]> {
+    try {
+      return await this.prisma.module.findMany({
+        select: { id: true, name: true },
+        orderBy: [{ label: 'asc' }],
+      });
+    } catch (error) {
+      void this.logger.error('ModuleRepository.findAllSelect falhou', {
+        error: String(error),
+      });
+      throw new BadRequestException('Erro ao buscar módulos');
+    }
+  }
+
   async findById(id: string): Promise<ModuleEntity | null> {
     try {
       return await this.prisma.module.findUnique({
