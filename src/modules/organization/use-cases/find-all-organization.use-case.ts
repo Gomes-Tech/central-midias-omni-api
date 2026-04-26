@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { OrganizationEntity } from '../entities';
+import { FindAllFilters, PaginatedResponse } from '../../../types';
+import { OrganizationList } from '../entities';
 import { OrganizationRepository } from '../repositories';
 
 @Injectable()
@@ -9,7 +10,9 @@ export class FindAllOrganizationsUseCase {
     private readonly organizationRepository: OrganizationRepository,
   ) {}
 
-  async execute(): Promise<OrganizationEntity[]> {
-    return this.organizationRepository.findAll();
+  async execute(
+    filters: FindAllFilters = {},
+  ): Promise<PaginatedResponse<OrganizationList>> {
+    return this.organizationRepository.findAll(filters);
   }
 }

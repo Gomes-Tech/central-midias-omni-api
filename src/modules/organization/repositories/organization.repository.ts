@@ -3,8 +3,10 @@ import { generateId } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
-import { Organization } from '@prisma/client';
+import { Organization, Prisma } from '@prisma/client';
+import { FindAllFilters, PaginatedResponse } from '../../../types';
 import { CreateOrganizationDTO, UpdateOrganizationDTO } from '../dto';
+import { OrganizationEntity, OrganizationList } from '../entities';
 
 @Injectable()
 export class OrganizationRepository {
@@ -13,16 +15,50 @@ export class OrganizationRepository {
     private readonly logger: LoggerService,
   ) {}
 
-  async findAll(): Promise<Organization[]> {
+  async findAll(
+    filters: FindAllFilters = {},
+  ): Promise<PaginatedResponse<OrganizationList>> {
     try {
-      return await this.prisma.organization.findMany({
-        where: {
-          isActive: true,
-        },
-        orderBy: {
-          name: 'asc',
-        },
-      });
+      const { page = 1, limit = 25, searchTerm } = filters;
+
+      const skip = (page - 1) * limit;
+
+      const where: Prisma.OrganizationWhereInput = {
+        isDeleted: false,
+        ...(searchTerm && {
+          name: { contains: searchTerm, mode: 'insensitive' },
+        }),
+      };
+
+      const [data, total] = await Promise.all([
+        await this.prisma.organization.findMany({
+          where,
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            createdAt: true,
+          },
+          skip,
+          take: limit,
+          orderBy: {
+            createdAt: 'desc',
+          },
+        }),
+
+        await this.prisma.organization.count({
+          where: {
+            isDeleted: false,
+          },
+        }),
+      ]);
+
+      return {
+        data,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      };
     } catch (error) {
       this.logger.error('OrganizationRepository.findAll falhou', {
         error: String(error),
@@ -36,6 +72,7 @@ export class OrganizationRepository {
       return await this.prisma.organization.findMany({
         where: {
           isActive: true,
+          isDeleted: false,
         },
         orderBy: {
           name: 'asc',
@@ -53,10 +90,20 @@ export class OrganizationRepository {
     }
   }
 
-  async findById(id: string): Promise<Organization | null> {
+  async findById(id: string): Promise<OrganizationEntity | null> {
     try {
       const organization = await this.prisma.organization.findUnique({
         where: { id },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          domain: true,
+          shouldAttachUsersByDomain: true,
+          avatarKey: true,
+          isActive: true,
+          createdAt: true,
+        },
       });
 
       if (!organization) {

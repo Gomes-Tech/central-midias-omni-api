@@ -15,20 +15,35 @@ describe('FindAllOrganizationsUseCase', () => {
   });
 
   it('deve retornar a lista do repositório', async () => {
-    const organizations = [
-      makeOrganization(),
-      makeOrganization({ id: 'organization-2', slug: 'organization-2' }),
-    ];
+    const response = {
+      data: [
+        makeOrganization(),
+        makeOrganization({ id: 'organization-2', slug: 'organization-2' }),
+      ],
+      total: 2,
+      page: 1,
+      totalPages: 1,
+    };
 
-    organizationRepository.findAll.mockResolvedValue(organizations);
+    organizationRepository.findAll.mockResolvedValue(response);
 
-    await expect(useCase.execute()).resolves.toEqual(organizations);
+    await expect(useCase.execute()).resolves.toEqual(response);
   });
 
   it('deve chamar organizationRepository.findAll exatamente 1 vez', async () => {
-    organizationRepository.findAll.mockResolvedValue([]);
+    organizationRepository.findAll.mockResolvedValue({
+      data: [],
+      total: 0,
+      page: 1,
+      totalPages: 0,
+    });
 
-    await expect(useCase.execute()).resolves.toEqual([]);
+    await expect(useCase.execute()).resolves.toEqual({
+      data: [],
+      total: 0,
+      page: 1,
+      totalPages: 0,
+    });
 
     expect(organizationRepository.findAll).toHaveBeenCalledTimes(1);
   });

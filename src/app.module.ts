@@ -123,6 +123,7 @@ export class AppModule implements NestModule {
         { path: 'modules', method: RequestMethod.GET },
         { path: 'admin', method: RequestMethod.ALL },
         { path: 'admin/(.*)', method: RequestMethod.ALL },
+        { path: 'file/(.*)', method: RequestMethod.GET },
         { path: '*', method: RequestMethod.OPTIONS },
       )
       .forRoutes('*');

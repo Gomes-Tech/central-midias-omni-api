@@ -33,9 +33,10 @@ describe('UpdateOrganizationUseCase', () => {
   });
 
   it('deve impedir atualização com slug duplicado', async () => {
-    findOrganizationByIdUseCase.execute.mockResolvedValue(
-      makeOrganization({ id: 'organization-id', slug: 'organization' }),
-    );
+    findOrganizationByIdUseCase.execute.mockResolvedValue({
+      ...makeOrganization({ id: 'organization-id', slug: 'organization' }),
+      avatarUrl: null,
+    });
     organizationRepository.findBySlug.mockResolvedValue(
       makeOrganization({ id: 'another-organization', slug: 'new-slug' }),
     );
@@ -59,9 +60,10 @@ describe('UpdateOrganizationUseCase', () => {
   });
 
   it('deve atualizar somente os campos enviados quando o slug não mudar', async () => {
-    findOrganizationByIdUseCase.execute.mockResolvedValue(
-      makeOrganization({ id: 'organization-id', slug: 'organization' }),
-    );
+    findOrganizationByIdUseCase.execute.mockResolvedValue({
+      ...makeOrganization({ id: 'organization-id', slug: 'organization' }),
+      avatarUrl: null,
+    });
     organizationRepository.update.mockResolvedValue();
 
     await expect(
@@ -96,15 +98,13 @@ describe('UpdateOrganizationUseCase', () => {
       originalname: 'logo.png',
     } as Express.Multer.File;
 
-    findOrganizationByIdUseCase.execute.mockResolvedValue(
-      makeOrganization({ id: 'organization-id', slug: 'organization' }),
-    );
+    findOrganizationByIdUseCase.execute.mockResolvedValue({
+      ...makeOrganization({ id: 'organization-id', slug: 'organization' }),
+      avatarUrl: null,
+    });
     organizationRepository.findBySlug.mockResolvedValue(null);
     storageService.uploadFile.mockResolvedValue({
-      id: 'file-id',
       path: 'organization/logo.png',
-      fullPath: '/tmp/organization/logo.png',
-      publicUrl: 'https://cdn.test/organization/logo.png',
     });
     organizationRepository.update.mockResolvedValue();
 
@@ -130,7 +130,7 @@ describe('UpdateOrganizationUseCase', () => {
       {
         name: 'Updated Organization',
         slug: 'new-slug',
-        avatarKey: 'https://cdn.test/organization/logo.png',
+        avatarKey: 'organization/logo.png',
         isActive: false,
       },
       'admin-id',
@@ -138,9 +138,10 @@ describe('UpdateOrganizationUseCase', () => {
   });
 
   it('deve permitir atualização quando findBySlug retornar organização com o mesmo id', async () => {
-    findOrganizationByIdUseCase.execute.mockResolvedValue(
-      makeOrganization({ id: 'organization-id', slug: 'organization' }),
-    );
+    findOrganizationByIdUseCase.execute.mockResolvedValue({
+      ...makeOrganization({ id: 'organization-id', slug: 'organization' }),
+      avatarUrl: null,
+    });
     organizationRepository.findBySlug.mockResolvedValue(
       makeOrganization({ id: 'organization-id', slug: 'new-slug' }),
     );
@@ -186,9 +187,10 @@ describe('UpdateOrganizationUseCase', () => {
   it('deve propagar erro quando organizationRepository.findBySlug falhar', async () => {
     const error = new Error('Erro ao buscar slug');
 
-    findOrganizationByIdUseCase.execute.mockResolvedValue(
-      makeOrganization({ id: 'organization-id', slug: 'organization' }),
-    );
+    findOrganizationByIdUseCase.execute.mockResolvedValue({
+      ...makeOrganization({ id: 'organization-id', slug: 'organization' }),
+      avatarUrl: null,
+    });
     organizationRepository.findBySlug.mockRejectedValue(error);
 
     await expect(
@@ -206,9 +208,10 @@ describe('UpdateOrganizationUseCase', () => {
     } as Express.Multer.File;
     const error = new Error('Erro no upload');
 
-    findOrganizationByIdUseCase.execute.mockResolvedValue(
-      makeOrganization({ id: 'organization-id', slug: 'organization' }),
-    );
+    findOrganizationByIdUseCase.execute.mockResolvedValue({
+      ...makeOrganization({ id: 'organization-id', slug: 'organization' }),
+      avatarUrl: null,
+    });
     organizationRepository.findBySlug.mockResolvedValue(null);
     storageService.uploadFile.mockRejectedValue(error);
 
@@ -227,9 +230,10 @@ describe('UpdateOrganizationUseCase', () => {
   it('deve propagar erro quando organizationRepository.update falhar', async () => {
     const error = new Error('Erro ao atualizar organização');
 
-    findOrganizationByIdUseCase.execute.mockResolvedValue(
-      makeOrganization({ id: 'organization-id', slug: 'organization' }),
-    );
+    findOrganizationByIdUseCase.execute.mockResolvedValue({
+      ...makeOrganization({ id: 'organization-id', slug: 'organization' }),
+      avatarUrl: null,
+    });
     organizationRepository.findBySlug.mockResolvedValue(null);
     organizationRepository.update.mockRejectedValue(error);
 

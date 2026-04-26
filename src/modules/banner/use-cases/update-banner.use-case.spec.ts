@@ -189,8 +189,8 @@ describe('UpdateBannerUseCase', () => {
       'organization-id',
       {
         ...makeUpdateBannerDTO(),
-        mobileImageKey: '/storage/banners/banner-new-mobile.png',
-        desktopImageKey: '/storage/banners/banner-new-desktop.png',
+        mobileImageKey: 'banners/banner-new-mobile.png',
+        desktopImageKey: 'banners/banner-new-desktop.png',
       },
       'user-id',
     );
@@ -241,7 +241,7 @@ describe('UpdateBannerUseCase', () => {
       'organization-id',
       {
         ...makeUpdateBannerDTO(),
-        mobileImageKey: '/storage/banners/banner-new-mobile.png',
+        mobileImageKey: 'banners/banner-new-mobile.png',
       },
       'user-id',
     );
@@ -292,7 +292,7 @@ describe('UpdateBannerUseCase', () => {
       'organization-id',
       {
         ...makeUpdateBannerDTO(),
-        desktopImageKey: '/storage/banners/banner-new-desktop.png',
+        desktopImageKey: 'banners/banner-new-desktop.png',
       },
       'user-id',
     );

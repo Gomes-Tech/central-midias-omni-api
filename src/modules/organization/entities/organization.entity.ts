@@ -7,5 +7,11 @@ export interface OrganizationEntity {
   avatarKey?: string | null;
   isActive: boolean;
   createdAt: Date;
-  updatedAt: Date;
+}
+
+export interface OrganizationList {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: Date;
 }

@@ -64,7 +64,7 @@ export class UpdateBannerUseCase {
         mobileImage,
         'banners',
       );
-      updatePayload.mobileImageKey = uploaded.publicUrl;
+      updatePayload.mobileImageKey = uploaded.path;
       await this.storageService.deleteFile([
         this.toStoragePath(banner.mobileImageKey),
       ]);
@@ -75,7 +75,7 @@ export class UpdateBannerUseCase {
         desktopImage,
         'banners',
       );
-      updatePayload.desktopImageKey = uploaded.publicUrl;
+      updatePayload.desktopImageKey = uploaded.path;
       await this.storageService.deleteFile([
         this.toStoragePath(banner.desktopImageKey),
       ]);

@@ -39,7 +39,7 @@ export class UpdateOrganizationUseCase {
     if (file) {
       const fileData = await this.storageService.uploadFile(file);
 
-      avatarKey = fileData.publicUrl;
+      avatarKey = fileData.path;
     }
 
     return this.organizationRepository.update(

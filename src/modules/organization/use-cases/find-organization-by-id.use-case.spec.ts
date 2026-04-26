@@ -1,4 +1,5 @@
 import { NotFoundException } from '@common/filters';
+import { StorageService } from '@infrastructure/providers';
 import { OrganizationRepository } from '../repositories';
 import { FindOrganizationByIdUseCase } from './find-organization-by-id.use-case';
 import { makeOrganization } from './test-helpers';
@@ -6,37 +7,57 @@ import { makeOrganization } from './test-helpers';
 describe('FindOrganizationByIdUseCase', () => {
   let useCase: FindOrganizationByIdUseCase;
   let organizationRepository: jest.Mocked<OrganizationRepository>;
+  let storageService: jest.Mocked<StorageService>;
 
   beforeEach(() => {
     organizationRepository = {
       findById: jest.fn(),
     } as unknown as jest.Mocked<OrganizationRepository>;
+    storageService = {
+      getPublicUrl: jest.fn(),
+    } as unknown as jest.Mocked<StorageService>;
 
-    useCase = new FindOrganizationByIdUseCase(organizationRepository);
+    useCase = new FindOrganizationByIdUseCase(
+      organizationRepository,
+      storageService,
+    );
   });
 
   it('deve retornar organização por id', async () => {
-    const organization = makeOrganization();
+    const organization = makeOrganization({
+      avatarKey: 'organizations/logo.png',
+    });
 
     organizationRepository.findById.mockResolvedValue(organization);
+    storageService.getPublicUrl.mockResolvedValue('https://cdn.test/logo.png');
 
-    await expect(useCase.execute(organization.id)).resolves.toEqual(
-      organization,
-    );
+    const { avatarKey: _avatarKey, ...organizationWithoutAvatarKey } =
+      organization;
+
+    await expect(useCase.execute(organization.id)).resolves.toEqual({
+      ...organizationWithoutAvatarKey,
+      avatarUrl: 'https://cdn.test/logo.png',
+    });
   });
 
   it('deve chamar organizationRepository.findById com o id correto', async () => {
-    const organization = makeOrganization();
+    const organization = makeOrganization({ avatarKey: null });
 
     organizationRepository.findById.mockResolvedValue(organization);
+    storageService.getPublicUrl.mockResolvedValue('https://cdn.test/logo.png');
 
-    await expect(useCase.execute(organization.id)).resolves.toEqual(
-      organization,
-    );
+    const { avatarKey: _avatarKey, ...organizationWithoutAvatarKey } =
+      organization;
+
+    await expect(useCase.execute(organization.id)).resolves.toEqual({
+      ...organizationWithoutAvatarKey,
+      avatarUrl: null,
+    });
 
     expect(organizationRepository.findById).toHaveBeenCalledWith(
       organization.id,
     );
+    expect(storageService.getPublicUrl).not.toHaveBeenCalled();
   });
 
   it('deve lançar not found quando organização não existir', async () => {

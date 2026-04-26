@@ -14,6 +14,7 @@ function createPrismaMock() {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
+      count: jest.fn(),
     },
     $transaction: jest.fn(),
   };
@@ -36,17 +37,44 @@ describe('OrganizationRepository', () => {
   describe('findAll', () => {
     it('deve listar organizações ativas ordenadas por nome', async () => {
       const rows = [
-        makeOrganization({ id: '1', name: 'Alpha' }),
-        makeOrganization({ id: '2', name: 'Beta' }),
+        {
+          id: '1',
+          name: 'Alpha',
+          slug: 'alpha',
+          createdAt: new Date('2024-01-01T00:00:00.000Z'),
+        },
+        {
+          id: '2',
+          name: 'Beta',
+          slug: 'beta',
+          createdAt: new Date('2024-01-02T00:00:00.000Z'),
+        },
       ];
       prisma.organization.findMany.mockResolvedValue(rows);
+      prisma.organization.count.mockResolvedValue(2);
 
       const result = await repository.findAll();
 
-      expect(result).toEqual(rows);
+      expect(result).toEqual({
+        data: rows,
+        total: 2,
+        page: 1,
+        totalPages: 1,
+      });
       expect(prisma.organization.findMany).toHaveBeenCalledWith({
-        where: { isActive: true },
-        orderBy: { name: 'asc' },
+        where: { isDeleted: false },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          createdAt: true,
+        },
+        skip: 0,
+        take: 25,
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(prisma.organization.count).toHaveBeenCalledWith({
+        where: { isDeleted: false },
       });
     });
 
@@ -75,7 +103,7 @@ describe('OrganizationRepository', () => {
 
       expect(result).toEqual(rows);
       expect(prisma.organization.findMany).toHaveBeenCalledWith({
-        where: { isActive: true },
+        where: { isActive: true, isDeleted: false },
         orderBy: { name: 'asc' },
         select: {
           id: true,
@@ -104,6 +132,16 @@ describe('OrganizationRepository', () => {
       await expect(repository.findById('missing')).resolves.toBeNull();
       expect(prisma.organization.findUnique).toHaveBeenCalledWith({
         where: { id: 'missing' },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          domain: true,
+          shouldAttachUsersByDomain: true,
+          avatarKey: true,
+          isActive: true,
+          createdAt: true,
+        },
       });
     });
 

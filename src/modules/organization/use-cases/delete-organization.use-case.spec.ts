@@ -24,7 +24,10 @@ describe('DeleteOrganizationUseCase', () => {
   });
 
   it('deve validar a organização antes de excluir', async () => {
-    findOrganizationByIdUseCase.execute.mockResolvedValue(makeOrganization());
+    findOrganizationByIdUseCase.execute.mockResolvedValue({
+      ...makeOrganization(),
+      avatarUrl: null,
+    });
     organizationRepository.delete.mockResolvedValue();
 
     await expect(useCase.execute('organization-id')).resolves.toBeUndefined();
@@ -48,7 +51,10 @@ describe('DeleteOrganizationUseCase', () => {
   it('deve propagar erro quando organizationRepository.delete falhar', async () => {
     const error = new Error('Erro ao excluir organização');
 
-    findOrganizationByIdUseCase.execute.mockResolvedValue(makeOrganization());
+    findOrganizationByIdUseCase.execute.mockResolvedValue({
+      ...makeOrganization(),
+      avatarUrl: null,
+    });
     organizationRepository.delete.mockRejectedValue(error);
 
     await expect(useCase.execute('organization-id')).rejects.toBe(error);

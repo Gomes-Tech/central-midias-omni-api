@@ -52,10 +52,7 @@ describe('CreateOrganizationUseCase', () => {
 
     organizationRepository.findBySlug.mockResolvedValue(null);
     storageService.uploadFile.mockResolvedValue({
-      id: 'file-id',
       path: 'organization/logo.png',
-      fullPath: '/tmp/organization/logo.png',
-      publicUrl: 'https://cdn.test/organization/logo.png',
     });
     organizationRepository.create.mockResolvedValue();
 
@@ -68,7 +65,7 @@ describe('CreateOrganizationUseCase', () => {
       {
         name: dto.name,
         slug: dto.slug,
-        avatarKey: 'https://cdn.test/organization/logo.png',
+        avatarKey: 'organization/logo.png',
         isActive: true,
       },
       'requester-id',

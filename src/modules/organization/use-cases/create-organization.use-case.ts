@@ -36,7 +36,7 @@ export class CreateOrganizationUseCase {
     if (file) {
       const fileData = await this.storageService.uploadFile(file);
 
-      avatarKey = fileData.publicUrl;
+      avatarKey = fileData.path;
     }
 
     await this.organizationRepository.create(
