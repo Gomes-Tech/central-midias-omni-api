@@ -12,6 +12,8 @@ export interface OrganizationEntity {
 export interface OrganizationList {
   id: string;
   name: string;
+  avatarUrl: string | null;
+  isActive: boolean;
   slug: string;
   createdAt: Date;
 }

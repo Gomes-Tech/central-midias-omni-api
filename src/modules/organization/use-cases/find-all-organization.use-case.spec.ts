@@ -1,3 +1,4 @@
+import { StorageService } from '@infrastructure/providers';
 import { OrganizationRepository } from '../repositories';
 import { FindAllOrganizationsUseCase } from './find-all-organization.use-case';
 import { makeOrganization } from './test-helpers';
@@ -5,21 +6,32 @@ import { makeOrganization } from './test-helpers';
 describe('FindAllOrganizationsUseCase', () => {
   let useCase: FindAllOrganizationsUseCase;
   let organizationRepository: jest.Mocked<OrganizationRepository>;
+  let storageService: jest.Mocked<Pick<StorageService, 'getPublicUrl'>>;
 
   beforeEach(() => {
     organizationRepository = {
       findAll: jest.fn(),
     } as unknown as jest.Mocked<OrganizationRepository>;
 
-    useCase = new FindAllOrganizationsUseCase(organizationRepository);
+    storageService = {
+      getPublicUrl: jest.fn(),
+    };
+
+    useCase = new FindAllOrganizationsUseCase(
+      organizationRepository,
+      storageService as unknown as StorageService,
+    );
   });
 
-  it('deve retornar a lista do repositório', async () => {
+  it('deve retornar a lista do repositório com avatarUrl', async () => {
+    const a = makeOrganization();
+    const b = makeOrganization({
+      id: 'organization-2',
+      slug: 'organization-2',
+    });
+
     const response = {
-      data: [
-        makeOrganization(),
-        makeOrganization({ id: 'organization-2', slug: 'organization-2' }),
-      ],
+      data: [a, b],
       total: 2,
       page: 1,
       totalPages: 1,
@@ -27,7 +39,31 @@ describe('FindAllOrganizationsUseCase', () => {
 
     organizationRepository.findAll.mockResolvedValue(response);
 
-    await expect(useCase.execute()).resolves.toEqual(response);
+    await expect(useCase.execute()).resolves.toEqual({
+      data: [
+        {
+          id: a.id,
+          name: a.name,
+          slug: a.slug,
+          isActive: a.isActive,
+          createdAt: a.createdAt,
+          avatarUrl: null,
+        },
+        {
+          id: b.id,
+          name: b.name,
+          slug: b.slug,
+          isActive: b.isActive,
+          createdAt: b.createdAt,
+          avatarUrl: null,
+        },
+      ],
+      total: 2,
+      page: 1,
+      totalPages: 1,
+    });
+
+    expect(storageService.getPublicUrl).not.toHaveBeenCalled();
   });
 
   it('deve chamar organizationRepository.findAll exatamente 1 vez', async () => {

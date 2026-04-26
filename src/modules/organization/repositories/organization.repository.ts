@@ -6,7 +6,7 @@ import { Injectable } from '@nestjs/common';
 import { Organization, Prisma } from '@prisma/client';
 import { FindAllFilters, PaginatedResponse } from '../../../types';
 import { CreateOrganizationDTO, UpdateOrganizationDTO } from '../dto';
-import { OrganizationEntity, OrganizationList } from '../entities';
+import { OrganizationEntity } from '../entities';
 
 @Injectable()
 export class OrganizationRepository {
@@ -17,7 +17,14 @@ export class OrganizationRepository {
 
   async findAll(
     filters: FindAllFilters = {},
-  ): Promise<PaginatedResponse<OrganizationList>> {
+  ): Promise<
+    PaginatedResponse<
+      Pick<
+        OrganizationEntity,
+        'id' | 'name' | 'slug' | 'avatarKey' | 'createdAt' | 'isActive'
+      >
+    >
+  > {
     try {
       const { page = 1, limit = 25, searchTerm } = filters;
 
@@ -37,7 +44,9 @@ export class OrganizationRepository {
             id: true,
             name: true,
             slug: true,
+            avatarKey: true,
             createdAt: true,
+            isActive: true,
           },
           skip,
           take: limit,

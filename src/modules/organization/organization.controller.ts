@@ -11,7 +11,9 @@ import {
   UploadedFile,
   UseGuards,
 } from '@nestjs/common';
+import { PaginatedResponse } from '../../types';
 import { CreateOrganizationDTO, UpdateOrganizationDTO } from './dto';
+import { OrganizationEntity, OrganizationList } from './entities';
 import {
   CreateOrganizationUseCase,
   DeleteOrganizationUseCase,
@@ -35,7 +37,7 @@ export class OrganizationController {
 
   @RequirePermission('organizations', 'read')
   @Get()
-  async getList() {
+  async getList(): Promise<PaginatedResponse<OrganizationList>> {
     return await this.findAllOrganizationsUseCase.execute();
   }
 
@@ -47,7 +49,9 @@ export class OrganizationController {
 
   @RequirePermission('organizations', 'read')
   @Get('/:id')
-  async findById(@Param('id') id: string) {
+  async findById(
+    @Param('id') id: string,
+  ): Promise<Omit<OrganizationEntity, 'avatarKey'> & { avatarUrl: string }> {
     return await this.findOrganizationByIdUseCase.execute(id);
   }
 
