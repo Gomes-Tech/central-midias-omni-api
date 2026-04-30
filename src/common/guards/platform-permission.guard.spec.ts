@@ -66,14 +66,14 @@ describe('PlatformPermissionGuard', () => {
     await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
   });
 
-  it('retorna undefined quando há usuário mas nenhuma permissão é requerida', async () => {
+  it('deve permitir quando há usuário autenticado e nenhuma permissão é requerida', async () => {
     reflector.getAllAndOverride.mockReturnValue(undefined);
 
     const ctx = createExecutionContext({
       headers: { authorization: fakeAuthorizationHeader('u1') },
     });
 
-    await expect(guard.canActivate(ctx)).resolves.toBeUndefined();
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
   });
 
   it('deve negar formato de permissão inválido', async () => {
@@ -116,9 +116,7 @@ describe('PlatformPermissionGuard', () => {
         id: 'gr1',
         name: 'ADMIN',
         canAccessBackoffice: true,
-        permissions: [
-          { action: Action.READ, module: { name: 'users' } },
-        ],
+        permissions: [{ action: Action.READ, module: { name: 'users' } }],
       },
     });
 
@@ -137,9 +135,7 @@ describe('PlatformPermissionGuard', () => {
         id: 'gr2',
         name: 'EDITOR',
         canAccessBackoffice: true,
-        permissions: [
-          { action: Action.READ, module: { name: 'banners' } },
-        ],
+        permissions: [{ action: Action.READ, module: { name: 'banners' } }],
       },
     });
     prisma.member.findFirst.mockResolvedValue({ id: 'm1' });
@@ -169,9 +165,7 @@ describe('PlatformPermissionGuard', () => {
         id: 'gr2',
         name: 'EDITOR',
         canAccessBackoffice: true,
-        permissions: [
-          { action: Action.READ, module: { name: 'banners' } },
-        ],
+        permissions: [{ action: Action.READ, module: { name: 'banners' } }],
       },
     });
     prisma.member.findFirst.mockResolvedValue(null);
@@ -185,5 +179,4 @@ describe('PlatformPermissionGuard', () => {
 
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
   });
-
 });

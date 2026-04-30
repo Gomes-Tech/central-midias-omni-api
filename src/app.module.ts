@@ -117,6 +117,7 @@ export class AppModule implements NestModule {
         { path: 'users/global', method: RequestMethod.POST },
         { path: 'organizations', method: RequestMethod.POST },
         { path: 'organizations', method: RequestMethod.GET },
+        { path: 'organizations/accessible', method: RequestMethod.GET },
         { path: 'roles', method: RequestMethod.POST },
         { path: 'roles', method: RequestMethod.GET },
         { path: 'modules', method: RequestMethod.POST },

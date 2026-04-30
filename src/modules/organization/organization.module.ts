@@ -5,6 +5,7 @@ import { OrganizationRepository } from './repositories';
 import {
   CreateOrganizationUseCase,
   DeleteOrganizationUseCase,
+  FindAccessibleOrganizationsUseCase,
   FindAllOrganizationsUseCase,
   FindAllSelectOrganizationsUseCase,
   FindOrganizationByIdUseCase,
@@ -16,6 +17,7 @@ import {
   imports: [UserModule],
   controllers: [OrganizationController],
   providers: [
+    FindAccessibleOrganizationsUseCase,
     FindAllOrganizationsUseCase,
     FindAllSelectOrganizationsUseCase,
     FindOrganizationByIdUseCase,
@@ -30,6 +32,7 @@ import {
     },
   ],
   exports: [
+    FindAccessibleOrganizationsUseCase,
     FindAllOrganizationsUseCase,
     FindAllSelectOrganizationsUseCase,
     FindOrganizationByIdUseCase,

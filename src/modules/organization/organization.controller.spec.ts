@@ -4,6 +4,7 @@ import { OrganizationController } from './organization.controller';
 import {
   CreateOrganizationUseCase,
   DeleteOrganizationUseCase,
+  FindAccessibleOrganizationsUseCase,
   FindAllOrganizationsUseCase,
   FindAllSelectOrganizationsUseCase,
   FindOrganizationByIdUseCase,
@@ -13,6 +14,7 @@ import {
 describe('OrganizationController', () => {
   let controller: OrganizationController;
   let createOrganizationUseCase: { execute: jest.Mock };
+  let findAccessibleOrganizationsUseCase: { execute: jest.Mock };
   let findAllOrganizationsUseCase: { execute: jest.Mock };
   let findAllSelectOrganizationsUseCase: { execute: jest.Mock };
   let findOrganizationByIdUseCase: { execute: jest.Mock };
@@ -21,6 +23,7 @@ describe('OrganizationController', () => {
 
   beforeEach(async () => {
     createOrganizationUseCase = { execute: jest.fn() };
+    findAccessibleOrganizationsUseCase = { execute: jest.fn() };
     findAllOrganizationsUseCase = { execute: jest.fn() };
     findAllSelectOrganizationsUseCase = { execute: jest.fn() };
     findOrganizationByIdUseCase = { execute: jest.fn() };
@@ -33,6 +36,10 @@ describe('OrganizationController', () => {
         {
           provide: CreateOrganizationUseCase,
           useValue: createOrganizationUseCase,
+        },
+        {
+          provide: FindAccessibleOrganizationsUseCase,
+          useValue: findAccessibleOrganizationsUseCase,
         },
         {
           provide: FindAllOrganizationsUseCase,
@@ -84,6 +91,18 @@ describe('OrganizationController', () => {
       await controller.getListSelect();
 
       expect(findAllSelectOrganizationsUseCase.execute).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('getAccessibleOrganizations', () => {
+    it('deve delegar ao FindAccessibleOrganizationsUseCase com userId', async () => {
+      findAccessibleOrganizationsUseCase.execute.mockResolvedValue([]);
+
+      await controller.getAccessibleOrganizations('uid-1');
+
+      expect(findAccessibleOrganizationsUseCase.execute).toHaveBeenCalledWith(
+        'uid-1',
+      );
     });
   });
 

@@ -17,6 +17,7 @@ import { OrganizationEntity, OrganizationList } from './entities';
 import {
   CreateOrganizationUseCase,
   DeleteOrganizationUseCase,
+  FindAccessibleOrganizationsUseCase,
   FindAllOrganizationsUseCase,
   FindAllSelectOrganizationsUseCase,
   FindOrganizationByIdUseCase,
@@ -28,6 +29,7 @@ import {
 export class OrganizationController {
   constructor(
     private readonly createOrganizationUseCase: CreateOrganizationUseCase,
+    private readonly findAccessibleOrganizationsUseCase: FindAccessibleOrganizationsUseCase,
     private readonly findAllOrganizationsUseCase: FindAllOrganizationsUseCase,
     private readonly findAllSelectOrganizationsUseCase: FindAllSelectOrganizationsUseCase,
     private readonly findOrganizationByIdUseCase: FindOrganizationByIdUseCase,
@@ -45,6 +47,11 @@ export class OrganizationController {
   @Get('select')
   async getListSelect() {
     return await this.findAllSelectOrganizationsUseCase.execute();
+  }
+
+  @Get('accessible')
+  async getAccessibleOrganizations(@UserId() userId: string) {
+    return await this.findAccessibleOrganizationsUseCase.execute(userId);
   }
 
   @RequirePermission('organizations', 'read')

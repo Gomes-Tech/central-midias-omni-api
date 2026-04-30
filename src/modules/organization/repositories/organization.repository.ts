@@ -99,6 +99,60 @@ export class OrganizationRepository {
     }
   }
 
+  async findAccessibleSelectForUser(
+    userId: string,
+  ): Promise<{ id: string; name: string; avatarKey?: string }[]> {
+    try {
+      const user = await this.prisma.user.findFirst({
+        where: {
+          id: userId,
+          isActive: true,
+          isDeleted: false,
+        },
+        select: {
+          globalRole: {
+            select: { name: true },
+          },
+        },
+      });
+
+      if (!user) {
+        throw new BadRequestException('Usuário não encontrado');
+      }
+
+      return await this.prisma.organization.findMany({
+        where: {
+          isActive: true,
+          isDeleted: false,
+          members: {
+            some: {
+              userId,
+            },
+          },
+        },
+        orderBy: {
+          name: 'asc',
+        },
+        select: {
+          id: true,
+          avatarKey: true,
+          name: true,
+        },
+      });
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(
+        'OrganizationRepository.findAccessibleSelectForUser falhou',
+        {
+          error: String(error),
+        },
+      );
+      throw new BadRequestException('Erro ao buscar organizações');
+    }
+  }
+
   async findById(id: string): Promise<OrganizationEntity | null> {
     try {
       const organization = await this.prisma.organization.findUnique({

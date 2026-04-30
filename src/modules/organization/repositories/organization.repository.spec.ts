@@ -10,6 +10,9 @@ import { OrganizationRepository } from './organization.repository';
 
 function createPrismaMock() {
   return {
+    user: {
+      findFirst: jest.fn(),
+    },
     organization: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
@@ -126,6 +129,106 @@ describe('OrganizationRepository', () => {
       );
       expect(logger.error).toHaveBeenCalledWith(
         'OrganizationRepository.findAllSelect falhou',
+        expect.objectContaining({ error: expect.any(String) }),
+      );
+    });
+  });
+
+  describe('findAccessibleSelectForUser', () => {
+    it('deve listar organizações ativas onde o usuário é membro (inclui global ADMIN)', async () => {
+      prisma.user.findFirst.mockResolvedValue({
+        globalRole: { name: 'ADMIN' },
+      });
+
+      const rows = [
+        { id: '1', name: 'Alpha', avatarKey: null },
+        { id: '2', name: 'Beta', avatarKey: null },
+      ];
+      prisma.organization.findMany.mockResolvedValue(rows);
+
+      const result = await repository.findAccessibleSelectForUser('user-1');
+
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'user-1',
+          isActive: true,
+          isDeleted: false,
+        },
+        select: {
+          globalRole: {
+            select: { name: true },
+          },
+        },
+      });
+      expect(result).toEqual(rows);
+      expect(prisma.organization.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.organization.findMany).toHaveBeenCalledWith({
+        where: {
+          isActive: true,
+          isDeleted: false,
+          members: {
+            some: {
+              userId: 'user-1',
+            },
+          },
+        },
+        orderBy: { name: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          avatarKey: true,
+        },
+      });
+    });
+
+    it('para usuário não-ADMIN deve listar apenas organizações onde é membro', async () => {
+      prisma.user.findFirst.mockResolvedValue({
+        globalRole: { name: 'VIEWER' },
+      });
+
+      const rows = [{ id: 'org-1', name: 'Somente estas', avatarKey: null }];
+      prisma.organization.findMany.mockResolvedValue(rows);
+
+      const result = await repository.findAccessibleSelectForUser('user-2');
+
+      expect(prisma.organization.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.organization.findMany).toHaveBeenCalledWith({
+        where: {
+          isActive: true,
+          isDeleted: false,
+          members: {
+            some: {
+              userId: 'user-2',
+            },
+          },
+        },
+        orderBy: { name: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          avatarKey: true,
+        },
+      });
+      expect(result).toEqual(rows);
+    });
+
+    it('deve lançar BadRequest quando usuário não existir', async () => {
+      prisma.user.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findAccessibleSelectForUser('missing'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.organization.findMany).not.toHaveBeenCalled();
+    });
+
+    it('deve lançar BadRequest quando falha inesperada', async () => {
+      prisma.user.findFirst.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findAccessibleSelectForUser('u1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(logger.error).toHaveBeenCalledWith(
+        'OrganizationRepository.findAccessibleSelectForUser falhou',
         expect.objectContaining({ error: expect.any(String) }),
       );
     });

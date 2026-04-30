@@ -40,6 +40,10 @@ export class PlatformPermissionGuard implements CanActivate {
       throw new UnauthorizedException('Usuário não autenticado.');
     }
 
+    if (!requiredPermission) {
+      return true;
+    }
+
     // RBAC global: user -> globalRole -> RolePermission(Module + Action)
     const roleWhere: {
       canAccessBackoffice: boolean;
