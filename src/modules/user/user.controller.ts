@@ -21,6 +21,7 @@ import {
   UpdateUserUseCase,
 } from './use-cases';
 
+@UseGuards(PlatformPermissionGuard)
 @Controller('users')
 export class UserController {
   constructor(
@@ -32,8 +33,7 @@ export class UserController {
     private readonly deleteUserUseCase: DeleteUserUseCase,
   ) {}
 
-  @UseGuards(PlatformPermissionGuard)
-  @RequirePermission('users', 'READ')
+  @RequirePermission('users', 'read')
   @Get()
   async getList(
     @Query('page') page?: string,
@@ -65,19 +65,19 @@ export class UserController {
     });
   }
 
-  @RequirePermission('users', 'read')
-  @Get('/:id')
-  async findById(@Param('id') id: string) {
-    const user = await this.findUserByIdUseCase.execute(id);
+  @Get('/me')
+  async getMe(@UserId() userId: string) {
+    const user = await this.findUserByIdUseCase.execute(userId);
 
     delete user.password;
 
     return user;
   }
 
-  @Get('/me')
-  async getMe(@UserId() userId: string) {
-    const user = await this.findUserByIdUseCase.execute(userId);
+  @RequirePermission('users', 'read')
+  @Get('/:id')
+  async findById(@Param('id') id: string) {
+    const user = await this.findUserByIdUseCase.execute(id);
 
     delete user.password;
 

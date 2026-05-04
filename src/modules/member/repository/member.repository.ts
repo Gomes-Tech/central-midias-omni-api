@@ -123,6 +123,48 @@ export class MemberRepository {
     }
   }
 
+  async findMemberRole(
+    organizationId: string,
+    userId: string,
+  ): Promise<{
+    name: string;
+    label: string;
+    canAccessBackoffice: boolean;
+  } | null> {
+    try {
+      const member = await this.prisma.member.findFirst({
+        where: { organizationId, userId },
+        select: {
+          role: {
+            select: {
+              name: true,
+              label: true,
+              canAccessBackoffice: true,
+            },
+          },
+        },
+      });
+
+      if (!member) {
+        return null;
+      }
+
+      return {
+        name: member.role.name,
+        label: member.role.label,
+        canAccessBackoffice: member.role.canAccessBackoffice,
+      };
+    } catch (error) {
+      void this.logger.error('MemberRepository.findMemberRole falhou', {
+        error: String(error),
+        organizationId,
+        userId,
+      });
+
+      throw new BadRequestException('Erro ao buscar membro');
+    }
+  }
+
   async findByOrganizationAndUser(
     organizationId: string,
     userId: string,

@@ -126,13 +126,14 @@ export class UserRepository {
   }
 
   async findById(id: string, isBackoffice?: boolean): Promise<any | null> {
-    const include = {
+    const include: Prisma.UserInclude = {
       ...(isBackoffice
         ? {
             globalRole: {
               select: {
                 id: true,
                 name: true,
+                canAccessBackoffice: true,
               },
             },
           }
@@ -163,7 +164,7 @@ export class UserRepository {
     };
 
     try {
-      const user = await this.prisma.user.findUniqueOrThrow({
+      const user = await this.prisma.user.findFirstOrThrow({
         where: {
           id,
           isDeleted: false,
@@ -178,7 +179,7 @@ export class UserRepository {
         id,
       });
 
-      throw new BadRequestException('Erro ao buscar usu?rio por id');
+      throw new BadRequestException('Erro ao buscar usuário por id');
     }
   }
 

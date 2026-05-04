@@ -14,6 +14,7 @@ function createPrismaMock() {
       findMany: jest.fn(),
       count: jest.fn(),
       findUniqueOrThrow: jest.fn(),
+      findFirstOrThrow: jest.fn(),
       findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
@@ -158,12 +159,12 @@ describe('UserRepository', () => {
   describe('findById', () => {
     it('deve incluir members quando isBackoffice for omitido ou false', async () => {
       const user = { id: 'u1', members: [] };
-      prisma.user.findUniqueOrThrow.mockResolvedValue(user);
+      prisma.user.findFirstOrThrow.mockResolvedValue(user);
 
       const result = await repository.findById('u1');
 
       expect(result).toBe(user);
-      expect(prisma.user.findUniqueOrThrow).toHaveBeenCalledWith(
+      expect(prisma.user.findFirstOrThrow).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'u1', isDeleted: false },
           include: expect.objectContaining({
@@ -174,19 +175,23 @@ describe('UserRepository', () => {
     });
 
     it('deve incluir globalRole quando isBackoffice for true', async () => {
-      prisma.user.findUniqueOrThrow.mockResolvedValue({ id: 'u1' });
+      prisma.user.findFirstOrThrow.mockResolvedValue({ id: 'u1' });
 
       await repository.findById('u1', true);
 
-      expect(prisma.user.findUniqueOrThrow).toHaveBeenCalledWith(
+      expect(prisma.user.findFirstOrThrow).toHaveBeenCalledWith(
         expect.objectContaining({
-          include: { globalRole: { select: { id: true, name: true } } },
+          include: {
+            globalRole: {
+              select: { id: true, name: true, canAccessBackoffice: true },
+            },
+          },
         }),
       );
     });
 
-    it('deve lançar BadRequest quando findUniqueOrThrow falhar', async () => {
-      prisma.user.findUniqueOrThrow.mockRejectedValue(new Error('not found'));
+    it('deve lançar BadRequest quando findFirstOrThrow falhar', async () => {
+      prisma.user.findFirstOrThrow.mockRejectedValue(new Error('not found'));
 
       await expect(repository.findById('x')).rejects.toBeInstanceOf(
         BadRequestException,
@@ -267,7 +272,9 @@ describe('UserRepository', () => {
     it('deve retornar null quando a busca resolver sem usuário', async () => {
       prisma.user.findUniqueOrThrow.mockResolvedValue(null as never);
 
-      await expect(repository.findByEmail('ghost@test.com')).resolves.toBeNull();
+      await expect(
+        repository.findByEmail('ghost@test.com'),
+      ).resolves.toBeNull();
     });
   });
 

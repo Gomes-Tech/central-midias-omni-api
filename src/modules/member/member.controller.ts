@@ -23,6 +23,7 @@ import {
   DeleteMemberUseCase,
   FindAllMembersUseCase,
   FindMemberByIdUseCase,
+  FindMemberRoleUseCase,
   UpdateMemberUseCase,
 } from './use-cases';
 
@@ -34,6 +35,7 @@ export class MemberController {
     private readonly createMemberWithUserUseCase: CreateMemberWithUserUseCase,
     private readonly findAllMembersUseCase: FindAllMembersUseCase,
     private readonly findMemberByIdUseCase: FindMemberByIdUseCase,
+    private readonly findMemberRoleUseCase: FindMemberRoleUseCase,
     private readonly updateMemberUseCase: UpdateMemberUseCase,
     private readonly deleteMemberUseCase: DeleteMemberUseCase,
   ) {}
@@ -45,6 +47,11 @@ export class MemberController {
     @Query() filters: FindAllMembersFiltersDTO = {},
   ) {
     return await this.findAllMembersUseCase.execute(organizationId, filters);
+  }
+
+  @Get('me')
+  async findMyRole(@OrgId() organizationId: string, @UserId() userId: string) {
+    return await this.findMemberRoleUseCase.execute(organizationId, userId);
   }
 
   @RequirePermission('members', 'read')

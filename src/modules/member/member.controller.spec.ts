@@ -8,6 +8,7 @@ import {
   DeleteMemberUseCase,
   FindAllMembersUseCase,
   FindMemberByIdUseCase,
+  FindMemberRoleUseCase,
   UpdateMemberUseCase,
 } from './use-cases';
 
@@ -17,6 +18,7 @@ describe('MemberController', () => {
   let createMemberWithUserUseCase: { execute: jest.Mock };
   let findAllMembersUseCase: { execute: jest.Mock };
   let findMemberByIdUseCase: { execute: jest.Mock };
+  let findMemberRoleUseCase: { execute: jest.Mock };
   let updateMemberUseCase: { execute: jest.Mock };
   let deleteMemberUseCase: { execute: jest.Mock };
 
@@ -25,6 +27,7 @@ describe('MemberController', () => {
     createMemberWithUserUseCase = { execute: jest.fn() };
     findAllMembersUseCase = { execute: jest.fn() };
     findMemberByIdUseCase = { execute: jest.fn() };
+    findMemberRoleUseCase = { execute: jest.fn() };
     updateMemberUseCase = { execute: jest.fn() };
     deleteMemberUseCase = { execute: jest.fn() };
 
@@ -38,6 +41,10 @@ describe('MemberController', () => {
         },
         { provide: FindAllMembersUseCase, useValue: findAllMembersUseCase },
         { provide: FindMemberByIdUseCase, useValue: findMemberByIdUseCase },
+        {
+          provide: FindMemberRoleUseCase,
+          useValue: findMemberRoleUseCase,
+        },
         { provide: UpdateMemberUseCase, useValue: updateMemberUseCase },
         { provide: DeleteMemberUseCase, useValue: deleteMemberUseCase },
       ],
@@ -68,6 +75,24 @@ describe('MemberController', () => {
       await controller.findAll('org-1');
 
       expect(findAllMembersUseCase.execute).toHaveBeenCalledWith('org-1', {});
+    });
+  });
+
+  describe('findMyRole', () => {
+    it('deve delegar ao FindMemberRoleUseCase', async () => {
+      const role = {
+        name: 'admin',
+        label: 'Admin',
+        canAccessBackoffice: true,
+      };
+      findMemberRoleUseCase.execute.mockResolvedValue(role);
+
+      await controller.findMyRole('org-1', 'user-1');
+
+      expect(findMemberRoleUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+        'user-1',
+      );
     });
   });
 

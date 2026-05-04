@@ -113,6 +113,7 @@ export class AppModule implements NestModule {
         { path: 'api-docs', method: RequestMethod.ALL },
         { path: 'api-docs/(.*)', method: RequestMethod.ALL },
         { path: 'users', method: RequestMethod.GET },
+        { path: 'users/me', method: RequestMethod.GET },
         { path: 'users', method: RequestMethod.POST },
         { path: 'users/global', method: RequestMethod.POST },
         { path: 'organizations', method: RequestMethod.POST },

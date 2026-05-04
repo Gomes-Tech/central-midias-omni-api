@@ -10,6 +10,7 @@ import {
   DeleteMemberUseCase,
   FindAllMembersUseCase,
   FindMemberByIdUseCase,
+  FindMemberRoleUseCase,
   UpdateMemberUseCase,
 } from './use-cases';
 
@@ -20,6 +21,7 @@ import {
     PlatformPermissionGuard,
     FindAllMembersUseCase,
     FindMemberByIdUseCase,
+    FindMemberRoleUseCase,
     AddUserMemberUseCase,
     CreateMemberWithUserUseCase,
     UpdateMemberUseCase,
@@ -33,6 +35,7 @@ import {
   exports: [
     FindAllMembersUseCase,
     FindMemberByIdUseCase,
+    FindMemberRoleUseCase,
     AddUserMemberUseCase,
     CreateMemberWithUserUseCase,
     UpdateMemberUseCase,

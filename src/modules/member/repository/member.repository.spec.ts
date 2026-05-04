@@ -178,6 +178,57 @@ describe('MemberRepository', () => {
     });
   });
 
+  describe('findMemberRole', () => {
+    const roleShape = {
+      name: true,
+      label: true,
+      canAccessBackoffice: true,
+    };
+
+    it('deve retornar o papel quando o membro existir', async () => {
+      prisma.member.findFirst.mockResolvedValue({
+        role: {
+          name: 'editor',
+          label: 'Editor',
+          canAccessBackoffice: false,
+        },
+      });
+
+      await expect(
+        repository.findMemberRole('org-1', 'user-1'),
+      ).resolves.toEqual({
+        name: 'editor',
+        label: 'Editor',
+        canAccessBackoffice: false,
+      });
+
+      expect(prisma.member.findFirst).toHaveBeenCalledWith({
+        where: { organizationId: 'org-1', userId: 'user-1' },
+        select: {
+          role: {
+            select: roleShape,
+          },
+        },
+      });
+    });
+
+    it('deve retornar null quando não existir membro', async () => {
+      prisma.member.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findMemberRole('org-1', 'user-1'),
+      ).resolves.toBeNull();
+    });
+
+    it('deve lançar BadRequest quando falhar', async () => {
+      prisma.member.findFirst.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findMemberRole('org-1', 'user-1'),
+      ).rejects.toThrow('Erro ao buscar membro');
+    });
+  });
+
   describe('findByOrganizationAndUser', () => {
     it('deve usar chave composta organizationId_userId', async () => {
       prisma.member.findUnique.mockResolvedValue(null);
