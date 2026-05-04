@@ -28,6 +28,7 @@ import { MemberModule } from '@modules/member';
 import { ModuleModule } from '@modules/module';
 import { OrganizationModule } from '@modules/organization';
 import { RolesModule } from '@modules/roles';
+import { TagModule } from '@modules/tag';
 import { TokenPasswordModule } from '@modules/token-password';
 import { UserModule } from '@modules/user';
 import {
@@ -61,6 +62,7 @@ import { AppService } from './app.service';
     ModuleModule,
     OrganizationModule,
     RolesModule,
+    TagModule,
     UserModule,
     TokenPasswordModule,
     AuthModule,
