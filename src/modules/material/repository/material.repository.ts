@@ -40,10 +40,6 @@ type MaterialListRow = Prisma.MaterialGetPayload<{
   select: typeof materialListSelect;
 }>;
 
-type MaterialDetailsRow = Prisma.MaterialGetPayload<{
-  select: typeof materialDetailsSelect;
-}>;
-
 @Injectable()
 export class MaterialRepository {
   constructor(
@@ -99,6 +95,35 @@ export class MaterialRepository {
     }
   }
 
+  async findAllSelect(
+    organizationId: string,
+  ): Promise<{ id: string; name: string }[]> {
+    try {
+      return await this.prisma.material.findMany({
+        where: {
+          deletedAt: null,
+          category: {
+            organizationId,
+            isDeleted: false,
+          },
+        },
+        orderBy: {
+          name: 'asc',
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+    } catch (error) {
+      this.logger.error('MaterialRepository.findAllSelect falhou', {
+        error: String(error),
+        organizationId,
+      });
+      throw new BadRequestException('Erro ao buscar materiais (select)');
+    }
+  }
+
   async findById(
     id: string,
     organizationId: string,
@@ -116,7 +141,12 @@ export class MaterialRepository {
         select: materialDetailsSelect,
       });
 
-      return material ? this.mapDetails(material) : null;
+      return material
+        ? ({
+            ...this.mapListItem(material),
+            deletedAt: material.deletedAt,
+          } as MaterialDetails)
+        : null;
     } catch (error) {
       void this.logger.error('MaterialRepository.findById falhou', {
         error: String(error),
@@ -128,6 +158,7 @@ export class MaterialRepository {
     }
   }
 
+  // Verificar se findByName realmente retorna somente id, name e categoryId
   async findByName(
     name: string,
     categoryId: string,
@@ -270,6 +301,7 @@ export class MaterialRepository {
     }
   }
 
+  // Por conta do tipo composto retornado pela query, faz sentido manter o mapeamento manual para os tipos de retorno do repositório
   private mapListItem(material: MaterialListRow): MaterialListItem {
     return {
       id: material.id,
@@ -280,13 +312,6 @@ export class MaterialRepository {
       updatedAt: material.updatedAt,
       category: material.category,
       materialFilesCount: material._count.materialFiles,
-    };
-  }
-
-  private mapDetails(material: MaterialDetailsRow): MaterialDetails {
-    return {
-      ...this.mapListItem(material),
-      deletedAt: material.deletedAt,
     };
   }
 }

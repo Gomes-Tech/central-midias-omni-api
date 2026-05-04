@@ -243,6 +243,8 @@ model Banner {
   @@map("banners")
 }
 
+// ATENÇÃO!
+// Material está fora do padrão de soft delete. Corrigir para deletedAt e isDeleted, e ajustar queries para considerar ambos os campos.
 model Material {
   id          String  @id @default(uuid())
   name        String
