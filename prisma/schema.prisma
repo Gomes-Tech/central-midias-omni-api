@@ -245,7 +245,7 @@ model Banner {
 
 model Material {
   id          String  @id @default(uuid())
-  name        String  @unique
+  name        String
   description String?
 
   createdAt     DateTime       @default(now()) @map("created_at")
@@ -254,6 +254,7 @@ model Material {
   materialFiles MaterialFile[]
   categoryId    String         @map("category_id")
   category      Category       @relation(fields: [categoryId], references: [id])
+  tags          Tag[]          @relation("MaterialTag")
 
   @@unique([categoryId, name])
   @@index([categoryId])
@@ -268,7 +269,6 @@ model MaterialFile {
   size       Int    @map("size")
 
   material Material @relation(fields: [materialId], references: [id])
-  tags     Tag[]    @relation("MaterialTag")
 
   @@map("material_files")
 }
@@ -277,10 +277,10 @@ model Tag {
   id   String @id @default(uuid())
   name String @unique
 
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
-  materialFile MaterialFile[] @relation("MaterialTag")
-  tagSearches  TagSearch[]
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  material    Material[]  @relation("MaterialTag")
+  tagSearches TagSearch[]
 
   @@map("tags")
 }

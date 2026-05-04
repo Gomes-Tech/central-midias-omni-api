@@ -3,5 +3,8 @@
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "files.eol": "\n",
-  "material-icon-theme.activeIconPack": "nest"
+  "material-icon-theme.activeIconPack": "nest",
+  "[prisma]": {
+    "editor.defaultFormatter": "Prisma.prisma"
+  }
 }

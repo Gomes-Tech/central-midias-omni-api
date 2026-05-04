@@ -23,6 +23,7 @@ import { AuthModule } from '@modules/auth';
 import { BannerModule } from '@modules/banner';
 import { CategoryModule } from '@modules/category';
 import { CategoryRoleAccessModule } from '@modules/category-role-access/category-role-access.module';
+import { MaterialModule } from '@modules/material';
 import { MemberModule } from '@modules/member';
 import { ModuleModule } from '@modules/module';
 import { OrganizationModule } from '@modules/organization';
@@ -55,6 +56,7 @@ import { AppService } from './app.service';
     StorageModule,
     ThrottlerConfigModule,
     CategoryModule,
+    MaterialModule,
     MemberModule,
     ModuleModule,
     OrganizationModule,
