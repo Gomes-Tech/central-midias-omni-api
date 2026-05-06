@@ -1,4 +1,5 @@
 import { MailModule } from '@infrastructure/providers';
+import { RolesModule } from '@modules/roles';
 import { TokenPasswordModule } from '@modules/token-password';
 import { UserModule } from '@modules/user';
 import { Module } from '@nestjs/common';
@@ -13,7 +14,7 @@ import {
 } from './use-cases';
 
 @Module({
-  imports: [UserModule, TokenPasswordModule, MailModule],
+  imports: [UserModule, RolesModule, TokenPasswordModule, MailModule],
   controllers: [AuthController],
   providers: [
     SignInUseCase,

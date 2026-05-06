@@ -1,6 +1,7 @@
 import { LoginException, NotFoundException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
 import { SecurityLoggerService } from '@infrastructure/security';
+import { FindUserBackofficeAccessUseCase } from '@modules/roles';
 import { FindUserByEmailUseCase } from '@modules/user/use-cases/find-user-by-email.use-case';
 import { makeUser } from '@modules/user/use-cases/test-helpers';
 import { ConfigService } from '@nestjs/config';
@@ -10,6 +11,7 @@ import { makeLoginDTO } from './test-helpers';
 
 describe('SignInUseCase', () => {
   let findUserByEmailUseCase: jest.Mocked<FindUserByEmailUseCase>;
+  let findUserBackofficeAccessUseCase: jest.Mocked<FindUserBackofficeAccessUseCase>;
   let jwtService: jest.Mocked<JwtService>;
   let cryptographyService: jest.Mocked<CryptographyService>;
   let securityLogger: jest.Mocked<SecurityLoggerService>;
@@ -20,6 +22,10 @@ describe('SignInUseCase', () => {
     findUserByEmailUseCase = {
       execute: jest.fn(),
     } as unknown as jest.Mocked<FindUserByEmailUseCase>;
+
+    findUserBackofficeAccessUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<FindUserBackofficeAccessUseCase>;
 
     jwtService = {
       sign: jest.fn(),
@@ -47,6 +53,7 @@ describe('SignInUseCase', () => {
 
     useCase = new SignInUseCase(
       findUserByEmailUseCase,
+      findUserBackofficeAccessUseCase,
       jwtService,
       cryptographyService,
       securityLogger,
@@ -59,6 +66,9 @@ describe('SignInUseCase', () => {
     const user = makeUser({ email: dto.email, password: 'stored-hash' });
 
     findUserByEmailUseCase.execute.mockResolvedValue(user);
+    findUserBackofficeAccessUseCase.execute.mockResolvedValue({
+      canAccessBackoffice: true,
+    });
     cryptographyService.compare.mockResolvedValue(true);
     jwtService.sign
       .mockReturnValueOnce('access-jwt')
@@ -73,6 +83,7 @@ describe('SignInUseCase', () => {
     expect(result).toEqual({
       accessToken: 'access-jwt',
       refreshToken: 'refresh-jwt',
+      canAccessBackoffice: true,
     });
     expect(cryptographyService.compare).toHaveBeenCalledWith(
       dto.password,
@@ -86,6 +97,7 @@ describe('SignInUseCase', () => {
     );
     expect(securityLogger.logFailedLogin).not.toHaveBeenCalled();
     expect(jwtService.sign).toHaveBeenCalledTimes(2);
+    expect(findUserBackofficeAccessUseCase.execute).toHaveBeenCalledWith(user.id);
   });
 
   it('deve lançar LoginException quando a senha estiver incorreta', async () => {
@@ -104,6 +116,7 @@ describe('SignInUseCase', () => {
       'Credenciais inválidas',
     );
     expect(securityLogger.logSuccessfulLogin).not.toHaveBeenCalled();
+    expect(findUserBackofficeAccessUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('deve propagar NotFoundException quando o email não existir', async () => {
@@ -118,6 +131,7 @@ describe('SignInUseCase', () => {
     );
     expect(cryptographyService.compare).not.toHaveBeenCalled();
     expect(securityLogger.logSuccessfulLogin).not.toHaveBeenCalled();
+    expect(findUserBackofficeAccessUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('deve comparar com hash dummy quando usuário for null (timing)', async () => {
@@ -131,5 +145,6 @@ describe('SignInUseCase', () => {
       dto.password,
       expect.stringContaining('$2b$10$dummy'),
     );
+    expect(findUserBackofficeAccessUseCase.execute).not.toHaveBeenCalled();
   });
 });

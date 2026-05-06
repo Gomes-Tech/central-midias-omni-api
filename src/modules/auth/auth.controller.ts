@@ -53,13 +53,10 @@ export class AuthController {
   async signIn(@Body() dto: LoginDTO, @Req() req: Request) {
     const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     const userAgent = req.get('user-agent') || 'unknown';
-    const { accessToken, refreshToken } = await this.signInUser.execute(
-      dto,
-      ip,
-      userAgent,
-    );
+    const { accessToken, refreshToken, canAccessBackoffice } =
+      await this.signInUser.execute(dto, ip, userAgent);
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, canAccessBackoffice };
   }
 
   @Public()

@@ -10,6 +10,7 @@ import {
   FindAllSelectRolesUseCase,
   FindRoleByIdUseCase,
   FindRoleByNameUseCase,
+  FindUserBackofficeAccessUseCase,
   UpdateRoleUseCase,
 } from './use-cases';
 
@@ -22,6 +23,7 @@ import {
     FindAllSelectRolesUseCase,
     FindRoleByIdUseCase,
     FindRoleByNameUseCase,
+    FindUserBackofficeAccessUseCase,
     CreateRoleUseCase,
     CreateGlobalRoleUseCase,
     UpdateRoleUseCase,
@@ -36,6 +38,7 @@ import {
     FindAllSelectRolesUseCase,
     FindRoleByIdUseCase,
     FindRoleByNameUseCase,
+    FindUserBackofficeAccessUseCase,
     CreateRoleUseCase,
     CreateGlobalRoleUseCase,
     UpdateRoleUseCase,

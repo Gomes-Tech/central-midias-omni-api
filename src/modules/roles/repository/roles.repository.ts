@@ -101,6 +101,52 @@ export class RolesRepository {
     }
   }
 
+  async findCanAccessBackofficeByUserId(userId: string): Promise<boolean> {
+    try {
+      const user = await this.prisma.user.findFirst({
+        where: {
+          id: userId,
+          isActive: true,
+          isDeleted: false,
+        },
+        select: {
+          globalRole: {
+            select: {
+              canAccessBackoffice: true,
+            },
+          },
+          members: {
+            select: {
+              role: {
+                select: {
+                  canAccessBackoffice: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        return false;
+      }
+
+      if (user.globalRole?.canAccessBackoffice) {
+        return true;
+      }
+
+      return user.members.some((member) => member.role.canAccessBackoffice);
+    } catch (error) {
+      this.handleError(
+        'RolesRepository.findCanAccessBackofficeByUserId falhou',
+        error,
+        {
+          userId,
+        },
+      );
+    }
+  }
+
   async create(data: CreateRoleDTO): Promise<{ id: string; name: string }> {
     try {
       const role = await this.prisma.role.create({
