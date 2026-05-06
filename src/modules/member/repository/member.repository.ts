@@ -3,7 +3,7 @@ import { generateId } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Action, Prisma } from '@prisma/client';
 import {
   CreateMemberDTO,
   FindAllMembersFiltersDTO,
@@ -162,6 +162,118 @@ export class MemberRepository {
       });
 
       throw new BadRequestException('Erro ao buscar membro');
+    }
+  }
+
+  async findMemberRoleDetails(
+    organizationId: string,
+    userId: string,
+  ): Promise<{
+    label: string;
+    canAccessBackoffice: boolean;
+    permissions: Array<{
+      module: { id: string; name: string; label: string };
+      actions: Action[];
+    }>;
+    categoryRoleAccesses: Array<{
+      id: string;
+      categoryId: string;
+      organizationId: string;
+      category: { id: string; name: string; slug: string };
+    }>;
+  } | null> {
+    try {
+      const member = await this.prisma.member.findFirst({
+        where: {
+          organizationId,
+          userId,
+          role: { deletedAt: null },
+        },
+        select: {
+          role: {
+            select: {
+              label: true,
+              canAccessBackoffice: true,
+              permissions: {
+                select: {
+                  id: true,
+                  action: true,
+                  module: {
+                    select: {
+                      id: true,
+                      name: true,
+                      label: true,
+                    },
+                  },
+                },
+              },
+              categoryRoleAccesses: {
+                where: { organizationId },
+                select: {
+                  id: true,
+                  categoryId: true,
+                  organizationId: true,
+                  category: {
+                    select: {
+                      id: true,
+                      name: true,
+                      slug: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!member) {
+        return null;
+      }
+
+      const { role } = member;
+      const permissionsByModule = new Map<
+        string,
+        {
+          module: { id: string; name: string; label: string };
+          actions: Set<Action>;
+        }
+      >();
+
+      for (const permission of role.permissions) {
+        const moduleKey = permission.module.id;
+        const current = permissionsByModule.get(moduleKey);
+
+        if (current) {
+          current.actions.add(permission.action);
+          continue;
+        }
+
+        permissionsByModule.set(moduleKey, {
+          module: permission.module,
+          actions: new Set([permission.action]),
+        });
+      }
+
+      return {
+        label: role.label,
+        canAccessBackoffice: role.canAccessBackoffice,
+        permissions: Array.from(permissionsByModule.values()).map(
+          ({ module, actions }) => ({
+            module,
+            actions: Array.from(actions),
+          }),
+        ),
+        categoryRoleAccesses: role.categoryRoleAccesses,
+      };
+    } catch (error) {
+      void this.logger.error('MemberRepository.findMemberRoleDetails falhou', {
+        error: String(error),
+        organizationId,
+        userId,
+      });
+
+      throw new BadRequestException('Erro ao buscar perfil do membro');
     }
   }
 

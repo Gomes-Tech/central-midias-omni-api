@@ -15,6 +15,7 @@ export class CreateOrganizationDTO {
 
   @IsOptional()
   @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
   isActive?: boolean;
 
   @IsOptional()

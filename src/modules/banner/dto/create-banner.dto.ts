@@ -1,8 +1,7 @@
 import { Sanitize } from '@common/decorators';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
-  IsDate,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -35,12 +34,26 @@ export class CreateBannerDTO {
   isActive?: boolean;
 
   @IsOptional()
-  @Type(() => Date)
-  @IsDate({ message: 'Data inicial inválida' })
+  @Transform(
+    ({ value }) => {
+      if (!value) return undefined;
+      return new Date(value);
+    },
+    {
+      toClassOnly: true,
+    },
+  )
   initialDate?: Date;
 
   @IsOptional()
-  @Type(() => Date)
-  @IsDate({ message: 'Data final inválida' })
+  @Transform(
+    ({ value }) => {
+      if (!value) return undefined;
+      return new Date(value);
+    },
+    {
+      toClassOnly: true,
+    },
+  )
   finishDate?: Date;
 }

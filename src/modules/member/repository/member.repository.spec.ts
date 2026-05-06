@@ -1,5 +1,6 @@
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
+import { Action } from '@prisma/client';
 import { MemberRepository } from './member.repository';
 
 jest.mock('@common/utils', () => {
@@ -226,6 +227,131 @@ describe('MemberRepository', () => {
       await expect(
         repository.findMemberRole('org-1', 'user-1'),
       ).rejects.toThrow('Erro ao buscar membro');
+    });
+  });
+
+  describe('findMemberRoleDetails', () => {
+    it('deve agrupar permissões por módulo e retornar actions', async () => {
+      prisma.member.findFirst.mockResolvedValue({
+        role: {
+          label: 'Admin',
+          canAccessBackoffice: true,
+          permissions: [
+            {
+              id: 'rp-1',
+              action: Action.READ,
+              module: { id: 'mod-1', name: 'members', label: 'Membros' },
+            },
+            {
+              id: 'rp-2',
+              action: Action.CREATE,
+              module: { id: 'mod-1', name: 'members', label: 'Membros' },
+            },
+            {
+              id: 'rp-3',
+              action: Action.READ,
+              module: { id: 'mod-2', name: 'roles', label: 'Perfis' },
+            },
+          ],
+          categoryRoleAccesses: [
+            {
+              id: 'cra-1',
+              categoryId: 'cat-1',
+              organizationId: 'org-1',
+              category: { id: 'cat-1', name: 'Cat', slug: 'cat' },
+            },
+          ],
+        },
+      });
+
+      await expect(
+        repository.findMemberRoleDetails('org-1', 'user-1'),
+      ).resolves.toEqual({
+        label: 'Admin',
+        canAccessBackoffice: true,
+        permissions: expect.arrayContaining([
+          {
+            module: { id: 'mod-1', name: 'members', label: 'Membros' },
+            actions: expect.arrayContaining([Action.READ, Action.CREATE]),
+          },
+          {
+            module: { id: 'mod-2', name: 'roles', label: 'Perfis' },
+            actions: [Action.READ],
+          },
+        ]),
+        categoryRoleAccesses: [
+          {
+            id: 'cra-1',
+            categoryId: 'cat-1',
+            organizationId: 'org-1',
+            category: { id: 'cat-1', name: 'Cat', slug: 'cat' },
+          },
+        ],
+      });
+
+      expect(prisma.member.findFirst).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          userId: 'user-1',
+          role: { deletedAt: null },
+        },
+        select: {
+          role: {
+            select: {
+              label: true,
+              canAccessBackoffice: true,
+              permissions: {
+                select: {
+                  id: true,
+                  action: true,
+                  module: {
+                    select: {
+                      id: true,
+                      name: true,
+                      label: true,
+                    },
+                  },
+                },
+              },
+              categoryRoleAccesses: {
+                where: { organizationId: 'org-1' },
+                select: {
+                  id: true,
+                  categoryId: true,
+                  organizationId: true,
+                  category: {
+                    select: {
+                      id: true,
+                      name: true,
+                      slug: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    it('deve retornar null quando não existir membro', async () => {
+      prisma.member.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findMemberRoleDetails('org-1', 'user-1'),
+      ).resolves.toBeNull();
+    });
+
+    it('deve lançar BadRequest quando falhar', async () => {
+      prisma.member.findFirst.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findMemberRoleDetails('org-1', 'user-1'),
+      ).rejects.toThrow('Erro ao buscar perfil do membro');
+      expect(logger.error).toHaveBeenCalledWith(
+        'MemberRepository.findMemberRoleDetails falhou',
+        expect.objectContaining({ organizationId: 'org-1', userId: 'user-1' }),
+      );
     });
   });
 

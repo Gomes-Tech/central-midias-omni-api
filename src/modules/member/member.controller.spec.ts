@@ -8,6 +8,7 @@ import {
   DeleteMemberUseCase,
   FindAllMembersUseCase,
   FindMemberByIdUseCase,
+  FindMemberRoleDetailsUseCase,
   FindMemberRoleUseCase,
   UpdateMemberUseCase,
 } from './use-cases';
@@ -18,6 +19,7 @@ describe('MemberController', () => {
   let createMemberWithUserUseCase: { execute: jest.Mock };
   let findAllMembersUseCase: { execute: jest.Mock };
   let findMemberByIdUseCase: { execute: jest.Mock };
+  let findMemberRoleDetailsUseCase: { execute: jest.Mock };
   let findMemberRoleUseCase: { execute: jest.Mock };
   let updateMemberUseCase: { execute: jest.Mock };
   let deleteMemberUseCase: { execute: jest.Mock };
@@ -27,6 +29,7 @@ describe('MemberController', () => {
     createMemberWithUserUseCase = { execute: jest.fn() };
     findAllMembersUseCase = { execute: jest.fn() };
     findMemberByIdUseCase = { execute: jest.fn() };
+    findMemberRoleDetailsUseCase = { execute: jest.fn() };
     findMemberRoleUseCase = { execute: jest.fn() };
     updateMemberUseCase = { execute: jest.fn() };
     deleteMemberUseCase = { execute: jest.fn() };
@@ -41,6 +44,10 @@ describe('MemberController', () => {
         },
         { provide: FindAllMembersUseCase, useValue: findAllMembersUseCase },
         { provide: FindMemberByIdUseCase, useValue: findMemberByIdUseCase },
+        {
+          provide: FindMemberRoleDetailsUseCase,
+          useValue: findMemberRoleDetailsUseCase,
+        },
         {
           provide: FindMemberRoleUseCase,
           useValue: findMemberRoleUseCase,

@@ -1,4 +1,4 @@
-import type { NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import multer from 'multer';
 
 /**
@@ -15,11 +15,11 @@ const upload = multer({
 // `multer().any()` tipa `req/res` usando uma cópia de `express-serve-static-core` que pode
 // divergir da usada no projeto, causando erro de compatibilidade. Como aqui só precisamos
 // do efeito colateral (popular `req.file/req.files`), tipamos como `unknown`.
-const parseMultipart: (
-  req: unknown,
-  res: unknown,
+const parseMultipart = upload.any() as unknown as (
+  req: Request,
+  res: Response,
   cb: (err?: unknown) => void,
-) => void = upload.any();
+) => void;
 
 /**
  * Parseia multipart/form-data em todas as rotas que enviarem esse Content-Type.
@@ -30,8 +30,8 @@ const parseMultipart: (
  * quebraria o upload.
  */
 export function multipartMiddleware(
-  req: any,
-  res: any,
+  req: Request,
+  res: Response,
   next: NextFunction,
 ): void {
   const ct = req.headers['content-type'];

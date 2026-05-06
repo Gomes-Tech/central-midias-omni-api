@@ -8,7 +8,7 @@ jest.mock('multer', () => {
   return Object.assign(factory, { memoryStorage });
 });
 
-import { NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { multipartMiddleware } from './multipart.middleware';
 
 describe('multipartMiddleware', () => {
@@ -20,22 +20,22 @@ describe('multipartMiddleware', () => {
   });
 
   it('deve chamar next sem parsear quando Content-Type não for multipart', () => {
-    const req = {
+    const req: Partial<Request> = {
       headers: { 'content-type': 'application/json' },
     };
-    const res = {};
+    const res: Partial<Response> = {};
 
-    multipartMiddleware(req, res, next);
+    multipartMiddleware(req as Request, res as Response, next);
 
     expect(mockParseMultipart).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalled();
   });
 
   it('deve chamar next sem parsear quando content-type estiver ausente', () => {
-    const req = { headers: {} };
-    const res = {};
+    const req: Partial<Request> = { headers: {} };
+    const res: Partial<Response> = {};
 
-    multipartMiddleware(req, res, next);
+    multipartMiddleware(req as Request, res as Response, next);
 
     expect(mockParseMultipart).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalled();
@@ -49,12 +49,12 @@ describe('multipartMiddleware', () => {
       },
     );
 
-    const req = {
+    const req: Partial<Request> = {
       headers: { 'content-type': 'multipart/form-data; boundary=----' },
     };
-    const res = {};
+    const res: Partial<Response> = {};
 
-    multipartMiddleware(req, res, next);
+    multipartMiddleware(req as Request, res as Response, next);
 
     expect(mockParseMultipart).toHaveBeenCalled();
     expect(next).toHaveBeenCalledWith(err);
@@ -63,19 +63,22 @@ describe('multipartMiddleware', () => {
   it('deve definir req.file quando houver exatamente um arquivo', () => {
     const file = { fieldname: 'photo', originalname: 'a.png' };
     mockParseMultipart.mockImplementation(
-      (req: { files?: unknown; file?: unknown }, _res: unknown, cb: () => void) => {
+      (
+        req: { files?: unknown; file?: unknown },
+        _res: unknown,
+        cb: () => void,
+      ) => {
         req.files = [file];
         cb();
       },
     );
 
-    const req: { headers: Record<string, string>; files?: unknown; file?: unknown } =
-      {
-        headers: { 'content-type': 'multipart/form-data; boundary=----' },
-      };
-    const res = {};
+    const req: Partial<Request> = {
+      headers: { 'content-type': 'multipart/form-data; boundary=----' },
+    } as any;
+    const res: Partial<Response> = {};
 
-    multipartMiddleware(req, res, next);
+    multipartMiddleware(req as Request, res as Response, next);
 
     expect(req.file).toBe(file);
     expect(next).toHaveBeenCalled();
@@ -89,13 +92,12 @@ describe('multipartMiddleware', () => {
       },
     );
 
-    const req: { headers: Record<string, string>; files?: unknown[]; file?: unknown } =
-      {
-        headers: { 'content-type': 'multipart/form-data; boundary=----' },
-      };
-    const res = {};
+    const req: Partial<Request> = {
+      headers: { 'content-type': 'multipart/form-data; boundary=----' },
+    } as any;
+    const res: Partial<Response> = {};
 
-    multipartMiddleware(req, res, next);
+    multipartMiddleware(req as Request, res as Response, next);
 
     expect(req.file).toBeUndefined();
     expect(next).toHaveBeenCalled();
@@ -109,13 +111,12 @@ describe('multipartMiddleware', () => {
       },
     );
 
-    const req: { headers: Record<string, string>; files?: unknown[]; file?: unknown } =
-      {
-        headers: { 'content-type': 'multipart/form-data; boundary=----' },
-      };
-    const res = {};
+    const req: Partial<Request> = {
+      headers: { 'content-type': 'multipart/form-data; boundary=----' },
+    } as any;
+    const res: Partial<Response> = {};
 
-    multipartMiddleware(req, res, next);
+    multipartMiddleware(req as Request, res as Response, next);
 
     expect(req.file).toBeUndefined();
     expect(next).toHaveBeenCalled();

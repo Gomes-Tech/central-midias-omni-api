@@ -10,6 +10,7 @@ import {
   DeleteMemberUseCase,
   FindAllMembersUseCase,
   FindMemberByIdUseCase,
+  FindMemberRoleDetailsUseCase,
   FindMemberRoleUseCase,
   UpdateMemberUseCase,
 } from './use-cases';
@@ -22,6 +23,7 @@ import {
     FindAllMembersUseCase,
     FindMemberByIdUseCase,
     FindMemberRoleUseCase,
+    FindMemberRoleDetailsUseCase,
     AddUserMemberUseCase,
     CreateMemberWithUserUseCase,
     UpdateMemberUseCase,
@@ -36,6 +38,7 @@ import {
     FindAllMembersUseCase,
     FindMemberByIdUseCase,
     FindMemberRoleUseCase,
+    FindMemberRoleDetailsUseCase,
     AddUserMemberUseCase,
     CreateMemberWithUserUseCase,
     UpdateMemberUseCase,
