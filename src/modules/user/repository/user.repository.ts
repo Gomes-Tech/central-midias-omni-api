@@ -125,56 +125,106 @@ export class UserRepository {
     }
   }
 
-  async findById(id: string, isBackoffice?: boolean): Promise<any | null> {
-    const include: Prisma.UserInclude = {
-      ...(isBackoffice
-        ? {
-            globalRole: {
-              select: {
-                id: true,
-                name: true,
-                canAccessBackoffice: true,
-              },
-            },
-          }
-        : {
-            members: {
-              select: {
-                organization: {
-                  select: {
-                    id: true,
-                    name: true,
-                    slug: true,
-                    avatarKey: true,
-                  },
-                },
-                role: {
-                  select: {
-                    id: true,
-                    name: true,
-                    label: true,
-                    isSystem: true,
-                    canAccessBackoffice: true,
-                    canHaveSubordinates: true,
-                  },
-                },
-              },
-            },
-          }),
-    };
-
+  async findById(id: string): Promise<any | null> {
     try {
       const user = await this.prisma.user.findFirstOrThrow({
         where: {
           id,
           isDeleted: false,
         },
-        include: include,
+        select: {
+          name: true,
+          email: true,
+          taxIdentifier: true,
+          phone: true,
+          socialReason: true,
+          avatarKey: true,
+          isFirstAccess: true,
+          isActive: true,
+          globalRole: {
+            select: {
+              canAccessBackoffice: true,
+            },
+          },
+          members: {
+            select: {
+              role: {
+                select: {
+                  canAccessBackoffice: true,
+                },
+              },
+            },
+          },
+        },
       });
 
-      return user;
+      const formattedUser = {
+        ...user,
+        canAccessBackoffice:
+          user.globalRole?.canAccessBackoffice ||
+          user.members.some((member) => member.role.canAccessBackoffice),
+      };
+
+      delete formattedUser.globalRole;
+      delete formattedUser.members;
+
+      return formattedUser;
     } catch (error) {
       void this.logger.error('UserRepository.findById falhou', {
+        error: String(error),
+        id,
+      });
+
+      throw new BadRequestException('Erro ao buscar usuário por id');
+    }
+  }
+
+  async getMe(id: string): Promise<any | null> {
+    try {
+      const user = await this.prisma.user.findFirstOrThrow({
+        where: {
+          id,
+          isDeleted: false,
+        },
+        select: {
+          name: true,
+          email: true,
+          taxIdentifier: true,
+          phone: true,
+          socialReason: true,
+          avatarKey: true,
+          isFirstAccess: true,
+          isActive: true,
+          globalRole: {
+            select: {
+              canAccessBackoffice: true,
+            },
+          },
+          members: {
+            select: {
+              role: {
+                select: {
+                  canAccessBackoffice: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const formattedUser = {
+        ...user,
+        canAccessBackoffice:
+          user.globalRole?.canAccessBackoffice ||
+          user.members.some((member) => member.role.canAccessBackoffice),
+      };
+
+      delete formattedUser.globalRole;
+      delete formattedUser.members;
+
+      return formattedUser;
+    } catch (error) {
+      void this.logger.error('UserRepository.getMe falhou', {
         error: String(error),
         id,
       });

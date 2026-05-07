@@ -156,44 +156,118 @@ describe('UserRepository', () => {
     });
   });
 
+  const findByIdSelectExpectation = {
+    name: true,
+    email: true,
+    taxIdentifier: true,
+    phone: true,
+    socialReason: true,
+    avatarKey: true,
+    isFirstAccess: true,
+    isActive: true,
+    globalRole: {
+      select: { canAccessBackoffice: true },
+    },
+    members: {
+      select: {
+        role: {
+          select: { canAccessBackoffice: true },
+        },
+      },
+    },
+  };
+
   describe('findById', () => {
-    it('deve incluir members quando isBackoffice for omitido ou false', async () => {
-      const user = { id: 'u1', members: [] };
-      prisma.user.findFirstOrThrow.mockResolvedValue(user);
+    it('deve montar canAccessBackoffice e remover relations internas', async () => {
+      const prismaRow = {
+        name: 'X',
+        email: 'x@y.com',
+        taxIdentifier: '123',
+        phone: null,
+        socialReason: null,
+        avatarKey: null,
+        isFirstAccess: true,
+        isActive: true,
+        globalRole: null,
+        members: [
+          {
+            role: { canAccessBackoffice: false },
+          },
+          {
+            role: { canAccessBackoffice: true },
+          },
+        ],
+      };
+      prisma.user.findFirstOrThrow.mockResolvedValue(prismaRow);
 
       const result = await repository.findById('u1');
 
-      expect(result).toBe(user);
-      expect(prisma.user.findFirstOrThrow).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'u1', isDeleted: false },
-          include: expect.objectContaining({
-            members: expect.any(Object),
-          }),
-        }),
-      );
-    });
-
-    it('deve incluir globalRole quando isBackoffice for true', async () => {
-      prisma.user.findFirstOrThrow.mockResolvedValue({ id: 'u1' });
-
-      await repository.findById('u1', true);
-
-      expect(prisma.user.findFirstOrThrow).toHaveBeenCalledWith(
-        expect.objectContaining({
-          include: {
-            globalRole: {
-              select: { id: true, name: true, canAccessBackoffice: true },
-            },
-          },
-        }),
-      );
+      expect(result).toEqual({
+        name: 'X',
+        email: 'x@y.com',
+        taxIdentifier: '123',
+        phone: null,
+        socialReason: null,
+        avatarKey: null,
+        isFirstAccess: true,
+        isActive: true,
+        canAccessBackoffice: true,
+      });
+      expect(prisma.user.findFirstOrThrow).toHaveBeenCalledWith({
+        where: { id: 'u1', isDeleted: false },
+        select: findByIdSelectExpectation,
+      });
     });
 
     it('deve lançar BadRequest quando findFirstOrThrow falhar', async () => {
       prisma.user.findFirstOrThrow.mockRejectedValue(new Error('not found'));
 
       await expect(repository.findById('x')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('getMe', () => {
+    it('deve usar o mesmo select que findById e formatar resultado', async () => {
+      const prismaRow = {
+        name: 'Me',
+        email: 'me@y.com',
+        taxIdentifier: '999',
+        phone: null,
+        socialReason: null,
+        avatarKey: 'k',
+        isFirstAccess: false,
+        isActive: true,
+        globalRole: { canAccessBackoffice: false },
+        members: [],
+      };
+      prisma.user.findFirstOrThrow.mockResolvedValue(prismaRow);
+
+      const result = await repository.getMe('me-id');
+
+      expect(result).toEqual({
+        name: 'Me',
+        email: 'me@y.com',
+        taxIdentifier: '999',
+        phone: null,
+        socialReason: null,
+        avatarKey: 'k',
+        isFirstAccess: false,
+        isActive: true,
+        canAccessBackoffice: false,
+      });
+      expect(prisma.user.findFirstOrThrow).toHaveBeenCalledWith({
+        where: { id: 'me-id', isDeleted: false },
+        select: findByIdSelectExpectation,
+      });
+    });
+
+    it('deve lançar BadRequest quando findFirstOrThrow falhar', async () => {
+      prisma.user.findFirstOrThrow.mockRejectedValue(new Error('db'));
+
+      await expect(repository.getMe('x')).rejects.toBeInstanceOf(
         BadRequestException,
       );
       expect(logger.error).toHaveBeenCalled();

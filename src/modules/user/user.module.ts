@@ -9,6 +9,7 @@ import {
   FindAllUsersUseCase,
   FindUserByEmailUseCase,
   FindUserByIdUseCase,
+  GetMeUseCase,
   UpdateUserUseCase,
 } from './use-cases';
 import { UserController } from './user.controller';
@@ -20,6 +21,7 @@ import { UserController } from './user.controller';
     PlatformPermissionGuard,
     FindAllUsersUseCase,
     FindUserByIdUseCase,
+    GetMeUseCase,
     FindUserByEmailUseCase,
     CreateUserUseCase,
     CreateGlobalUserUseCase,
@@ -35,6 +37,7 @@ import { UserController } from './user.controller';
     FindUserByIdUseCase,
     FindUserByEmailUseCase,
     CreateUserUseCase,
+    GetMeUseCase,
     CreateGlobalUserUseCase,
     UpdateUserUseCase,
     UserRepository,

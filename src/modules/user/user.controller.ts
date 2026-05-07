@@ -18,6 +18,7 @@ import {
   DeleteUserUseCase,
   FindAllUsersUseCase,
   FindUserByIdUseCase,
+  GetMeUseCase,
   UpdateUserUseCase,
 } from './use-cases';
 
@@ -29,6 +30,7 @@ export class UserController {
     private readonly createGlobalUserUseCase: CreateGlobalUserUseCase,
     private readonly findAllUsersUseCase: FindAllUsersUseCase,
     private readonly findUserByIdUseCase: FindUserByIdUseCase,
+    private readonly getMeUseCase: GetMeUseCase,
     private readonly updateUserUseCase: UpdateUserUseCase,
     private readonly deleteUserUseCase: DeleteUserUseCase,
   ) {}
@@ -67,11 +69,7 @@ export class UserController {
 
   @Get('/me')
   async getMe(@UserId() userId: string) {
-    const user = await this.findUserByIdUseCase.execute(userId);
-
-    delete user.password;
-
-    return user;
+    return await this.getMeUseCase.execute(userId);
   }
 
   @RequirePermission('users', 'read')

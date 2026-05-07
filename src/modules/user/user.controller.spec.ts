@@ -7,6 +7,7 @@ import {
   DeleteUserUseCase,
   FindAllUsersUseCase,
   FindUserByIdUseCase,
+  GetMeUseCase,
   UpdateUserUseCase,
 } from './use-cases';
 import {
@@ -19,6 +20,7 @@ describe('UserController', () => {
   let controller: UserController;
   let findAllUsersUseCase: { execute: jest.Mock };
   let findUserByIdUseCase: { execute: jest.Mock };
+  let getMeUseCase: { execute: jest.Mock };
   let createUserUseCase: { execute: jest.Mock };
   let createGlobalUserUseCase: { execute: jest.Mock };
   let updateUserUseCase: { execute: jest.Mock };
@@ -27,6 +29,7 @@ describe('UserController', () => {
   beforeEach(async () => {
     findAllUsersUseCase = { execute: jest.fn() };
     findUserByIdUseCase = { execute: jest.fn() };
+    getMeUseCase = { execute: jest.fn() };
     createUserUseCase = { execute: jest.fn() };
     createGlobalUserUseCase = { execute: jest.fn() };
     updateUserUseCase = { execute: jest.fn() };
@@ -39,6 +42,7 @@ describe('UserController', () => {
         { provide: CreateGlobalUserUseCase, useValue: createGlobalUserUseCase },
         { provide: FindAllUsersUseCase, useValue: findAllUsersUseCase },
         { provide: FindUserByIdUseCase, useValue: findUserByIdUseCase },
+        { provide: GetMeUseCase, useValue: getMeUseCase },
         { provide: UpdateUserUseCase, useValue: updateUserUseCase },
         { provide: DeleteUserUseCase, useValue: deleteUserUseCase },
       ],
@@ -150,14 +154,14 @@ describe('UserController', () => {
   });
 
   describe('getMe', () => {
-    it('deve buscar pelo userId e remover password', async () => {
-      const user = { id: 'me', password: 'x' };
-      findUserByIdUseCase.execute.mockResolvedValue(user);
+    it('deve delegar ao GetMeUseCase com userId', async () => {
+      const payload = { name: 'Eu', email: 'eu@test.com', avatarUrl: null };
+      getMeUseCase.execute.mockResolvedValue(payload);
 
       const result = await controller.getMe('me');
 
-      expect(findUserByIdUseCase.execute).toHaveBeenCalledWith('me');
-      expect(result).not.toHaveProperty('password');
+      expect(getMeUseCase.execute).toHaveBeenCalledWith('me');
+      expect(result).toBe(payload);
     });
   });
 
