@@ -130,16 +130,54 @@ export class MemberRepository {
     name: string;
     label: string;
     canAccessBackoffice: boolean;
+    permissions: Array<{
+      module: { id: string; name: string; label: string };
+      actions: Action[];
+    }>;
+    categoryRoleAccesses: Array<{
+      id: string;
+      categoryId: string;
+      organizationId: string;
+      category: { id: string; name: string; slug: string };
+    }>;
   } | null> {
     try {
       const member = await this.prisma.member.findFirst({
-        where: { organizationId, userId },
+        where: { organizationId, userId, role: { deletedAt: null } },
         select: {
           role: {
             select: {
-              name: true,
               label: true,
+              name: true,
               canAccessBackoffice: true,
+              permissions: {
+                select: {
+                  id: true,
+                  action: true,
+                  module: {
+                    select: {
+                      id: true,
+                      name: true,
+                      label: true,
+                    },
+                  },
+                },
+              },
+              categoryRoleAccesses: {
+                where: { organizationId },
+                select: {
+                  id: true,
+                  categoryId: true,
+                  organizationId: true,
+                  category: {
+                    select: {
+                      id: true,
+                      name: true,
+                      slug: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -149,9 +187,41 @@ export class MemberRepository {
         return null;
       }
 
+      const { role } = member;
+
+      const permissionsByModule = new Map<
+        string,
+        {
+          module: { id: string; name: string; label: string };
+          actions: Set<Action>;
+        }
+      >();
+
+      for (const permission of role.permissions) {
+        const moduleKey = permission.module.id;
+        const current = permissionsByModule.get(moduleKey);
+
+        if (current) {
+          current.actions.add(permission.action);
+          continue;
+        }
+
+        permissionsByModule.set(moduleKey, {
+          module: permission.module,
+          actions: new Set([permission.action]),
+        });
+      }
+
       return {
         name: member.role.name,
         label: member.role.label,
+        permissions: Array.from(permissionsByModule.values()).map(
+          ({ module, actions }) => ({
+            module,
+            actions: Array.from(actions),
+          }),
+        ),
+        categoryRoleAccesses: role.categoryRoleAccesses,
         canAccessBackoffice: member.role.canAccessBackoffice,
       };
     } catch (error) {

@@ -26,11 +26,11 @@ export class CreateRoleDTO {
   @IsNotEmpty()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateCategoryRoleAccessDTO)
-  categoryRoleAccesses: CreateCategoryRoleAccessDTO[];
+  @Type(() => CreateRoleCategoryRoleAccessDTO)
+  categoryRoleAccesses: CreateRoleCategoryRoleAccessDTO[];
 }
 
-class CreateCategoryRoleAccessDTO {
+class CreateRoleCategoryRoleAccessDTO {
   @IsNotEmpty()
   @IsString()
   @Sanitize()
