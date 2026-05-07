@@ -133,6 +133,7 @@ export class UserRepository {
           isDeleted: false,
         },
         select: {
+          id: true,
           name: true,
           email: true,
           taxIdentifier: true,
