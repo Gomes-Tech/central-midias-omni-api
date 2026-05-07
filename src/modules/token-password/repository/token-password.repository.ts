@@ -45,7 +45,12 @@ export class TokenPasswordRepository {
       data: {
         id: generateId(),
         ...dto,
-        expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 5 minutos
+        expiresAt: new Date(
+          Date.now() +
+            Number(process.env.TOKEN_PASSWORD_EXPIRES_MINUTES ?? 15) *
+              60 *
+              1000,
+        ),
       },
     });
   }
