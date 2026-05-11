@@ -16,9 +16,7 @@ import {
   Query,
   UploadedFiles,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
-import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { CreateBannerDTO } from './dto/create-banner.dto';
 import { UpdateBannerDTO } from './dto/update-banner.dto';
 import { CreateBannerUseCase } from './use-cases/create-banner.use-case';
@@ -26,6 +24,11 @@ import { DeleteBannerUseCase } from './use-cases/delete-banner.use-case';
 import { GetBannerUseCase } from './use-cases/get-banner.use-case';
 import { ListBannersUseCase } from './use-cases/list-banners.use-case';
 import { UpdateBannerUseCase } from './use-cases/update-banner.use-case';
+
+type UploadedBannerFiles =
+  | Express.Multer.File[]
+  | Record<string, Express.Multer.File[] | Express.Multer.File | undefined>
+  | undefined;
 
 @UseGuards(PlatformPermissionGuard)
 @Controller('banners')
@@ -37,6 +40,31 @@ export class BannerController {
     private readonly updateBannerUseCase: UpdateBannerUseCase,
     private readonly deleteBannerUseCase: DeleteBannerUseCase,
   ) {}
+
+  private getFile(
+    files: UploadedBannerFiles,
+    fieldNames: string[],
+  ): Express.Multer.File | undefined {
+    if (!files) {
+      return undefined;
+    }
+
+    if (Array.isArray(files)) {
+      return files.find((file) => fieldNames.includes(file.fieldname));
+    }
+
+    for (const fieldName of fieldNames) {
+      const file = files[fieldName];
+      if (Array.isArray(file)) {
+        return file[0];
+      }
+      if (file) {
+        return file;
+      }
+    }
+
+    return undefined;
+  }
 
   @RequirePermission('banners', 'read')
   @Get()
@@ -63,20 +91,16 @@ export class BannerController {
 
   @MaxFileSize(undefined, 5)
   @RequirePermission('banners', 'create')
-  @UseInterceptors(AnyFilesInterceptor())
   @Post()
   async create(
     @OrgId() organizationId: string,
     @Body() dto: CreateBannerDTO,
     @UserId() userId: string,
-    @UploadedFiles() files: Express.Multer.File[],
+    @UploadedFiles() files: UploadedBannerFiles,
   ) {
-    // A seguinte linha foi comentada porque não estava de acordo com a assinatura o execute do use case:
-    // await this.createBannerUseCase.execute(organizationId, dto, userId, files);
-    const desktop = files.find((file) => file.fieldname === 'desktop');
-    const mobile = files.find((file) => file.fieldname === 'mobile');
+    const desktop = this.getFile(files, ['desktopImage', 'desktop']);
+    const mobile = this.getFile(files, ['mobileImage', 'mobile']);
 
-    // No lugar dela, usei o seguinte:
     await this.createBannerUseCase.execute(organizationId, dto, userId, {
       desktop,
       mobile,
@@ -92,14 +116,14 @@ export class BannerController {
     @Body() dto: UpdateBannerDTO,
     @UserId() userId: string,
     @UploadedFiles()
-    files?: {
-      mobileImage?: Express.Multer.File[];
-      desktopImage?: Express.Multer.File[];
-    },
+    files?: UploadedBannerFiles,
   ) {
+    const desktopImage = this.getFile(files, ['desktopImage', 'desktop']);
+    const mobileImage = this.getFile(files, ['mobileImage', 'mobile']);
+
     await this.updateBannerUseCase.execute(id, organizationId, dto, userId, {
-      desktopImage: files?.desktopImage?.[0],
-      mobileImage: files?.mobileImage?.[0],
+      desktopImage,
+      mobileImage,
     });
   }
 

@@ -81,10 +81,7 @@ describe('BannerController', () => {
       } as Parameters<BannerController['create']>[1];
       const mobile = { fieldname: 'mobileImage' } as Express.Multer.File;
       const desktop = { fieldname: 'desktopImage' } as Express.Multer.File;
-      const files = {
-        mobileImage: [mobile],
-        desktopImage: [desktop],
-      };
+      const files = [mobile, desktop];
 
       createBannerUseCase.execute.mockResolvedValue(undefined);
 
@@ -113,6 +110,29 @@ describe('BannerController', () => {
         { mobile: undefined, desktop: undefined },
       );
     });
+
+    it('deve aceitar arquivos agrupados por nome do campo', async () => {
+      const dto = { name: 'Banner', order: 0 } as Parameters<
+        BannerController['create']
+      >[1];
+      const mobile = { fieldname: 'mobileImage' } as Express.Multer.File;
+      const desktop = { fieldname: 'desktopImage' } as Express.Multer.File;
+      const files = {
+        mobileImage: [mobile],
+        desktopImage: [desktop],
+      };
+
+      createBannerUseCase.execute.mockResolvedValue(undefined);
+
+      await controller.create('org-1', dto, 'uid', files);
+
+      expect(createBannerUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+        dto,
+        'uid',
+        { mobile, desktop },
+      );
+    });
   });
 
   describe('update', () => {
@@ -130,7 +150,33 @@ describe('BannerController', () => {
         'org-1',
         dto,
         'uid',
-        files,
+        { desktopImage: undefined, mobileImage: undefined },
+      );
+    });
+
+    it('deve mapear arquivos vindos do middleware multipart global', async () => {
+      const dto = { name: 'Atualizado' } as Parameters<
+        BannerController['update']
+      >[2];
+      const mobileImage = {
+        fieldname: 'mobileImage',
+      } as Express.Multer.File;
+      const desktopImage = {
+        fieldname: 'desktopImage',
+      } as Express.Multer.File;
+      updateBannerUseCase.execute.mockResolvedValue(undefined);
+
+      await controller.update('b1', 'org-1', dto, 'uid', [
+        mobileImage,
+        desktopImage,
+      ]);
+
+      expect(updateBannerUseCase.execute).toHaveBeenCalledWith(
+        'b1',
+        'org-1',
+        dto,
+        'uid',
+        { desktopImage, mobileImage },
       );
     });
   });
