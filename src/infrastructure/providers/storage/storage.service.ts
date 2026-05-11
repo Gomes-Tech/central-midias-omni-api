@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { MulterFile } from './local-storage.service';
-import { SupabaseService } from './supabase.service';
+import { S3StorageService } from './s3-storage.service';
 
 export interface StorageFile {
   id: string;
@@ -13,18 +13,19 @@ export interface StorageFile {
 export class StorageService {
   constructor(
     // private readonly localStorageService: LocalStorageService,
-    private readonly supabaseService: SupabaseService,
+    // private readonly supabaseService: SupabaseService,
+    private readonly s3StorageService: S3StorageService,
   ) {}
 
   async uploadFile(
     file: MulterFile,
     folder?: string,
   ): Promise<{ path: string }> {
-    return await this.supabaseService.uploadFile(file, folder);
+    return await this.s3StorageService.uploadFile(file, folder);
   }
 
   async getPublicUrl(path: string) {
-    return await this.supabaseService.getSignedUrl(path);
+    return await this.s3StorageService.getSignedUrl(path);
   }
 
   async deleteFile(paths: string[]): Promise<void> {

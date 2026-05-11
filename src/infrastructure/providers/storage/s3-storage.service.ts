@@ -110,7 +110,7 @@ export class S3StorageService {
   }
 
   // ✅ GERAR URL (VIEW)
-  async getSignedViewUrl(key: string): Promise<string> {
+  async getSignedUrl(key: string): Promise<string> {
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
