@@ -2,18 +2,6 @@ FROM node:22-alpine AS build
 
 RUN apk update && apk add curl bash && curl -sfL https://gobinaries.com/tj/node-prune | sh -s -- -b /usr/local/bin
 
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    freetype-dev \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont
-
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-
 WORKDIR /var/app
 ARG YARN_TIMEOUT=60000
 COPY package.json yarn.lock ./
@@ -31,20 +19,6 @@ ENV NODE_ENV prod
 WORKDIR /home/node/app
 RUN apk add dumb-init
 RUN apk add --no-cache openssl
-
-# Add Puppeteer dependencies
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    freetype-dev \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont
-
-# Set Puppeteer to use Chromium
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 USER node
 EXPOSE 4000
