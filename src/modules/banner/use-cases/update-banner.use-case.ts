@@ -25,15 +25,15 @@ export class UpdateBannerUseCase {
     organizationId: string,
     data: UpdateBannerDTO,
     userId: string,
-    files?: {
-      mobileImage?: Express.Multer.File[];
-      desktopImage?: Express.Multer.File[];
+    files: {
+      desktopImage: Express.Multer.File;
+      mobileImage: Express.Multer.File;
     },
   ) {
     const banner = await this.getBannerUseCase.execute(id, organizationId);
 
-    const mobileImage = files?.mobileImage?.[0];
-    const desktopImage = files?.desktopImage?.[0];
+    const mobileImage = files?.mobileImage;
+    const desktopImage = files?.desktopImage;
 
     if (
       data.initialDate &&

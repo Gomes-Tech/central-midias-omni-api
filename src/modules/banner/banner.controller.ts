@@ -16,7 +16,9 @@ import {
   Query,
   UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { CreateBannerDTO } from './dto/create-banner.dto';
 import { UpdateBannerDTO } from './dto/update-banner.dto';
 import { CreateBannerUseCase } from './use-cases/create-banner.use-case';
@@ -25,6 +27,7 @@ import { GetBannerUseCase } from './use-cases/get-banner.use-case';
 import { ListBannersUseCase } from './use-cases/list-banners.use-case';
 import { UpdateBannerUseCase } from './use-cases/update-banner.use-case';
 
+@UseGuards(PlatformPermissionGuard)
 @Controller('banners')
 export class BannerController {
   constructor(
@@ -35,7 +38,6 @@ export class BannerController {
     private readonly deleteBannerUseCase: DeleteBannerUseCase,
   ) {}
 
-  @UseGuards(PlatformPermissionGuard)
   @RequirePermission('banners', 'read')
   @Get()
   async list(
@@ -45,36 +47,42 @@ export class BannerController {
     return await this.listBannersUseCase.execute(organizationId, referenceDate);
   }
 
+  @Get('/list')
+  async listWeb(@OrgId() organizationId: string) {
+    return await this.listBannersUseCase.execute(
+      organizationId,
+      new Date().toISOString(),
+    );
+  }
+
+  @RequirePermission('banners', 'read')
   @Get(':id')
   async getById(@Param('id') id: string, @OrgId() organizationId: string) {
     return await this.getBannerUseCase.execute(id, organizationId);
   }
 
-  @UseGuards(PlatformPermissionGuard)
   @MaxFileSize(undefined, 5)
   @RequirePermission('banners', 'create')
+  @UseInterceptors(AnyFilesInterceptor())
   @Post()
   async create(
     @OrgId() organizationId: string,
     @Body() dto: CreateBannerDTO,
     @UserId() userId: string,
-    @UploadedFiles()
-    files?: {
-      mobileImage?: Express.Multer.File[];
-      desktopImage?: Express.Multer.File[];
-    },
+    @UploadedFiles() files: Express.Multer.File[],
   ) {
     // A seguinte linha foi comentada porque não estava de acordo com a assinatura o execute do use case:
     // await this.createBannerUseCase.execute(organizationId, dto, userId, files);
+    const desktop = files.find((file) => file.fieldname === 'desktop');
+    const mobile = files.find((file) => file.fieldname === 'mobile');
 
     // No lugar dela, usei o seguinte:
     await this.createBannerUseCase.execute(organizationId, dto, userId, {
-      mobile: files?.mobileImage?.[0],
-      desktop: files?.desktopImage?.[0],
+      desktop,
+      mobile,
     });
   }
 
-  @UseGuards(PlatformPermissionGuard)
   @MaxFileSize(undefined, 5)
   @RequirePermission('banners', 'update')
   @Patch(':id')
@@ -89,16 +97,12 @@ export class BannerController {
       desktopImage?: Express.Multer.File[];
     },
   ) {
-    await this.updateBannerUseCase.execute(
-      id,
-      organizationId,
-      dto,
-      userId,
-      files,
-    );
+    await this.updateBannerUseCase.execute(id, organizationId, dto, userId, {
+      desktopImage: files?.desktopImage?.[0],
+      mobileImage: files?.mobileImage?.[0],
+    });
   }
 
-  @UseGuards(PlatformPermissionGuard)
   @RequirePermission('banners', 'delete')
   @Delete(':id')
   async delete(
