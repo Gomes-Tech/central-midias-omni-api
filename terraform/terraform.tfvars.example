@@ -1,0 +1,8 @@
+# Copie para terraform.tfvars (não commite segredos) e ajuste.
+
+postgres_db       = "sua_database"
+postgres_user     = "sua_user"
+postgres_password = "senha_sem_caracteres_de_url_ou_use_app_environment"
+
+# Demais vars opcionais: project_name, app_port, pgdata_volume_name, app_image_name,
+# postgres_image (default postgres:18), app_environment (map de strings).
