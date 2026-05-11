@@ -24,8 +24,8 @@ export class StorageService {
     return await this.s3StorageService.uploadFile(file, folder);
   }
 
-  async getPublicUrl(path: string) {
-    return await this.s3StorageService.getSignedUrl(path);
+  async getPublicUrl(path: string, expieresIn?: number): Promise<string> {
+    return await this.s3StorageService.getSignedUrl(path, expieresIn);
   }
 
   async deleteFile(paths: string[]): Promise<void> {
