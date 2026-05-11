@@ -110,14 +110,14 @@ export class S3StorageService {
   }
 
   // ✅ GERAR URL (VIEW)
-  async getSignedUrl(key: string): Promise<string> {
+  async getSignedUrl(key: string, expieresIn?: number): Promise<string> {
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
     });
 
     return getSignedUrl(this.s3, command, {
-      expiresIn: this.expiresIn,
+      expiresIn: expieresIn ?? this.expiresIn,
     });
   }
 
