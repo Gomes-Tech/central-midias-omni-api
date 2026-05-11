@@ -19,6 +19,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "validate:push": "npm run test && npm run test:e2e && npm run build",
+    "prisma:generate": "prisma generate",
     "db:deploy": "prisma migrate deploy && prisma db seed",
     "db:seed": "ts-node prisma/seed.ts",
     "prepare": "husky"
