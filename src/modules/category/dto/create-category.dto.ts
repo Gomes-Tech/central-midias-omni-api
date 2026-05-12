@@ -16,11 +16,6 @@ export class CreateCategoryDTO {
   name: string;
 
   @IsNotEmpty()
-  @IsString()
-  @Sanitize()
-  slug: string;
-
-  @IsNotEmpty()
   @IsInt()
   @Min(0)
   order: number;

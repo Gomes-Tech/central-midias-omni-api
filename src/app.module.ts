@@ -12,6 +12,7 @@ import { CacheModule } from '@infrastructure/cache';
 import { CircuitBreakerModule } from '@infrastructure/circuit-breaker';
 import { ConfigModule } from '@infrastructure/config';
 import { CryptographyModule } from '@infrastructure/criptography';
+import { HealthModule } from '@infrastructure/health';
 import { JwtModule } from '@infrastructure/jwt';
 import { LogModule } from '@infrastructure/log';
 import { MetricsInterceptor, MetricsModule } from '@infrastructure/metrics';
@@ -55,6 +56,7 @@ import { AppService } from './app.service';
     MetricsModule,
     MailModule,
     StorageModule,
+    HealthModule,
     ThrottlerConfigModule,
     CategoryModule,
     MaterialModule,

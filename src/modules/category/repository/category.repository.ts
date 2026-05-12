@@ -410,7 +410,7 @@ export class CategoryRepository {
 
   async create(
     organizationId: string,
-    data: CreateCategoryDTO,
+    data: CreateCategoryDTO & { slug: string },
     userId: string,
   ): Promise<void> {
     try {

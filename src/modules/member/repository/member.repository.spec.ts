@@ -180,10 +180,38 @@ describe('MemberRepository', () => {
   });
 
   describe('findMemberRole', () => {
-    const roleShape = {
-      name: true,
+    const roleSelectExpectation = {
       label: true,
+      name: true,
       canAccessBackoffice: true,
+      permissions: {
+        select: {
+          id: true,
+          action: true,
+          module: {
+            select: {
+              id: true,
+              name: true,
+              label: true,
+            },
+          },
+        },
+      },
+      categoryRoleAccesses: {
+        where: { organizationId: 'org-1' },
+        select: {
+          id: true,
+          categoryId: true,
+          organizationId: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      },
     };
 
     it('deve retornar o papel quando o membro existir', async () => {
@@ -192,6 +220,8 @@ describe('MemberRepository', () => {
           name: 'editor',
           label: 'Editor',
           canAccessBackoffice: false,
+          permissions: [],
+          categoryRoleAccesses: [],
         },
       });
 
@@ -201,13 +231,19 @@ describe('MemberRepository', () => {
         name: 'editor',
         label: 'Editor',
         canAccessBackoffice: false,
+        permissions: [],
+        categoryRoleAccesses: [],
       });
 
       expect(prisma.member.findFirst).toHaveBeenCalledWith({
-        where: { organizationId: 'org-1', userId: 'user-1' },
+        where: {
+          organizationId: 'org-1',
+          userId: 'user-1',
+          role: { deletedAt: null },
+        },
         select: {
           role: {
-            select: roleShape,
+            select: roleSelectExpectation,
           },
         },
       });
@@ -219,6 +255,19 @@ describe('MemberRepository', () => {
       await expect(
         repository.findMemberRole('org-1', 'user-1'),
       ).resolves.toBeNull();
+
+      expect(prisma.member.findFirst).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          userId: 'user-1',
+          role: { deletedAt: null },
+        },
+        select: {
+          role: {
+            select: roleSelectExpectation,
+          },
+        },
+      });
     });
 
     it('deve lançar BadRequest quando falhar', async () => {

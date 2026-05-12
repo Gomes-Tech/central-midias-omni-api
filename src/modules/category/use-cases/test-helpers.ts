@@ -6,7 +6,6 @@ export function makeCreateCategoryDTO(
 ): CreateCategoryDTO {
   return {
     name: 'Categoria',
-    slug: 'categoria',
     order: 0,
     isActive: true,
     ...overrides,

@@ -19,6 +19,8 @@ describe('FindMemberRoleUseCase', () => {
       name: 'admin',
       label: 'Administrador',
       canAccessBackoffice: true,
+      permissions: [],
+      categoryRoleAccesses: [],
     };
 
     memberRepository.findMemberRole.mockResolvedValue(role);

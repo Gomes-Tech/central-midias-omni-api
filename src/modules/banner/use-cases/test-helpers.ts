@@ -76,16 +76,19 @@ export function makeCreateBannerFiles(overrides?: {
 }
 
 export function makeUpdateBannerFiles(overrides?: {
-  mobileImage?: Express.Multer.File[];
-  desktopImage?: Express.Multer.File[];
-}) {
+  mobileImage?: Express.Multer.File;
+  desktopImage?: Express.Multer.File;
+}): {
+  mobileImage: Express.Multer.File;
+  desktopImage: Express.Multer.File;
+} {
   return {
-    mobileImage: overrides?.mobileImage ?? [
+    mobileImage:
+      overrides?.mobileImage ??
       makeBannerFile({ originalname: 'banner-mobile.png' }),
-    ],
-    desktopImage: overrides?.desktopImage ?? [
+    desktopImage:
+      overrides?.desktopImage ??
       makeBannerFile({ originalname: 'banner-desktop.png' }),
-    ],
   };
 }
 

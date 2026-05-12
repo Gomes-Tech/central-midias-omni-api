@@ -1,4 +1,5 @@
 import { BadRequestException } from '@common/filters';
+import { toSlug } from '@common/utils';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateCategoryDTO } from '../dto';
 import { CategoryRepository } from '../repository';
@@ -19,8 +20,10 @@ export class CreateCategoryUseCase {
     data: CreateCategoryDTO,
     userId: string,
   ): Promise<void> {
+    const slug = toSlug(data.name);
+
     const existingSlug = await this.fincCategoryBySlugUseCase
-      .execute(data.slug, organizationId)
+      .execute(slug, organizationId)
       .catch(() => null);
 
     if (existingSlug) {
@@ -49,6 +52,10 @@ export class CreateCategoryUseCase {
       }
     }
 
-    await this.categoryRepository.create(organizationId, data, userId);
+    await this.categoryRepository.create(
+      organizationId,
+      { slug, ...data },
+      userId,
+    );
   }
 }

@@ -49,14 +49,14 @@ describe('CreateCategoryUseCase', () => {
 
     expect(categoryRepository.create).toHaveBeenCalledWith(
       'org-id',
-      dto,
+      { slug: 'categoria', ...dto },
       'user-id',
     );
     expect(findCategoryByIdUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('deve lançar BadRequest quando o slug já existir', async () => {
-    const dto = makeCreateCategoryDTO({ slug: 'dup' });
+    const dto = makeCreateCategoryDTO({ name: 'dup' });
 
     findCategoryBySlugUseCase.execute.mockResolvedValue({
       id: 'existing-id',

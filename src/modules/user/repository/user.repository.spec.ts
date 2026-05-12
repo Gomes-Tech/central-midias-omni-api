@@ -157,6 +157,28 @@ describe('UserRepository', () => {
   });
 
   const findByIdSelectExpectation = {
+    id: true,
+    name: true,
+    email: true,
+    taxIdentifier: true,
+    phone: true,
+    socialReason: true,
+    avatarKey: true,
+    isFirstAccess: true,
+    isActive: true,
+    globalRole: {
+      select: { canAccessBackoffice: true },
+    },
+    members: {
+      select: {
+        role: {
+          select: { canAccessBackoffice: true },
+        },
+      },
+    },
+  };
+
+  const getMeSelectExpectation = {
     name: true,
     email: true,
     taxIdentifier: true,
@@ -260,7 +282,7 @@ describe('UserRepository', () => {
       });
       expect(prisma.user.findFirstOrThrow).toHaveBeenCalledWith({
         where: { id: 'me-id', isDeleted: false },
-        select: findByIdSelectExpectation,
+        select: getMeSelectExpectation,
       });
     });
 

@@ -5,6 +5,7 @@ import { GetBannerUseCase } from './get-banner.use-case';
 import { UpdateBannerUseCase } from './update-banner.use-case';
 import {
   makeBanner,
+  makeBannerFile,
   makeStorageFile,
   makeUpdateBannerDTO,
   makeUpdateBannerFiles,
@@ -37,6 +38,11 @@ describe('UpdateBannerUseCase', () => {
     );
   });
 
+  const emptyUpdateBannerFiles = {
+    mobileImage: undefined as unknown as Express.Multer.File,
+    desktopImage: undefined as unknown as Express.Multer.File,
+  };
+
   it('deve impedir atualização quando a data inicial enviada for maior que a data final enviada', async () => {
     getBannerUseCase.execute.mockResolvedValue(makeBanner());
 
@@ -48,6 +54,7 @@ describe('UpdateBannerUseCase', () => {
         finishDate: new Date('2024-02-01T00:00:00.000Z'),
       }),
       'user-id',
+      emptyUpdateBannerFiles,
     );
 
     await expect(result).rejects.toBeInstanceOf(BadRequestException);
@@ -80,6 +87,7 @@ describe('UpdateBannerUseCase', () => {
         finishDate: new Date('2024-01-05T00:00:00.000Z'),
       }),
       'user-id',
+      emptyUpdateBannerFiles,
     );
 
     await expect(result).rejects.toBeInstanceOf(BadRequestException);
@@ -106,6 +114,7 @@ describe('UpdateBannerUseCase', () => {
           finishDate: undefined,
         }),
         'user-id',
+        emptyUpdateBannerFiles,
       ),
     ).resolves.toBeUndefined();
 
@@ -170,12 +179,12 @@ describe('UpdateBannerUseCase', () => {
 
     expect(storageService.uploadFile).toHaveBeenNthCalledWith(
       1,
-      files.mobileImage[0],
+      files.mobileImage,
       'banners',
     );
     expect(storageService.uploadFile).toHaveBeenNthCalledWith(
       2,
-      files.desktopImage[0],
+      files.desktopImage,
       'banners',
     );
     expect(storageService.deleteFile).toHaveBeenNthCalledWith(1, [
@@ -197,9 +206,10 @@ describe('UpdateBannerUseCase', () => {
   });
 
   it('deve atualizar banner quando somente uma nova mobileImage for enviada', async () => {
-    const files = makeUpdateBannerFiles({
-      desktopImage: [],
-    });
+    const files = {
+      mobileImage: makeBannerFile({ originalname: 'banner-mobile.png' }),
+      desktopImage: undefined as unknown as Express.Multer.File,
+    };
 
     getBannerUseCase.execute.mockResolvedValue(
       makeBanner({
@@ -229,7 +239,7 @@ describe('UpdateBannerUseCase', () => {
 
     expect(storageService.uploadFile).toHaveBeenCalledTimes(1);
     expect(storageService.uploadFile).toHaveBeenCalledWith(
-      files.mobileImage[0],
+      files.mobileImage,
       'banners',
     );
     expect(storageService.deleteFile).toHaveBeenCalledTimes(1);
@@ -248,9 +258,10 @@ describe('UpdateBannerUseCase', () => {
   });
 
   it('deve atualizar banner quando somente uma nova desktopImage for enviada', async () => {
-    const files = makeUpdateBannerFiles({
-      mobileImage: [],
-    });
+    const files = {
+      mobileImage: undefined as unknown as Express.Multer.File,
+      desktopImage: makeBannerFile({ originalname: 'banner-desktop.png' }),
+    };
 
     getBannerUseCase.execute.mockResolvedValue(
       makeBanner({
@@ -280,7 +291,7 @@ describe('UpdateBannerUseCase', () => {
 
     expect(storageService.uploadFile).toHaveBeenCalledTimes(1);
     expect(storageService.uploadFile).toHaveBeenCalledWith(
-      files.desktopImage[0],
+      files.desktopImage,
       'banners',
     );
     expect(storageService.deleteFile).toHaveBeenCalledTimes(1);
@@ -309,6 +320,7 @@ describe('UpdateBannerUseCase', () => {
         'organization-id',
         makeUpdateBannerDTO(),
         'user-id',
+        emptyUpdateBannerFiles,
       ),
     ).rejects.toBe(error);
 
@@ -338,9 +350,10 @@ describe('UpdateBannerUseCase', () => {
 
   it('deve propagar erro quando storageService.deleteFile falhar', async () => {
     const error = new Error('Erro ao remover arquivo anterior');
-    const files = makeUpdateBannerFiles({
-      desktopImage: undefined,
-    });
+    const files = {
+      mobileImage: makeBannerFile({ originalname: 'banner-mobile.png' }),
+      desktopImage: undefined as unknown as Express.Multer.File,
+    };
 
     getBannerUseCase.execute.mockResolvedValue(
       makeBanner({
@@ -379,6 +392,7 @@ describe('UpdateBannerUseCase', () => {
         'organization-id',
         makeUpdateBannerDTO(),
         'user-id',
+        emptyUpdateBannerFiles,
       ),
     ).rejects.toBe(error);
   });
