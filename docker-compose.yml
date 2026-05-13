@@ -1,6 +1,21 @@
 name: central-midias-api
 
 services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - central_midias_api_redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+
   app:
     build:
       context: .
@@ -11,6 +26,9 @@ services:
       - '4000:4000'
     env_file:
       - .env
+    depends_on:
+      redis:
+        condition: service_healthy
     volumes:
       - .:/usr/src/app
     restart: unless-stopped
@@ -25,3 +43,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+volumes:
+  central_midias_api_redis_data:
+    name: central-midias-api-redis-data

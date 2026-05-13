@@ -1,26 +1,49 @@
 name: central-midias-api-dev
 
 services:
-  postgres:
-    image: postgres:18
+  redis:
+    image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - '5434:5432'
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      PGDATA: /var/lib/postgresql/data
+      - '6379:6379'
     volumes:
-      - central_midias_api_dev_pgdata_v18:/var/lib/postgresql/data
-    shm_size: 256m
+      - central_midias_api_dev_redis_data:/data
+    command: redis-server --appendonly yes
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 30
-      start_period: 10s
+      start_period: 5s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # container_name: backoffice-prd
+    image: central-midias-api
+    ports:
+      - '4000:4000'
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/usr/src/app
+    restart: unless-stopped
+
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget --quiet --tries=1 --spider http://localhost:4000/api/health || curl -f http://localhost:4000/api/health || exit 1',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
-  central_midias_api_dev_pgdata_v18:
-    name: central-midias-api-dev-pgdata-v18
+  central_midias_api_dev_redis_data:
+    name: central-midias-api-dev-redis-data
