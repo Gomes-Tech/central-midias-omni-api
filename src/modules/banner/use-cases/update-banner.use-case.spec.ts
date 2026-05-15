@@ -1,8 +1,7 @@
 import { BadRequestException } from '@common/filters';
 import { StorageService } from '@infrastructure/providers';
 import { BannerRepository } from '../repository';
-import { GetBannerUseCase } from './get-banner.use-case';
-import { UpdateBannerUseCase } from './update-banner.use-case';
+import { GetBannerUseCase } from './get-banner-by-id.use-case';
 import {
   makeBanner,
   makeBannerFile,
@@ -10,6 +9,7 @@ import {
   makeUpdateBannerDTO,
   makeUpdateBannerFiles,
 } from './test-helpers';
+import { UpdateBannerUseCase } from './update-banner.use-case';
 
 describe('UpdateBannerUseCase', () => {
   let useCase: UpdateBannerUseCase;

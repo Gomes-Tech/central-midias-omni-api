@@ -17,11 +17,12 @@ import {
   UploadedFiles,
   UseGuards,
 } from '@nestjs/common';
+import { FindAllBannersFiltersDTO } from './dto';
 import { CreateBannerDTO } from './dto/create-banner.dto';
 import { UpdateBannerDTO } from './dto/update-banner.dto';
 import { CreateBannerUseCase } from './use-cases/create-banner.use-case';
 import { DeleteBannerUseCase } from './use-cases/delete-banner.use-case';
-import { GetBannerUseCase } from './use-cases/get-banner.use-case';
+import { GetBannerUseCase } from './use-cases/get-banner-by-id.use-case';
 import { ListBannersUseCase } from './use-cases/list-banners.use-case';
 import { UpdateBannerUseCase } from './use-cases/update-banner.use-case';
 
@@ -70,23 +71,31 @@ export class BannerController {
   @Get()
   async list(
     @OrgId() organizationId: string,
-    @Query('referenceDate') referenceDate?: string,
+    @Query() filters: FindAllBannersFiltersDTO = {},
   ) {
-    return await this.listBannersUseCase.execute(organizationId, referenceDate);
+    return await this.listBannersUseCase.execute(organizationId, filters);
   }
 
   @Get('/list')
   async listWeb(@OrgId() organizationId: string) {
-    return await this.listBannersUseCase.execute(
-      organizationId,
-      new Date().toISOString(),
-    );
+    const now = new Date();
+
+    return await this.listBannersUseCase.execute(organizationId, {
+      onlyActive: true,
+      initialDate: now,
+      finishDate: now,
+    });
   }
 
   @RequirePermission('banners', 'read')
   @Get(':id')
   async getById(@Param('id') id: string, @OrgId() organizationId: string) {
-    return await this.getBannerUseCase.execute(id, organizationId);
+    const banner = await this.getBannerUseCase.execute(id, organizationId);
+
+    delete banner.mobileImageKey;
+    delete banner.desktopImageKey;
+
+    return banner;
   }
 
   @MaxFileSize(undefined, 5)

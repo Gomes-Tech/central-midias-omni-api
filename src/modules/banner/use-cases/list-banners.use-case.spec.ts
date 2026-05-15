@@ -15,45 +15,73 @@ describe('ListBannersUseCase', () => {
     useCase = new ListBannersUseCase(bannerRepository);
   });
 
-  it('deve retornar a lista do repositório quando não houver data de referência', async () => {
-    const banners = [
-      makeBanner(),
-      makeBanner({ id: 'banner-2', order: 2, name: 'Banner secundário' }),
-    ];
+  it('deve retornar a lista do repositório quando não houver filtros de data', async () => {
+    const paginated = {
+      data: [
+        makeBanner(),
+        makeBanner({ id: 'banner-2', order: 2, name: 'Banner secundário' }),
+      ],
+      total: 2,
+      page: 1,
+      totalPages: 1,
+    };
 
-    bannerRepository.findAll.mockResolvedValue(banners);
+    bannerRepository.findAll.mockResolvedValue(paginated);
 
-    await expect(useCase.execute('organization-id')).resolves.toEqual(banners);
+    await expect(useCase.execute('organization-id')).resolves.toEqual(
+      paginated,
+    );
 
-    expect(bannerRepository.findAll).toHaveBeenCalledWith({
-      organizationId: 'organization-id',
-      onlyActive: true,
-      referenceDate: undefined,
-    });
+    expect(bannerRepository.findAll).toHaveBeenCalledWith(
+      {},
+      'organization-id',
+    );
   });
 
-  it('deve converter a data de referência e chamar o repositório com os filtros corretos', async () => {
-    const referenceDate = '2024-03-15T12:00:00.000Z';
+  it('deve converter as datas e chamar o repositório com os filtros corretos', async () => {
+    const initialDate = '2024-03-01T00:00:00.000Z';
+    const finishDate = '2024-03-15T12:00:00.000Z';
+    const emptyPaginated = { data: [], total: 0, page: 1, totalPages: 0 };
 
-    bannerRepository.findAll.mockResolvedValue([]);
+    bannerRepository.findAll.mockResolvedValue(emptyPaginated);
 
     await expect(
-      useCase.execute('organization-id', referenceDate),
-    ).resolves.toEqual([]);
+      useCase.execute('organization-id', {
+        initialDate: new Date(initialDate),
+        finishDate: new Date(finishDate),
+        page: 1,
+      }),
+    ).resolves.toEqual(emptyPaginated);
 
-    expect(bannerRepository.findAll).toHaveBeenCalledWith({
-      organizationId: 'organization-id',
-      onlyActive: true,
-      referenceDate: new Date(referenceDate),
-    });
+    expect(bannerRepository.findAll).toHaveBeenCalledWith(
+      {
+        initialDate: new Date(initialDate),
+        finishDate: new Date(finishDate),
+        page: 1,
+      },
+      'organization-id',
+    );
     expect(bannerRepository.findAll).toHaveBeenCalledTimes(1);
   });
 
-  it('deve lançar erro quando a data de referência for inválida', async () => {
-    const result = useCase.execute('organization-id', 'data-invalida');
+  it('deve lançar erro quando a data inicial for inválida', async () => {
+    const result = useCase.execute('organization-id', {
+      initialDate: 'data-invalida' as unknown as Date,
+    });
 
     await expect(result).rejects.toBeInstanceOf(BadRequestException);
-    await expect(result).rejects.toThrow('Data de referência inválida');
+    await expect(result).rejects.toThrow('Data inicial inválida');
+
+    expect(bannerRepository.findAll).not.toHaveBeenCalled();
+  });
+
+  it('deve lançar erro quando a data final for inválida', async () => {
+    const result = useCase.execute('organization-id', {
+      finishDate: 'data-invalida' as unknown as Date,
+    });
+
+    await expect(result).rejects.toBeInstanceOf(BadRequestException);
+    await expect(result).rejects.toThrow('Data final inválida');
 
     expect(bannerRepository.findAll).not.toHaveBeenCalled();
   });

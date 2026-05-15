@@ -3,9 +3,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BannerController } from './banner.controller';
 import { CreateBannerUseCase } from './use-cases/create-banner.use-case';
 import { DeleteBannerUseCase } from './use-cases/delete-banner.use-case';
-import { GetBannerUseCase } from './use-cases/get-banner.use-case';
+import { GetBannerUseCase } from './use-cases/get-banner-by-id.use-case';
 import { ListBannersUseCase } from './use-cases/list-banners.use-case';
 import { UpdateBannerUseCase } from './use-cases/update-banner.use-case';
+ase';
 
 describe('BannerController', () => {
   let controller: BannerController;
@@ -40,26 +41,32 @@ describe('BannerController', () => {
   });
 
   describe('list', () => {
-    it('deve delegar ao ListBannersUseCase com data opcional', async () => {
-      listBannersUseCase.execute.mockResolvedValue([]);
+    it('deve delegar ao ListBannersUseCase com os filtros da query', async () => {
+      const filters = { page: 1, limit: 25, searchTerm: 'promo' };
 
-      await controller.list('org-1', '2024-01-01');
+      listBannersUseCase.execute.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 1,
+        totalPages: 0,
+      });
 
-      expect(listBannersUseCase.execute).toHaveBeenCalledWith(
-        'org-1',
-        '2024-01-01',
-      );
+      await controller.list('org-1', filters);
+
+      expect(listBannersUseCase.execute).toHaveBeenCalledWith('org-1', filters);
     });
 
-    it('deve omitir referenceDate quando não informado', async () => {
-      listBannersUseCase.execute.mockResolvedValue([]);
+    it('deve delegar com filtros vazios quando não informados', async () => {
+      listBannersUseCase.execute.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 1,
+        totalPages: 0,
+      });
 
-      await controller.list('org-1');
+      await controller.list('org-1', {});
 
-      expect(listBannersUseCase.execute).toHaveBeenCalledWith(
-        'org-1',
-        undefined,
-      );
+      expect(listBannersUseCase.execute).toHaveBeenCalledWith('org-1', {});
     });
   });
 

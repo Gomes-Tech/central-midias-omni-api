@@ -4,7 +4,7 @@ import { BannerController } from './banner.controller';
 import { BannerRepository } from './repository/banner.repository';
 import { CreateBannerUseCase } from './use-cases/create-banner.use-case';
 import { DeleteBannerUseCase } from './use-cases/delete-banner.use-case';
-import { GetBannerUseCase } from './use-cases/get-banner.use-case';
+import { GetBannerUseCase } from './use-cases/get-banner-by-id.use-case';
 import { ListBannersUseCase } from './use-cases/list-banners.use-case';
 import { UpdateBannerUseCase } from './use-cases/update-banner.use-case';
 

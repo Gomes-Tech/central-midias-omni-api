@@ -3,7 +3,7 @@ import { StorageService } from '@infrastructure/providers';
 import { Inject, Injectable } from '@nestjs/common';
 import { UpdateBannerDTO } from '../dto/update-banner.dto';
 import { BannerRepository } from '../repository/banner.repository';
-import { GetBannerUseCase } from './get-banner.use-case';
+import { GetBannerUseCase } from './get-banner-by-id.use-case';
 
 @Injectable()
 export class UpdateBannerUseCase {

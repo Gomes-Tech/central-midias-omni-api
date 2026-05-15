@@ -3,8 +3,21 @@ import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { PaginatedResponse } from '../../../types';
+import { FindAllBannersFiltersDTO } from '../dto';
 import { CreateBannerDTO } from '../dto/create-banner.dto';
 import { UpdateBannerDTO } from '../dto/update-banner.dto';
+import { BannerList } from '../entities';
+
+const bannerListSelect = {
+  id: true,
+  name: true,
+  link: true,
+  order: true,
+  isActive: true,
+  initialDate: true,
+  finishDate: true,
+} satisfies Prisma.BannerSelect;
 
 @Injectable()
 export class BannerRepository {
@@ -13,48 +26,70 @@ export class BannerRepository {
     private readonly logger: LoggerService,
   ) {}
 
-  async findAll(params: {
-    organizationId: string;
-    onlyActive?: boolean;
-    referenceDate?: Date;
-  }) {
-    const { organizationId, onlyActive = true, referenceDate } = params;
+  async findAll(
+    filters: FindAllBannersFiltersDTO = {},
+    organizationId: string,
+  ): Promise<PaginatedResponse<BannerList>> {
+    const {
+      onlyActive = false,
+      initialDate,
+      finishDate,
+      page = 1,
+      limit = 25,
+      searchTerm,
+    } = filters;
+    const skip = (page - 1) * limit;
+
+    const dateFilters: Prisma.BannerWhereInput[] = [];
+
+    if (initialDate) {
+      dateFilters.push({
+        OR: [{ initialDate: null }, { initialDate: { lte: initialDate } }],
+      });
+    }
+
+    if (finishDate) {
+      dateFilters.push({
+        OR: [{ finishDate: null }, { finishDate: { gte: finishDate } }],
+      });
+    }
 
     try {
       const where: Prisma.BannerWhereInput = {
         organizationId,
         isDeleted: false,
         ...(onlyActive ? { isActive: true } : {}),
-        ...(referenceDate
-          ? {
-              AND: [
-                {
-                  OR: [
-                    { initialDate: null },
-                    { initialDate: { lte: referenceDate } },
-                  ],
-                },
-                {
-                  OR: [
-                    { finishDate: null },
-                    { finishDate: { gte: referenceDate } },
-                  ],
-                },
-              ],
-            }
-          : {}),
+        ...(dateFilters.length > 0 ? { AND: dateFilters } : {}),
+        ...(searchTerm && {
+          name: { contains: searchTerm, mode: 'insensitive' },
+        }),
       };
 
-      return await this.prisma.banner.findMany({
-        where,
-        orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
-      });
+      const [data, total] = await Promise.all([
+        this.prisma.banner.findMany({
+          where,
+          select: bannerListSelect,
+          orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+          skip,
+          take: limit,
+        }),
+        this.prisma.banner.count({ where }),
+      ]);
+
+      return {
+        data,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      };
     } catch (error) {
       void this.logger.error('BannerRepository.findAll falhou', {
         error: String(error),
         organizationId,
         onlyActive,
-        referenceDate,
+        initialDate,
+        finishDate,
+        searchTerm,
       });
 
       throw new BadRequestException('Erro ao buscar banners');
@@ -68,6 +103,17 @@ export class BannerRepository {
           id,
           organizationId,
           isDeleted: false,
+        },
+        select: {
+          id: true,
+          name: true,
+          link: true,
+          order: true,
+          isActive: true,
+          initialDate: true,
+          finishDate: true,
+          mobileImageKey: true,
+          desktopImageKey: true,
         },
       });
     } catch (error) {

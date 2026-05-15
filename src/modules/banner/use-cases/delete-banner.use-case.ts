@@ -1,7 +1,7 @@
 import { StorageService } from '@infrastructure/providers';
 import { Injectable } from '@nestjs/common';
 import { BannerRepository } from '../repository/banner.repository';
-import { GetBannerUseCase } from './get-banner.use-case';
+import { GetBannerUseCase } from './get-banner-by-id.use-case';
 
 @Injectable()
 export class DeleteBannerUseCase {

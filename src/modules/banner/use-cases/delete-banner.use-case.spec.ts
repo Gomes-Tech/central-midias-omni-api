@@ -1,7 +1,7 @@
 import { StorageService } from '@infrastructure/providers';
 import { BannerRepository } from '../repository';
 import { DeleteBannerUseCase } from './delete-banner.use-case';
-import { GetBannerUseCase } from './get-banner.use-case';
+import { GetBannerUseCase } from './get-banner-by-id.use-case';
 import { makeBanner } from './test-helpers';
 
 describe('DeleteBannerUseCase', () => {
