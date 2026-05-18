@@ -3,6 +3,7 @@ import { AuthGuard, CategoryPermissionGuard } from '@common/guards';
 import {
   FileSizeValidationInterceptor,
   FileTypeValidationInterceptor,
+  HoneypotFieldInterceptor,
 } from '@common/interceptors';
 import {
   OrganizationMiddleware,
@@ -84,6 +85,10 @@ import { AppService } from './app.service';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: HoneypotFieldInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,
