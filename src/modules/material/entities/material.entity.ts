@@ -15,6 +15,18 @@ export interface MaterialListItem {
   materialFilesCount: number;
 }
 
+export interface MaterialFileItem {
+  id: string;
+  materialId: string;
+  fileKey: string;
+  mimeType: string;
+  size: number;
+}
+
+export interface MaterialFileWithUrl extends Omit<MaterialFileItem, 'fileKey'> {
+  url: string;
+}
+
 // Faz sentido manter o mapeamento. Retorno da query:
 
 // const materials: {

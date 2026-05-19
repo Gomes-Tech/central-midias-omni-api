@@ -1,10 +1,11 @@
+import { NotFoundException } from '@common/filters';
 import { StorageService } from '@infrastructure/providers';
 import { Injectable } from '@nestjs/common';
 import { MaterialRepository } from '../repository';
 import { FindMaterialByIdUseCase } from './find-material-by-id.use-case';
 
 @Injectable()
-export class DeleteMaterialUseCase {
+export class DeleteMaterialFileUseCase {
   constructor(
     private readonly materialRepository: MaterialRepository,
     private readonly findMaterialByIdUseCase: FindMaterialByIdUseCase,
@@ -12,20 +13,30 @@ export class DeleteMaterialUseCase {
   ) {}
 
   async execute(
-    id: string,
+    materialId: string,
+    fileId: string,
     organizationId: string,
     userId: string,
   ): Promise<void> {
-    await this.findMaterialByIdUseCase.execute(id, organizationId);
-    const files = await this.materialRepository.findFilesByMaterialId(
-      id,
+    await this.findMaterialByIdUseCase.execute(materialId, organizationId);
+
+    const file = await this.materialRepository.findFileById(
+      fileId,
+      materialId,
       organizationId,
     );
 
-    await this.materialRepository.delete(id, organizationId, userId);
-
-    if (files.length) {
-      await this.storageService.deleteFile(files.map((file) => file.fileKey));
+    if (!file) {
+      throw new NotFoundException('Arquivo do material não encontrado');
     }
+
+    await this.materialRepository.deleteFile(
+      fileId,
+      materialId,
+      organizationId,
+      userId,
+    );
+
+    await this.storageService.deleteFile([file.fileKey]);
   }
 }

@@ -3,16 +3,21 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MaterialController } from './material.controller';
 import {
   CreateMaterialUseCase,
+  DeleteMaterialFileUseCase,
   DeleteMaterialUseCase,
   FindAllMaterialsUseCase,
+  FindMaterialFilesUseCase,
   FindMaterialByIdUseCase,
+  UploadMaterialFilesUseCase,
   UpdateMaterialUseCase,
 } from './use-cases';
 import {
   makeCreateMaterialDTO,
   makeFindAllMaterialsFiltersDTO,
+  makeMaterialFile,
   makeMaterialDetails,
   makeMaterialListItem,
+  makeUploadFile,
   makeUpdateMaterialDTO,
 } from './use-cases/test-helpers';
 
@@ -21,15 +26,21 @@ describe('MaterialController', () => {
   let createMaterialUseCase: { execute: jest.Mock };
   let deleteMaterialUseCase: { execute: jest.Mock };
   let findAllMaterialsUseCase: { execute: jest.Mock };
+  let findMaterialFilesUseCase: { execute: jest.Mock };
   let findMaterialByIdUseCase: { execute: jest.Mock };
+  let uploadMaterialFilesUseCase: { execute: jest.Mock };
   let updateMaterialUseCase: { execute: jest.Mock };
+  let deleteMaterialFileUseCase: { execute: jest.Mock };
 
   beforeEach(async () => {
     createMaterialUseCase = { execute: jest.fn() };
     deleteMaterialUseCase = { execute: jest.fn() };
     findAllMaterialsUseCase = { execute: jest.fn() };
+    findMaterialFilesUseCase = { execute: jest.fn() };
     findMaterialByIdUseCase = { execute: jest.fn() };
+    uploadMaterialFilesUseCase = { execute: jest.fn() };
     updateMaterialUseCase = { execute: jest.fn() };
+    deleteMaterialFileUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MaterialController],
@@ -43,6 +54,18 @@ describe('MaterialController', () => {
         {
           provide: FindMaterialByIdUseCase,
           useValue: findMaterialByIdUseCase,
+        },
+        {
+          provide: FindMaterialFilesUseCase,
+          useValue: findMaterialFilesUseCase,
+        },
+        {
+          provide: UploadMaterialFilesUseCase,
+          useValue: uploadMaterialFilesUseCase,
+        },
+        {
+          provide: DeleteMaterialFileUseCase,
+          useValue: deleteMaterialFileUseCase,
         },
         { provide: UpdateMaterialUseCase, useValue: updateMaterialUseCase },
       ],
@@ -80,15 +103,70 @@ describe('MaterialController', () => {
     );
   });
 
+  it('deve delegar findFiles', async () => {
+    const files = [{ ...makeMaterialFile(), url: 'https://cdn.test/file.pdf' }];
+    findMaterialFilesUseCase.execute.mockResolvedValue(files);
+
+    const result = await controller.findFiles('material-id', 'org-id');
+
+    expect(result).toBe(files);
+    expect(findMaterialFilesUseCase.execute).toHaveBeenCalledWith(
+      'material-id',
+      'org-id',
+    );
+  });
+
   it('deve delegar create', async () => {
     const dto = makeCreateMaterialDTO();
+    const file = makeUploadFile();
     createMaterialUseCase.execute.mockResolvedValue(undefined);
 
-    await controller.create(dto, 'org-id', 'user-id');
+    await controller.create(dto, 'org-id', 'user-id', [file]);
 
     expect(createMaterialUseCase.execute).toHaveBeenCalledWith(
       'org-id',
       dto,
+      'user-id',
+      [file],
+    );
+  });
+
+  it('deve delegar uploadFiles com array de arquivos', async () => {
+    const file = makeUploadFile();
+    const payload = [makeMaterialFile()];
+    uploadMaterialFilesUseCase.execute.mockResolvedValue(payload);
+
+    const result = await controller.uploadFiles(
+      'material-id',
+      'org-id',
+      [file],
+      'user-id',
+    );
+
+    expect(result).toBe(payload);
+    expect(uploadMaterialFilesUseCase.execute).toHaveBeenCalledWith(
+      'material-id',
+      'org-id',
+      [file],
+      'user-id',
+    );
+  });
+
+  it('deve delegar uploadFiles normalizando objeto de arquivos', async () => {
+    const file = makeUploadFile();
+    uploadMaterialFilesUseCase.execute.mockResolvedValue([makeMaterialFile()]);
+
+    await controller.uploadFiles(
+      'material-id',
+      'org-id',
+      { files: [file] },
+      'user-id',
+    );
+
+    expect(uploadMaterialFilesUseCase.execute).toHaveBeenCalledWith(
+      'material-id',
+      'org-id',
+      [file],
       'user-id',
     );
   });
@@ -114,6 +192,19 @@ describe('MaterialController', () => {
 
     expect(deleteMaterialUseCase.execute).toHaveBeenCalledWith(
       'material-id',
+      'org-id',
+      'user-id',
+    );
+  });
+
+  it('deve delegar deleteFile', async () => {
+    deleteMaterialFileUseCase.execute.mockResolvedValue(undefined);
+
+    await controller.deleteFile('material-id', 'file-id', 'org-id', 'user-id');
+
+    expect(deleteMaterialFileUseCase.execute).toHaveBeenCalledWith(
+      'material-id',
+      'file-id',
       'org-id',
       'user-id',
     );

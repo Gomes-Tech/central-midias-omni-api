@@ -3,7 +3,11 @@ import {
   FindAllMaterialsFiltersDTO,
   UpdateMaterialDTO,
 } from '../dto';
-import { MaterialDetails, MaterialListItem } from '../entities';
+import {
+  MaterialDetails,
+  MaterialFileItem,
+  MaterialListItem,
+} from '../entities';
 
 export function makeCreateMaterialDTO(
   overrides: Partial<CreateMaterialDTO> = {},
@@ -62,4 +66,35 @@ export function makeMaterialDetails(
     deletedAt: null,
     ...overrides,
   };
+}
+
+export function makeMaterialFile(
+  overrides: Partial<MaterialFileItem> = {},
+): MaterialFileItem {
+  return {
+    id: 'material-file-id',
+    materialId: 'material-id',
+    fileKey: 'materials/material-id/file.pdf',
+    mimeType: 'application/pdf',
+    size: 1024,
+    ...overrides,
+  };
+}
+
+export function makeUploadFile(
+  overrides: Partial<Express.Multer.File> = {},
+): Express.Multer.File {
+  return {
+    fieldname: 'files',
+    originalname: 'arquivo.pdf',
+    encoding: '7bit',
+    mimetype: 'application/pdf',
+    size: 1024,
+    buffer: Buffer.from('file'),
+    destination: '',
+    filename: '',
+    path: '',
+    stream: undefined,
+    ...overrides,
+  } as Express.Multer.File;
 }

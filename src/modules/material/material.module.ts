@@ -5,9 +5,12 @@ import { MaterialController } from './material.controller';
 import { MaterialRepository } from './repository';
 import {
   CreateMaterialUseCase,
+  DeleteMaterialFileUseCase,
   DeleteMaterialUseCase,
   FindAllMaterialsUseCase,
+  FindMaterialFilesUseCase,
   FindMaterialByIdUseCase,
+  UploadMaterialFilesUseCase,
   UpdateMaterialUseCase,
 } from './use-cases';
 
@@ -22,6 +25,9 @@ import {
     CreateMaterialUseCase,
     UpdateMaterialUseCase,
     DeleteMaterialUseCase,
+    UploadMaterialFilesUseCase,
+    FindMaterialFilesUseCase,
+    DeleteMaterialFileUseCase,
     {
       provide: 'MaterialRepository',
       useExisting: MaterialRepository,
@@ -34,6 +40,9 @@ import {
     CreateMaterialUseCase,
     UpdateMaterialUseCase,
     DeleteMaterialUseCase,
+    UploadMaterialFilesUseCase,
+    FindMaterialFilesUseCase,
+    DeleteMaterialFileUseCase,
     {
       provide: 'MaterialRepository',
       useExisting: MaterialRepository,

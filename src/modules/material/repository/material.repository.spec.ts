@@ -11,6 +11,12 @@ function createPrismaMock() {
       create: jest.fn(),
       updateMany: jest.fn(),
     },
+    materialFile: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      deleteMany: jest.fn(),
+    },
   };
 }
 
@@ -111,7 +117,9 @@ describe('MaterialRepository', () => {
         },
       });
 
-      await expect(repository.findById('material-id', 'org-id')).resolves.toEqual(
+      await expect(
+        repository.findById('material-id', 'org-id'),
+      ).resolves.toEqual(
         expect.objectContaining({
           id: 'material-id',
           deletedAt: null,
@@ -122,9 +130,9 @@ describe('MaterialRepository', () => {
     it('deve lançar BadRequest quando findFirst falhar', async () => {
       prisma.material.findFirst.mockRejectedValue(new Error('db'));
 
-      await expect(repository.findById('material-id', 'org-id')).rejects.toThrow(
-        'Erro ao buscar material',
-      );
+      await expect(
+        repository.findById('material-id', 'org-id'),
+      ).rejects.toThrow('Erro ao buscar material');
     });
   });
 
@@ -208,6 +216,53 @@ describe('MaterialRepository', () => {
         ),
       ).rejects.toThrow(BadRequestException);
     });
+
+    it('deve criar material com id informado e arquivos relacionados', async () => {
+      prisma.material.create.mockResolvedValue({ id: 'material-id' });
+
+      await expect(
+        repository.create(
+          'org-id',
+          {
+            name: 'Material institucional',
+            description: 'Descricao',
+            categoryId: 'category-id',
+          },
+          'user-id',
+          {
+            id: 'material-id',
+            files: [
+              {
+                fileKey: 'materials/material-id/file.pdf',
+                mimeType: 'application/pdf',
+                size: 1024,
+              },
+            ],
+          },
+        ),
+      ).resolves.toBe(undefined);
+
+      expect(prisma.material.create).toHaveBeenCalledWith({
+        data: {
+          id: 'material-id',
+          name: 'Material institucional',
+          description: 'Descricao',
+          categoryId: 'category-id',
+          materialFiles: {
+            create: [
+              {
+                imageKey: 'materials/material-id/file.pdf',
+                mimeType: 'application/pdf',
+                size: 1024,
+              },
+            ],
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+    });
   });
 
   describe('update', () => {
@@ -264,6 +319,173 @@ describe('MaterialRepository', () => {
           deletedAt: expect.any(Date),
         },
       });
+    });
+  });
+
+  describe('createFiles', () => {
+    it('deve criar arquivos do material e mapear imageKey para fileKey', async () => {
+      prisma.materialFile.create.mockResolvedValue({
+        id: 'file-id',
+        materialId: 'material-id',
+        imageKey: 'materials/material-id/file.pdf',
+        mimeType: 'application/pdf',
+        size: 1024,
+      });
+
+      await expect(
+        repository.createFiles(
+          'material-id',
+          'org-id',
+          [
+            {
+              fileKey: 'materials/material-id/file.pdf',
+              mimeType: 'application/pdf',
+              size: 1024,
+            },
+          ],
+          'user-id',
+        ),
+      ).resolves.toEqual([
+        {
+          id: 'file-id',
+          materialId: 'material-id',
+          fileKey: 'materials/material-id/file.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+        },
+      ]);
+
+      expect(prisma.materialFile.create).toHaveBeenCalledWith({
+        data: {
+          materialId: 'material-id',
+          imageKey: 'materials/material-id/file.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+        },
+        select: expect.any(Object),
+      });
+      expect(logger.info).toHaveBeenCalledWith(
+        'Arquivos de material criados',
+        expect.objectContaining({
+          materialId: 'material-id',
+          filesCount: 1,
+        }),
+      );
+    });
+
+    it('deve lançar BadRequest quando create de arquivo falhar', async () => {
+      prisma.materialFile.create.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.createFiles(
+          'material-id',
+          'org-id',
+          [
+            {
+              fileKey: 'materials/material-id/file.pdf',
+              mimeType: 'application/pdf',
+              size: 1024,
+            },
+          ],
+          'user-id',
+        ),
+      ).rejects.toThrow('Erro ao salvar arquivos do material');
+    });
+  });
+
+  describe('findFilesByMaterialId', () => {
+    it('deve buscar arquivos no escopo da organização', async () => {
+      prisma.materialFile.findMany.mockResolvedValue([
+        {
+          id: 'file-id',
+          materialId: 'material-id',
+          imageKey: 'materials/material-id/file.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+        },
+      ]);
+
+      await expect(
+        repository.findFilesByMaterialId('material-id', 'org-id'),
+      ).resolves.toEqual([
+        {
+          id: 'file-id',
+          materialId: 'material-id',
+          fileKey: 'materials/material-id/file.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+        },
+      ]);
+
+      expect(prisma.materialFile.findMany).toHaveBeenCalledWith({
+        where: {
+          materialId: 'material-id',
+          material: {
+            deletedAt: null,
+            category: {
+              organizationId: 'org-id',
+              isDeleted: false,
+            },
+          },
+        },
+        select: expect.any(Object),
+        orderBy: {
+          id: 'asc',
+        },
+      });
+    });
+  });
+
+  describe('findFileById', () => {
+    it('deve buscar arquivo por id no escopo do material', async () => {
+      prisma.materialFile.findFirst.mockResolvedValue({
+        id: 'file-id',
+        materialId: 'material-id',
+        imageKey: 'materials/material-id/file.pdf',
+        mimeType: 'application/pdf',
+        size: 1024,
+      });
+
+      await expect(
+        repository.findFileById('file-id', 'material-id', 'org-id'),
+      ).resolves.toEqual({
+        id: 'file-id',
+        materialId: 'material-id',
+        fileKey: 'materials/material-id/file.pdf',
+        mimeType: 'application/pdf',
+        size: 1024,
+      });
+    });
+  });
+
+  describe('deleteFile', () => {
+    it('deve remover arquivo no escopo da organização', async () => {
+      prisma.materialFile.deleteMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        repository.deleteFile('file-id', 'material-id', 'org-id', 'user-id'),
+      ).resolves.toBe(undefined);
+
+      expect(prisma.materialFile.deleteMany).toHaveBeenCalledWith({
+        where: {
+          id: 'file-id',
+          materialId: 'material-id',
+          material: {
+            deletedAt: null,
+            category: {
+              organizationId: 'org-id',
+              isDeleted: false,
+            },
+          },
+        },
+      });
+      expect(logger.info).toHaveBeenCalledWith(
+        'Arquivo de material removido',
+        expect.objectContaining({
+          fileId: 'file-id',
+          materialId: 'material-id',
+        }),
+      );
     });
   });
 });

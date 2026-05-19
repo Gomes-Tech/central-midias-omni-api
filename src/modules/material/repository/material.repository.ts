@@ -8,7 +8,11 @@ import {
   FindAllMaterialsFiltersDTO,
   UpdateMaterialDTO,
 } from '../dto';
-import { MaterialDetails, MaterialListItem } from '../entities';
+import {
+  MaterialDetails,
+  MaterialFileItem,
+  MaterialListItem,
+} from '../entities';
 
 const materialListSelect = {
   id: true,
@@ -39,6 +43,29 @@ const materialDetailsSelect = {
 type MaterialListRow = Prisma.MaterialGetPayload<{
   select: typeof materialListSelect;
 }>;
+
+const materialFileSelect = {
+  id: true,
+  materialId: true,
+  imageKey: true,
+  mimeType: true,
+  size: true,
+} satisfies Prisma.MaterialFileSelect;
+
+type MaterialFileRow = Prisma.MaterialFileGetPayload<{
+  select: typeof materialFileSelect;
+}>;
+
+export interface CreateMaterialFileInput {
+  fileKey: string;
+  mimeType: string;
+  size: number;
+}
+
+export interface CreateMaterialOptions {
+  id?: string;
+  files?: CreateMaterialFileInput[];
+}
 
 @Injectable()
 export class MaterialRepository {
@@ -191,13 +218,24 @@ export class MaterialRepository {
     organizationId: string,
     data: CreateMaterialDTO,
     userId: string,
+    options: CreateMaterialOptions = {},
   ): Promise<void> {
     try {
       const material = await this.prisma.material.create({
         data: {
+          ...(options.id && { id: options.id }),
           name: data.name,
           description: data.description ?? null,
           categoryId: data.categoryId,
+          ...(options.files?.length && {
+            materialFiles: {
+              create: options.files.map((file) => ({
+                imageKey: file.fileKey,
+                mimeType: file.mimeType,
+                size: file.size,
+              })),
+            },
+          }),
         },
         select: {
           id: true,
@@ -301,6 +339,158 @@ export class MaterialRepository {
     }
   }
 
+  async createFiles(
+    materialId: string,
+    organizationId: string,
+    files: CreateMaterialFileInput[],
+    userId: string,
+  ): Promise<MaterialFileItem[]> {
+    try {
+      const createdFiles = await Promise.all(
+        files.map((file) =>
+          this.prisma.materialFile.create({
+            data: {
+              materialId,
+              imageKey: file.fileKey,
+              mimeType: file.mimeType,
+              size: file.size,
+            },
+            select: materialFileSelect,
+          }),
+        ),
+      );
+
+      void this.logger.info('Arquivos de material criados', {
+        materialId,
+        organizationId,
+        filesCount: createdFiles.length,
+        userId,
+      });
+
+      return createdFiles.map((file) => this.mapMaterialFile(file));
+    } catch (error) {
+      void this.logger.error('MaterialRepository.createFiles falhou', {
+        error: String(error),
+        materialId,
+        organizationId,
+        userId,
+      });
+
+      throw new BadRequestException('Erro ao salvar arquivos do material');
+    }
+  }
+
+  async findFilesByMaterialId(
+    materialId: string,
+    organizationId: string,
+  ): Promise<MaterialFileItem[]> {
+    try {
+      const files = await this.prisma.materialFile.findMany({
+        where: {
+          materialId,
+          material: {
+            deletedAt: null,
+            category: {
+              organizationId,
+              isDeleted: false,
+            },
+          },
+        },
+        select: materialFileSelect,
+        orderBy: {
+          id: 'asc',
+        },
+      });
+
+      return files.map((file) => this.mapMaterialFile(file));
+    } catch (error) {
+      void this.logger.error(
+        'MaterialRepository.findFilesByMaterialId falhou',
+        {
+          error: String(error),
+          materialId,
+          organizationId,
+        },
+      );
+
+      throw new BadRequestException('Erro ao buscar arquivos do material');
+    }
+  }
+
+  async findFileById(
+    id: string,
+    materialId: string,
+    organizationId: string,
+  ): Promise<MaterialFileItem | null> {
+    try {
+      const file = await this.prisma.materialFile.findFirst({
+        where: {
+          id,
+          materialId,
+          material: {
+            deletedAt: null,
+            category: {
+              organizationId,
+              isDeleted: false,
+            },
+          },
+        },
+        select: materialFileSelect,
+      });
+
+      return file ? this.mapMaterialFile(file) : null;
+    } catch (error) {
+      void this.logger.error('MaterialRepository.findFileById falhou', {
+        error: String(error),
+        id,
+        materialId,
+        organizationId,
+      });
+
+      throw new BadRequestException('Erro ao buscar arquivo do material');
+    }
+  }
+
+  async deleteFile(
+    id: string,
+    materialId: string,
+    organizationId: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      await this.prisma.materialFile.deleteMany({
+        where: {
+          id,
+          materialId,
+          material: {
+            deletedAt: null,
+            category: {
+              organizationId,
+              isDeleted: false,
+            },
+          },
+        },
+      });
+
+      void this.logger.info('Arquivo de material removido', {
+        fileId: id,
+        materialId,
+        organizationId,
+        userId,
+      });
+    } catch (error) {
+      void this.logger.error('MaterialRepository.deleteFile falhou', {
+        error: String(error),
+        id,
+        materialId,
+        organizationId,
+        userId,
+      });
+
+      throw new BadRequestException('Erro ao remover arquivo do material');
+    }
+  }
+
   // Por conta do tipo composto retornado pela query, faz sentido manter o mapeamento manual para os tipos de retorno do repositório
   private mapListItem(material: MaterialListRow): MaterialListItem {
     return {
@@ -312,6 +502,16 @@ export class MaterialRepository {
       updatedAt: material.updatedAt,
       category: material.category,
       materialFilesCount: material._count.materialFiles,
+    };
+  }
+
+  private mapMaterialFile(file: MaterialFileRow): MaterialFileItem {
+    return {
+      id: file.id,
+      materialId: file.materialId,
+      fileKey: file.imageKey,
+      mimeType: file.mimeType,
+      size: file.size,
     };
   }
 }

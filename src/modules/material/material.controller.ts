@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFiles,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -18,11 +19,19 @@ import {
 } from './dto';
 import {
   CreateMaterialUseCase,
+  DeleteMaterialFileUseCase,
   DeleteMaterialUseCase,
   FindAllMaterialsUseCase,
   FindMaterialByIdUseCase,
+  FindMaterialFilesUseCase,
   UpdateMaterialUseCase,
+  UploadMaterialFilesUseCase,
 } from './use-cases';
+
+type UploadedMaterialFiles =
+  | Express.Multer.File[]
+  | Record<string, Express.Multer.File[] | Express.Multer.File | undefined>
+  | undefined;
 
 @UseGuards(PlatformPermissionGuard)
 @Controller('materials')
@@ -33,7 +42,24 @@ export class MaterialController {
     private readonly createMaterialUseCase: CreateMaterialUseCase,
     private readonly updateMaterialUseCase: UpdateMaterialUseCase,
     private readonly deleteMaterialUseCase: DeleteMaterialUseCase,
+    private readonly uploadMaterialFilesUseCase: UploadMaterialFilesUseCase,
+    private readonly findMaterialFilesUseCase: FindMaterialFilesUseCase,
+    private readonly deleteMaterialFileUseCase: DeleteMaterialFileUseCase,
   ) {}
+
+  private getFiles(files: UploadedMaterialFiles): Express.Multer.File[] {
+    if (!files) {
+      return [];
+    }
+
+    if (Array.isArray(files)) {
+      return files;
+    }
+
+    return Object.values(files)
+      .flatMap((file) => (Array.isArray(file) ? file : [file]))
+      .filter(Boolean) as Express.Multer.File[];
+  }
 
   @RequirePermission('materials', 'read')
   @Get()
@@ -50,14 +76,42 @@ export class MaterialController {
     return await this.findMaterialByIdUseCase.execute(id, organizationId);
   }
 
+  @RequirePermission('materials', 'read')
+  @Get(':id/files')
+  async findFiles(@Param('id') id: string, @OrgId() organizationId: string) {
+    return await this.findMaterialFilesUseCase.execute(id, organizationId);
+  }
+
   @RequirePermission('materials', 'create')
   @Post()
   async create(
     @Body() dto: CreateMaterialDTO,
     @OrgId() organizationId: string,
     @UserId() userId: string,
+    @UploadedFiles() files: UploadedMaterialFiles,
   ) {
-    await this.createMaterialUseCase.execute(organizationId, dto, userId);
+    await this.createMaterialUseCase.execute(
+      organizationId,
+      dto,
+      userId,
+      this.getFiles(files),
+    );
+  }
+
+  @RequirePermission('materials', 'update')
+  @Post(':id/files')
+  async uploadFiles(
+    @Param('id') id: string,
+    @OrgId() organizationId: string,
+    @UploadedFiles() files: UploadedMaterialFiles,
+    @UserId() userId: string,
+  ) {
+    return await this.uploadMaterialFilesUseCase.execute(
+      id,
+      organizationId,
+      this.getFiles(files),
+      userId,
+    );
   }
 
   @RequirePermission('materials', 'update')
@@ -79,5 +133,21 @@ export class MaterialController {
     @UserId() userId: string,
   ) {
     await this.deleteMaterialUseCase.execute(id, organizationId, userId);
+  }
+
+  @RequirePermission('materials', 'update')
+  @Delete(':id/files/:fileId')
+  async deleteFile(
+    @Param('id') id: string,
+    @Param('fileId') fileId: string,
+    @OrgId() organizationId: string,
+    @UserId() userId: string,
+  ) {
+    await this.deleteMaterialFileUseCase.execute(
+      id,
+      fileId,
+      organizationId,
+      userId,
+    );
   }
 }

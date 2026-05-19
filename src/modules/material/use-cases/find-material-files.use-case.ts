@@ -1,10 +1,11 @@
 import { StorageService } from '@infrastructure/providers';
 import { Injectable } from '@nestjs/common';
+import { MaterialFileWithUrl } from '../entities';
 import { MaterialRepository } from '../repository';
 import { FindMaterialByIdUseCase } from './find-material-by-id.use-case';
 
 @Injectable()
-export class DeleteMaterialUseCase {
+export class FindMaterialFilesUseCase {
   constructor(
     private readonly materialRepository: MaterialRepository,
     private readonly findMaterialByIdUseCase: FindMaterialByIdUseCase,
@@ -12,20 +13,21 @@ export class DeleteMaterialUseCase {
   ) {}
 
   async execute(
-    id: string,
+    materialId: string,
     organizationId: string,
-    userId: string,
-  ): Promise<void> {
-    await this.findMaterialByIdUseCase.execute(id, organizationId);
+  ): Promise<MaterialFileWithUrl[]> {
+    await this.findMaterialByIdUseCase.execute(materialId, organizationId);
+
     const files = await this.materialRepository.findFilesByMaterialId(
-      id,
+      materialId,
       organizationId,
     );
 
-    await this.materialRepository.delete(id, organizationId, userId);
-
-    if (files.length) {
-      await this.storageService.deleteFile(files.map((file) => file.fileKey));
-    }
+    return await Promise.all(
+      files.map(async ({ fileKey, ...file }) => ({
+        ...file,
+        url: await this.storageService.getPublicUrl(fileKey),
+      })),
+    );
   }
 }
