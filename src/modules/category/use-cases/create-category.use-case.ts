@@ -30,14 +30,15 @@ export class CreateCategoryUseCase {
       throw new BadRequestException('Já existe uma categoria com este slug');
     }
 
-    const existingOrder = await this.categoryRepository.findByOrder(
+    const existingOrder = await this.categoryRepository.findSiblingByOrder(
       data.order,
       organizationId,
+      data.parentId ?? null,
     );
 
     if (existingOrder) {
       throw new BadRequestException(
-        'Já existe uma categoria com esta ordem nesta organização',
+        'Já existe uma categoria com esta ordem neste nível',
       );
     }
 

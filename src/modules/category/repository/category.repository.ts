@@ -82,22 +82,24 @@ export class CategoryRepository {
     userId: string,
   ): Promise<CategoryTreeItem[]> {
     try {
+      const member = await this.prisma.member.findFirst({
+        where: {
+          organizationId,
+          userId,
+          user: { isActive: true, isDeleted: false },
+        },
+        select: { roleId: true },
+      });
+
+      if (!member) {
+        return [];
+      }
+
       const categories = await this.prisma.category.findMany({
         where: {
           organizationId,
           isDeleted: false,
-          categoryRoleAccesses: {
-            some: {
-              role: {
-                members: {
-                  some: {
-                    organizationId,
-                    userId: userId,
-                  },
-                },
-              },
-            },
-          },
+          isActive: true,
         },
         orderBy: [{ order: 'asc' }, { name: 'asc' }],
         select: {
@@ -107,20 +109,72 @@ export class CategoryRepository {
           isActive: true,
           order: true,
           parentId: true,
+          categoryRoleAccesses: {
+            select: { roleId: true },
+          },
         },
       });
+
+      const categoriesById = new Map(
+        categories.map((category) => [category.id, category]),
+      );
+      const includedIds = new Set<string>();
+
+      const isCategoryAccessible = (category: (typeof categories)[number]) => {
+        if (category.categoryRoleAccesses.length === 0) {
+          return true;
+        }
+
+        return category.categoryRoleAccesses.some(
+          (access) => access.roleId === member.roleId,
+        );
+      };
+
+      const includeWithAncestors = (categoryId: string) => {
+        let currentId: string | null | undefined = categoryId;
+
+        while (currentId) {
+          if (includedIds.has(currentId)) {
+            break;
+          }
+
+          const current = categoriesById.get(currentId);
+
+          if (!current) {
+            break;
+          }
+
+          includedIds.add(current.id);
+          currentId = current.parentId;
+        }
+      };
+
+      for (const category of categories) {
+        if (isCategoryAccessible(category)) {
+          includeWithAncestors(category.id);
+        }
+      }
+
+      const visibleCategories = categories.filter((category) =>
+        includedIds.has(category.id),
+      );
 
       const map = new Map<string, CategoryTreeItem>();
       const tree: CategoryTreeItem[] = [];
 
-      for (const category of categories) {
+      for (const category of visibleCategories) {
         map.set(category.id, {
-          ...category,
+          id: category.id,
+          name: category.name,
+          slug: category.slug,
+          isActive: category.isActive,
+          order: category.order,
+          parentId: category.parentId,
           children: [],
         });
       }
 
-      for (const category of categories) {
+      for (const category of visibleCategories) {
         const node = map.get(category.id);
 
         if (!node) {
@@ -332,18 +386,20 @@ export class CategoryRepository {
     };
   }
 
-  async findByOrder(
+  async findSiblingByOrder(
     order: number,
     organizationId: string,
+    parentId: string | null,
+    excludeId?: string,
   ): Promise<{ id: string; order: number } | null> {
     try {
-      return await this.prisma.category.findUnique({
+      return await this.prisma.category.findFirst({
         where: {
+          organizationId,
+          order,
+          parentId,
           isDeleted: false,
-          organizationId_order: {
-            organizationId,
-            order,
-          },
+          ...(excludeId && { id: { not: excludeId } }),
         },
         select: {
           id: true,
@@ -351,10 +407,11 @@ export class CategoryRepository {
         },
       });
     } catch (error) {
-      void this.logger.error('CategoryRepository.findByOrder falhou', {
+      void this.logger.error('CategoryRepository.findSiblingByOrder falhou', {
         error: String(error),
         order,
         organizationId,
+        parentId,
       });
 
       throw new BadRequestException('Erro ao buscar categoria por ordem');

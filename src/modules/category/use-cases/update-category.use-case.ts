@@ -34,15 +34,26 @@ export class UpdateCategoryUseCase {
       }
     }
 
-    if (typeof data.order === 'number' && data.order !== category.order) {
-      const existingOrder = await this.categoryRepository.findByOrder(
-        data.order,
+    const effectiveParentId =
+      data.parentId !== undefined ? data.parentId : category.parentId;
+    const effectiveOrder =
+      typeof data.order === 'number' ? data.order : category.order;
+    const parentChanged =
+      data.parentId !== undefined && data.parentId !== category.parentId;
+    const orderChanged =
+      typeof data.order === 'number' && data.order !== category.order;
+
+    if (parentChanged || orderChanged) {
+      const existingOrder = await this.categoryRepository.findSiblingByOrder(
+        effectiveOrder,
         organizationId,
+        effectiveParentId,
+        id,
       );
 
-      if (existingOrder && existingOrder.id !== id) {
+      if (existingOrder) {
         throw new BadRequestException(
-          'Já existe uma categoria com esta ordem nesta organização',
+          'Já existe uma categoria com esta ordem neste nível',
         );
       }
     }

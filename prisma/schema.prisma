@@ -194,7 +194,7 @@ model Category {
   materials            Material[]
 
   @@unique([organizationId, slug])
-  @@unique([organizationId, order])
+  @@unique([organizationId, parentId, order])
   @@index([organizationId])
   @@index([parentId])
   @@index([organizationId, parentId])

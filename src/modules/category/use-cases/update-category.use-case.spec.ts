@@ -8,7 +8,7 @@ describe('UpdateCategoryUseCase', () => {
   let categoryRepository: jest.Mocked<
     Pick<
       CategoryRepository,
-      'findBySlug' | 'findByOrder' | 'findHierarchyReferences' | 'update'
+      'findBySlug' | 'findSiblingByOrder' | 'findHierarchyReferences' | 'update'
     >
   >;
   let findCategoryByIdUseCase: jest.Mocked<
@@ -19,7 +19,7 @@ describe('UpdateCategoryUseCase', () => {
   beforeEach(() => {
     categoryRepository = {
       findBySlug: jest.fn(),
-      findByOrder: jest.fn(),
+      findSiblingByOrder: jest.fn(),
       findHierarchyReferences: jest.fn(),
       update: jest.fn(),
     };
@@ -90,7 +90,7 @@ describe('UpdateCategoryUseCase', () => {
     const data = makeUpdateCategoryDTO({ order: 5 });
 
     findCategoryByIdUseCase.execute.mockResolvedValue(category);
-    categoryRepository.findByOrder.mockResolvedValue({
+    categoryRepository.findSiblingByOrder.mockResolvedValue({
       id: 'outra',
       order: 5,
     });
@@ -98,7 +98,7 @@ describe('UpdateCategoryUseCase', () => {
     await expect(
       useCase.execute('cat-1', 'org-id', data, 'user-id'),
     ).rejects.toThrow(
-      'Já existe uma categoria com esta ordem nesta organização',
+      'Já existe uma categoria com esta ordem neste nível',
     );
 
     expect(categoryRepository.update).not.toHaveBeenCalled();
@@ -162,6 +162,43 @@ describe('UpdateCategoryUseCase', () => {
     ).resolves.toBeUndefined();
 
     expect(categoryRepository.update).toHaveBeenCalled();
+  });
+
+  it('deve validar ordem no novo nível quando o pai mudar', async () => {
+    const category = makeCategoryDetails({
+      id: 'child',
+      order: 0,
+      parentId: 'old-parent',
+    });
+    const data = makeUpdateCategoryDTO({ parentId: 'new-parent' });
+
+    findCategoryByIdUseCase.execute
+      .mockResolvedValueOnce(category)
+      .mockResolvedValueOnce(
+        makeCategoryDetails({ id: 'new-parent', slug: 'p' }),
+      );
+    categoryRepository.findHierarchyReferences.mockResolvedValue([
+      { id: 'child', parentId: 'old-parent' },
+      { id: 'new-parent', parentId: null },
+    ]);
+    categoryRepository.findSiblingByOrder.mockResolvedValue({
+      id: 'sibling',
+      order: 0,
+    });
+
+    await expect(
+      useCase.execute('child', 'org-id', data, 'user-id'),
+    ).rejects.toThrow(
+      'Já existe uma categoria com esta ordem neste nível',
+    );
+
+    expect(categoryRepository.findSiblingByOrder).toHaveBeenCalledWith(
+      0,
+      'org-id',
+      'new-parent',
+      'child',
+    );
+    expect(categoryRepository.update).not.toHaveBeenCalled();
   });
 
   it('deve propagar NotFound quando a categoria não existir', async () => {

@@ -22,6 +22,9 @@ function createPrismaMock() {
       update: jest.fn(),
       updateMany: jest.fn(),
     },
+    member: {
+      findFirst: jest.fn(),
+    },
     $queryRawUnsafe: jest.fn(),
   };
 }
@@ -102,6 +105,10 @@ describe('CategoryRepository', () => {
   });
 
   describe('findTree', () => {
+    beforeEach(() => {
+      prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
+    });
+
     it('deve agrupar filhos sob o pai na árvore', async () => {
       prisma.category.findMany.mockResolvedValue([
         {
@@ -111,6 +118,7 @@ describe('CategoryRepository', () => {
           isActive: true,
           order: 0,
           parentId: null,
+          categoryRoleAccesses: [],
         },
         {
           id: 'f1',
@@ -119,6 +127,7 @@ describe('CategoryRepository', () => {
           isActive: true,
           order: 1,
           parentId: 'p1',
+          categoryRoleAccesses: [],
         },
       ]);
 
@@ -128,14 +137,82 @@ describe('CategoryRepository', () => {
       expect(tree[0].id).toBe('p1');
       expect(tree[0].children).toHaveLength(1);
       expect(tree[0].children[0].id).toBe('f1');
+      expect(prisma.member.findFirst).toHaveBeenCalled();
       expect(prisma.category.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             organizationId: 'org-1',
             isDeleted: false,
+            isActive: true,
           }),
         }),
       );
+    });
+
+    it('deve retornar vazio quando o usuário não for membro da organização', async () => {
+      prisma.member.findFirst.mockResolvedValue(null);
+
+      const tree = await repository.findTree('org-1', 'user-1');
+
+      expect(tree).toEqual([]);
+      expect(prisma.category.findMany).not.toHaveBeenCalled();
+    });
+
+    it('deve incluir ancestrais quando apenas o filho tiver acesso', async () => {
+      prisma.category.findMany.mockResolvedValue([
+        {
+          id: 'p1',
+          name: 'Pai',
+          slug: 'pai',
+          isActive: true,
+          order: 0,
+          parentId: null,
+          categoryRoleAccesses: [{ roleId: 'other-role' }],
+        },
+        {
+          id: 'f1',
+          name: 'Filho',
+          slug: 'filho',
+          isActive: true,
+          order: 1,
+          parentId: 'p1',
+          categoryRoleAccesses: [{ roleId: 'role-1' }],
+        },
+      ]);
+
+      const tree = await repository.findTree('org-1', 'user-1');
+
+      expect(tree).toHaveLength(1);
+      expect(tree[0].id).toBe('p1');
+      expect(tree[0].children[0].id).toBe('f1');
+    });
+
+    it('deve ocultar categorias restritas a outro papel', async () => {
+      prisma.category.findMany.mockResolvedValue([
+        {
+          id: 'c1',
+          name: 'Restrita',
+          slug: 'restrita',
+          isActive: true,
+          order: 0,
+          parentId: null,
+          categoryRoleAccesses: [{ roleId: 'other-role' }],
+        },
+        {
+          id: 'c2',
+          name: 'Livre',
+          slug: 'livre',
+          isActive: true,
+          order: 1,
+          parentId: null,
+          categoryRoleAccesses: [],
+        },
+      ]);
+
+      const tree = await repository.findTree('org-1', 'user-1');
+
+      expect(tree).toHaveLength(1);
+      expect(tree[0].id).toBe('c2');
     });
 
     it('deve lançar BadRequest quando findMany falhar', async () => {
@@ -156,6 +233,7 @@ describe('CategoryRepository', () => {
           isActive: true,
           order: 0,
           parentId: null,
+          categoryRoleAccesses: [],
         },
       ]);
 
@@ -342,30 +420,51 @@ describe('CategoryRepository', () => {
     });
   });
 
-  describe('findByOrder', () => {
-    it('deve buscar por organizationId_order', async () => {
-      prisma.category.findUnique.mockResolvedValue({ id: 'c1', order: 5 });
+  describe('findSiblingByOrder', () => {
+    it('deve buscar irmão com mesma ordem no mesmo nível (raiz)', async () => {
+      prisma.category.findFirst.mockResolvedValue({ id: 'c1', order: 5 });
 
-      await expect(repository.findByOrder(5, 'org-1')).resolves.toEqual({
+      await expect(
+        repository.findSiblingByOrder(5, 'org-1', null),
+      ).resolves.toEqual({
         id: 'c1',
         order: 5,
       });
 
-      expect(prisma.category.findUnique).toHaveBeenCalledWith({
+      expect(prisma.category.findFirst).toHaveBeenCalledWith({
         where: {
+          organizationId: 'org-1',
+          order: 5,
+          parentId: null,
           isDeleted: false,
-          organizationId_order: { organizationId: 'org-1', order: 5 },
+        },
+        select: { id: true, order: true },
+      });
+    });
+
+    it('deve buscar irmão com mesmo pai e excluir id quando informado', async () => {
+      prisma.category.findFirst.mockResolvedValue(null);
+
+      await repository.findSiblingByOrder(2, 'org-1', 'parent-id', 'cat-1');
+
+      expect(prisma.category.findFirst).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          order: 2,
+          parentId: 'parent-id',
+          isDeleted: false,
+          id: { not: 'cat-1' },
         },
         select: { id: true, order: true },
       });
     });
 
     it('deve lançar BadRequest quando falhar', async () => {
-      prisma.category.findUnique.mockRejectedValue(new Error('db'));
+      prisma.category.findFirst.mockRejectedValue(new Error('db'));
 
-      await expect(repository.findByOrder(1, 'org')).rejects.toThrow(
-        'Erro ao buscar categoria por ordem',
-      );
+      await expect(
+        repository.findSiblingByOrder(1, 'org', null),
+      ).rejects.toThrow('Erro ao buscar categoria por ordem');
     });
   });
 

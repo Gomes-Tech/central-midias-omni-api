@@ -15,7 +15,7 @@ describe('CreateCategoryUseCase', () => {
 
   beforeEach(() => {
     categoryRepository = {
-      findByOrder: jest.fn(),
+      findSiblingByOrder: jest.fn(),
       create: jest.fn(),
     } as unknown as jest.Mocked<CategoryRepository>;
 
@@ -40,7 +40,7 @@ describe('CreateCategoryUseCase', () => {
     findCategoryBySlugUseCase.execute.mockRejectedValue(
       new NotFoundException('Categoria não encontrada'),
     );
-    categoryRepository.findByOrder.mockResolvedValue(null);
+    categoryRepository.findSiblingByOrder.mockResolvedValue(null);
     categoryRepository.create.mockResolvedValue();
 
     await expect(
@@ -53,6 +53,11 @@ describe('CreateCategoryUseCase', () => {
       'user-id',
     );
     expect(findCategoryByIdUseCase.execute).not.toHaveBeenCalled();
+    expect(categoryRepository.findSiblingByOrder).toHaveBeenCalledWith(
+      0,
+      'org-id',
+      null,
+    );
   });
 
   it('deve lançar BadRequest quando o slug já existir', async () => {
@@ -79,13 +84,13 @@ describe('CreateCategoryUseCase', () => {
     findCategoryBySlugUseCase.execute.mockRejectedValue(
       new NotFoundException('Categoria não encontrada'),
     );
-    categoryRepository.findByOrder.mockResolvedValue({
+    categoryRepository.findSiblingByOrder.mockResolvedValue({
       id: 'other-id',
       order: 3,
     });
 
     await expect(useCase.execute('org-id', dto, 'user-id')).rejects.toThrow(
-      'Já existe uma categoria com esta ordem nesta organização',
+      'Já existe uma categoria com esta ordem neste nível',
     );
 
     expect(categoryRepository.create).not.toHaveBeenCalled();
@@ -101,7 +106,7 @@ describe('CreateCategoryUseCase', () => {
     findCategoryBySlugUseCase.execute.mockRejectedValue(
       new NotFoundException('Categoria não encontrada'),
     );
-    categoryRepository.findByOrder.mockResolvedValue(null);
+    categoryRepository.findSiblingByOrder.mockResolvedValue(null);
     findCategoryByIdUseCase.execute.mockResolvedValue(parent);
     categoryRepository.create.mockResolvedValue();
 
@@ -113,6 +118,11 @@ describe('CreateCategoryUseCase', () => {
       'parent-id',
       'org-id',
     );
+    expect(categoryRepository.findSiblingByOrder).toHaveBeenCalledWith(
+      0,
+      'org-id',
+      'parent-id',
+    );
     expect(categoryRepository.create).toHaveBeenCalled();
   });
 
@@ -122,7 +132,7 @@ describe('CreateCategoryUseCase', () => {
     findCategoryBySlugUseCase.execute.mockRejectedValue(
       new NotFoundException('Categoria não encontrada'),
     );
-    categoryRepository.findByOrder.mockResolvedValue(null);
+    categoryRepository.findSiblingByOrder.mockResolvedValue(null);
     findCategoryByIdUseCase.execute.mockResolvedValue(
       makeCategoryDetails({ id: 'parent-id', isActive: false }),
     );
@@ -140,7 +150,7 @@ describe('CreateCategoryUseCase', () => {
     findCategoryBySlugUseCase.execute.mockRejectedValue(
       new NotFoundException('Categoria não encontrada'),
     );
-    categoryRepository.findByOrder.mockResolvedValue(null);
+    categoryRepository.findSiblingByOrder.mockResolvedValue(null);
     findCategoryByIdUseCase.execute.mockRejectedValue(
       new NotFoundException('Categoria não encontrada'),
     );
