@@ -8,9 +8,14 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { Action } from '@prisma/client';
-import { CreateRoleDTO, FindAllRolesFiltersDTO, UpdateRoleDTO } from '../dto';
+import {
+  CreateRoleDTO,
+  FindAllRolePermissionsFiltersDTO,
+  FindAllRolesFiltersDTO,
+  UpdateRoleDTO,
+} from '../dto';
 import { CreateGlobalRoleDTO } from '../dto/create-global-role.dto';
-import { Role } from '../entities';
+import { Role, RolePermissionListResponse } from '../entities';
 
 @Injectable()
 export class RolesRepository {
@@ -29,6 +34,87 @@ export class RolesRepository {
       return roles;
     } catch (error) {
       this.handleError('RolesRepository.findAll falhou', error, { filters });
+    }
+  }
+
+  async findAllPermissions(
+    organizationId: string,
+    filters: FindAllRolePermissionsFiltersDTO = {},
+  ): Promise<RolePermissionListResponse> {
+    const { page = 1, limit = 25, searchTerm } = filters;
+    const skip = (page - 1) * limit;
+
+    try {
+      const where = {
+        deletedAt: null,
+        canAccessBackoffice: false,
+        categoryRoleAccesses: {
+          some: {
+            organizationId,
+          },
+        },
+        ...(searchTerm && {
+          OR: [
+            {
+              label: {
+                contains: searchTerm,
+                mode: 'insensitive' as const,
+              },
+            },
+            {
+              name: {
+                contains: searchTerm,
+                mode: 'insensitive' as const,
+              },
+            },
+          ],
+        }),
+      };
+
+      const [data, total] = await Promise.all([
+        this.prisma.role.findMany({
+          where,
+          select: {
+            id: true,
+            name: true,
+            label: true,
+            canHaveSubordinates: true,
+            categoryRoleAccesses: {
+              where: { organizationId },
+              select: {
+                id: true,
+                categoryId: true,
+                organizationId: true,
+                category: {
+                  select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                  },
+                },
+              },
+              orderBy: [{ category: { name: 'asc' } }],
+            },
+          },
+          orderBy: [{ label: 'asc' }],
+          skip,
+          take: limit,
+        }),
+        this.prisma.role.count({ where }),
+      ]);
+
+      return {
+        data,
+        total,
+        page,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      this.handleError('RolesRepository.findAllPermissions falhou', error, {
+        organizationId,
+        filters,
+      });
     }
   }
 

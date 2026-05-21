@@ -10,6 +10,7 @@ function createPrismaMock() {
   return {
     role: {
       findMany: jest.fn(),
+      count: jest.fn(),
       findUnique: jest.fn(),
       findFirst: jest.fn(),
       create: jest.fn(),
@@ -65,6 +66,189 @@ describe('RolesRepository', () => {
         InternalServerErrorException,
       );
       expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('findAllPermissions', () => {
+    it('deve listar roles da plataforma da organização com paginação e categorias', async () => {
+      const rows = [
+        {
+          id: 'role-1',
+          name: 'EDITOR',
+          label: 'Editor',
+          canHaveSubordinates: false,
+          categoryRoleAccesses: [
+            {
+              id: 'access-1',
+              categoryId: 'cat-1',
+              organizationId: 'org-1',
+              category: {
+                id: 'cat-1',
+                name: 'Categoria 1',
+                slug: 'categoria-1',
+              },
+            },
+          ],
+        },
+      ];
+      prisma.role.findMany.mockResolvedValue(rows);
+      prisma.role.count.mockResolvedValue(1);
+
+      const result = await repository.findAllPermissions('org-1', {
+        page: 2,
+        limit: 10,
+        searchTerm: 'edit',
+      });
+
+      expect(result).toEqual({
+        data: rows,
+        total: 1,
+        page: 2,
+        currentPage: 2,
+        totalPages: 1,
+      });
+      expect(prisma.role.findMany).toHaveBeenCalledWith({
+        where: {
+          deletedAt: null,
+          canAccessBackoffice: false,
+          categoryRoleAccesses: {
+            some: {
+              organizationId: 'org-1',
+            },
+          },
+          OR: [
+            {
+              label: {
+                contains: 'edit',
+                mode: 'insensitive',
+              },
+            },
+            {
+              name: {
+                contains: 'edit',
+                mode: 'insensitive',
+              },
+            },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          label: true,
+          canHaveSubordinates: true,
+          categoryRoleAccesses: {
+            where: { organizationId: 'org-1' },
+            select: {
+              id: true,
+              categoryId: true,
+              organizationId: true,
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+            orderBy: [{ category: { name: 'asc' } }],
+          },
+        },
+        orderBy: [{ label: 'asc' }],
+        skip: 10,
+        take: 10,
+      });
+      expect(prisma.role.count).toHaveBeenCalledWith({
+        where: {
+          deletedAt: null,
+          canAccessBackoffice: false,
+          categoryRoleAccesses: {
+            some: {
+              organizationId: 'org-1',
+            },
+          },
+          OR: [
+            {
+              label: {
+                contains: 'edit',
+                mode: 'insensitive',
+              },
+            },
+            {
+              name: {
+                contains: 'edit',
+                mode: 'insensitive',
+              },
+            },
+          ],
+        },
+      });
+    });
+
+    it('deve usar paginação padrão quando filtros não forem informados', async () => {
+      prisma.role.findMany.mockResolvedValue([]);
+      prisma.role.count.mockResolvedValue(0);
+
+      const result = await repository.findAllPermissions('org-1');
+
+      expect(result).toEqual({
+        data: [],
+        total: 0,
+        page: 1,
+        currentPage: 1,
+        totalPages: 0,
+      });
+      expect(prisma.role.findMany).toHaveBeenCalledWith({
+        where: {
+          deletedAt: null,
+          canAccessBackoffice: false,
+          categoryRoleAccesses: {
+            some: {
+              organizationId: 'org-1',
+            },
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          label: true,
+          canHaveSubordinates: true,
+          categoryRoleAccesses: {
+            where: { organizationId: 'org-1' },
+            select: {
+              id: true,
+              categoryId: true,
+              organizationId: true,
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+            orderBy: [{ category: { name: 'asc' } }],
+          },
+        },
+        orderBy: [{ label: 'asc' }],
+        skip: 0,
+        take: 25,
+      });
+    });
+
+    it('deve lançar InternalServerError quando a busca falhar com erro genérico', async () => {
+      prisma.role.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(repository.findAllPermissions('org-1')).rejects.toBeInstanceOf(
+        InternalServerErrorException,
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'RolesRepository.findAllPermissions falhou',
+        expect.objectContaining({
+          organizationId: 'org-1',
+          filters: {},
+          error: expect.any(String),
+        }),
+      );
     });
   });
 

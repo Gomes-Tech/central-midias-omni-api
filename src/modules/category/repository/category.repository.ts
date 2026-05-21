@@ -91,7 +91,9 @@ export class CategoryRepository {
         select: { roleId: true },
       });
 
-      if (!member) {
+      const canViewAllCategories = await this.isGlobalAdmin(userId);
+
+      if (!member && !canViewAllCategories) {
         return [];
       }
 
@@ -121,6 +123,10 @@ export class CategoryRepository {
       const includedIds = new Set<string>();
 
       const isCategoryAccessible = (category: (typeof categories)[number]) => {
+        if (canViewAllCategories) {
+          return true;
+        }
+
         if (category.categoryRoleAccesses.length === 0) {
           return true;
         }
@@ -198,6 +204,28 @@ export class CategoryRepository {
 
       throw new BadRequestException('Erro ao buscar árvore de categorias');
     }
+  }
+
+  private async isGlobalAdmin(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: userId,
+        isActive: true,
+        isDeleted: false,
+      },
+      select: {
+        globalRole: {
+          select: {
+            name: true,
+            canAccessBackoffice: true,
+          },
+        },
+      },
+    });
+
+    return (
+      user?.globalRole?.name === 'ADMIN' && user.globalRole.canAccessBackoffice
+    );
   }
 
   async findById(

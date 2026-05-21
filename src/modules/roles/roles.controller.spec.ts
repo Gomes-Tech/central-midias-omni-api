@@ -10,6 +10,7 @@ import {
   CreateGlobalRoleUseCase,
   CreateRoleUseCase,
   DeleteRoleUseCase,
+  FindAllRolePermissionsUseCase,
   FindAllRolesUseCase,
   FindAllSelectRolesUseCase,
   FindRoleByIdUseCase,
@@ -19,6 +20,7 @@ import {
 describe('RolesController', () => {
   let controller: RolesController;
   let findAllRolesUseCase: { execute: jest.Mock };
+  let findAllRolePermissionsUseCase: { execute: jest.Mock };
   let findAllSelectRolesUseCase: { execute: jest.Mock };
   let findRoleByIdUseCase: { execute: jest.Mock };
   let createRoleUseCase: { execute: jest.Mock };
@@ -28,6 +30,7 @@ describe('RolesController', () => {
 
   beforeEach(async () => {
     findAllRolesUseCase = { execute: jest.fn() };
+    findAllRolePermissionsUseCase = { execute: jest.fn() };
     findAllSelectRolesUseCase = { execute: jest.fn() };
     findRoleByIdUseCase = { execute: jest.fn() };
     createRoleUseCase = { execute: jest.fn() };
@@ -39,6 +42,10 @@ describe('RolesController', () => {
       controllers: [RolesController],
       providers: [
         { provide: FindAllRolesUseCase, useValue: findAllRolesUseCase },
+        {
+          provide: FindAllRolePermissionsUseCase,
+          useValue: findAllRolePermissionsUseCase,
+        },
         {
           provide: FindAllSelectRolesUseCase,
           useValue: findAllSelectRolesUseCase,
@@ -83,6 +90,43 @@ describe('RolesController', () => {
       await controller.findAllSelect();
 
       expect(findAllSelectRolesUseCase.execute).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('findAllPermissions', () => {
+    it('deve delegar ao FindAllRolePermissionsUseCase com organizationId e filtros', async () => {
+      const filters = { page: 2, searchTerm: 'editor' };
+      findAllRolePermissionsUseCase.execute.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 2,
+        currentPage: 2,
+        totalPages: 0,
+      });
+
+      await controller.findAllPermissions('org-1', filters);
+
+      expect(findAllRolePermissionsUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+        filters,
+      );
+    });
+
+    it('deve usar filtros vazios por padrão', async () => {
+      findAllRolePermissionsUseCase.execute.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 1,
+        currentPage: 1,
+        totalPages: 0,
+      });
+
+      await controller.findAllPermissions('org-1');
+
+      expect(findAllRolePermissionsUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+        {},
+      );
     });
   });
 

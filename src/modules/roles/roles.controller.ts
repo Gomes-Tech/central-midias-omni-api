@@ -14,6 +14,7 @@ import {
 import {
   CreateGlobalRoleDTO,
   CreateRoleDTO,
+  FindAllRolePermissionsFiltersDTO,
   FindAllRolesFiltersDTO,
   UpdateRoleDTO,
 } from './dto';
@@ -21,6 +22,7 @@ import {
   CreateGlobalRoleUseCase,
   CreateRoleUseCase,
   DeleteRoleUseCase,
+  FindAllRolePermissionsUseCase,
   FindAllRolesUseCase,
   FindAllSelectRolesUseCase,
   FindRoleByIdUseCase,
@@ -32,6 +34,7 @@ import {
 export class RolesController {
   constructor(
     private readonly findAllRolesUseCase: FindAllRolesUseCase,
+    private readonly findAllRolePermissionsUseCase: FindAllRolePermissionsUseCase,
     private readonly findAllSelectRolesUseCase: FindAllSelectRolesUseCase,
     private readonly findRoleByIdUseCase: FindRoleByIdUseCase,
     private readonly createRoleUseCase: CreateRoleUseCase,
@@ -50,6 +53,18 @@ export class RolesController {
   @Get('select')
   async findAllSelect() {
     return await this.findAllSelectRolesUseCase.execute();
+  }
+
+  @RequirePermission('roles', 'read')
+  @Get('permissions')
+  async findAllPermissions(
+    @OrgId() organizationId: string,
+    @Query() filters: FindAllRolePermissionsFiltersDTO = {},
+  ) {
+    return await this.findAllRolePermissionsUseCase.execute(
+      organizationId,
+      filters,
+    );
   }
 
   @RequirePermission('roles', 'read')

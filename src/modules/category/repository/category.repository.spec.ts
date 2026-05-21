@@ -25,6 +25,9 @@ function createPrismaMock() {
     member: {
       findFirst: jest.fn(),
     },
+    user: {
+      findFirst: jest.fn(),
+    },
     $queryRawUnsafe: jest.fn(),
   };
 }
@@ -107,6 +110,7 @@ describe('CategoryRepository', () => {
   describe('findTree', () => {
     beforeEach(() => {
       prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
+      prisma.user.findFirst.mockResolvedValue(null);
     });
 
     it('deve agrupar filhos sob o pai na árvore', async () => {
@@ -156,6 +160,56 @@ describe('CategoryRepository', () => {
 
       expect(tree).toEqual([]);
       expect(prisma.category.findMany).not.toHaveBeenCalled();
+    });
+
+    it('deve retornar a árvore completa para admin global sem member', async () => {
+      prisma.member.findFirst.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue({
+        globalRole: {
+          name: 'ADMIN',
+          canAccessBackoffice: true,
+        },
+      });
+      prisma.category.findMany.mockResolvedValue([
+        {
+          id: 'c1',
+          name: 'Restrita',
+          slug: 'restrita',
+          isActive: true,
+          order: 0,
+          parentId: null,
+          categoryRoleAccesses: [{ roleId: 'other-role' }],
+        },
+        {
+          id: 'c2',
+          name: 'Livre',
+          slug: 'livre',
+          isActive: true,
+          order: 1,
+          parentId: null,
+          categoryRoleAccesses: [],
+        },
+      ]);
+
+      const tree = await repository.findTree('org-1', 'admin-1');
+
+      expect(tree).toHaveLength(2);
+      expect(tree.map((item) => item.id)).toEqual(['c1', 'c2']);
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'admin-1',
+          isActive: true,
+          isDeleted: false,
+        },
+        select: {
+          globalRole: {
+            select: {
+              name: true,
+              canAccessBackoffice: true,
+            },
+          },
+        },
+      });
     });
 
     it('deve incluir ancestrais quando apenas o filho tiver acesso', async () => {
