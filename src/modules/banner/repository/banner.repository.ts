@@ -1,4 +1,5 @@
 import { BadRequestException } from '@common/filters';
+import { generateId } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
@@ -135,6 +136,7 @@ export class BannerRepository {
     try {
       await this.prisma.banner.create({
         data: {
+          id: generateId(),
           organizationId,
           name: data.name,
           link: data.link ?? null,

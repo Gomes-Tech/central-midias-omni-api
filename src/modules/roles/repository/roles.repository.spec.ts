@@ -390,6 +390,7 @@ describe('RolesRepository', () => {
       expect(result).toEqual({ id: 'new-id', name: 'ROLE_X' });
       expect(prisma.role.create).toHaveBeenCalledWith({
         data: {
+          id: 'mocked-uuid',
           label: 'X',
           name: 'ROLE_X',
           canHaveSubordinates: false,

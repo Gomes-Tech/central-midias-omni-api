@@ -206,6 +206,17 @@ describe('BannerRepository', () => {
           organizationId: banner.organizationId,
           isDeleted: false,
         },
+        select: {
+          id: true,
+          name: true,
+          link: true,
+          order: true,
+          isActive: true,
+          initialDate: true,
+          finishDate: true,
+          mobileImageKey: true,
+          desktopImageKey: true,
+        },
       });
     });
 
@@ -236,6 +247,7 @@ describe('BannerRepository', () => {
 
       expect(prisma.banner.create).toHaveBeenCalledWith({
         data: {
+          id: 'mocked-uuid',
           organizationId: 'org-1',
           name: 'Banner mínimo',
           link: null,

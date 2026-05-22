@@ -1,4 +1,5 @@
 import { BadRequestException } from '@common/filters';
+import { generateId } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
@@ -102,6 +103,7 @@ export class TagRepository {
     try {
       const createdTag = await this.prisma.tag.create({
         data: {
+          id: generateId(),
           name: data.name,
         },
         select: tagSelect,

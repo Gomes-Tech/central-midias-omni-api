@@ -22,6 +22,7 @@ describe('LogRepository', () => {
 
     expect(prisma.log.create).toHaveBeenCalledWith({
       data: {
+        id: 'mocked-uuid',
         level: 'ERROR',
         message: 'erro',
         context: { a: 1 },
@@ -48,6 +49,7 @@ describe('LogRepository', () => {
 
     expect(prisma.log.create).toHaveBeenCalledWith({
       data: {
+        id: 'mocked-uuid',
         level: 'ERROR',
         message: 'x',
         context: undefined,

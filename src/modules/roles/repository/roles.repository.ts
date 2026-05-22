@@ -237,6 +237,7 @@ export class RolesRepository {
     try {
       const role = await this.prisma.role.create({
         data: {
+          id: generateId(),
           label: data.label,
           name: data.name,
           canHaveSubordinates: data.canHaveSubordinates,

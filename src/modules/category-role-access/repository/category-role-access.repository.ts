@@ -1,4 +1,5 @@
 import { BadRequestException } from '@common/filters';
+import { generateId } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
@@ -105,6 +106,7 @@ export class CategoryRoleAccessRepository {
     try {
       return await this.prisma.categoryRoleAccess.create({
         data: {
+          id: generateId(),
           categoryId: data.categoryId,
           roleId: data.roleId,
           organizationId,

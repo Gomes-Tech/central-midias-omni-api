@@ -1,4 +1,5 @@
 import { BadRequestException } from '@common/filters';
+import { generateId } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
@@ -223,13 +224,14 @@ export class MaterialRepository {
     try {
       const material = await this.prisma.material.create({
         data: {
-          ...(options.id && { id: options.id }),
+          id: options.id ?? generateId(),
           name: data.name,
           description: data.description ?? null,
           categoryId: data.categoryId,
           ...(options.files?.length && {
             materialFiles: {
               create: options.files.map((file) => ({
+                id: generateId(),
                 imageKey: file.fileKey,
                 mimeType: file.mimeType,
                 size: file.size,
@@ -350,6 +352,7 @@ export class MaterialRepository {
         files.map((file) =>
           this.prisma.materialFile.create({
             data: {
+              id: generateId(),
               materialId,
               imageKey: file.fileKey,
               mimeType: file.mimeType,

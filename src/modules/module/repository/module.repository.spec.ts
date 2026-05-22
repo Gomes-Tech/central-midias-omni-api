@@ -127,7 +127,7 @@ describe('ModuleRepository', () => {
 
       expect(result).toEqual(created);
       expect(prisma.module.create).toHaveBeenCalledWith({
-        data: { name: dto.name, label: dto.label },
+        data: { id: 'mocked-uuid', name: dto.name, label: dto.label },
       });
       expect(logger.info).toHaveBeenCalled();
     });

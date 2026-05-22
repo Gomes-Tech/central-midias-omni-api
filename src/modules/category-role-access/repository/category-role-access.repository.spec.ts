@@ -132,6 +132,7 @@ describe('CategoryRoleAccessRepository', () => {
       expect(result).toEqual(created);
       expect(prisma.categoryRoleAccess.create).toHaveBeenCalledWith({
         data: {
+          id: 'mocked-uuid',
           categoryId: 'cat',
           roleId: 'role',
           organizationId: 'org',

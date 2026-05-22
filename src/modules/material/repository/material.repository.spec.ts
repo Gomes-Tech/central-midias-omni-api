@@ -185,6 +185,7 @@ describe('MaterialRepository', () => {
 
       expect(prisma.material.create).toHaveBeenCalledWith({
         data: {
+          id: 'mocked-uuid',
           name: 'Material institucional',
           description: 'Descricao',
           categoryId: 'category-id',
@@ -251,6 +252,7 @@ describe('MaterialRepository', () => {
           materialFiles: {
             create: [
               {
+                id: 'mocked-uuid',
                 imageKey: 'materials/material-id/file.pdf',
                 mimeType: 'application/pdf',
                 size: 1024,
@@ -357,12 +359,19 @@ describe('MaterialRepository', () => {
 
       expect(prisma.materialFile.create).toHaveBeenCalledWith({
         data: {
+          id: 'mocked-uuid',
           materialId: 'material-id',
           imageKey: 'materials/material-id/file.pdf',
           mimeType: 'application/pdf',
           size: 1024,
         },
-        select: expect.any(Object),
+        select: {
+          id: true,
+          materialId: true,
+          imageKey: true,
+          mimeType: true,
+          size: true,
+        },
       });
       expect(logger.info).toHaveBeenCalledWith(
         'Arquivos de material criados',

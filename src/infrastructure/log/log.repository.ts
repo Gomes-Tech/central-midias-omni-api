@@ -1,6 +1,7 @@
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
 import { LogLevel, Prisma } from '@prisma/client';
+import { generateId } from '@common/utils';
 
 export type { LogLevel };
 
@@ -21,6 +22,7 @@ export class LogRepository {
   async create(data: CreateLogInput): Promise<void> {
     await this.prisma.log.create({
       data: {
+        id: generateId(),
         level: data.level,
         message: data.message,
         context: (data.context ?? undefined) as
