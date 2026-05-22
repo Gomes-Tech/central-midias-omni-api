@@ -29,9 +29,9 @@ const materialListSelect = {
       slug: true,
     },
   },
-  _count: {
+  materialFiles: {
     select: {
-      materialFiles: true,
+      id: true,
     },
   },
 } satisfies Prisma.MaterialSelect;
@@ -40,10 +40,6 @@ const materialDetailsSelect = {
   ...materialListSelect,
   deletedAt: true,
 } satisfies Prisma.MaterialSelect;
-
-type MaterialListRow = Prisma.MaterialGetPayload<{
-  select: typeof materialListSelect;
-}>;
 
 const materialFileSelect = {
   id: true,
@@ -111,7 +107,16 @@ export class MaterialRepository {
         orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
       });
 
-      return materials.map((material) => this.mapListItem(material));
+      return materials.map((material) => ({
+        id: material.id,
+        name: material.name,
+        description: material.description,
+        categoryId: material.categoryId,
+        createdAt: material.createdAt,
+        updatedAt: material.updatedAt,
+        category: material.category,
+        materialFilesCount: material.materialFiles.length,
+      }));
     } catch (error) {
       void this.logger.error('MaterialRepository.findAll falhou', {
         error: String(error),
@@ -171,7 +176,14 @@ export class MaterialRepository {
 
       return material
         ? ({
-            ...this.mapListItem(material),
+            id: material.id,
+            name: material.name,
+            description: material.description,
+            categoryId: material.categoryId,
+            createdAt: material.createdAt,
+            updatedAt: material.updatedAt,
+            category: material.category,
+            materialFilesCount: material.materialFiles.length,
             deletedAt: material.deletedAt,
           } as MaterialDetails)
         : null;
@@ -492,20 +504,6 @@ export class MaterialRepository {
 
       throw new BadRequestException('Erro ao remover arquivo do material');
     }
-  }
-
-  // Por conta do tipo composto retornado pela query, faz sentido manter o mapeamento manual para os tipos de retorno do repositório
-  private mapListItem(material: MaterialListRow): MaterialListItem {
-    return {
-      id: material.id,
-      name: material.name,
-      description: material.description,
-      categoryId: material.categoryId,
-      createdAt: material.createdAt,
-      updatedAt: material.updatedAt,
-      category: material.category,
-      materialFilesCount: material._count.materialFiles,
-    };
   }
 
   private mapMaterialFile(file: MaterialFileRow): MaterialFileItem {
