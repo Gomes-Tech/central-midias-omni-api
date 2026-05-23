@@ -49,9 +49,7 @@ describe('MaterialRepository', () => {
             name: 'Categoria',
             slug: 'categoria',
           },
-          _count: {
-            materialFiles: 2,
-          },
+          materialFiles: [{ id: 'file-1' }, { id: 'file-2' }],
         },
       ]);
 
@@ -112,9 +110,7 @@ describe('MaterialRepository', () => {
           name: 'Categoria',
           slug: 'categoria',
         },
-        _count: {
-          materialFiles: 0,
-        },
+        materialFiles: [],
       });
 
       await expect(

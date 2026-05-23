@@ -1,12 +1,22 @@
-import { Banner } from '@prisma/client';
+import { Banner as BannerEntity } from '../entities';
 import { CreateBannerDTO, UpdateBannerDTO } from '../dto';
 
-export function makeBanner(overrides: Partial<Banner> = {}): Banner {
+type BannerFixture = BannerEntity & {
+  organizationId: string;
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+};
+
+export function makeBanner(overrides: Partial<BannerFixture> = {}): BannerFixture {
   return {
     id: 'banner-id',
     organizationId: 'organization-id',
     mobileImageKey: '/storage/banners/mobile/banner-mobile.png',
     desktopImageKey: '/storage/banners/banner-desktop.png',
+    mobileImageUrl: null,
+    desktopImageUrl: null,
     name: 'Banner principal',
     link: 'https://example.com/banner',
     order: 1,
