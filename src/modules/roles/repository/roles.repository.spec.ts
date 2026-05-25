@@ -270,7 +270,7 @@ describe('RolesRepository', () => {
 
       expect(result).toEqual(rows);
       expect(prisma.role.findMany).toHaveBeenCalledWith({
-        where: { deletedAt: null },
+        where: { deletedAt: null, canAccessBackoffice: false },
         select: {
           id: true,
           label: true,

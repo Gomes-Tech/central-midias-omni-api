@@ -89,7 +89,7 @@ describe('RolesController', () => {
 
       await controller.findAllSelect();
 
-      expect(findAllSelectRolesUseCase.execute).toHaveBeenCalledWith();
+      expect(findAllSelectRolesUseCase.execute).toHaveBeenCalledWith(false);
     });
   });
 
