@@ -14,8 +14,8 @@ describe('FindAllSelectRolesUseCase', () => {
 
   it('deve retornar a lista simplificada do repositório', async () => {
     const list = [
-      { id: 'role-1', name: 'ROLE_1' },
-      { id: 'role-2', name: 'ROLE_2' },
+      { id: 'role-1', label: 'ROLE_1' },
+      { id: 'role-2', label: 'ROLE_2' },
     ];
     repository.findAllSelect.mockResolvedValue(list);
 

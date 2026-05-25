@@ -50,13 +50,13 @@ export class RolesController {
   }
 
   @RequirePermission('roles', 'read')
-  @Get('select')
+  @Get('/select')
   async findAllSelect() {
     return await this.findAllSelectRolesUseCase.execute();
   }
 
   @RequirePermission('roles', 'read')
-  @Get('permissions')
+  @Get('/permissions')
   async findAllPermissions(
     @OrgId() organizationId: string,
     @Query() filters: FindAllRolePermissionsFiltersDTO = {},

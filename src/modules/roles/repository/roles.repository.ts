@@ -118,13 +118,13 @@ export class RolesRepository {
     }
   }
 
-  async findAllSelect(): Promise<{ id: string; name: string }[]> {
+  async findAllSelect(): Promise<{ id: string; label: string }[]> {
     try {
       const roles = await this.prisma.role.findMany({
         where: { deletedAt: null },
         select: {
           id: true,
-          name: true,
+          label: true,
         },
         orderBy: [{ label: 'asc' }],
       });

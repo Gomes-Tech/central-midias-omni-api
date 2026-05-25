@@ -1,6 +1,9 @@
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
-import { InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateRoleDTO } from '../dto';
 import { CreateGlobalRoleDTO } from '../dto/create-global-role.dto';
 import { makeRole } from '../use-cases/test-helpers';
@@ -39,7 +42,10 @@ describe('RolesRepository', () => {
 
   describe('findAll', () => {
     it('deve listar perfis não deletados ordenados por label', async () => {
-      const rows = [makeRole({ id: '1', label: 'A' }), makeRole({ id: '2', label: 'B' })];
+      const rows = [
+        makeRole({ id: '1', label: 'A' }),
+        makeRole({ id: '2', label: 'B' }),
+      ];
       prisma.role.findMany.mockResolvedValue(rows);
 
       const result = await repository.findAll({});
@@ -238,9 +244,9 @@ describe('RolesRepository', () => {
     it('deve lançar InternalServerError quando a busca falhar com erro genérico', async () => {
       prisma.role.findMany.mockRejectedValue(new Error('db'));
 
-      await expect(repository.findAllPermissions('org-1')).rejects.toBeInstanceOf(
-        InternalServerErrorException,
-      );
+      await expect(
+        repository.findAllPermissions('org-1'),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
       expect(logger.error).toHaveBeenCalledWith(
         'RolesRepository.findAllPermissions falhou',
         expect.objectContaining({
@@ -253,10 +259,10 @@ describe('RolesRepository', () => {
   });
 
   describe('findAllSelect', () => {
-    it('deve listar perfis não deletados retornando apenas id e name', async () => {
+    it('deve listar perfis não deletados retornando apenas id e label', async () => {
       const rows = [
-        { id: '1', name: 'ROLE_A' },
-        { id: '2', name: 'ROLE_B' },
+        { id: '1', label: 'ROLE_A' },
+        { id: '2', label: 'ROLE_B' },
       ];
       prisma.role.findMany.mockResolvedValue(rows);
 
@@ -267,7 +273,7 @@ describe('RolesRepository', () => {
         where: { deletedAt: null },
         select: {
           id: true,
-          name: true,
+          label: true,
         },
         orderBy: [{ label: 'asc' }],
       });
