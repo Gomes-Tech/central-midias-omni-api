@@ -26,13 +26,12 @@ export function makeFindAllTagsFiltersDTO(
   };
 }
 
-export function makeTagEntity(
-  overrides: Partial<TagEntity> = {},
-): TagEntity {
+export function makeTagEntity(overrides: Partial<TagEntity> = {}): TagEntity {
   const now = new Date('2024-01-01T00:00:00.000Z');
 
   return {
     id: 'tag-id',
+    organizationId: 'organization-id',
     name: 'Campanha',
     createdAt: now,
     updatedAt: now,

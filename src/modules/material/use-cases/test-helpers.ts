@@ -7,6 +7,7 @@ import {
   MaterialDetails,
   MaterialFileItem,
   MaterialListItem,
+  MaterialTagSummary,
 } from '../entities';
 
 export function makeCreateMaterialDTO(
@@ -16,6 +17,7 @@ export function makeCreateMaterialDTO(
     name: 'Material institucional',
     description: '<p>Descricao</p>',
     categoryId: 'category-id',
+    tags: ['Campanha'],
     ...overrides,
   };
 }
@@ -53,6 +55,7 @@ export function makeMaterialListItem(
       name: 'Categoria',
       slug: 'categoria',
     },
+    tags: [makeMaterialTagSummary()],
     materialFilesCount: 0,
     ...overrides,
   };
@@ -77,6 +80,16 @@ export function makeMaterialFile(
     fileKey: 'materials/material-id/file.pdf',
     mimeType: 'application/pdf',
     size: 1024,
+    ...overrides,
+  };
+}
+
+export function makeMaterialTagSummary(
+  overrides: Partial<MaterialTagSummary> = {},
+): MaterialTagSummary {
+  return {
+    id: 'tag-id',
+    name: 'Campanha',
     ...overrides,
   };
 }

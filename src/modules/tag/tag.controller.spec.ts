@@ -16,6 +16,7 @@ import {
 } from './use-cases/test-helpers';
 
 describe('TagController', () => {
+  const organizationId = 'organization-id';
   let controller: TagController;
   let createTagUseCase: { execute: jest.Mock };
   let deleteTagUseCase: { execute: jest.Mock };
@@ -53,19 +54,25 @@ describe('TagController', () => {
 
     findAllTagsUseCase.execute.mockResolvedValue(payload);
 
-    const result = await controller.findAll(filters);
+    const result = await controller.findAll(organizationId, filters);
 
     expect(result).toBe(payload);
-    expect(findAllTagsUseCase.execute).toHaveBeenCalledWith(filters);
+    expect(findAllTagsUseCase.execute).toHaveBeenCalledWith(
+      organizationId,
+      filters,
+    );
   });
 
   it('deve delegar findById', async () => {
     const tag = makeTagEntity();
     findTagByIdUseCase.execute.mockResolvedValue(tag);
 
-    await controller.findById(tag.id);
+    await controller.findById(tag.id, organizationId);
 
-    expect(findTagByIdUseCase.execute).toHaveBeenCalledWith(tag.id);
+    expect(findTagByIdUseCase.execute).toHaveBeenCalledWith(
+      tag.id,
+      organizationId,
+    );
   });
 
   it('deve delegar create', async () => {
@@ -74,25 +81,32 @@ describe('TagController', () => {
 
     createTagUseCase.execute.mockResolvedValue(created);
 
-    await controller.create(dto);
+    await controller.create(organizationId, dto);
 
-    expect(createTagUseCase.execute).toHaveBeenCalledWith(dto);
+    expect(createTagUseCase.execute).toHaveBeenCalledWith(organizationId, dto);
   });
 
   it('deve delegar update', async () => {
     const dto = makeUpdateTagDTO({ name: 'Institucional' });
     updateTagUseCase.execute.mockResolvedValue(makeTagEntity(dto));
 
-    await controller.update('tag-id', dto);
+    await controller.update('tag-id', organizationId, dto);
 
-    expect(updateTagUseCase.execute).toHaveBeenCalledWith('tag-id', dto);
+    expect(updateTagUseCase.execute).toHaveBeenCalledWith(
+      'tag-id',
+      organizationId,
+      dto,
+    );
   });
 
   it('deve delegar delete', async () => {
     deleteTagUseCase.execute.mockResolvedValue(undefined);
 
-    await controller.delete('tag-id');
+    await controller.delete('tag-id', organizationId);
 
-    expect(deleteTagUseCase.execute).toHaveBeenCalledWith('tag-id');
+    expect(deleteTagUseCase.execute).toHaveBeenCalledWith(
+      'tag-id',
+      organizationId,
+    );
   });
 });

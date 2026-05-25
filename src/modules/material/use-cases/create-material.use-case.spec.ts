@@ -3,11 +3,13 @@ import { StorageService } from '@infrastructure/providers';
 import { FindCategoryByIdUseCase } from '@modules/category';
 import { MaterialRepository } from '../repository';
 import { CreateMaterialUseCase } from './create-material.use-case';
+import { ResolveMaterialTagsUseCase } from './resolve-material-tags.use-case';
 import { makeCreateMaterialDTO, makeUploadFile } from './test-helpers';
 
 describe('CreateMaterialUseCase', () => {
   let materialRepository: jest.Mocked<MaterialRepository>;
   let findCategoryByIdUseCase: { execute: jest.Mock };
+  let resolveMaterialTagsUseCase: { execute: jest.Mock };
   let storageService: jest.Mocked<
     Pick<StorageService, 'uploadFile' | 'deleteFile'>
   >;
@@ -20,6 +22,7 @@ describe('CreateMaterialUseCase', () => {
     } as unknown as jest.Mocked<MaterialRepository>;
 
     findCategoryByIdUseCase = { execute: jest.fn() };
+    resolveMaterialTagsUseCase = { execute: jest.fn() };
     storageService = {
       uploadFile: jest.fn(),
       deleteFile: jest.fn(),
@@ -28,6 +31,7 @@ describe('CreateMaterialUseCase', () => {
     useCase = new CreateMaterialUseCase(
       materialRepository,
       findCategoryByIdUseCase as unknown as FindCategoryByIdUseCase,
+      resolveMaterialTagsUseCase as unknown as ResolveMaterialTagsUseCase,
       storageService as unknown as StorageService,
     );
   });
@@ -39,6 +43,10 @@ describe('CreateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
+    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+      existingTagIds: ['tag-id'],
+      newTagNames: [],
+    });
     materialRepository.create.mockResolvedValue(undefined);
 
     await expect(useCase.execute('org-id', dto, 'user-id')).resolves.toBe(
@@ -53,6 +61,10 @@ describe('CreateMaterialUseCase', () => {
       dto.name,
       dto.categoryId,
     );
+    expect(resolveMaterialTagsUseCase.execute).toHaveBeenCalledWith(
+      'org-id',
+      dto.tags,
+    );
     expect(materialRepository.create).toHaveBeenCalledWith(
       'org-id',
       dto,
@@ -60,6 +72,10 @@ describe('CreateMaterialUseCase', () => {
       {
         id: 'mocked-uuid',
         files: [],
+        tags: {
+          existingTagIds: ['tag-id'],
+          newTagNames: [],
+        },
       },
     );
     expect(storageService.uploadFile).not.toHaveBeenCalled();
@@ -73,6 +89,10 @@ describe('CreateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
+    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+      existingTagIds: ['tag-id'],
+      newTagNames: ['Lancamento'],
+    });
     storageService.uploadFile.mockResolvedValue({
       path: 'materials/mocked-uuid/arquivo.pdf',
     });
@@ -99,6 +119,10 @@ describe('CreateMaterialUseCase', () => {
             size: 4096,
           },
         ],
+        tags: {
+          existingTagIds: ['tag-id'],
+          newTagNames: ['Lancamento'],
+        },
       },
     );
   });
@@ -112,6 +136,10 @@ describe('CreateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
+    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+      existingTagIds: ['tag-id'],
+      newTagNames: [],
+    });
     storageService.uploadFile.mockResolvedValue({
       path: 'materials/mocked-uuid/arquivo.pdf',
     });
@@ -136,6 +164,10 @@ describe('CreateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
+    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+      existingTagIds: ['tag-id'],
+      newTagNames: [],
+    });
     storageService.uploadFile
       .mockResolvedValueOnce({ path: 'materials/mocked-uuid/a.pdf' })
       .mockRejectedValueOnce(error);

@@ -1,11 +1,9 @@
 import { TagRepository } from '../repository';
 import { FindAllTagsUseCase } from './find-all-tags.use-case';
-import {
-  makeFindAllTagsFiltersDTO,
-  makeTagEntity,
-} from './test-helpers';
+import { makeFindAllTagsFiltersDTO, makeTagEntity } from './test-helpers';
 
 describe('FindAllTagsUseCase', () => {
+  const organizationId = 'organization-id';
   let tagRepository: jest.Mocked<TagRepository>;
   let useCase: FindAllTagsUseCase;
 
@@ -23,7 +21,9 @@ describe('FindAllTagsUseCase', () => {
 
     tagRepository.findAll.mockResolvedValue(tags);
 
-    await expect(useCase.execute(filters)).resolves.toEqual(tags);
-    expect(tagRepository.findAll).toHaveBeenCalledWith(filters);
+    await expect(useCase.execute(organizationId, filters)).resolves.toEqual(
+      tags,
+    );
+    expect(tagRepository.findAll).toHaveBeenCalledWith(organizationId, filters);
   });
 });

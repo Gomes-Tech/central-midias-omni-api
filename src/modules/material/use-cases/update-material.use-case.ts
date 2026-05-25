@@ -4,6 +4,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { UpdateMaterialDTO } from '../dto';
 import { MaterialRepository } from '../repository';
 import { FindMaterialByIdUseCase } from './find-material-by-id.use-case';
+import { ResolveMaterialTagsUseCase } from './resolve-material-tags.use-case';
 
 @Injectable()
 export class UpdateMaterialUseCase {
@@ -12,6 +13,7 @@ export class UpdateMaterialUseCase {
     private readonly materialRepository: MaterialRepository,
     private readonly findMaterialByIdUseCase: FindMaterialByIdUseCase,
     private readonly findCategoryByIdUseCase: FindCategoryByIdUseCase,
+    private readonly resolveMaterialTagsUseCase: ResolveMaterialTagsUseCase,
   ) {}
 
   async execute(
@@ -55,6 +57,13 @@ export class UpdateMaterialUseCase {
       }
     }
 
-    await this.materialRepository.update(id, organizationId, data, userId);
+    const resolvedTags = await this.resolveMaterialTagsUseCase.execute(
+      organizationId,
+      data.tags,
+    );
+
+    await this.materialRepository.update(id, organizationId, data, userId, {
+      tags: resolvedTags,
+    });
   }
 }

@@ -5,6 +5,7 @@ import { UpdateTagUseCase } from './update-tag.use-case';
 import { makeTagEntity, makeUpdateTagDTO } from './test-helpers';
 
 describe('UpdateTagUseCase', () => {
+  const organizationId = 'organization-id';
   let tagRepository: jest.Mocked<TagRepository>;
   let findTagByIdUseCase: { execute: jest.Mock };
   let useCase: UpdateTagUseCase;
@@ -32,9 +33,18 @@ describe('UpdateTagUseCase', () => {
     tagRepository.findByName.mockResolvedValue(null);
     tagRepository.update.mockResolvedValue(updated);
 
-    await expect(useCase.execute(tag.id, dto)).resolves.toEqual(updated);
-    expect(tagRepository.findByName).toHaveBeenCalledWith('Institucional');
-    expect(tagRepository.update).toHaveBeenCalledWith(tag.id, dto);
+    await expect(useCase.execute(tag.id, organizationId, dto)).resolves.toEqual(
+      updated,
+    );
+    expect(tagRepository.findByName).toHaveBeenCalledWith(
+      'Institucional',
+      organizationId,
+    );
+    expect(tagRepository.update).toHaveBeenCalledWith(
+      tag.id,
+      organizationId,
+      dto,
+    );
   });
 
   it('deve impedir nome duplicado em outra tag', async () => {
@@ -47,10 +57,10 @@ describe('UpdateTagUseCase', () => {
       name: 'Institucional',
     });
 
-    await expect(useCase.execute(tag.id, dto)).rejects.toThrow(
+    await expect(useCase.execute(tag.id, organizationId, dto)).rejects.toThrow(
       BadRequestException,
     );
-    await expect(useCase.execute(tag.id, dto)).rejects.toThrow(
+    await expect(useCase.execute(tag.id, organizationId, dto)).rejects.toThrow(
       'Já existe uma tag com este nome',
     );
   });
@@ -65,7 +75,9 @@ describe('UpdateTagUseCase', () => {
       name: tag.name,
     });
 
-    await expect(useCase.execute(tag.id, dto)).resolves.toEqual(tag);
+    await expect(useCase.execute(tag.id, organizationId, dto)).resolves.toEqual(
+      tag,
+    );
     expect(tagRepository.update).not.toHaveBeenCalled();
   });
 });

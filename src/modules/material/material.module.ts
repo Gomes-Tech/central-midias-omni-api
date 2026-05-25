@@ -1,5 +1,6 @@
 import { PlatformPermissionGuard } from '@common/guards';
 import { CategoryModule } from '@modules/category';
+import { TagModule } from '@modules/tag';
 import { Module } from '@nestjs/common';
 import { MaterialController } from './material.controller';
 import { MaterialRepository } from './repository';
@@ -10,18 +11,20 @@ import {
   FindAllMaterialsUseCase,
   FindMaterialFilesUseCase,
   FindMaterialByIdUseCase,
+  ResolveMaterialTagsUseCase,
   UploadMaterialFilesUseCase,
   UpdateMaterialUseCase,
 } from './use-cases';
 
 @Module({
-  imports: [CategoryModule],
+  imports: [CategoryModule, TagModule],
   controllers: [MaterialController],
   providers: [
     PlatformPermissionGuard,
     MaterialRepository,
     FindAllMaterialsUseCase,
     FindMaterialByIdUseCase,
+    ResolveMaterialTagsUseCase,
     CreateMaterialUseCase,
     UpdateMaterialUseCase,
     DeleteMaterialUseCase,
@@ -37,6 +40,7 @@ import {
     MaterialRepository,
     FindAllMaterialsUseCase,
     FindMaterialByIdUseCase,
+    ResolveMaterialTagsUseCase,
     CreateMaterialUseCase,
     UpdateMaterialUseCase,
     DeleteMaterialUseCase,

@@ -14,32 +14,47 @@ import {
   MaterialFileItem,
   MaterialListItem,
 } from '../entities';
+import type { ResolvedMaterialTags } from '../use-cases/resolve-material-tags.use-case';
 
-const materialListSelect = {
+const materialTagSelect = {
   id: true,
   name: true,
-  description: true,
-  categoryId: true,
-  createdAt: true,
-  updatedAt: true,
-  category: {
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-    },
-  },
-  materialFiles: {
-    select: {
-      id: true,
-    },
-  },
-} satisfies Prisma.MaterialSelect;
+} satisfies Prisma.TagSelect;
 
-const materialDetailsSelect = {
-  ...materialListSelect,
-  deletedAt: true,
-} satisfies Prisma.MaterialSelect;
+const buildMaterialListSelect = (organizationId: string) =>
+  ({
+    id: true,
+    name: true,
+    description: true,
+    categoryId: true,
+    createdAt: true,
+    updatedAt: true,
+    category: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+      },
+    },
+    tags: {
+      where: {
+        organizationId,
+      },
+      select: materialTagSelect,
+      orderBy: [{ name: 'asc' }],
+    },
+    materialFiles: {
+      select: {
+        id: true,
+      },
+    },
+  }) satisfies Prisma.MaterialSelect;
+
+const buildMaterialDetailsSelect = (organizationId: string) =>
+  ({
+    ...buildMaterialListSelect(organizationId),
+    deletedAt: true,
+  }) satisfies Prisma.MaterialSelect;
 
 const materialFileSelect = {
   id: true,
@@ -62,6 +77,11 @@ export interface CreateMaterialFileInput {
 export interface CreateMaterialOptions {
   id?: string;
   files?: CreateMaterialFileInput[];
+  tags?: ResolvedMaterialTags;
+}
+
+export interface UpdateMaterialOptions {
+  tags?: ResolvedMaterialTags;
 }
 
 @Injectable()
@@ -103,7 +123,7 @@ export class MaterialRepository {
 
       const materials = await this.prisma.material.findMany({
         where,
-        select: materialListSelect,
+        select: buildMaterialListSelect(organizationId),
         orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
       });
 
@@ -115,6 +135,7 @@ export class MaterialRepository {
         createdAt: material.createdAt,
         updatedAt: material.updatedAt,
         category: material.category,
+        tags: material.tags,
         materialFilesCount: material.materialFiles.length,
       }));
     } catch (error) {
@@ -171,7 +192,7 @@ export class MaterialRepository {
             isDeleted: false,
           },
         },
-        select: materialDetailsSelect,
+        select: buildMaterialDetailsSelect(organizationId),
       });
 
       return material
@@ -183,6 +204,7 @@ export class MaterialRepository {
             createdAt: material.createdAt,
             updatedAt: material.updatedAt,
             category: material.category,
+            tags: material.tags,
             materialFilesCount: material.materialFiles.length,
             deletedAt: material.deletedAt,
           } as MaterialDetails)
@@ -234,23 +256,34 @@ export class MaterialRepository {
     options: CreateMaterialOptions = {},
   ): Promise<void> {
     try {
+      const createData: Prisma.MaterialUncheckedCreateInput = {
+        id: options.id ?? generateId(),
+        name: data.name,
+        description: data.description ?? null,
+        categoryId: data.categoryId,
+      };
+
+      const tagsData = options.tags
+        ? this.buildCreateTagsData(organizationId, options.tags)
+        : undefined;
+
+      if (tagsData) {
+        createData.tags = tagsData;
+      }
+
+      if (options.files?.length) {
+        createData.materialFiles = {
+          create: options.files.map((file) => ({
+            id: generateId(),
+            imageKey: file.fileKey,
+            mimeType: file.mimeType,
+            size: file.size,
+          })),
+        };
+      }
+
       const material = await this.prisma.material.create({
-        data: {
-          id: options.id ?? generateId(),
-          name: data.name,
-          description: data.description ?? null,
-          categoryId: data.categoryId,
-          ...(options.files?.length && {
-            materialFiles: {
-              create: options.files.map((file) => ({
-                id: generateId(),
-                imageKey: file.fileKey,
-                mimeType: file.mimeType,
-                size: file.size,
-              })),
-            },
-          }),
-        },
+        data: createData,
         select: {
           id: true,
         },
@@ -279,9 +312,10 @@ export class MaterialRepository {
     organizationId: string,
     data: UpdateMaterialDTO,
     userId: string,
+    options: UpdateMaterialOptions = {},
   ): Promise<void> {
     try {
-      await this.prisma.material.updateMany({
+      const material = await this.prisma.material.findFirst({
         where: {
           id,
           deletedAt: null,
@@ -290,13 +324,41 @@ export class MaterialRepository {
             isDeleted: false,
           },
         },
-        data: {
-          ...(data.name !== undefined && { name: data.name }),
-          ...(data.description !== undefined && {
-            description: data.description,
-          }),
-          ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
+        select: {
+          id: true,
         },
+      });
+
+      if (!material) {
+        return;
+      }
+
+      const updateData: Prisma.MaterialUncheckedUpdateInput = {};
+
+      if (data.name !== undefined) {
+        updateData.name = data.name;
+      }
+
+      if (data.description !== undefined) {
+        updateData.description = data.description;
+      }
+
+      if (data.categoryId !== undefined) {
+        updateData.categoryId = data.categoryId;
+      }
+
+      if (options.tags !== undefined) {
+        updateData.tags = this.buildUpdateTagsData(
+          organizationId,
+          options.tags,
+        );
+      }
+
+      await this.prisma.material.update({
+        where: {
+          id: material.id,
+        },
+        data: updateData,
       });
 
       void this.logger.info('Material atualizado', {
@@ -314,6 +376,63 @@ export class MaterialRepository {
 
       throw new BadRequestException('Erro ao atualizar material');
     }
+  }
+
+  private buildCreateTagsData(
+    organizationId: string,
+    tags: ResolvedMaterialTags,
+  ): Prisma.MaterialUncheckedCreateInput['tags'] | undefined {
+    if (!tags.existingTagIds.length && !tags.newTagNames.length) {
+      return undefined;
+    }
+
+    return {
+      ...(tags.existingTagIds.length && {
+        connect: tags.existingTagIds.map((tagId) => ({ id: tagId })),
+      }),
+      ...(tags.newTagNames.length && {
+        connectOrCreate: tags.newTagNames.map((name) => ({
+          where: {
+            organizationId_name: {
+              organizationId,
+              name,
+            },
+          },
+          create: {
+            id: generateId(),
+            organizationId,
+            name,
+          },
+        })),
+      }),
+    };
+  }
+
+  private buildUpdateTagsData(
+    organizationId: string,
+    tags: ResolvedMaterialTags,
+  ): Prisma.MaterialUncheckedUpdateInput['tags'] {
+    return {
+      set: [],
+      ...(tags.existingTagIds.length && {
+        connect: tags.existingTagIds.map((tagId) => ({ id: tagId })),
+      }),
+      ...(tags.newTagNames.length && {
+        connectOrCreate: tags.newTagNames.map((name) => ({
+          where: {
+            organizationId_name: {
+              organizationId,
+              name,
+            },
+          },
+          create: {
+            id: generateId(),
+            organizationId,
+            name,
+          },
+        })),
+      }),
+    };
   }
 
   async delete(

@@ -159,6 +159,7 @@ model Organization {
   members                Member[]
   categories             Category[]
   banners                Banner[]
+  tags                   Tag[]
   category_role_accesses CategoryRoleAccess[]
   userHierarchies        UserHierarchy[]
 
@@ -276,14 +277,18 @@ model MaterialFile {
 }
 
 model Tag {
-  id   String @id @default(uuid())
-  name String @unique
+  id             String @id @default(uuid())
+  organizationId String @map("organization_id")
+  name           String
 
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
-  material    Material[]  @relation("MaterialTag")
-  tagSearches TagSearch[]
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  organization Organization @relation(fields: [organizationId], references: [id])
+  material     Material[]   @relation("MaterialTag")
+  tagSearches  TagSearch[]
 
+  @@unique([organizationId, name])
+  @@index([organizationId])
   @@map("tags")
 }
 

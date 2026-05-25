@@ -11,11 +11,14 @@ export class UpdateTagUseCase {
     private readonly findTagByIdUseCase: FindTagByIdUseCase,
   ) {}
 
-  async execute(id: string, data: UpdateTagDTO) {
-    const tag = await this.findTagByIdUseCase.execute(id);
+  async execute(id: string, organizationId: string, data: UpdateTagDTO) {
+    const tag = await this.findTagByIdUseCase.execute(id, organizationId);
 
     if (data.name) {
-      const existingTag = await this.tagRepository.findByName(data.name);
+      const existingTag = await this.tagRepository.findByName(
+        data.name,
+        organizationId,
+      );
 
       if (existingTag && existingTag.id !== id) {
         throw new BadRequestException('Já existe uma tag com este nome');
@@ -26,6 +29,6 @@ export class UpdateTagUseCase {
       }
     }
 
-    return await this.tagRepository.update(id, data);
+    return await this.tagRepository.update(id, organizationId, data);
   }
 }

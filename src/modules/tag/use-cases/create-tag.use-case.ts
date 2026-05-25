@@ -10,13 +10,16 @@ export class CreateTagUseCase {
     private readonly tagRepository: TagRepository,
   ) {}
 
-  async execute(data: CreateTagDTO) {
-    const existingTag = await this.tagRepository.findByName(data.name);
+  async execute(organizationId: string, data: CreateTagDTO) {
+    const existingTag = await this.tagRepository.findByName(
+      data.name,
+      organizationId,
+    );
 
     if (existingTag) {
       throw new BadRequestException('Já existe uma tag com este nome');
     }
 
-    return await this.tagRepository.create(data);
+    return await this.tagRepository.create(organizationId, data);
   }
 }

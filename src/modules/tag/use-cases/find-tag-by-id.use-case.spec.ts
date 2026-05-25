@@ -4,6 +4,7 @@ import { FindTagByIdUseCase } from './find-tag-by-id.use-case';
 import { makeTagEntity } from './test-helpers';
 
 describe('FindTagByIdUseCase', () => {
+  const organizationId = 'organization-id';
   let tagRepository: jest.Mocked<TagRepository>;
   let useCase: FindTagByIdUseCase;
 
@@ -20,14 +21,14 @@ describe('FindTagByIdUseCase', () => {
 
     tagRepository.findById.mockResolvedValue(tag);
 
-    await expect(useCase.execute(tag.id)).resolves.toEqual(tag);
-    expect(tagRepository.findById).toHaveBeenCalledWith(tag.id);
+    await expect(useCase.execute(tag.id, organizationId)).resolves.toEqual(tag);
+    expect(tagRepository.findById).toHaveBeenCalledWith(tag.id, organizationId);
   });
 
   it('deve lançar NotFoundException quando não existir', async () => {
     tagRepository.findById.mockResolvedValue(null);
 
-    const result = useCase.execute('missing');
+    const result = useCase.execute('missing', organizationId);
 
     await expect(result).rejects.toBeInstanceOf(NotFoundException);
     await expect(result).rejects.toThrow('Tag não encontrada');

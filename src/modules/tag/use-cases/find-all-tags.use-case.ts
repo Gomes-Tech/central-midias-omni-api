@@ -9,7 +9,7 @@ export class FindAllTagsUseCase {
     private readonly tagRepository: TagRepository,
   ) {}
 
-  async execute(filters: FindAllTagsFiltersDTO = {}) {
-    return await this.tagRepository.findAll(filters);
+  async execute(organizationId: string, filters: FindAllTagsFiltersDTO = {}) {
+    return await this.tagRepository.findAll(organizationId, filters);
   }
 }

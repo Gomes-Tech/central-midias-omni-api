@@ -4,6 +4,11 @@ export interface MaterialCategorySummary {
   slug: string;
 }
 
+export interface MaterialTagSummary {
+  id: string;
+  name: string;
+}
+
 export interface MaterialListItem {
   id: string;
   name: string;
@@ -12,6 +17,7 @@ export interface MaterialListItem {
   createdAt: Date;
   updatedAt: Date;
   category: MaterialCategorySummary;
+  tags: MaterialTagSummary[];
   materialFilesCount: number;
 }
 

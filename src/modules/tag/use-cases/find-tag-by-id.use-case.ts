@@ -9,8 +9,8 @@ export class FindTagByIdUseCase {
     private readonly tagRepository: TagRepository,
   ) {}
 
-  async execute(id: string) {
-    const tag = await this.tagRepository.findById(id);
+  async execute(id: string, organizationId: string) {
+    const tag = await this.tagRepository.findById(id, organizationId);
 
     if (!tag) {
       throw new NotFoundException('Tag não encontrada');

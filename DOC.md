@@ -17,6 +17,13 @@ A aplicação concentra a gestão de conteúdos de mídia por organização. Ela
 - disponibilizar URLs assinadas para arquivos armazenados;
 - manter logs, métricas Prometheus, health checks e mecanismos básicos de segurança.
 
+## Últimas Atualizações
+
+- Tags passaram a ser escopadas por organização no banco e nas rotas, deixando de ser globais.
+- Materiais agora podem receber tags na criação e na edição, com retorno das tags associadas nas listagens e no detalhe.
+- O fluxo de tags em materiais faz normalização, remove duplicidades case-insensitive e reaproveita tags já existentes na organização.
+- O módulo de materiais passou a depender do módulo de tags para resolver vínculos e criar tags ausentes quando necessário.
+
 ## Objetivo de Negócio
 
 Servir como backend administrativo e operacional de uma central de conteúdos/mídias, permitindo que organizações tenham acervos, banners e menus próprios, com acesso segmentado por perfil e autenticação centralizada.
@@ -219,12 +226,12 @@ Todas as rotas abaixo estão sob `/api`, exceto `/docs` e `/reference`, que são
 | GET | `/category-role-accesses/category/:categoryId/roles` | Lista roles vinculadas à categoria. | JWT + API key + org + `categories:READ` |
 | POST | `/category-role-accesses` | Cria vínculo categoria-role. | JWT + API key + org + `categories:UPDATE` |
 | DELETE | `/category-role-accesses/:id` | Remove vínculo. | JWT + API key + org + `categories:UPDATE` |
-| GET | `/materials` | Lista materiais por categoria/busca. | JWT + API key + org + `materials:READ` |
-| GET | `/materials/:id` | Detalha material. | JWT + API key + org + `materials:READ` |
+| GET | `/materials` | Lista materiais por categoria/busca com tags associadas. | JWT + API key + org + `materials:READ` |
+| GET | `/materials/:id` | Detalha material com tags associadas. | JWT + API key + org + `materials:READ` |
 | GET | `/materials/:id/files` | Lista arquivos do material com URL assinada. | JWT + API key + org + `materials:READ` |
-| POST | `/materials` | Cria material e arquivos opcionais. | JWT + API key + org + `materials:CREATE` |
+| POST | `/materials` | Cria material, arquivos opcionais e tags opcionais. | JWT + API key + org + `materials:CREATE` |
 | POST | `/materials/:id/files` | Faz upload de arquivos adicionais. | JWT + API key + org + `materials:UPDATE` |
-| PATCH | `/materials/:id` | Atualiza material. | JWT + API key + org + `materials:UPDATE` |
+| PATCH | `/materials/:id` | Atualiza material e tags opcionais. | JWT + API key + org + `materials:UPDATE` |
 | DELETE | `/materials/:id` | Soft delete de material e tenta remover arquivos. | JWT + API key + org + `materials:DELETE` |
 | DELETE | `/materials/:id/files/:fileId` | Remove arquivo do material. | JWT + API key + org + `materials:UPDATE` |
 | GET | `/banners` | Lista banners com filtros. | JWT + API key + org + `banners:READ` |
@@ -233,11 +240,11 @@ Todas as rotas abaixo estão sob `/api`, exceto `/docs` e `/reference`, que são
 | POST | `/banners` | Cria banner com imagens mobile e desktop obrigatórias. | JWT + API key + org + `banners:CREATE` |
 | PATCH | `/banners/:id` | Atualiza banner e imagens opcionais. | JWT + API key + org + `banners:UPDATE` |
 | DELETE | `/banners/:id` | Soft delete de banner. | JWT + API key + org + `banners:DELETE` |
-| GET | `/tags` | Lista tags. | JWT + API key + `tags:READ` |
-| GET | `/tags/:id` | Detalha tag. | JWT + API key + `tags:READ` |
-| POST | `/tags` | Cria tag. | JWT + API key + `tags:CREATE` |
-| PATCH | `/tags/:id` | Atualiza tag. | JWT + API key + `tags:UPDATE` |
-| DELETE | `/tags/:id` | Remove tag se não possuir materiais nem buscas. | JWT + API key + `tags:DELETE` |
+| GET | `/tags` | Lista tags da organização. | JWT + API key + org + `tags:READ` |
+| GET | `/tags/:id` | Detalha tag da organização. | JWT + API key + org + `tags:READ` |
+| POST | `/tags` | Cria tag na organização. | JWT + API key + org + `tags:CREATE` |
+| PATCH | `/tags/:id` | Atualiza tag da organização. | JWT + API key + org + `tags:UPDATE` |
+| DELETE | `/tags/:id` | Remove tag da organização se não possuir materiais nem buscas. | JWT + API key + org + `tags:DELETE` |
 
 ## Payloads e Validações Principais
 
@@ -270,8 +277,9 @@ Todas as rotas abaixo estão sob `/api`, exceto `/docs` e `/reference`, que são
 
 ### Material
 
-- Criar: `name`, `categoryId`, `description?`; arquivos multipart opcionais.
-- Atualizar: `name?`, `description?`, `categoryId?`.
+- Criar: `name`, `categoryId`, `description?`, `tags?`; arquivos multipart opcionais.
+- Atualizar: `name?`, `description?`, `categoryId?`, `tags?`.
+- `tags` aceita lista de strings e é normalizado antes de persistir, inclusive em payloads multipart.
 - Arquivos aceitos globalmente: PNG, JPEG, PDF, DOC/DOCX, MP4, MP3, PPT/PPTX, EPS, XLS/XLSX.
 
 ### Banner
@@ -279,6 +287,13 @@ Todas as rotas abaixo estão sob `/api`, exceto `/docs` e `/reference`, que são
 - Criar: `name`, `order`, `link?`, `isActive?`, `initialDate?`, `finishDate?`; exige arquivo mobile e desktop.
 - Atualizar: mesmos campos opcionais e imagens opcionais.
 - Datas são validadas para garantir `initialDate <= finishDate`.
+
+### Tag
+
+- Criar: `name`; a organização é obtida pelo header `x-organization-id`.
+- Atualizar: `name?`.
+- Listagem, detalhe, update e delete operam somente na organização do header.
+- `Tag.name` é único apenas dentro da organização.
 
 ## Banco de Dados
 
@@ -297,20 +312,20 @@ ORM: Prisma com PostgreSQL.
 - `Category`: menu hierárquico por organização, slug único por organização e ordem única por nível.
 - `CategoryRoleAccess`: permissão de role para categoria em uma organização.
 - `Banner`: banners por organização com imagens mobile/desktop armazenadas por key.
-- `Material`: material associado a categoria. Atenção: o próprio schema comenta que está fora do padrão completo de soft delete e usa principalmente `deletedAt`.
+- `Material`: material associado a categoria, com relação many-to-many para `Tag`. Atenção: o próprio schema comenta que está fora do padrão completo de soft delete e usa principalmente `deletedAt`.
 - `MaterialFile`: arquivos de um material.
-- `Tag`: tags globais.
+- `Tag`: tags por organização, com `organizationId` obrigatório e `name` único dentro da organização.
 - `TagSearch`: termos de busca associados a tags.
 - `Log`: logs persistidos.
 - `SeedStatus`: controle para rodar seed uma única vez.
 
 ### Relacionamentos Críticos
 
-- `Organization` possui muitos `Member`, `Category`, `Banner`, `CategoryRoleAccess` e `UserHierarchy`.
+- `Organization` possui muitos `Member`, `Category`, `Banner`, `Tag`, `CategoryRoleAccess` e `UserHierarchy`.
 - `User` possui `globalRole` opcional e vários `Member`.
 - `Role` possui `RolePermission`, `Member`, `CategoryRoleAccess` e usuários globais.
 - `Category` possui árvore por `parentId`, muitos materiais e muitos vínculos de acesso.
-- `Material` possui muitos `MaterialFile` e relação many-to-many com `Tag`.
+- `Material` possui muitos `MaterialFile` e relação many-to-many com `Tag`, com tags filtradas por organização no retorno.
 
 ## Regras de Negócio
 
@@ -329,8 +344,10 @@ ORM: Prisma com PostgreSQL.
 - Ao deletar categoria, ela e todas as subcategorias são marcadas como inativas/deletadas.
 - Material exige categoria existente, ativa e pertencente à organização.
 - Material não pode repetir `name` dentro da mesma categoria enquanto não deletado.
+- Material pode vincular tags existentes da organização ou criar novas tags no mesmo fluxo, sem duplicar nomes case-insensitive.
 - Banner exige imagem mobile e desktop no create.
 - Banner com datas deve respeitar data inicial menor ou igual à final.
+- Tag exige organização e não pode repetir `name` dentro da mesma organização.
 - Tag não pode ser deletada se possuir materiais ou buscas associadas.
 
 ## Upload e Storage

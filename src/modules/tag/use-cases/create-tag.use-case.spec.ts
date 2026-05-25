@@ -4,6 +4,7 @@ import { CreateTagUseCase } from './create-tag.use-case';
 import { makeCreateTagDTO, makeTagEntity } from './test-helpers';
 
 describe('CreateTagUseCase', () => {
+  const organizationId = 'organization-id';
   let tagRepository: jest.Mocked<TagRepository>;
   let useCase: CreateTagUseCase;
 
@@ -23,9 +24,14 @@ describe('CreateTagUseCase', () => {
     tagRepository.findByName.mockResolvedValue(null);
     tagRepository.create.mockResolvedValue(created);
 
-    await expect(useCase.execute(dto)).resolves.toEqual(created);
-    expect(tagRepository.findByName).toHaveBeenCalledWith(dto.name);
-    expect(tagRepository.create).toHaveBeenCalledWith(dto);
+    await expect(useCase.execute(organizationId, dto)).resolves.toEqual(
+      created,
+    );
+    expect(tagRepository.findByName).toHaveBeenCalledWith(
+      dto.name,
+      organizationId,
+    );
+    expect(tagRepository.create).toHaveBeenCalledWith(organizationId, dto);
   });
 
   it('deve impedir duplicidade de nome', async () => {
@@ -35,8 +41,10 @@ describe('CreateTagUseCase', () => {
       name: dto.name,
     });
 
-    await expect(useCase.execute(dto)).rejects.toThrow(BadRequestException);
-    await expect(useCase.execute(dto)).rejects.toThrow(
+    await expect(useCase.execute(organizationId, dto)).rejects.toThrow(
+      BadRequestException,
+    );
+    await expect(useCase.execute(organizationId, dto)).rejects.toThrow(
       'Já existe uma tag com este nome',
     );
   });

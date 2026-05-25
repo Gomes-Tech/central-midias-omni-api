@@ -5,6 +5,7 @@ import { FindCategoryByIdUseCase } from '@modules/category';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateMaterialDTO } from '../dto';
 import { MaterialRepository } from '../repository';
+import { ResolveMaterialTagsUseCase } from './resolve-material-tags.use-case';
 
 @Injectable()
 export class CreateMaterialUseCase {
@@ -12,6 +13,7 @@ export class CreateMaterialUseCase {
     @Inject('MaterialRepository')
     private readonly materialRepository: MaterialRepository,
     private readonly findCategoryByIdUseCase: FindCategoryByIdUseCase,
+    private readonly resolveMaterialTagsUseCase: ResolveMaterialTagsUseCase,
     private readonly storageService: StorageService,
   ) {}
 
@@ -43,6 +45,10 @@ export class CreateMaterialUseCase {
 
     const materialId = generateId();
     const folder = `materials/${materialId}`;
+    const resolvedTags = await this.resolveMaterialTagsUseCase.execute(
+      organizationId,
+      data.tags,
+    );
     const uploadedFiles: Array<{
       file: Express.Multer.File;
       upload: { path: string };
@@ -63,6 +69,7 @@ export class CreateMaterialUseCase {
           mimeType: file.mimetype || 'application/octet-stream',
           size: Number.isFinite(file.size) ? file.size : 0,
         })),
+        tags: resolvedTags,
       });
     } catch (error) {
       if (uploadedFiles.length) {

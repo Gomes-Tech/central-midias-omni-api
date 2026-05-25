@@ -10,8 +10,8 @@ export class DeleteTagUseCase {
     private readonly findTagByIdUseCase: FindTagByIdUseCase,
   ) {}
 
-  async execute(id: string) {
-    const tag = await this.findTagByIdUseCase.execute(id);
+  async execute(id: string, organizationId: string) {
+    const tag = await this.findTagByIdUseCase.execute(id, organizationId);
 
     if (tag.materialsCount > 0) {
       throw new BadRequestException(
@@ -25,6 +25,6 @@ export class DeleteTagUseCase {
       );
     }
 
-    await this.tagRepository.delete(id);
+    await this.tagRepository.delete(id, organizationId);
   }
 }

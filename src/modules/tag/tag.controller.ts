@@ -1,4 +1,4 @@
-import { RequirePermission } from '@common/decorators';
+import { OrgId, RequirePermission } from '@common/decorators';
 import { PlatformPermissionGuard } from '@common/guards';
 import {
   Body,
@@ -33,31 +33,38 @@ export class TagController {
 
   @RequirePermission('tags', 'read')
   @Get()
-  async findAll(@Query() filters: FindAllTagsFiltersDTO = {}) {
-    return await this.findAllTagsUseCase.execute(filters);
+  async findAll(
+    @OrgId() organizationId: string,
+    @Query() filters: FindAllTagsFiltersDTO = {},
+  ) {
+    return await this.findAllTagsUseCase.execute(organizationId, filters);
   }
 
   @RequirePermission('tags', 'read')
   @Get(':id')
-  async findById(@Param('id') id: string) {
-    return await this.findTagByIdUseCase.execute(id);
+  async findById(@Param('id') id: string, @OrgId() organizationId: string) {
+    return await this.findTagByIdUseCase.execute(id, organizationId);
   }
 
   @RequirePermission('tags', 'create')
   @Post()
-  async create(@Body() dto: CreateTagDTO) {
-    return await this.createTagUseCase.execute(dto);
+  async create(@OrgId() organizationId: string, @Body() dto: CreateTagDTO) {
+    return await this.createTagUseCase.execute(organizationId, dto);
   }
 
   @RequirePermission('tags', 'update')
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateTagDTO) {
-    return await this.updateTagUseCase.execute(id, dto);
+  async update(
+    @Param('id') id: string,
+    @OrgId() organizationId: string,
+    @Body() dto: UpdateTagDTO,
+  ) {
+    return await this.updateTagUseCase.execute(id, organizationId, dto);
   }
 
   @RequirePermission('tags', 'delete')
   @Delete(':id')
-  async delete(@Param('id') id: string) {
-    await this.deleteTagUseCase.execute(id);
+  async delete(@Param('id') id: string, @OrgId() organizationId: string) {
+    await this.deleteTagUseCase.execute(id, organizationId);
   }
 }

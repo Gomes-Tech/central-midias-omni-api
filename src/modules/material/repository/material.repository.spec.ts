@@ -9,6 +9,7 @@ function createPrismaMock() {
       findMany: jest.fn(),
       findFirst: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
       updateMany: jest.fn(),
     },
     materialFile: {
@@ -49,6 +50,7 @@ describe('MaterialRepository', () => {
             name: 'Categoria',
             slug: 'categoria',
           },
+          tags: [{ id: 'tag-id', name: 'Campanha' }],
           materialFiles: [{ id: 'file-1' }, { id: 'file-2' }],
         },
       ]);
@@ -61,6 +63,7 @@ describe('MaterialRepository', () => {
       expect(result).toEqual([
         expect.objectContaining({
           id: 'material-id',
+          tags: [{ id: 'tag-id', name: 'Campanha' }],
           materialFilesCount: 2,
         }),
       ]);
@@ -110,6 +113,7 @@ describe('MaterialRepository', () => {
           name: 'Categoria',
           slug: 'categoria',
         },
+        tags: [{ id: 'tag-id', name: 'Campanha' }],
         materialFiles: [],
       });
 
@@ -176,6 +180,12 @@ describe('MaterialRepository', () => {
             categoryId: 'category-id',
           },
           'user-id',
+          {
+            tags: {
+              existingTagIds: [],
+              newTagNames: ['Campanha'],
+            },
+          },
         ),
       ).resolves.toBe(undefined);
 
@@ -185,6 +195,23 @@ describe('MaterialRepository', () => {
           name: 'Material institucional',
           description: 'Descricao',
           categoryId: 'category-id',
+          tags: {
+            connectOrCreate: [
+              {
+                where: {
+                  organizationId_name: {
+                    organizationId: 'org-id',
+                    name: 'Campanha',
+                  },
+                },
+                create: {
+                  id: 'mocked-uuid',
+                  organizationId: 'org-id',
+                  name: 'Campanha',
+                },
+              },
+            ],
+          },
         },
         select: {
           id: true,
@@ -224,6 +251,7 @@ describe('MaterialRepository', () => {
             name: 'Material institucional',
             description: 'Descricao',
             categoryId: 'category-id',
+            tags: ['Campanha'],
           },
           'user-id',
           {
@@ -235,6 +263,10 @@ describe('MaterialRepository', () => {
                 size: 1024,
               },
             ],
+            tags: {
+              existingTagIds: [],
+              newTagNames: ['Campanha'],
+            },
           },
         ),
       ).resolves.toBe(undefined);
@@ -245,6 +277,23 @@ describe('MaterialRepository', () => {
           name: 'Material institucional',
           description: 'Descricao',
           categoryId: 'category-id',
+          tags: {
+            connectOrCreate: [
+              {
+                where: {
+                  organizationId_name: {
+                    organizationId: 'org-id',
+                    name: 'Campanha',
+                  },
+                },
+                create: {
+                  id: 'mocked-uuid',
+                  organizationId: 'org-id',
+                  name: 'Campanha',
+                },
+              },
+            ],
+          },
           materialFiles: {
             create: [
               {
@@ -265,7 +314,8 @@ describe('MaterialRepository', () => {
 
   describe('update', () => {
     it('deve atualizar campos informados no escopo da organização', async () => {
-      prisma.material.updateMany.mockResolvedValue({ count: 1 });
+      prisma.material.findFirst.mockResolvedValue({ id: 'material-id' });
+      prisma.material.update.mockResolvedValue({ id: 'material-id' });
 
       await expect(
         repository.update(
@@ -274,12 +324,19 @@ describe('MaterialRepository', () => {
           {
             name: 'Novo nome',
             categoryId: 'other-category',
+            tags: ['Campanha', 'Novo'],
           },
           'user-id',
+          {
+            tags: {
+              existingTagIds: ['tag-id'],
+              newTagNames: ['Novo'],
+            },
+          },
         ),
       ).resolves.toBe(undefined);
 
-      expect(prisma.material.updateMany).toHaveBeenCalledWith({
+      expect(prisma.material.findFirst).toHaveBeenCalledWith({
         where: {
           id: 'material-id',
           deletedAt: null,
@@ -288,9 +345,69 @@ describe('MaterialRepository', () => {
             isDeleted: false,
           },
         },
+        select: {
+          id: true,
+        },
+      });
+      expect(prisma.material.update).toHaveBeenCalledWith({
+        where: {
+          id: 'material-id',
+        },
         data: {
           name: 'Novo nome',
           categoryId: 'other-category',
+          tags: {
+            set: [],
+            connect: [{ id: 'tag-id' }],
+            connectOrCreate: [
+              {
+                where: {
+                  organizationId_name: {
+                    organizationId: 'org-id',
+                    name: 'Novo',
+                  },
+                },
+                create: {
+                  id: 'mocked-uuid',
+                  organizationId: 'org-id',
+                  name: 'Novo',
+                },
+              },
+            ],
+          },
+        },
+      });
+    });
+
+    it('deve limpar tags quando o payload vier vazio', async () => {
+      prisma.material.findFirst.mockResolvedValue({ id: 'material-id' });
+      prisma.material.update.mockResolvedValue({ id: 'material-id' });
+
+      await expect(
+        repository.update(
+          'material-id',
+          'org-id',
+          {
+            tags: [],
+          },
+          'user-id',
+          {
+            tags: {
+              existingTagIds: [],
+              newTagNames: [],
+            },
+          },
+        ),
+      ).resolves.toBe(undefined);
+
+      expect(prisma.material.update).toHaveBeenCalledWith({
+        where: {
+          id: 'material-id',
+        },
+        data: {
+          tags: {
+            set: [],
+          },
         },
       });
     });

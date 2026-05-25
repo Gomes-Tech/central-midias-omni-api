@@ -3,15 +3,14 @@ import { FindCategoryByIdUseCase } from '@modules/category';
 import { MaterialRepository } from '../repository';
 import { UpdateMaterialUseCase } from './update-material.use-case';
 import { FindMaterialByIdUseCase } from './find-material-by-id.use-case';
-import {
-  makeMaterialDetails,
-  makeUpdateMaterialDTO,
-} from './test-helpers';
+import { ResolveMaterialTagsUseCase } from './resolve-material-tags.use-case';
+import { makeMaterialDetails, makeUpdateMaterialDTO } from './test-helpers';
 
 describe('UpdateMaterialUseCase', () => {
   let materialRepository: jest.Mocked<MaterialRepository>;
   let findMaterialByIdUseCase: { execute: jest.Mock };
   let findCategoryByIdUseCase: { execute: jest.Mock };
+  let resolveMaterialTagsUseCase: { execute: jest.Mock };
   let useCase: UpdateMaterialUseCase;
 
   beforeEach(() => {
@@ -22,11 +21,13 @@ describe('UpdateMaterialUseCase', () => {
 
     findMaterialByIdUseCase = { execute: jest.fn() };
     findCategoryByIdUseCase = { execute: jest.fn() };
+    resolveMaterialTagsUseCase = { execute: jest.fn() };
 
     useCase = new UpdateMaterialUseCase(
       materialRepository,
       findMaterialByIdUseCase as unknown as FindMaterialByIdUseCase,
       findCategoryByIdUseCase as unknown as FindCategoryByIdUseCase,
+      resolveMaterialTagsUseCase as unknown as ResolveMaterialTagsUseCase,
     );
   });
 
@@ -35,6 +36,7 @@ describe('UpdateMaterialUseCase', () => {
     const dto = makeUpdateMaterialDTO({ description: 'Novo texto' });
 
     findMaterialByIdUseCase.execute.mockResolvedValue(material);
+    resolveMaterialTagsUseCase.execute.mockResolvedValue(undefined);
     materialRepository.update.mockResolvedValue(undefined);
 
     await expect(
@@ -48,6 +50,9 @@ describe('UpdateMaterialUseCase', () => {
       'org-id',
       dto,
       'user-id',
+      {
+        tags: undefined,
+      },
     );
   });
 
@@ -64,6 +69,10 @@ describe('UpdateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
+    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+      existingTagIds: ['tag-id'],
+      newTagNames: ['Novo'],
+    });
     materialRepository.update.mockResolvedValue(undefined);
 
     await useCase.execute(material.id, 'org-id', dto, 'user-id');
@@ -75,6 +84,10 @@ describe('UpdateMaterialUseCase', () => {
     expect(materialRepository.findByName).toHaveBeenCalledWith(
       'Novo nome',
       'other-category',
+    );
+    expect(resolveMaterialTagsUseCase.execute).toHaveBeenCalledWith(
+      'org-id',
+      dto.tags,
     );
   });
 
@@ -110,5 +123,34 @@ describe('UpdateMaterialUseCase', () => {
     await expect(
       useCase.execute(material.id, 'org-id', dto, 'user-id'),
     ).rejects.toThrow('Já existe um material com este nome nesta categoria');
+  });
+
+  it('deve sincronizar tags quando forem informadas', async () => {
+    const material = makeMaterialDetails();
+    const dto = makeUpdateMaterialDTO({ tags: ['Campanha', 'Novo'] });
+
+    findMaterialByIdUseCase.execute.mockResolvedValue(material);
+    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+      existingTagIds: ['tag-id'],
+      newTagNames: ['Novo'],
+    });
+    materialRepository.update.mockResolvedValue(undefined);
+
+    await expect(
+      useCase.execute(material.id, 'org-id', dto, 'user-id'),
+    ).resolves.toBe(undefined);
+
+    expect(materialRepository.update).toHaveBeenCalledWith(
+      material.id,
+      'org-id',
+      dto,
+      'user-id',
+      {
+        tags: {
+          existingTagIds: ['tag-id'],
+          newTagNames: ['Novo'],
+        },
+      },
+    );
   });
 });

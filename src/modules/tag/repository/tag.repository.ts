@@ -9,6 +9,7 @@ import { TagEntity } from '../entities';
 
 const tagSelect = {
   id: true,
+  organizationId: true,
   name: true,
   createdAt: true,
   updatedAt: true,
@@ -31,10 +32,14 @@ export class TagRepository {
     private readonly logger: LoggerService,
   ) {}
 
-  async findAll(filters: FindAllTagsFiltersDTO = {}): Promise<TagEntity[]> {
+  async findAll(
+    organizationId: string,
+    filters: FindAllTagsFiltersDTO = {},
+  ): Promise<TagEntity[]> {
     try {
       const tags = await this.prisma.tag.findMany({
         where: {
+          organizationId,
           ...(filters.searchTerm && {
             name: {
               contains: filters.searchTerm,
@@ -50,6 +55,7 @@ export class TagRepository {
     } catch (error) {
       void this.logger.error('TagRepository.findAll falhou', {
         error: String(error),
+        organizationId,
         filters,
       });
 
@@ -57,10 +63,13 @@ export class TagRepository {
     }
   }
 
-  async findById(id: string): Promise<TagEntity | null> {
+  async findById(
+    id: string,
+    organizationId: string,
+  ): Promise<TagEntity | null> {
     try {
-      const tag = await this.prisma.tag.findUnique({
-        where: { id },
+      const tag = await this.prisma.tag.findFirst({
+        where: { id, organizationId },
         select: tagSelect,
       });
 
@@ -69,16 +78,21 @@ export class TagRepository {
       void this.logger.error('TagRepository.findById falhou', {
         error: String(error),
         id,
+        organizationId,
       });
 
       throw new BadRequestException('Erro ao buscar tag');
     }
   }
 
-  async findByName(name: string): Promise<{ id: string; name: string } | null> {
+  async findByName(
+    name: string,
+    organizationId: string,
+  ): Promise<{ id: string; name: string } | null> {
     try {
       return await this.prisma.tag.findFirst({
         where: {
+          organizationId,
           name: {
             equals: name,
             mode: 'insensitive',
@@ -93,17 +107,55 @@ export class TagRepository {
       void this.logger.error('TagRepository.findByName falhou', {
         error: String(error),
         name,
+        organizationId,
       });
 
       throw new BadRequestException('Erro ao buscar tag');
     }
   }
 
-  async create(data: CreateTagDTO): Promise<TagEntity> {
+  async findManyByNames(
+    names: string[],
+    organizationId: string,
+  ): Promise<Array<{ id: string; name: string }>> {
+    if (!names.length) {
+      return [];
+    }
+
+    try {
+      return await this.prisma.tag.findMany({
+        where: {
+          organizationId,
+          OR: names.map((name) => ({
+            name: {
+              equals: name,
+              mode: 'insensitive',
+            },
+          })),
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: [{ name: 'asc' }],
+      });
+    } catch (error) {
+      void this.logger.error('TagRepository.findManyByNames falhou', {
+        error: String(error),
+        names,
+        organizationId,
+      });
+
+      throw new BadRequestException('Erro ao buscar tags');
+    }
+  }
+
+  async create(organizationId: string, data: CreateTagDTO): Promise<TagEntity> {
     try {
       const createdTag = await this.prisma.tag.create({
         data: {
           id: generateId(),
+          organizationId,
           name: data.name,
         },
         select: tagSelect,
@@ -112,12 +164,14 @@ export class TagRepository {
       void this.logger.info('Tag criada', {
         tagId: createdTag.id,
         tagName: createdTag.name,
+        organizationId,
       });
 
       return this.mapTag(createdTag);
     } catch (error) {
       void this.logger.error('TagRepository.create falhou', {
         error: String(error),
+        organizationId,
         data,
       });
 
@@ -125,25 +179,36 @@ export class TagRepository {
     }
   }
 
-  async update(id: string, data: UpdateTagDTO): Promise<TagEntity> {
+  async update(
+    id: string,
+    organizationId: string,
+    data: UpdateTagDTO,
+  ): Promise<TagEntity> {
     try {
-      const updatedTag = await this.prisma.tag.update({
-        where: { id },
+      await this.prisma.tag.updateMany({
+        where: { id, organizationId },
         data: {
           ...(data.name !== undefined && { name: data.name }),
         },
-        select: tagSelect,
       });
+
+      const updatedTag = await this.findById(id, organizationId);
+
+      if (!updatedTag) {
+        throw new BadRequestException('Erro ao atualizar tag');
+      }
 
       void this.logger.info('Tag atualizada', {
         tagId: updatedTag.id,
+        organizationId,
       });
 
-      return this.mapTag(updatedTag);
+      return updatedTag;
     } catch (error) {
       void this.logger.error('TagRepository.update falhou', {
         error: String(error),
         id,
+        organizationId,
         data,
       });
 
@@ -151,19 +216,21 @@ export class TagRepository {
     }
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string, organizationId: string): Promise<void> {
     try {
-      await this.prisma.tag.delete({
-        where: { id },
+      await this.prisma.tag.deleteMany({
+        where: { id, organizationId },
       });
 
       void this.logger.info('Tag removida', {
         tagId: id,
+        organizationId,
       });
     } catch (error) {
       void this.logger.error('TagRepository.delete falhou', {
         error: String(error),
         id,
+        organizationId,
       });
 
       throw new BadRequestException('Erro ao remover tag');
@@ -173,6 +240,7 @@ export class TagRepository {
   private mapTag(tag: TagRow): TagEntity {
     return {
       id: tag.id,
+      organizationId: tag.organizationId,
       name: tag.name,
       createdAt: tag.createdAt,
       updatedAt: tag.updatedAt,
