@@ -51,8 +51,8 @@ export class RolesController {
 
   @RequirePermission('roles', 'read')
   @Get('/select')
-  async findAllSelect() {
-    return await this.findAllSelectRolesUseCase.execute();
+  async findAllSelect(@Query('isMember') isMember: boolean = false) {
+    return await this.findAllSelectRolesUseCase.execute(isMember);
   }
 
   @RequirePermission('roles', 'read')

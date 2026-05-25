@@ -5,7 +5,7 @@ import { RolesRepository } from '../repository';
 export class FindAllSelectRolesUseCase {
   constructor(private readonly rolesRepository: RolesRepository) {}
 
-  async execute() {
-    return this.rolesRepository.findAllSelect();
+  async execute(isMember: boolean = false) {
+    return this.rolesRepository.findAllSelect(isMember);
   }
 }
