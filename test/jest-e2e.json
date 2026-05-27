@@ -1,16 +1,17 @@
 {
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": "..",
-  "testRegex": "test/.*\\.e2e-spec\\.ts$",
+  "testRegex": "test/e2e/.*\\.e2e-spec\\.ts$",
   "setupFiles": ["<rootDir>/test/jest-e2e.setup.ts"],
   "forceExit": true,
+  "maxWorkers": 1,
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "transformIgnorePatterns": ["/node_modules/(?!uuid)/"],
   "moduleNameMapper": {
     "^@common/(.*)$": "<rootDir>/src/common/$1",
-    "^@infrastructure/prisma$": "<rootDir>/src/test-utils/infrastructure-prisma.mock.ts",
+    "^@infrastructure/prisma$": "<rootDir>/test/helpers/e2e-prisma.service.ts",
     "^@infrastructure/(.*)$": "<rootDir>/src/infrastructure/$1",
     "^@modules/(.*)$": "<rootDir>/src/modules/$1",
     "^types/(.*)$": "<rootDir>/src/types/$1"
