@@ -86,6 +86,27 @@ describe('BannerRepository', () => {
       });
     });
 
+    it('deve filtrar por onlyActive e searchTerm', async () => {
+      prisma.banner.findMany.mockResolvedValue([]);
+      prisma.banner.count.mockResolvedValue(0);
+
+      await repository.findAll(
+        { onlyActive: true, searchTerm: 'promo' },
+        'org-1',
+      );
+
+      expect(prisma.banner.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            organizationId: 'org-1',
+            isDeleted: false,
+            isActive: true,
+            name: { contains: 'promo', mode: 'insensitive' },
+          },
+        }),
+      );
+    });
+
     it('deve omitir isActive quando onlyActive for false', async () => {
       prisma.banner.findMany.mockResolvedValue([]);
       prisma.banner.count.mockResolvedValue(0);
@@ -315,6 +336,42 @@ describe('BannerRepository', () => {
       expect(prisma.banner.updateMany).toHaveBeenCalledWith({
         where: { id: 'bid', organizationId: 'org-1', isDeleted: false },
         data: { order: 3, mobileImageKey: '/new-m.png' },
+      });
+    });
+
+    it('deve atualizar todos os campos opcionais quando informados', async () => {
+      prisma.banner.updateMany.mockResolvedValue({ count: 1 });
+      const initialDate = new Date('2025-01-01');
+      const finishDate = new Date('2025-12-31');
+
+      await repository.update(
+        'bid',
+        'org-1',
+        {
+          name: 'N',
+          link: 'https://x.com',
+          order: 1,
+          isActive: false,
+          initialDate,
+          finishDate,
+          mobileImageKey: '/m.png',
+          desktopImageKey: '/d.png',
+        },
+        'user-1',
+      );
+
+      expect(prisma.banner.updateMany).toHaveBeenCalledWith({
+        where: { id: 'bid', organizationId: 'org-1', isDeleted: false },
+        data: {
+          name: 'N',
+          link: 'https://x.com',
+          order: 1,
+          isActive: false,
+          initialDate,
+          finishDate,
+          mobileImageKey: '/m.png',
+          desktopImageKey: '/d.png',
+        },
       });
     });
 

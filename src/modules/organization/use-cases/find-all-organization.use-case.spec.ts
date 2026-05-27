@@ -66,6 +66,31 @@ describe('FindAllOrganizationsUseCase', () => {
     expect(storageService.getPublicUrl).not.toHaveBeenCalled();
   });
 
+  it('deve resolver avatarUrl quando avatarKey existir', async () => {
+    const org = makeOrganization({ avatarKey: 'avatars/org.png' });
+
+    organizationRepository.findAll.mockResolvedValue({
+      data: [org],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    });
+    storageService.getPublicUrl.mockResolvedValue('https://cdn.test/avatars/org.png');
+
+    await expect(useCase.execute()).resolves.toEqual({
+      data: [
+        expect.objectContaining({
+          id: org.id,
+          avatarUrl: 'https://cdn.test/avatars/org.png',
+        }),
+      ],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    });
+    expect(storageService.getPublicUrl).toHaveBeenCalledWith('avatars/org.png');
+  });
+
   it('deve chamar organizationRepository.findAll exatamente 1 vez', async () => {
     organizationRepository.findAll.mockResolvedValue({
       data: [],

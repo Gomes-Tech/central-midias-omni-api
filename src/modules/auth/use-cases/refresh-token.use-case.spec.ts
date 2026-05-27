@@ -92,6 +92,21 @@ describe('RefreshTokenUseCase', () => {
     consoleSpy.mockRestore();
   });
 
+  it('deve renovar tokens sem blacklist quando payload não tiver jti', async () => {
+    const user = makeUser();
+    jwtService.verifyAsync.mockResolvedValue({ id: user.id });
+    findUserByIdUseCase.execute.mockResolvedValue(user);
+    jwtService.sign
+      .mockReturnValueOnce('access')
+      .mockReturnValueOnce('refresh');
+
+    const result = await useCase.execute('token-sem-jti');
+
+    expect(result.accessToken).toBe('access');
+    expect(tokenBlacklistService.isRefreshTokenBlacklisted).not.toHaveBeenCalled();
+    expect(tokenBlacklistService.addRefreshTokenToBlacklist).not.toHaveBeenCalled();
+  });
+
   it('deve lançar UnauthorizedException quando verifyAsync falhar', async () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 

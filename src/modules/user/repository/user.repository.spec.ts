@@ -286,6 +286,25 @@ describe('UserRepository', () => {
       });
     });
 
+    it('deve considerar canAccessBackoffice via membership', async () => {
+      prisma.user.findFirstOrThrow.mockResolvedValue({
+        name: 'Me',
+        email: 'me@y.com',
+        taxIdentifier: '999',
+        phone: null,
+        socialReason: null,
+        avatarKey: 'k',
+        isFirstAccess: false,
+        isActive: true,
+        globalRole: { canAccessBackoffice: false },
+        members: [{ role: { canAccessBackoffice: true } }],
+      });
+
+      await expect(repository.getMe('me-id')).resolves.toEqual(
+        expect.objectContaining({ canAccessBackoffice: true }),
+      );
+    });
+
     it('deve lançar BadRequest quando findFirstOrThrow falhar', async () => {
       prisma.user.findFirstOrThrow.mockRejectedValue(new Error('db'));
 

@@ -87,6 +87,22 @@ describe('OrganizationRepository', () => {
       });
     });
 
+    it('deve filtrar por searchTerm quando informado', async () => {
+      prisma.organization.findMany.mockResolvedValue([]);
+      prisma.organization.count.mockResolvedValue(0);
+
+      await repository.findAll({ searchTerm: 'alpha' });
+
+      expect(prisma.organization.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            isDeleted: false,
+            name: { contains: 'alpha', mode: 'insensitive' },
+          },
+        }),
+      );
+    });
+
     it('deve lançar BadRequest quando findMany falhar', async () => {
       prisma.organization.findMany.mockRejectedValue(new Error('db'));
 

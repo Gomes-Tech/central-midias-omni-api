@@ -105,4 +105,13 @@ describe('LogoutUserUseCase', () => {
     await expect(useCase.execute('at', undefined)).resolves.toBeUndefined();
     expect(tokenBlacklistService.addToBlacklist).not.toHaveBeenCalled();
   });
+
+  it('deve engolir rejeição não-Error no refresh token', async () => {
+    jwtService.verifyAsync.mockRejectedValue('invalid-refresh');
+
+    await expect(useCase.execute(undefined, 'rt')).resolves.toBeUndefined();
+    expect(
+      tokenBlacklistService.addRefreshTokenToBlacklist,
+    ).not.toHaveBeenCalled();
+  });
 });

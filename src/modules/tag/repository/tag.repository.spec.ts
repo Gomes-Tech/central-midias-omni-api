@@ -112,6 +112,60 @@ describe('TagRepository', () => {
         select: expect.any(Object),
       });
     });
+
+    it('deve retornar null quando a tag não existir', async () => {
+      prisma.tag.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findById('tag-id', organizationId),
+      ).resolves.toBeNull();
+    });
+
+    it('deve lançar BadRequest quando findFirst falhar', async () => {
+      prisma.tag.findFirst.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findById('tag-id', organizationId),
+      ).rejects.toThrow('Erro ao buscar tag');
+      expect(logger.error).toHaveBeenCalledWith(
+        'TagRepository.findById falhou',
+        expect.objectContaining({ id: 'tag-id', organizationId }),
+      );
+    });
+  });
+
+  describe('findSelect', () => {
+    it('deve listar tags da organização retornando apenas id e name', async () => {
+      const rows = [
+        { id: 'tag-1', name: 'Campanha' },
+        { id: 'tag-2', name: 'Institucional' },
+      ];
+      prisma.tag.findMany.mockResolvedValue(rows);
+
+      const result = await repository.findSelect(organizationId);
+
+      expect(result).toEqual(rows);
+      expect(prisma.tag.findMany).toHaveBeenCalledWith({
+        where: { organizationId },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: [{ name: 'asc' }],
+      });
+    });
+
+    it('deve lançar BadRequest quando findMany falhar', async () => {
+      prisma.tag.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(repository.findSelect(organizationId)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'TagRepository.findSelect falhou',
+        expect.objectContaining({ organizationId }),
+      );
+    });
   });
 
   describe('findByName', () => {
@@ -142,9 +196,28 @@ describe('TagRepository', () => {
         },
       });
     });
+
+    it('deve lançar BadRequest quando findFirst falhar', async () => {
+      prisma.tag.findFirst.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findByName('campanha', organizationId),
+      ).rejects.toThrow('Erro ao buscar tag');
+      expect(logger.error).toHaveBeenCalledWith(
+        'TagRepository.findByName falhou',
+        expect.objectContaining({ name: 'campanha', organizationId }),
+      );
+    });
   });
 
   describe('findManyByNames', () => {
+    it('deve retornar array vazio quando não houver nomes', async () => {
+      await expect(repository.findManyByNames([], organizationId)).resolves.toEqual(
+        [],
+      );
+      expect(prisma.tag.findMany).not.toHaveBeenCalled();
+    });
+
     it('deve buscar por múltiplos nomes dentro da organização', async () => {
       prisma.tag.findMany.mockResolvedValue([
         {
@@ -189,6 +262,21 @@ describe('TagRepository', () => {
         },
         orderBy: [{ name: 'asc' }],
       });
+    });
+
+    it('deve lançar BadRequest quando findMany falhar', async () => {
+      prisma.tag.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findManyByNames(['campanha'], organizationId),
+      ).rejects.toThrow('Erro ao buscar tags');
+      expect(logger.error).toHaveBeenCalledWith(
+        'TagRepository.findManyByNames falhou',
+        expect.objectContaining({
+          names: ['campanha'],
+          organizationId,
+        }),
+      );
     });
   });
 
@@ -258,6 +346,31 @@ describe('TagRepository', () => {
         data: { name: 'Institucional' },
       });
     });
+
+    it('deve lançar BadRequest quando a tag não for encontrada após update', async () => {
+      prisma.tag.updateMany.mockResolvedValue({ count: 1 });
+      prisma.tag.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.update('tag-id', organizationId, { name: 'Institucional' }),
+      ).rejects.toThrow('Erro ao atualizar tag');
+      expect(logger.error).toHaveBeenCalledWith(
+        'TagRepository.update falhou',
+        expect.objectContaining({ id: 'tag-id', organizationId }),
+      );
+    });
+
+    it('deve lançar BadRequest quando updateMany falhar', async () => {
+      prisma.tag.updateMany.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.update('tag-id', organizationId, { name: 'Institucional' }),
+      ).rejects.toThrow('Erro ao atualizar tag');
+      expect(logger.error).toHaveBeenCalledWith(
+        'TagRepository.update falhou',
+        expect.objectContaining({ id: 'tag-id', organizationId }),
+      );
+    });
   });
 
   describe('delete', () => {
@@ -270,6 +383,22 @@ describe('TagRepository', () => {
       expect(prisma.tag.deleteMany).toHaveBeenCalledWith({
         where: { id: 'tag-id', organizationId },
       });
+      expect(logger.info).toHaveBeenCalledWith(
+        'Tag removida',
+        expect.objectContaining({ tagId: 'tag-id', organizationId }),
+      );
+    });
+
+    it('deve lançar BadRequest quando deleteMany falhar', async () => {
+      prisma.tag.deleteMany.mockRejectedValue(new Error('db'));
+
+      await expect(repository.delete('tag-id', organizationId)).rejects.toThrow(
+        'Erro ao remover tag',
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'TagRepository.delete falhou',
+        expect.objectContaining({ id: 'tag-id', organizationId }),
+      );
     });
   });
 });

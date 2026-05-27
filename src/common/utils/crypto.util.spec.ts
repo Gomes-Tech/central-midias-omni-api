@@ -17,4 +17,12 @@ describe('secureCompare', () => {
   it('retorna false para mesmo tamanho com conteúdo diferente', () => {
     expect(secureCompare('aaaa', 'aaab')).toBe(false);
   });
+
+  it('retorna false quando buffers UTF-8 tiverem tamanhos diferentes', () => {
+    const a = '\uD834\uDD1E';
+    const b = 'xy';
+
+    expect(a.length).toBe(b.length);
+    expect(secureCompare(a, b)).toBe(false);
+  });
 });

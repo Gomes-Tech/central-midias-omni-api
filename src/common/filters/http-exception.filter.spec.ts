@@ -267,6 +267,35 @@ describe('HttpExceptionFilter', () => {
       );
     });
 
+    it('em dev deve mascarar campo sensível não textual', () => {
+      const response = createMockResponse();
+      const request = baseRequest();
+      request.body = { password: 0, token: null };
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'dev';
+
+      try {
+        filter.catch(
+          new BadRequestException('err'),
+          createHost(request, response),
+        );
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
+
+      expect(debugSpy).toHaveBeenCalledWith(
+        'HTTP Exception',
+        expect.objectContaining({
+          request: expect.objectContaining({
+            body: {
+              password: '[REDACTED]',
+              token: '[REDACTED]',
+            },
+          }),
+        }),
+      );
+    });
+
     it('em dev deve sanitizar arrays e campos aninhados no body', () => {
       const response = createMockResponse();
       const request = baseRequest();
@@ -299,6 +328,115 @@ describe('HttpExceptionFilter', () => {
               'plain',
             ]),
           }),
+        }),
+      );
+    });
+
+    it('deve usar status e mensagem padrão quando getStatus e message estiverem ausentes', () => {
+      const response = createMockResponse();
+      const request = baseRequest();
+      const ex = {
+        getStatus: () => 0,
+        getResponse: () => ({}),
+        message: 'fallback message',
+      } as unknown as HttpException;
+
+      filter.catch(ex, createHost(request, response));
+
+      expect(response.status).toHaveBeenCalledWith(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+      expect(response.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'fallback message',
+        }),
+      );
+    });
+
+    it('deve usar mensagem genérica quando response e exception não tiverem message', () => {
+      const response = createMockResponse();
+      const request = baseRequest();
+      const ex = {
+        getStatus: () => HttpStatus.BAD_REQUEST,
+        getResponse: () => ({ statusCode: 400 }),
+        message: '',
+      } as unknown as HttpException;
+
+      filter.catch(ex, createHost(request, response));
+
+      expect(response.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Internal server error',
+        }),
+      );
+    });
+
+    it('em dev deve sanitizar request sem headers, body e query', () => {
+      const response = createMockResponse();
+      const request = {
+        url: '/v1/x',
+        method: 'GET',
+        headers: undefined,
+        body: undefined,
+        query: undefined,
+        params: {},
+        ip: '127.0.0.1',
+        get: jest.fn().mockReturnValue('agent'),
+        [REQUEST_ID_KEY]: 'req-1',
+      };
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'dev';
+
+      try {
+        filter.catch(
+          new BadRequestException('x'),
+          createHost(request, response),
+        );
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
+
+      expect(debugSpy).toHaveBeenCalledWith(
+        'HTTP Exception',
+        expect.objectContaining({
+          request: expect.objectContaining({
+            headers: {},
+            body: {},
+            query: {},
+          }),
+        }),
+      );
+    });
+
+    it('em dev deve sanitizar request sem params definidos', () => {
+      const response = createMockResponse();
+      const request = {
+        url: '/v1/x',
+        method: 'GET',
+        headers: {},
+        body: {},
+        query: {},
+        params: undefined,
+        ip: '127.0.0.1',
+        get: jest.fn().mockReturnValue('agent'),
+        [REQUEST_ID_KEY]: 'req-1',
+      };
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'dev';
+
+      try {
+        filter.catch(
+          new BadRequestException('x'),
+          createHost(request, response),
+        );
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
+
+      expect(debugSpy).toHaveBeenCalledWith(
+        'HTTP Exception',
+        expect.objectContaining({
+          request: expect.objectContaining({ params: {} }),
         }),
       );
     });

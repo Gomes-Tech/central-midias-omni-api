@@ -103,6 +103,18 @@ describe('ModuleRepository', () => {
 
       await expect(repository.findById('missing')).resolves.toBeNull();
     });
+
+    it('deve lançar BadRequest quando findUnique falhar', async () => {
+      prisma.module.findUnique.mockRejectedValue(new Error('db'));
+
+      await expect(repository.findById('m1')).rejects.toThrow(
+        'Erro ao buscar módulo',
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'ModuleRepository.findById falhou',
+        expect.objectContaining({ id: 'm1' }),
+      );
+    });
   });
 
   describe('findByName', () => {
@@ -114,6 +126,14 @@ describe('ModuleRepository', () => {
       expect(prisma.module.findUnique).toHaveBeenCalledWith({
         where: { name: 'roles' },
       });
+    });
+
+    it('deve lançar BadRequest quando findUnique falhar', async () => {
+      prisma.module.findUnique.mockRejectedValue(new Error('db'));
+
+      await expect(repository.findByName('roles')).rejects.toThrow(
+        'Erro ao buscar módulo',
+      );
     });
   });
 
@@ -130,6 +150,14 @@ describe('ModuleRepository', () => {
         data: { id: 'mocked-uuid', name: dto.name, label: dto.label },
       });
       expect(logger.info).toHaveBeenCalled();
+    });
+
+    it('deve lançar BadRequest quando create falhar', async () => {
+      prisma.module.create.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.create(makeCreateModuleDTO()),
+      ).rejects.toThrow('Erro ao criar módulo');
     });
   });
 
@@ -148,6 +176,26 @@ describe('ModuleRepository', () => {
       });
       expect(logger.info).toHaveBeenCalled();
     });
+
+    it('deve atualizar apenas name quando label não for informado', async () => {
+      const updated = makeModule({ id: 'm1', name: 'novo-modulo' });
+      prisma.module.update.mockResolvedValue(updated);
+
+      await repository.update('m1', { name: 'novo-modulo' });
+
+      expect(prisma.module.update).toHaveBeenCalledWith({
+        where: { id: 'm1' },
+        data: { name: 'novo-modulo' },
+      });
+    });
+
+    it('deve lançar BadRequest quando update falhar', async () => {
+      prisma.module.update.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.update('m1', makeUpdateModuleDTO({ label: 'Novo' })),
+      ).rejects.toThrow('Erro ao atualizar módulo');
+    });
   });
 
   describe('delete', () => {
@@ -160,6 +208,14 @@ describe('ModuleRepository', () => {
         where: { id: 'm1' },
       });
       expect(logger.info).toHaveBeenCalled();
+    });
+
+    it('deve lançar BadRequest quando delete falhar', async () => {
+      prisma.module.delete.mockRejectedValue(new Error('db'));
+
+      await expect(repository.delete('m1')).rejects.toThrow(
+        'Erro ao remover módulo',
+      );
     });
   });
 });

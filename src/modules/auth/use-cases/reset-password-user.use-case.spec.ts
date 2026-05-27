@@ -76,6 +76,24 @@ describe('ResetPasswordUseCase', () => {
     );
   });
 
+  it('deve usar ip unknown no sucesso quando ip não for informado', async () => {
+    const user = makeUser();
+
+    verifyTokenPasswordUseCase.execute.mockResolvedValue(undefined);
+    findUserByEmailUseCase.execute.mockResolvedValue(user);
+    updateUserUseCase.execute.mockResolvedValue(undefined);
+    updateTokenPasswordUseCase.execute.mockResolvedValue(undefined);
+
+    await useCase.execute('token', user.email, 'NewSecurePass123');
+
+    expect(securityLogger.logPasswordResetAttempt).toHaveBeenCalledWith(
+      user.email,
+      'unknown',
+      true,
+      undefined,
+    );
+  });
+
   it('deve registrar falha e relançar erro quando a verificação do token falhar', async () => {
     verifyTokenPasswordUseCase.execute.mockRejectedValue(new Error('token inválido'));
 

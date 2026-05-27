@@ -67,6 +67,38 @@ describe('BannerController', () => {
 
       expect(listBannersUseCase.execute).toHaveBeenCalledWith('org-1', {});
     });
+
+    it('deve usar filtros padrão quando query não for passada', async () => {
+      listBannersUseCase.execute.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 1,
+        totalPages: 0,
+      });
+
+      await controller.list('org-1');
+
+      expect(listBannersUseCase.execute).toHaveBeenCalledWith('org-1', {});
+    });
+  });
+
+  describe('listWeb', () => {
+    it('deve listar banners ativos na data atual', async () => {
+      const payload = { data: [], total: 0, page: 1, totalPages: 0 };
+      listBannersUseCase.execute.mockResolvedValue(payload);
+
+      const result = await controller.listWeb('org-1');
+
+      expect(result).toBe(payload);
+      expect(listBannersUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+        expect.objectContaining({
+          onlyActive: true,
+          initialDate: expect.any(Date),
+          finishDate: expect.any(Date),
+        }),
+      );
+    });
   });
 
   describe('getById', () => {
@@ -98,6 +130,25 @@ describe('BannerController', () => {
         dto,
         'uid',
         { mobile, desktop },
+      );
+    });
+
+    it('deve extrair arquivo único quando campo não for array', async () => {
+      const dto = { name: 'Banner', order: 0 } as Parameters<
+        BannerController['create']
+      >[1];
+      const mobile = { fieldname: 'mobileImage' } as Express.Multer.File;
+      const files = { mobileImage: mobile };
+
+      createBannerUseCase.execute.mockResolvedValue(undefined);
+
+      await controller.create('org-1', dto, 'uid', files);
+
+      expect(createBannerUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+        dto,
+        'uid',
+        { mobile, desktop: undefined },
       );
     });
 

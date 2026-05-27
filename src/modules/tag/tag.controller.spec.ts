@@ -5,6 +5,7 @@ import {
   CreateTagUseCase,
   DeleteTagUseCase,
   FindAllTagsUseCase,
+  FindSelectTagsUseCase,
   FindTagByIdUseCase,
   UpdateTagUseCase,
 } from './use-cases';
@@ -21,6 +22,7 @@ describe('TagController', () => {
   let createTagUseCase: { execute: jest.Mock };
   let deleteTagUseCase: { execute: jest.Mock };
   let findAllTagsUseCase: { execute: jest.Mock };
+  let findSelectTagsUseCase: { execute: jest.Mock };
   let findTagByIdUseCase: { execute: jest.Mock };
   let updateTagUseCase: { execute: jest.Mock };
 
@@ -28,6 +30,7 @@ describe('TagController', () => {
     createTagUseCase = { execute: jest.fn() };
     deleteTagUseCase = { execute: jest.fn() };
     findAllTagsUseCase = { execute: jest.fn() };
+    findSelectTagsUseCase = { execute: jest.fn() };
     findTagByIdUseCase = { execute: jest.fn() };
     updateTagUseCase = { execute: jest.fn() };
 
@@ -37,6 +40,7 @@ describe('TagController', () => {
         { provide: CreateTagUseCase, useValue: createTagUseCase },
         { provide: DeleteTagUseCase, useValue: deleteTagUseCase },
         { provide: FindAllTagsUseCase, useValue: findAllTagsUseCase },
+        { provide: FindSelectTagsUseCase, useValue: findSelectTagsUseCase },
         { provide: FindTagByIdUseCase, useValue: findTagByIdUseCase },
         { provide: UpdateTagUseCase, useValue: updateTagUseCase },
       ],
@@ -61,6 +65,31 @@ describe('TagController', () => {
       organizationId,
       filters,
     );
+  });
+
+  it('deve delegar findAll sem filtros explícitos', async () => {
+    const payload = [makeTagEntity()];
+
+    findAllTagsUseCase.execute.mockResolvedValue(payload);
+
+    const result = await controller.findAll(organizationId);
+
+    expect(result).toBe(payload);
+    expect(findAllTagsUseCase.execute).toHaveBeenCalledWith(organizationId, {});
+  });
+
+  it('deve delegar findSelect', async () => {
+    const payload = [
+      { id: 'tag-1', name: 'Campanha' },
+      { id: 'tag-2', name: 'Institucional' },
+    ];
+
+    findSelectTagsUseCase.execute.mockResolvedValue(payload);
+
+    const result = await controller.findSelect(organizationId);
+
+    expect(result).toBe(payload);
+    expect(findSelectTagsUseCase.execute).toHaveBeenCalledWith(organizationId);
   });
 
   it('deve delegar findById', async () => {

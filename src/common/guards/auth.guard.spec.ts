@@ -236,6 +236,26 @@ describe('AuthGuard', () => {
     ).resolves.toBe(true);
   });
 
+  it('deve usar ip e user-agent desconhecidos quando ausentes', async () => {
+    reflector.getAllAndOverride.mockReturnValue(false);
+
+    const ctx = createExecutionContext({
+      headers: { 'x-api-key': 'server-secret-key' },
+      method: 'GET',
+      url: '/no-ip',
+      get: jest.fn().mockReturnValue(undefined),
+    });
+
+    await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
+    expect(securityLogger.logUnauthorizedAccess).toHaveBeenCalledWith(
+      '/no-ip',
+      'GET',
+      'unknown',
+      undefined,
+      'unknown',
+    );
+  });
+
   it('deve registrar mensagem genérica quando verify falhar sem Error', async () => {
     reflector.getAllAndOverride.mockReturnValue(false);
     jwtService.verifyAsync.mockRejectedValue('string-fail');

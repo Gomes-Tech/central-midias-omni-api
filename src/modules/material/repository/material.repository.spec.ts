@@ -98,6 +98,37 @@ describe('MaterialRepository', () => {
     });
   });
 
+  describe('findAllSelect', () => {
+    it('deve listar materiais ativos retornando id e name', async () => {
+      prisma.material.findMany.mockResolvedValue([
+        { id: 'material-id', name: 'Material' },
+      ]);
+
+      await expect(repository.findAllSelect('org-id')).resolves.toEqual([
+        { id: 'material-id', name: 'Material' },
+      ]);
+      expect(prisma.material.findMany).toHaveBeenCalledWith({
+        where: {
+          deletedAt: null,
+          category: {
+            organizationId: 'org-id',
+            isDeleted: false,
+          },
+        },
+        orderBy: { name: 'asc' },
+        select: { id: true, name: true },
+      });
+    });
+
+    it('deve lançar BadRequest quando findMany falhar', async () => {
+      prisma.material.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(repository.findAllSelect('org-id')).rejects.toThrow(
+        'Erro ao buscar materiais (select)',
+      );
+    });
+  });
+
   describe('findById', () => {
     it('deve retornar o material detalhado quando existir', async () => {
       prisma.material.findFirst.mockResolvedValue({
@@ -125,6 +156,14 @@ describe('MaterialRepository', () => {
           deletedAt: null,
         }),
       );
+    });
+
+    it('deve retornar null quando material não existir', async () => {
+      prisma.material.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findById('material-id', 'org-id'),
+      ).resolves.toBeNull();
     });
 
     it('deve lançar BadRequest quando findFirst falhar', async () => {
@@ -164,6 +203,14 @@ describe('MaterialRepository', () => {
           categoryId: true,
         },
       });
+    });
+
+    it('deve lançar BadRequest quando findFirst falhar', async () => {
+      prisma.material.findFirst.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findByName('Material', 'category-id'),
+      ).rejects.toThrow('Erro ao buscar material');
     });
   });
 
@@ -239,6 +286,86 @@ describe('MaterialRepository', () => {
           'user-id',
         ),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('deve criar material sem bloco de tags quando options.tags não for informado', async () => {
+      prisma.material.create.mockResolvedValue({ id: 'material-id' });
+
+      await repository.create(
+        'org-id',
+        {
+          name: 'Material',
+          categoryId: 'category-id',
+        },
+        'user-id',
+      );
+
+      expect(prisma.material.create).toHaveBeenCalledWith({
+        data: {
+          id: 'mocked-uuid',
+          name: 'Material',
+          description: null,
+          categoryId: 'category-id',
+        },
+        select: { id: true },
+      });
+    });
+
+    it('deve omitir tags no create quando resolved tags vier vazio', async () => {
+      prisma.material.create.mockResolvedValue({ id: 'material-id' });
+
+      await repository.create(
+        'org-id',
+        {
+          name: 'Material',
+          categoryId: 'category-id',
+        },
+        'user-id',
+        {
+          tags: {
+            existingTagIds: [],
+            newTagNames: [],
+          },
+        },
+      );
+
+      expect(prisma.material.create).toHaveBeenCalledWith({
+        data: {
+          id: 'mocked-uuid',
+          name: 'Material',
+          description: null,
+          categoryId: 'category-id',
+        },
+        select: { id: true },
+      });
+    });
+
+    it('deve conectar tags existentes sem criar novas', async () => {
+      prisma.material.create.mockResolvedValue({ id: 'material-id' });
+
+      await repository.create(
+        'org-id',
+        {
+          name: 'Material',
+          categoryId: 'category-id',
+        },
+        'user-id',
+        {
+          tags: {
+            existingTagIds: ['tag-id'],
+            newTagNames: [],
+          },
+        },
+      );
+
+      expect(prisma.material.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          tags: {
+            connect: [{ id: 'tag-id' }],
+          },
+        }),
+        select: { id: true },
+      });
     });
 
     it('deve criar material com id informado e arquivos relacionados', async () => {
@@ -411,6 +538,51 @@ describe('MaterialRepository', () => {
         },
       });
     });
+
+    it('deve retornar cedo quando material não existir no escopo', async () => {
+      prisma.material.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.update(
+          'material-id',
+          'org-id',
+          { name: 'Novo' },
+          'user-id',
+        ),
+      ).resolves.toBeUndefined();
+      expect(prisma.material.update).not.toHaveBeenCalled();
+    });
+
+    it('deve atualizar apenas description quando informada', async () => {
+      prisma.material.findFirst.mockResolvedValue({ id: 'material-id' });
+      prisma.material.update.mockResolvedValue({ id: 'material-id' });
+
+      await repository.update(
+        'material-id',
+        'org-id',
+        { description: 'Nova descrição' },
+        'user-id',
+      );
+
+      expect(prisma.material.update).toHaveBeenCalledWith({
+        where: { id: 'material-id' },
+        data: { description: 'Nova descrição' },
+      });
+    });
+
+    it('deve lançar BadRequest quando update falhar', async () => {
+      prisma.material.findFirst.mockResolvedValue({ id: 'material-id' });
+      prisma.material.update.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.update(
+          'material-id',
+          'org-id',
+          { name: 'Novo' },
+          'user-id',
+        ),
+      ).rejects.toThrow('Erro ao atualizar material');
+    });
   });
 
   describe('delete', () => {
@@ -434,6 +606,14 @@ describe('MaterialRepository', () => {
           deletedAt: expect.any(Date),
         },
       });
+    });
+
+    it('deve lançar BadRequest quando updateMany falhar', async () => {
+      prisma.material.updateMany.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.delete('material-id', 'org-id', 'user-id'),
+      ).rejects.toThrow('Erro ao remover material');
     });
   });
 
@@ -556,6 +736,14 @@ describe('MaterialRepository', () => {
         },
       });
     });
+
+    it('deve lançar BadRequest quando findMany falhar', async () => {
+      prisma.materialFile.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findFilesByMaterialId('material-id', 'org-id'),
+      ).rejects.toThrow('Erro ao buscar arquivos do material');
+    });
   });
 
   describe('findFileById', () => {
@@ -577,6 +765,22 @@ describe('MaterialRepository', () => {
         mimeType: 'application/pdf',
         size: 1024,
       });
+    });
+
+    it('deve retornar null quando arquivo não existir', async () => {
+      prisma.materialFile.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findFileById('file-id', 'material-id', 'org-id'),
+      ).resolves.toBeNull();
+    });
+
+    it('deve lançar BadRequest quando findFirst falhar', async () => {
+      prisma.materialFile.findFirst.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findFileById('file-id', 'material-id', 'org-id'),
+      ).rejects.toThrow('Erro ao buscar arquivo do material');
     });
   });
 
@@ -608,6 +812,14 @@ describe('MaterialRepository', () => {
           materialId: 'material-id',
         }),
       );
+    });
+
+    it('deve lançar BadRequest quando deleteMany falhar', async () => {
+      prisma.materialFile.deleteMany.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.deleteFile('file-id', 'material-id', 'org-id', 'user-id'),
+      ).rejects.toThrow('Erro ao remover arquivo do material');
     });
   });
 });

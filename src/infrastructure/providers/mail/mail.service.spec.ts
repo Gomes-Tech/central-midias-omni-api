@@ -27,6 +27,21 @@ describe('MailService', () => {
     });
   });
 
+  it('sendMail deve usar context vazio quando não informado', async () => {
+    await service.sendMail({
+      to: 'a@b.com',
+      subject: 's',
+      template: 'welcome',
+    });
+
+    expect(mailer.sendMail).toHaveBeenCalledWith({
+      to: 'a@b.com',
+      subject: 's',
+      template: 'welcome',
+      context: {},
+    });
+  });
+
   it('sendMail deve lançar BadRequestException quando o envio falhar', async () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
     mailer.sendMail.mockRejectedValue(new Error('smtp'));

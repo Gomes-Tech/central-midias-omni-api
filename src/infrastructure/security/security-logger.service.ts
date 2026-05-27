@@ -1,11 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-// Sentry é opcional - só será usado se estiver instalado e configurado
-let Sentry: any = null;
-try {
-  Sentry = null;
-} catch {
-  // Sentry não está instalado, continuar sem ele
+type SentryClient = {
+  captureMessage: (message: string, options: Record<string, unknown>) => void;
+};
+
+let sentryClient: SentryClient | null = null;
+
+/** Apenas para testes — permite simular o cliente Sentry. */
+export function __setSentryClientForTests(client: SentryClient | null): void {
+  sentryClient = client;
+}
+
+function reportToSentry(
+  message: string,
+  options: Record<string, unknown>,
+): void {
+  if (sentryClient && process.env.SENTRY_DSN) {
+    sentryClient.captureMessage(message, options);
+  }
 }
 
 export interface SecurityLogContext {
@@ -40,17 +52,14 @@ export class SecurityLoggerService {
 
     this.logger.warn('Tentativa de login falhada', context);
 
-    // Envia para Sentry como warning de segurança
-    if (Sentry && process.env.SENTRY_DSN) {
-      Sentry.captureMessage('Tentativa de login falhada', {
-        level: 'warning',
-        tags: {
-          type: 'SECURITY',
-          event: 'FAILED_LOGIN',
-        },
-        extra: context,
-      });
-    }
+    reportToSentry('Tentativa de login falhada', {
+      level: 'warning',
+      tags: {
+        type: 'SECURITY',
+        event: 'FAILED_LOGIN',
+      },
+      extra: context,
+    });
   }
 
   /**
@@ -65,17 +74,14 @@ export class SecurityLoggerService {
 
     this.logger.error('Atividade suspeita detectada', logContext);
 
-    // Envia para Sentry como erro crítico de segurança
-    if (Sentry && process.env.SENTRY_DSN) {
-      Sentry.captureMessage(`Atividade suspeita: ${activity}`, {
-        level: 'error',
-        tags: {
-          type: 'SECURITY_ALERT',
-          event: 'SUSPICIOUS_ACTIVITY',
-        },
-        extra: logContext,
-      });
-    }
+    reportToSentry(`Atividade suspeita: ${activity}`, {
+      level: 'error',
+      tags: {
+        type: 'SECURITY_ALERT',
+        event: 'SUSPICIOUS_ACTIVITY',
+      },
+      extra: logContext,
+    });
   }
 
   /**
@@ -103,13 +109,8 @@ export class SecurityLoggerService {
         this.logger.log(`Evento de segurança: ${event}`, logContext);
     }
 
-    // Envia para Sentry apenas se for warn ou error
-    if (
-      Sentry &&
-      process.env.SENTRY_DSN &&
-      (level === 'warn' || level === 'error')
-    ) {
-      Sentry.captureMessage(`Evento de segurança: ${event}`, {
+    if (level === 'warn' || level === 'error') {
+      reportToSentry(`Evento de segurança: ${event}`, {
         level,
         tags: {
           type: 'SECURITY',
@@ -140,16 +141,14 @@ export class SecurityLoggerService {
 
     this.logger.warn('Tentativa de acesso não autorizado', context);
 
-    if (Sentry && process.env.SENTRY_DSN) {
-      Sentry.captureMessage('Tentativa de acesso não autorizado', {
-        level: 'warning',
-        tags: {
-          type: 'SECURITY',
-          event: 'UNAUTHORIZED_ACCESS',
-        },
-        extra: context,
-      });
-    }
+    reportToSentry('Tentativa de acesso não autorizado', {
+      level: 'warning',
+      tags: {
+        type: 'SECURITY',
+        event: 'UNAUTHORIZED_ACCESS',
+      },
+      extra: context,
+    });
   }
 
   /**
@@ -170,16 +169,14 @@ export class SecurityLoggerService {
 
     this.logger.warn('Tentativa de acesso com token inválido', context);
 
-    if (Sentry && process.env.SENTRY_DSN) {
-      Sentry.captureMessage('Tentativa de acesso com token inválido', {
-        level: 'warning',
-        tags: {
-          type: 'SECURITY',
-          event: 'INVALID_TOKEN',
-        },
-        extra: context,
-      });
-    }
+    reportToSentry('Tentativa de acesso com token inválido', {
+      level: 'warning',
+      tags: {
+        type: 'SECURITY',
+        event: 'INVALID_TOKEN',
+      },
+      extra: context,
+    });
   }
 
   /**
@@ -203,16 +200,14 @@ export class SecurityLoggerService {
     } else {
       this.logger.warn('Tentativa de reset de senha falhada', context);
 
-      if (Sentry && process.env.SENTRY_DSN) {
-        Sentry.captureMessage('Tentativa de reset de senha falhada', {
-          level: 'warning',
-          tags: {
-            type: 'SECURITY',
-            event: 'PASSWORD_RESET_FAILED',
-          },
-          extra: context,
-        });
-      }
+      reportToSentry('Tentativa de reset de senha falhada', {
+        level: 'warning',
+        tags: {
+          type: 'SECURITY',
+          event: 'PASSWORD_RESET_FAILED',
+        },
+        extra: context,
+      });
     }
   }
 
@@ -257,16 +252,14 @@ export class SecurityLoggerService {
 
     this.logger.warn('Tentativa de acesso negado (sem permissão)', context);
 
-    if (Sentry && process.env.SENTRY_DSN) {
-      Sentry.captureMessage('Tentativa de acesso negado', {
-        level: 'warning',
-        tags: {
-          type: 'SECURITY',
-          event: 'FORBIDDEN_ACCESS',
-        },
-        extra: context,
-      });
-    }
+    reportToSentry('Tentativa de acesso negado', {
+      level: 'warning',
+      tags: {
+        type: 'SECURITY',
+        event: 'FORBIDDEN_ACCESS',
+      },
+      extra: context,
+    });
   }
 
   /**
@@ -290,15 +283,13 @@ export class SecurityLoggerService {
       context,
     );
 
-    if (Sentry && process.env.SENTRY_DSN) {
-      Sentry.captureMessage('Possível ataque de força bruta detectado', {
-        level: 'error',
-        tags: {
-          type: 'SECURITY_ALERT',
-          event: 'BRUTE_FORCE_ATTEMPT',
-        },
-        extra: context,
-      });
-    }
+    reportToSentry('Possível ataque de força bruta detectado', {
+      level: 'error',
+      tags: {
+        type: 'SECURITY_ALERT',
+        event: 'BRUTE_FORCE_ATTEMPT',
+      },
+      extra: context,
+    });
   }
 }

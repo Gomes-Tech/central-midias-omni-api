@@ -89,4 +89,86 @@ describe('LocalStorageService', () => {
     await service.deleteFile(['a/b.png', 'c/d.png']);
     expect(fsp.unlink).toHaveBeenCalledTimes(2);
   });
+
+  it('uploadFile deve lançar quando caminho escapar do diretório raiz', async () => {
+    const file: MulterFile = {
+      originalname: 'evil.png',
+      mimetype: 'image/png',
+      size: 1,
+      buffer: Buffer.from('x'),
+    };
+
+    await expect(
+      service.uploadFile(file, '../../../etc'),
+    ).rejects.toBeInstanceOf(InternalServerErrorException);
+  });
+
+  it('storePublicationAttachment deve lançar quando não houver buffer', async () => {
+    const file = {
+      originalname: 'a.png',
+      mimetype: 'image/png',
+      size: 0,
+    } as MulterFile;
+
+    await expect(
+      service.storePublicationAttachment({ publicationId: 'pub-1', file }),
+    ).rejects.toBeInstanceOf(InternalServerErrorException);
+  });
+
+  it('uploadFile deve usar extensão vazia quando nome e mime forem desconhecidos', async () => {
+    const file: MulterFile = {
+      originalname: 'arquivo',
+      mimetype: 'application/unknown',
+      size: 4,
+      buffer: Buffer.from('data'),
+    };
+
+    const result = await service.uploadFile(file);
+
+    const fileName = result.path.split('/').pop() ?? '';
+    expect(fileName).not.toContain('.');
+  });
+
+  it('uploadFile deve usar nome padrão quando originalname for vazio', async () => {
+    const file: MulterFile = {
+      originalname: '   ',
+      mimetype: 'application/pdf',
+      size: 1,
+      buffer: Buffer.from('x'),
+    };
+
+    const result = await service.uploadFile(file);
+
+    expect(result.path.replaceAll('\\', '/')).toContain('organizations/');
+    expect(fsp.writeFile).toHaveBeenCalled();
+  });
+
+  it('storePublicationAttachment deve usar sizeBytes 0 quando size não for finito', async () => {
+    const file: MulterFile = {
+      originalname: 'x.png',
+      mimetype: 'image/png',
+      size: Number.NaN,
+      buffer: Buffer.from('ab'),
+    };
+
+    const stored = await service.storePublicationAttachment({
+      publicationId: 'pub-1',
+      file,
+    });
+
+    expect(stored.sizeBytes).toBe(0);
+  });
+
+  it('uploadFile deve inferir extensão pelo mime quando nome não tiver extensão válida', async () => {
+    const file: MulterFile = {
+      originalname: 'arquivo',
+      mimetype: 'application/pdf',
+      size: 4,
+      buffer: Buffer.from('pdf'),
+    };
+
+    const result = await service.uploadFile(file);
+
+    expect(result.path).toMatch(/\.pdf$/);
+  });
 });

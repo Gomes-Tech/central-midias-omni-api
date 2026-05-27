@@ -63,6 +63,28 @@ export class TagRepository {
     }
   }
 
+  async findSelect(
+    organizationId: string,
+  ): Promise<{ id: string; name: string }[]> {
+    try {
+      return await this.prisma.tag.findMany({
+        where: { organizationId },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: [{ name: 'asc' }],
+      });
+    } catch (error) {
+      void this.logger.error('TagRepository.findSelect falhou', {
+        error: String(error),
+        organizationId,
+      });
+
+      throw new BadRequestException('Erro ao buscar tags');
+    }
+  }
+
   async findById(
     id: string,
     organizationId: string,

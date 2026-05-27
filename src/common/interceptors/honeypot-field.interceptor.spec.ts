@@ -13,6 +13,17 @@ function createContext(request: Record<string, unknown>): ExecutionContext {
 describe('HoneypotFieldInterceptor', () => {
   const interceptor = new HoneypotFieldInterceptor();
 
+  it('deve ignorar quando body não for objeto', async () => {
+    const next = { handle: jest.fn(() => of('ok')) };
+    const request = { method: 'POST', body: null };
+
+    await expect(
+      lastValueFrom(interceptor.intercept(createContext(request), next)),
+    ).resolves.toBe('ok');
+
+    expect(next.handle).toHaveBeenCalledTimes(1);
+  });
+
   it('deve ignorar métodos somente leitura', async () => {
     const next = { handle: jest.fn(() => of('ok')) };
     const request = { method: 'GET', body: { userSource: 'bot' } };
@@ -22,6 +33,17 @@ describe('HoneypotFieldInterceptor', () => {
     ).resolves.toBe('ok');
 
     expect(next.handle).toHaveBeenCalledTimes(1);
+  });
+
+  it('deve remover userSource null antes de continuar', async () => {
+    const next = { handle: jest.fn(() => of('ok')) };
+    const request = { method: 'POST', body: { name: 'Teste', userSource: null } };
+
+    await expect(
+      lastValueFrom(interceptor.intercept(createContext(request), next)),
+    ).resolves.toBe('ok');
+
+    expect(request.body).toEqual({ name: 'Teste' });
   });
 
   it('deve remover userSource vazio antes de continuar', async () => {

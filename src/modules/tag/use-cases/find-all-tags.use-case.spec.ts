@@ -26,4 +26,13 @@ describe('FindAllTagsUseCase', () => {
     );
     expect(tagRepository.findAll).toHaveBeenCalledWith(organizationId, filters);
   });
+
+  it('deve usar filtros vazios quando não informados', async () => {
+    const tags = [makeTagEntity()];
+
+    tagRepository.findAll.mockResolvedValue(tags);
+
+    await expect(useCase.execute(organizationId)).resolves.toEqual(tags);
+    expect(tagRepository.findAll).toHaveBeenCalledWith(organizationId, {});
+  });
 });

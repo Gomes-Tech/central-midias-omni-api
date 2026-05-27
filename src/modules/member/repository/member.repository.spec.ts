@@ -249,6 +249,42 @@ describe('MemberRepository', () => {
       });
     });
 
+    it('deve agrupar permissões duplicadas do mesmo módulo', async () => {
+      prisma.member.findFirst.mockResolvedValue({
+        role: {
+          name: 'editor',
+          label: 'Editor',
+          canAccessBackoffice: false,
+          permissions: [
+            {
+              id: 'rp-1',
+              action: Action.READ,
+              module: { id: 'mod-1', name: 'members', label: 'Membros' },
+            },
+            {
+              id: 'rp-2',
+              action: Action.UPDATE,
+              module: { id: 'mod-1', name: 'members', label: 'Membros' },
+            },
+          ],
+          categoryRoleAccesses: [],
+        },
+      });
+
+      await expect(
+        repository.findMemberRole('org-1', 'user-1'),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          permissions: [
+            {
+              module: { id: 'mod-1', name: 'members', label: 'Membros' },
+              actions: [Action.READ, Action.UPDATE],
+            },
+          ],
+        }),
+      );
+    });
+
     it('deve retornar null quando não existir membro', async () => {
       prisma.member.findFirst.mockResolvedValue(null);
 

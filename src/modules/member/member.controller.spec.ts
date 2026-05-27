@@ -85,6 +85,26 @@ describe('MemberController', () => {
     });
   });
 
+  describe('findMemberRoleDetails', () => {
+    it('deve delegar ao FindMemberRoleDetailsUseCase', async () => {
+      const roleDetails = {
+        label: 'Admin',
+        canAccessBackoffice: true,
+        permissions: [],
+        categoryRoleAccesses: [],
+      };
+      findMemberRoleDetailsUseCase.execute.mockResolvedValue(roleDetails);
+
+      const result = await controller.findMemberRoleDetails('org-1', 'user-1');
+
+      expect(result).toBe(roleDetails);
+      expect(findMemberRoleDetailsUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+        'user-1',
+      );
+    });
+  });
+
   describe('findMyRole', () => {
     it('deve delegar ao FindMemberRoleUseCase', async () => {
       const role = {

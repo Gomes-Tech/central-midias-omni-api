@@ -100,6 +100,27 @@ describe('SignInUseCase', () => {
     expect(findUserBackofficeAccessUseCase.execute).toHaveBeenCalledWith(user.id);
   });
 
+  it('deve registrar login com ip unknown quando não informado', async () => {
+    const dto = makeLoginDTO();
+    const user = makeUser({ email: dto.email });
+
+    findUserByEmailUseCase.execute.mockResolvedValue(user);
+    findUserBackofficeAccessUseCase.execute.mockResolvedValue({
+      canAccessBackoffice: false,
+    });
+    cryptographyService.compare.mockResolvedValue(true);
+    jwtService.sign.mockReturnValue('token');
+
+    await useCase.execute(dto);
+
+    expect(securityLogger.logSuccessfulLogin).toHaveBeenCalledWith(
+      user.id,
+      user.email,
+      'unknown',
+      undefined,
+    );
+  });
+
   it('deve lançar LoginException quando a senha estiver incorreta', async () => {
     const dto = makeLoginDTO();
     const user = makeUser({ email: dto.email });

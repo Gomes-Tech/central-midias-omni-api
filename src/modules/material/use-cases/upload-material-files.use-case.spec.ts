@@ -31,6 +31,40 @@ describe('UploadMaterialFilesUseCase', () => {
     );
   });
 
+  it('deve usar mimeType e size padrão quando arquivo não informar metadados', async () => {
+    const file = makeUploadFile({
+      mimetype: undefined as unknown as string,
+      size: Number.NaN,
+    });
+
+    findMaterialByIdUseCase.execute.mockResolvedValue({ id: 'material-id' });
+    storageService.uploadFile.mockResolvedValue({
+      path: 'materials/material-id/file.bin',
+    });
+    storageService.getPublicUrl.mockResolvedValue('https://cdn.test/file.bin');
+    materialRepository.createFiles.mockResolvedValue([
+      makeMaterialFile({
+        mimeType: 'application/octet-stream',
+        size: 0,
+      }),
+    ]);
+
+    await useCase.execute('material-id', 'org-id', [file], 'user-id');
+
+    expect(materialRepository.createFiles).toHaveBeenCalledWith(
+      'material-id',
+      'org-id',
+      [
+        {
+          fileKey: 'materials/material-id/file.bin',
+          mimeType: 'application/octet-stream',
+          size: 0,
+        },
+      ],
+      'user-id',
+    );
+  });
+
   it('deve fazer upload na pasta do material e persistir metadados', async () => {
     const file = makeUploadFile({ size: 2048 });
     const materialFile = makeMaterialFile({ size: 2048 });

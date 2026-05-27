@@ -151,4 +151,19 @@ describe('CircuitBreakerService', () => {
     expect(err.retryAfter).toBe(5000);
     expect(err.message).toContain('k');
   });
+
+  it('deve transicionar para HALF_OPEN quando OPEN sem openedAt', async () => {
+    const service = new CircuitBreakerService();
+    const internal = service as unknown as {
+      getState: (key: string) => { state: string; openedAt: Date | null };
+    };
+    const state = internal.getState('no-date');
+    state.state = 'OPEN';
+    state.openedAt = null;
+
+    await expect(
+      service.execute('no-date', async () => 'ok', { resetTimeout: 0 }),
+    ).resolves.toBe('ok');
+    expect(service.getCircuitState('no-date')).toBe('CLOSED');
+  });
 });

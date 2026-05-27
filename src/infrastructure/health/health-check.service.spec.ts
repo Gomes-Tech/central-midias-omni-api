@@ -79,4 +79,75 @@ describe('HealthCheckService', () => {
     expect(result.status).toBe('error');
     expect(result.database.status).toBe('error');
   });
+
+  it('checkHealth deve tratar rejeição de checkDatabase via Promise.allSettled', async () => {
+    jest
+      .spyOn(service as unknown as { checkDatabase: () => Promise<unknown> }, 'checkDatabase')
+      .mockRejectedValue(new Error('db rejected'));
+
+    const result = await service.checkHealth();
+
+    expect(result.database.status).toBe('error');
+    expect(result.database.error).toBe('db rejected');
+  });
+
+  it('checkHealth deve tratar rejeição de checkCache via Promise.allSettled', async () => {
+    jest
+      .spyOn(service as unknown as { checkCache: () => Promise<unknown> }, 'checkCache')
+      .mockRejectedValue('cache rejected');
+
+    const result = await service.checkHealth();
+
+    expect(result.cache.status).toBe('error');
+    expect(result.cache.error).toBe('Cache check failed');
+  });
+
+  it('checkHealth deve tratar erro de banco não-Error', async () => {
+    prisma.$queryRaw.mockRejectedValue('db-string');
+
+    const result = await service.checkHealth();
+
+    expect(result.database.error).toBe('Unknown database error');
+  });
+
+  it('checkReadiness deve marcar cache como error quando get retornar null', async () => {
+    cache.get.mockResolvedValue(null);
+
+    const result = await service.checkReadiness();
+
+    expect(result.status).toBe('error');
+    expect(result.cache.status).toBe('error');
+  });
+
+  it('checkHealth deve usar mensagem padrão quando checkDatabase rejeitar sem Error', async () => {
+    jest
+      .spyOn(service as unknown as { checkDatabase: () => Promise<unknown> }, 'checkDatabase')
+      .mockRejectedValue('raw-db-fail');
+
+    const result = await service.checkHealth();
+
+    expect(result.database.error).toBe('Database check failed');
+  });
+
+  it('checkReadiness deve retornar error quando database check retornar status error', async () => {
+    jest
+      .spyOn(service as unknown as { checkDatabase: () => Promise<unknown> }, 'checkDatabase')
+      .mockResolvedValue({ status: 'error' });
+
+    const result = await service.checkReadiness();
+
+    expect(result.status).toBe('error');
+    expect(result.database.status).toBe('error');
+  });
+
+  it('checkReadiness deve tratar rejeição de checkCache', async () => {
+    jest
+      .spyOn(service as unknown as { checkCache: () => Promise<unknown> }, 'checkCache')
+      .mockRejectedValue(new Error('cache down'));
+
+    const result = await service.checkReadiness();
+
+    expect(result.cache.status).toBe('error');
+    expect(result.status).toBe('error');
+  });
 });

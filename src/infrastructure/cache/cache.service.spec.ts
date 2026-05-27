@@ -103,6 +103,17 @@ describe('CacheService', () => {
     expect(metrics.recordCacheDelete).toHaveBeenCalledWith('k', true);
   });
 
+  it('del sem circuit breaker deve propagar erro e registrar falha', async () => {
+    cacheManager.del.mockRejectedValue(new Error('del-fail'));
+    const service = new CacheService(
+      cacheManager as never,
+      metrics as unknown as MetricsService,
+    );
+
+    await expect(service.del('k')).rejects.toThrow('del-fail');
+    expect(metrics.recordCacheDelete).toHaveBeenCalledWith('k', false);
+  });
+
   it('deve usar circuit breaker quando injetado', async () => {
     cacheManager.get.mockResolvedValue(JSON.stringify(1));
     const service = new CacheService(
@@ -157,6 +168,20 @@ describe('CacheService', () => {
 
     await expect(service.del('k')).rejects.toThrow('del-fail');
     expect(metrics.recordCacheDelete).toHaveBeenCalledWith('k', false);
+  });
+
+  it('com circuit breaker: set e del com sucesso registram métricas', async () => {
+    const service = new CacheService(
+      cacheManager as never,
+      metrics as unknown as MetricsService,
+      circuitBreaker as unknown as CircuitBreakerService,
+    );
+
+    await service.set('k', { ok: true }, 30);
+    await service.del('k');
+
+    expect(metrics.recordCacheSet).toHaveBeenCalledWith('k', true);
+    expect(metrics.recordCacheDelete).toHaveBeenCalledWith('k', true);
   });
 
   it('get sem MetricsService não quebra', async () => {

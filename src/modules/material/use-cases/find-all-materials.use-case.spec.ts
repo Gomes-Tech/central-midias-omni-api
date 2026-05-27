@@ -26,4 +26,13 @@ describe('FindAllMaterialsUseCase', () => {
     await expect(useCase.execute('org-id', filters)).resolves.toEqual(materials);
     expect(materialRepository.findAll).toHaveBeenCalledWith('org-id', filters);
   });
+
+  it('deve usar filtros vazios quando não informados', async () => {
+    const materials = [makeMaterialListItem()];
+
+    materialRepository.findAll.mockResolvedValue(materials);
+
+    await expect(useCase.execute('org-id')).resolves.toEqual(materials);
+    expect(materialRepository.findAll).toHaveBeenCalledWith('org-id', {});
+  });
 });

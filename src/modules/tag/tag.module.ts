@@ -6,6 +6,7 @@ import {
   CreateTagUseCase,
   DeleteTagUseCase,
   FindAllTagsUseCase,
+  FindSelectTagsUseCase,
   FindTagByIdUseCase,
   UpdateTagUseCase,
 } from './use-cases';
@@ -16,6 +17,7 @@ import {
     PlatformPermissionGuard,
     TagRepository,
     FindAllTagsUseCase,
+    FindSelectTagsUseCase,
     FindTagByIdUseCase,
     CreateTagUseCase,
     UpdateTagUseCase,
@@ -28,6 +30,7 @@ import {
   exports: [
     TagRepository,
     FindAllTagsUseCase,
+    FindSelectTagsUseCase,
     FindTagByIdUseCase,
     CreateTagUseCase,
     UpdateTagUseCase,

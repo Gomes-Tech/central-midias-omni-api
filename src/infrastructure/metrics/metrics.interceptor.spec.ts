@@ -64,6 +64,42 @@ describe('MetricsInterceptor', () => {
     });
   });
 
+  it('deve normalizar segmentos numéricos na rota', (done) => {
+    const context = makeContext({ path: '/api/users/42/posts/7' });
+    const next = { handle: () => of('ok') };
+
+    interceptor.intercept(context, next).subscribe({
+      complete: () => {
+        expect(metrics.recordHttpRequest).toHaveBeenCalledWith(
+          'GET',
+          '/api/users/:id/posts/:id',
+          200,
+          expect.any(Number),
+        );
+        done();
+      },
+    });
+  });
+
+  it('deve usar status 500 quando erro não tiver status', (done) => {
+    const context = makeContext({ path: '' });
+    const err = new Error('fail');
+    const next = { handle: () => throwError(() => err) };
+
+    interceptor.intercept(context, next).subscribe({
+      error: (e) => {
+        expect(e).toBe(err);
+        expect(metrics.recordHttpRequest).toHaveBeenCalledWith(
+          'GET',
+          '/',
+          500,
+          expect.any(Number),
+        );
+        done();
+      },
+    });
+  });
+
   it('deve registrar métricas em erro e relançar', (done) => {
     const context = makeContext({ path: '/x' });
     const err = Object.assign(new Error('fail'), { status: 403 });

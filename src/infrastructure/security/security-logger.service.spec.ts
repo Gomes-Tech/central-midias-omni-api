@@ -1,23 +1,35 @@
 import { Logger } from '@nestjs/common';
-import { SecurityLoggerService } from './security-logger.service';
+import {
+  SecurityLoggerService,
+  __setSentryClientForTests,
+} from './security-logger.service';
 
 describe('SecurityLoggerService', () => {
   let service: SecurityLoggerService;
   let logSpy: jest.SpyInstance;
   let warnSpy: jest.SpyInstance;
   let errorSpy: jest.SpyInstance;
+  const originalSentryDsn = process.env.SENTRY_DSN;
 
   beforeEach(() => {
     service = new SecurityLoggerService();
     logSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
     warnSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
     errorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+    __setSentryClientForTests(null);
+    delete process.env.SENTRY_DSN;
   });
 
   afterEach(() => {
     logSpy.mockRestore();
     warnSpy.mockRestore();
     errorSpy.mockRestore();
+    __setSentryClientForTests(null);
+    if (originalSentryDsn === undefined) {
+      delete process.env.SENTRY_DSN;
+    } else {
+      process.env.SENTRY_DSN = originalSentryDsn;
+    }
   });
 
   it('logFailedLogin deve registrar warn com contexto', () => {
@@ -82,5 +94,56 @@ describe('SecurityLoggerService', () => {
 
     expect(warnSpy).toHaveBeenCalled();
     expect(errorSpy).toHaveBeenCalled();
+  });
+
+  it('logFailedLogin deve usar motivo padrão quando reason não for informado', () => {
+    service.logFailedLogin('a@b.com', '1.2.3.4');
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      'Tentativa de login falhada',
+      expect.objectContaining({
+        metadata: { reason: 'Credenciais inválidas' },
+      }),
+    );
+  });
+
+  it('logInvalidToken deve usar motivo padrão quando reason não for informado', () => {
+    service.logInvalidToken('ip');
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      'Tentativa de acesso com token inválido',
+      expect.objectContaining({
+        metadata: { reason: 'Token inválido ou expirado' },
+      }),
+    );
+  });
+
+  it('com Sentry configurado deve enviar eventos de segurança relevantes', () => {
+    const captureMessage = jest.fn();
+    __setSentryClientForTests({ captureMessage });
+    process.env.SENTRY_DSN = 'https://example@sentry.io/1';
+
+    service.logFailedLogin('a@b.com', 'ip');
+    service.logSuspiciousActivity('scan', { ip: '::1' });
+    service.logSecurityEvent('evt', 'warn', { ip: '1' });
+    service.logSecurityEvent('evt2', 'error', { ip: '2' });
+    service.logUnauthorizedAccess('/x', 'GET', 'ip');
+    service.logInvalidToken('ip');
+    service.logPasswordResetAttempt('e@e.com', 'ip', false);
+    service.logForbiddenAccess('u', '/p', 'POST', 'ip');
+    service.logBruteForceAttempt('e@e.com', 'ip', 5);
+
+    expect(captureMessage).toHaveBeenCalled();
+    expect(captureMessage.mock.calls.length).toBeGreaterThanOrEqual(8);
+  });
+
+  it('logSecurityEvent info não deve enviar ao Sentry', () => {
+    const captureMessage = jest.fn();
+    __setSentryClientForTests({ captureMessage });
+    process.env.SENTRY_DSN = 'https://example@sentry.io/1';
+
+    service.logSecurityEvent('evt', 'info', { ip: '1' });
+
+    expect(captureMessage).not.toHaveBeenCalled();
   });
 });

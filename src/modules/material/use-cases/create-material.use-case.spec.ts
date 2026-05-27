@@ -81,6 +81,44 @@ describe('CreateMaterialUseCase', () => {
     expect(storageService.uploadFile).not.toHaveBeenCalled();
   });
 
+  it('deve usar mimeType e size padrão quando arquivo não informar metadados', async () => {
+    const dto = makeCreateMaterialDTO();
+    const file = makeUploadFile({
+      mimetype: undefined as unknown as string,
+      size: Number.NaN,
+    });
+    findCategoryByIdUseCase.execute.mockResolvedValue({
+      id: dto.categoryId,
+      isActive: true,
+    });
+    materialRepository.findByName.mockResolvedValue(null);
+    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+      existingTagIds: [],
+      newTagNames: [],
+    });
+    storageService.uploadFile.mockResolvedValue({
+      path: 'materials/mocked-uuid/arquivo.bin',
+    });
+    materialRepository.create.mockResolvedValue(undefined);
+
+    await useCase.execute('org-id', dto, 'user-id', [file]);
+
+    expect(materialRepository.create).toHaveBeenCalledWith(
+      'org-id',
+      dto,
+      'user-id',
+      expect.objectContaining({
+        files: [
+          {
+            fileKey: 'materials/mocked-uuid/arquivo.bin',
+            mimeType: 'application/octet-stream',
+            size: 0,
+          },
+        ],
+      }),
+    );
+  });
+
   it('deve criar material com upload de arquivos no mesmo fluxo', async () => {
     const dto = makeCreateMaterialDTO();
     const file = makeUploadFile({ size: 4096 });

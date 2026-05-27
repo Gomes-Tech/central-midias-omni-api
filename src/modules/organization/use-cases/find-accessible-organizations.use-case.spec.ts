@@ -49,6 +49,26 @@ describe('FindAccessibleOrganizationsUseCase', () => {
     );
   });
 
+  it('deve resolver avatarUrl quando avatarKey existir', async () => {
+    organizationRepository.findAccessibleSelectForUser.mockResolvedValue([
+      {
+        id: 'organization-1',
+        name: 'Organization 1',
+        avatarKey: 'avatars/org.png',
+      },
+    ]);
+    storageService.getPublicUrl.mockResolvedValue('https://cdn.test/avatars/org.png');
+
+    await expect(useCase.execute('user-1')).resolves.toEqual([
+      {
+        id: 'organization-1',
+        name: 'Organization 1',
+        avatarUrl: 'https://cdn.test/avatars/org.png',
+      },
+    ]);
+    expect(storageService.getPublicUrl).toHaveBeenCalledWith('avatars/org.png');
+  });
+
   it('deve propagar erro quando o repositório falhar', async () => {
     const error = new Error('Erro ao buscar organizações');
 

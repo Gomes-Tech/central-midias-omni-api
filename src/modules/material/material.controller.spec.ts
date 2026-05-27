@@ -77,6 +77,16 @@ describe('MaterialController', () => {
     controller = module.get<MaterialController>(MaterialController);
   });
 
+  it('deve delegar findAll sem filtros explícitos', async () => {
+    const payload = [makeMaterialListItem()];
+    findAllMaterialsUseCase.execute.mockResolvedValue(payload);
+
+    const result = await controller.findAll('org-id');
+
+    expect(result).toBe(payload);
+    expect(findAllMaterialsUseCase.execute).toHaveBeenCalledWith('org-id', {});
+  });
+
   it('deve delegar findAll com org e filtros', async () => {
     const filters = makeFindAllMaterialsFiltersDTO({ searchTerm: 'inst' });
     const payload = [makeMaterialListItem()];
@@ -113,6 +123,20 @@ describe('MaterialController', () => {
     expect(findMaterialFilesUseCase.execute).toHaveBeenCalledWith(
       'material-id',
       'org-id',
+    );
+  });
+
+  it('deve delegar create sem arquivos', async () => {
+    const dto = makeCreateMaterialDTO();
+    createMaterialUseCase.execute.mockResolvedValue(undefined);
+
+    await controller.create(dto, 'org-id', 'user-id', undefined);
+
+    expect(createMaterialUseCase.execute).toHaveBeenCalledWith(
+      'org-id',
+      dto,
+      'user-id',
+      [],
     );
   });
 
@@ -160,6 +184,25 @@ describe('MaterialController', () => {
       'material-id',
       'org-id',
       { files: [file] },
+      'user-id',
+    );
+
+    expect(uploadMaterialFilesUseCase.execute).toHaveBeenCalledWith(
+      'material-id',
+      'org-id',
+      [file],
+      'user-id',
+    );
+  });
+
+  it('deve delegar uploadFiles quando arquivo vier como valor único no objeto', async () => {
+    const file = makeUploadFile();
+    uploadMaterialFilesUseCase.execute.mockResolvedValue([makeMaterialFile()]);
+
+    await controller.uploadFiles(
+      'material-id',
+      'org-id',
+      { file },
       'user-id',
     );
 

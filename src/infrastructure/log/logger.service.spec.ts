@@ -78,4 +78,26 @@ describe('LoggerService', () => {
     await expect(service.info('x')).resolves.toBeUndefined();
     expect(errSpy).toHaveBeenCalled();
   });
+
+  it('não deve logar no console quando persistir falhar em produção', async () => {
+    process.env.NODE_ENV = 'prod';
+    repository.create.mockRejectedValue(new Error('db'));
+    const errSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    await expect(service.info('x')).resolves.toBeUndefined();
+    expect(errSpy).not.toHaveBeenCalled();
+  });
+
+  it('deve persistir sem contexto quando não informado', async () => {
+    process.env.NODE_ENV = 'prod';
+    await service.info('sem contexto');
+
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: 'INFO',
+        message: 'sem contexto',
+        context: undefined,
+      }),
+    );
+  });
 });

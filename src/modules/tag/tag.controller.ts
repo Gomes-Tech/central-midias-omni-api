@@ -16,6 +16,7 @@ import {
   CreateTagUseCase,
   DeleteTagUseCase,
   FindAllTagsUseCase,
+  FindSelectTagsUseCase,
   FindTagByIdUseCase,
   UpdateTagUseCase,
 } from './use-cases';
@@ -25,6 +26,7 @@ import {
 export class TagController {
   constructor(
     private readonly findAllTagsUseCase: FindAllTagsUseCase,
+    private readonly findSelectTagsUseCase: FindSelectTagsUseCase,
     private readonly findTagByIdUseCase: FindTagByIdUseCase,
     private readonly createTagUseCase: CreateTagUseCase,
     private readonly updateTagUseCase: UpdateTagUseCase,
@@ -38,6 +40,12 @@ export class TagController {
     @Query() filters: FindAllTagsFiltersDTO = {},
   ) {
     return await this.findAllTagsUseCase.execute(organizationId, filters);
+  }
+
+  @RequirePermission('tags', 'read')
+  @Get('/select')
+  async findSelect(@OrgId() organizationId: string) {
+    return await this.findSelectTagsUseCase.execute(organizationId);
   }
 
   @RequirePermission('tags', 'read')

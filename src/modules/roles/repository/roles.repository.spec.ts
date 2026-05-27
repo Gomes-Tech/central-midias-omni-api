@@ -19,6 +19,9 @@ function createPrismaMock() {
       create: jest.fn(),
       update: jest.fn(),
     },
+    user: {
+      findFirst: jest.fn(),
+    },
     rolePermission: {
       createMany: jest.fn(),
     },
@@ -374,6 +377,57 @@ describe('RolesRepository', () => {
         InternalServerErrorException,
       );
       expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('findCanAccessBackofficeByUserId', () => {
+    it('deve retornar false quando usuário não existir', async () => {
+      prisma.user.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findCanAccessBackofficeByUserId('user-1'),
+      ).resolves.toBe(false);
+    });
+
+    it('deve retornar true quando globalRole permitir backoffice', async () => {
+      prisma.user.findFirst.mockResolvedValue({
+        globalRole: { canAccessBackoffice: true },
+        members: [],
+      });
+
+      await expect(
+        repository.findCanAccessBackofficeByUserId('user-1'),
+      ).resolves.toBe(true);
+    });
+
+    it('deve retornar true quando algum membro tiver papel com backoffice', async () => {
+      prisma.user.findFirst.mockResolvedValue({
+        globalRole: { canAccessBackoffice: false },
+        members: [{ role: { canAccessBackoffice: true } }],
+      });
+
+      await expect(
+        repository.findCanAccessBackofficeByUserId('user-1'),
+      ).resolves.toBe(true);
+    });
+
+    it('deve retornar false quando nenhum papel permitir backoffice', async () => {
+      prisma.user.findFirst.mockResolvedValue({
+        globalRole: { canAccessBackoffice: false },
+        members: [{ role: { canAccessBackoffice: false } }],
+      });
+
+      await expect(
+        repository.findCanAccessBackofficeByUserId('user-1'),
+      ).resolves.toBe(false);
+    });
+
+    it('deve lançar InternalServerError quando findFirst falhar', async () => {
+      prisma.user.findFirst.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findCanAccessBackofficeByUserId('user-1'),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
     });
   });
 

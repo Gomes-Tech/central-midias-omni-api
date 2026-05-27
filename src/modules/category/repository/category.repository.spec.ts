@@ -278,7 +278,7 @@ describe('CategoryRepository', () => {
       expect(logger.error).toHaveBeenCalled();
     });
 
-    it('deve ignorar nó quando get do mapa não retornar valor (defensivo)', async () => {
+    it('deve ignorar categoria sem nó no mapa (defensivo)', async () => {
       prisma.category.findMany.mockResolvedValue([
         {
           id: 'a',
@@ -289,23 +289,37 @@ describe('CategoryRepository', () => {
           parentId: null,
           categoryRoleAccesses: [],
         },
+        {
+          id: 'b',
+          name: 'B',
+          slug: 'b',
+          isActive: true,
+          order: 1,
+          parentId: null,
+          categoryRoleAccesses: [],
+        },
       ]);
 
-      const originalGet = Map.prototype.get;
-      const spy = jest
-        .spyOn(Map.prototype, 'get')
-        .mockImplementation(function (this: Map<string, unknown>, key: unknown) {
-          if (key === 'a') {
-            return undefined;
+      const originalSet = Map.prototype.set;
+      const setSpy = jest
+        .spyOn(Map.prototype, 'set')
+        .mockImplementation(function (
+          this: Map<string, unknown>,
+          key: unknown,
+          value: unknown,
+        ) {
+          if (key === 'b') {
+            return this;
           }
-          return originalGet.call(this, key as string);
+          return originalSet.call(this, key as string, value);
         });
 
       try {
         const tree = await repository.findTree('org-1', 'u1');
-        expect(tree).toEqual([]);
+        expect(tree).toHaveLength(1);
+        expect(tree[0].id).toBe('a');
       } finally {
-        spy.mockRestore();
+        setSpy.mockRestore();
       }
     });
   });

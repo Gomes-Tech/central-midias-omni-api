@@ -50,6 +50,8 @@ describe('MetricsService', () => {
     service.recordCacheHit('k');
     service.recordCacheMiss('k');
     service.recordCacheSet('k', true);
+    service.recordCacheSet('k', false);
+    service.recordCacheDelete('k', true);
     service.recordCacheDelete('k', false);
 
     expect(hitsSpy).toHaveBeenCalledWith({ key: 'k' });
@@ -76,5 +78,18 @@ describe('MetricsService', () => {
   it('getRegistry deve retornar o registry interno', () => {
     const service = new MetricsService();
     expect(service.getRegistry()).toBeDefined();
+  });
+
+  it('deve atualizar métricas de memória periodicamente', () => {
+    const service = new MetricsService();
+    const setSpy = jest.spyOn(service.memoryUsage, 'set');
+
+    jest.advanceTimersByTime(5000);
+
+    expect(setSpy).toHaveBeenCalledWith(
+      { type: 'heap_used' },
+      expect.any(Number),
+    );
+    expect(setSpy).toHaveBeenCalledWith({ type: 'rss' }, expect.any(Number));
   });
 });

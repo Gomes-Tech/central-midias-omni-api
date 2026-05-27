@@ -39,6 +39,22 @@ describe('ResolveMaterialTagsUseCase', () => {
     );
   });
 
+  it('deve ignorar strings vazias e duplicadas na normalização', async () => {
+    tagRepository.findManyByNames.mockResolvedValue([]);
+
+    await expect(
+      useCase.execute('org-id', ['', '  ', 'Novo', 'novo']),
+    ).resolves.toEqual({
+      existingTagIds: [],
+      newTagNames: ['Novo'],
+    });
+
+    expect(tagRepository.findManyByNames).toHaveBeenCalledWith(
+      ['Novo'],
+      'org-id',
+    );
+  });
+
   it('deve permitir limpar todas as tags quando array vier vazio', async () => {
     await expect(useCase.execute('org-id', [])).resolves.toEqual({
       existingTagIds: [],

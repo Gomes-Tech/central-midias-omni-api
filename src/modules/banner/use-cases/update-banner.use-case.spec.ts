@@ -380,6 +380,54 @@ describe('UpdateBannerUseCase', () => {
     expect(bannerRepository.update).not.toHaveBeenCalled();
   });
 
+  it('deve usar datas do banner quando update não enviar initialDate/finishDate', async () => {
+    getBannerUseCase.execute.mockResolvedValue(
+      makeBanner({
+        initialDate: new Date('2024-06-01T00:00:00.000Z'),
+        finishDate: new Date('2024-06-30T00:00:00.000Z'),
+      }),
+    );
+    bannerRepository.update.mockResolvedValue(undefined);
+
+    await useCase.execute(
+      'banner-id',
+      'organization-id',
+      makeUpdateBannerDTO({ name: 'só nome' }),
+      'user-id',
+      emptyUpdateBannerFiles,
+    );
+
+    expect(bannerRepository.update).toHaveBeenCalled();
+  });
+
+  it('deve manter path absoluto ao remover imagem antiga sem prefixo /storage/', async () => {
+    const files = {
+      mobileImage: makeBannerFile({ originalname: 'banner-mobile.png' }),
+      desktopImage: undefined as unknown as Express.Multer.File,
+    };
+
+    getBannerUseCase.execute.mockResolvedValue(
+      makeBanner({
+        mobileImageKey: 'banners/mobile/raw-key.png',
+      }),
+    );
+    storageService.uploadFile.mockResolvedValue(
+      makeStorageFile({ publicUrl: 'banners/mobile/new.png' }),
+    );
+
+    await useCase.execute(
+      'banner-id',
+      'organization-id',
+      makeUpdateBannerDTO(),
+      'user-id',
+      files,
+    );
+
+    expect(storageService.deleteFile).toHaveBeenCalledWith([
+      'banners/mobile/raw-key.png',
+    ]);
+  });
+
   it('deve propagar erro quando bannerRepository.update falhar', async () => {
     const error = new Error('Erro ao atualizar banner');
 
