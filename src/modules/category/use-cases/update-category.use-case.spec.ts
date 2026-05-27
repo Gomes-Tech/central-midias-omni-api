@@ -8,7 +8,10 @@ describe('UpdateCategoryUseCase', () => {
   let categoryRepository: jest.Mocked<
     Pick<
       CategoryRepository,
-      'findBySlug' | 'findSiblingByOrder' | 'findHierarchyReferences' | 'update'
+      | 'findSiblingBySlug'
+      | 'findSiblingByOrder'
+      | 'findHierarchyReferences'
+      | 'update'
     >
   >;
   let findCategoryByIdUseCase: jest.Mocked<
@@ -18,7 +21,7 @@ describe('UpdateCategoryUseCase', () => {
 
   beforeEach(() => {
     categoryRepository = {
-      findBySlug: jest.fn(),
+      findSiblingBySlug: jest.fn(),
       findSiblingByOrder: jest.fn(),
       findHierarchyReferences: jest.fn(),
       update: jest.fn(),
@@ -45,7 +48,7 @@ describe('UpdateCategoryUseCase', () => {
       useCase.execute('cat-1', 'org-id', data, 'user-id'),
     ).resolves.toBeUndefined();
 
-    expect(categoryRepository.findBySlug).not.toHaveBeenCalled();
+    expect(categoryRepository.findSiblingBySlug).not.toHaveBeenCalled();
     expect(categoryRepository.update).toHaveBeenCalledWith(
       'cat-1',
       'org-id',
@@ -54,19 +57,19 @@ describe('UpdateCategoryUseCase', () => {
     );
   });
 
-  it('deve lançar BadRequest quando o novo slug já existir em outra categoria', async () => {
+  it('deve lançar BadRequest quando o novo slug já existir entre irmãos', async () => {
     const category = makeCategoryDetails({ id: 'cat-1', slug: 'a' });
     const data = makeUpdateCategoryDTO({ slug: 'b' });
 
     findCategoryByIdUseCase.execute.mockResolvedValue(category);
-    categoryRepository.findBySlug.mockResolvedValue({
+    categoryRepository.findSiblingBySlug.mockResolvedValue({
       id: 'outra',
       slug: 'b',
     });
 
     await expect(
       useCase.execute('cat-1', 'org-id', data, 'user-id'),
-    ).rejects.toThrow('Já existe uma categoria com este slug');
+    ).rejects.toThrow('Já existe uma categoria com este slug neste nível');
 
     expect(categoryRepository.update).not.toHaveBeenCalled();
   });
@@ -82,7 +85,71 @@ describe('UpdateCategoryUseCase', () => {
       useCase.execute('cat-1', 'org-id', data, 'user-id'),
     ).resolves.toBeUndefined();
 
-    expect(categoryRepository.findBySlug).not.toHaveBeenCalled();
+    expect(categoryRepository.findSiblingBySlug).not.toHaveBeenCalled();
+  });
+
+  it('deve recalcular slugPath ao renomear slug', async () => {
+    const category = makeCategoryDetails({
+      id: 'cat-1',
+      slug: 'a',
+      slugPath: 'a',
+    });
+    const data = makeUpdateCategoryDTO({ slug: 'b' });
+
+    findCategoryByIdUseCase.execute.mockResolvedValue(category);
+    categoryRepository.findSiblingBySlug.mockResolvedValue(null);
+    categoryRepository.update.mockResolvedValue();
+
+    await useCase.execute('cat-1', 'org-id', data, 'user-id');
+
+    expect(categoryRepository.update).toHaveBeenCalledWith(
+      'cat-1',
+      'org-id',
+      { ...data, slugPath: 'b' },
+      'user-id',
+    );
+  });
+
+  it('deve recalcular slugPath ao mover para outro pai', async () => {
+    const category = makeCategoryDetails({
+      id: 'child',
+      slug: 'filho',
+      slugPath: 'pai-a/filho',
+      parentId: 'pai-a',
+    });
+    const data = makeUpdateCategoryDTO({ parentId: 'pai-b' });
+
+    findCategoryByIdUseCase.execute
+      .mockResolvedValueOnce(category)
+      .mockResolvedValueOnce(
+        makeCategoryDetails({
+          id: 'pai-b',
+          slug: 'pai-b',
+          slugPath: 'pai-b',
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeCategoryDetails({
+          id: 'pai-b',
+          slug: 'pai-b',
+          slugPath: 'pai-b',
+        }),
+      );
+    categoryRepository.findHierarchyReferences.mockResolvedValue([
+      { id: 'child', parentId: 'pai-a' },
+      { id: 'pai-b', parentId: null },
+    ]);
+    categoryRepository.findSiblingBySlug.mockResolvedValue(null);
+    categoryRepository.update.mockResolvedValue();
+
+    await useCase.execute('child', 'org-id', data, 'user-id');
+
+    expect(categoryRepository.update).toHaveBeenCalledWith(
+      'child',
+      'org-id',
+      { ...data, slugPath: 'pai-b/filho' },
+      'user-id',
+    );
   });
 
   it('deve lançar BadRequest quando a nova ordem já existir em outra categoria', async () => {
@@ -149,12 +216,24 @@ describe('UpdateCategoryUseCase', () => {
     findCategoryByIdUseCase.execute
       .mockResolvedValueOnce(category)
       .mockResolvedValueOnce(
-        makeCategoryDetails({ id: 'parent-id', slug: 'p' }),
+        makeCategoryDetails({
+          id: 'parent-id',
+          slug: 'p',
+          slugPath: 'p',
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeCategoryDetails({
+          id: 'parent-id',
+          slug: 'p',
+          slugPath: 'p',
+        }),
       );
     categoryRepository.findHierarchyReferences.mockResolvedValue([
       { id: 'child', parentId: null },
       { id: 'parent-id', parentId: null },
     ]);
+    categoryRepository.findSiblingBySlug.mockResolvedValue(null);
     categoryRepository.update.mockResolvedValue();
 
     await expect(

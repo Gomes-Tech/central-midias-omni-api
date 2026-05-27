@@ -26,21 +26,21 @@ describe('CategoryPermissionGuard', () => {
   let guard: CategoryPermissionGuard;
   let prisma: {
     member: { findFirst: jest.Mock };
-    category: { findUnique: jest.Mock };
+    category: { findFirst: jest.Mock };
   };
 
   beforeEach(() => {
     prisma = {
       member: { findFirst: jest.fn() },
-      category: { findUnique: jest.fn() },
+      category: { findFirst: jest.fn() },
     };
     guard = new CategoryPermissionGuard(prisma as unknown as PrismaService);
   });
 
-  it('deve permitir quando não há slug nos params', async () => {
+  it('deve permitir quando não há path na query', async () => {
     const ctx = createExecutionContext({
       headers: { authorization: fakeAuthorizationHeader('u1') },
-      params: {},
+      query: {},
     });
 
     await expect(guard.canActivate(ctx)).resolves.toBe(true);
@@ -50,7 +50,7 @@ describe('CategoryPermissionGuard', () => {
   it('deve tratar authorization ausente como string vazia', async () => {
     const ctx = createExecutionContext({
       headers: { 'x-organization-id': 'org-1' },
-      params: { slug: 'x' },
+      query: { path: 'marketing/videos' },
     });
 
     await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
@@ -59,7 +59,7 @@ describe('CategoryPermissionGuard', () => {
   it('deve negar quando usuário não está no payload', async () => {
     const ctx = createExecutionContext({
       headers: { authorization: 'invalid' },
-      params: { slug: 'cat' },
+      query: { path: 'marketing/videos' },
     });
 
     await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
@@ -68,7 +68,7 @@ describe('CategoryPermissionGuard', () => {
   it('deve negar quando x-organization-id está ausente', async () => {
     const ctx = createExecutionContext({
       headers: { authorization: fakeAuthorizationHeader('u1') },
-      params: { slug: 'videos' },
+      query: { path: 'marketing/videos' },
     });
 
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
@@ -82,39 +82,46 @@ describe('CategoryPermissionGuard', () => {
         authorization: fakeAuthorizationHeader('u1'),
         'x-organization-id': 'org-1',
       },
-      params: { slug: 'videos' },
+      query: { path: 'marketing/videos' },
     });
 
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
-    expect(prisma.category.findUnique).not.toHaveBeenCalled();
+    expect(prisma.category.findFirst).not.toHaveBeenCalled();
   });
 
   it('deve negar quando categoria não existe ou usuário não tem acesso', async () => {
     prisma.member.findFirst.mockResolvedValue({ roleId: 'r1' });
-    prisma.category.findUnique.mockResolvedValue(null);
+    prisma.category.findFirst.mockResolvedValue(null);
 
     const ctx = createExecutionContext({
       headers: {
         authorization: fakeAuthorizationHeader('u1'),
         'x-organization-id': 'org-1',
       },
-      params: { slug: 'videos' },
+      query: { path: 'marketing/videos' },
     });
 
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
-    expect(prisma.category.findUnique).toHaveBeenCalled();
+    expect(prisma.category.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          slugPath: 'marketing/videos',
+        }),
+      }),
+    );
   });
 
   it('deve permitir quando membro e categoria com acesso existem', async () => {
     prisma.member.findFirst.mockResolvedValue({ roleId: 'r1' });
-    prisma.category.findUnique.mockResolvedValue({ id: 'c1' });
+    prisma.category.findFirst.mockResolvedValue({ id: 'c1' });
 
     const ctx = createExecutionContext({
       headers: {
         authorization: fakeAuthorizationHeader('u1'),
         'x-organization-id': 'org-1',
       },
-      params: { slug: 'videos' },
+      query: { path: 'marketing/videos' },
     });
 
     await expect(guard.canActivate(ctx)).resolves.toBe(true);

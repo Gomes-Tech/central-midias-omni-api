@@ -59,6 +59,7 @@ export class CategoryRepository {
           id: true,
           name: true,
           slug: true,
+          slugPath: true,
           isActive: true,
           order: true,
           parentId: true,
@@ -108,6 +109,7 @@ export class CategoryRepository {
           id: true,
           name: true,
           slug: true,
+          slugPath: true,
           isActive: true,
           order: true,
           parentId: true,
@@ -173,6 +175,7 @@ export class CategoryRepository {
           id: category.id,
           name: category.name,
           slug: category.slug,
+          slugPath: category.slugPath,
           isActive: category.isActive,
           order: category.order,
           parentId: category.parentId,
@@ -244,6 +247,7 @@ export class CategoryRepository {
           organizationId: true,
           name: true,
           slug: true,
+          slugPath: true,
           isActive: true,
           order: true,
           parentId: true,
@@ -255,6 +259,7 @@ export class CategoryRepository {
               id: true,
               name: true,
               slug: true,
+              slugPath: true,
             },
           },
           children: {
@@ -266,6 +271,7 @@ export class CategoryRepository {
               id: true,
               name: true,
               slug: true,
+              slugPath: true,
               isActive: true,
               order: true,
             },
@@ -283,28 +289,27 @@ export class CategoryRepository {
     }
   }
 
-  async findBySlug(
-    slug: string,
+  async findBySlugPath(
+    slugPath: string,
     organizationId: string,
-  ): Promise<{ id: string; slug: string } | null> {
+  ): Promise<{ id: string; slug: string; slugPath: string } | null> {
     try {
-      return await this.prisma.category.findUnique({
+      return await this.prisma.category.findFirst({
         where: {
+          organizationId,
+          slugPath,
           isDeleted: false,
-          organizationId_slug: {
-            organizationId,
-            slug,
-          },
         },
         select: {
           id: true,
           slug: true,
+          slugPath: true,
         },
       });
     } catch (error) {
-      void this.logger.error('CategoryRepository.findBySlug falhou', {
+      void this.logger.error('CategoryRepository.findBySlugPath falhou', {
         error: String(error),
-        slug,
+        slugPath,
         organizationId,
       });
 
@@ -312,7 +317,43 @@ export class CategoryRepository {
     }
   }
 
-  async findTreeBySlug(slug: string, organizationId: string, userId: string) {
+  async findSiblingBySlug(
+    slug: string,
+    organizationId: string,
+    parentId: string | null,
+    excludeId?: string,
+  ): Promise<{ id: string; slug: string } | null> {
+    try {
+      return await this.prisma.category.findFirst({
+        where: {
+          organizationId,
+          slug,
+          parentId,
+          isDeleted: false,
+          ...(excludeId && { id: { not: excludeId } }),
+        },
+        select: {
+          id: true,
+          slug: true,
+        },
+      });
+    } catch (error) {
+      void this.logger.error('CategoryRepository.findSiblingBySlug falhou', {
+        error: String(error),
+        slug,
+        organizationId,
+        parentId,
+      });
+
+      throw new BadRequestException('Erro ao buscar categoria por slug');
+    }
+  }
+
+  async findTreeBySlugPath(
+    slugPath: string,
+    organizationId: string,
+    userId: string,
+  ) {
     const result = await this.prisma.$queryRawUnsafe<
       { type: string; data: any[] | null }[]
     >(
@@ -322,20 +363,20 @@ export class CategoryRepository {
       -- 🔒 Categorias acessíveis pelo usuário
       accessible_categories AS (
         SELECT c.*
-        FROM "Category" c
+        FROM "categories" c
         WHERE
-          c."organizationId" = $1
-          AND c."isDeleted" = false
-          AND c."isActive" = true
+          c."organization_id" = $1
+          AND c."is_deleted" = false
+          AND c."is_active" = true
           AND EXISTS (
             SELECT 1
-            FROM "CategoryRoleAccess" cra
-            JOIN "Role" r ON r.id = cra."roleId"
-            JOIN "Member" m ON m."roleId" = r.id
+            FROM "category_role_accesses" cra
+            JOIN "roles" r ON r.id = cra."role_id"
+            JOIN "members" m ON m."role_id" = r.id
             WHERE
-              cra."categoryId" = c.id
-              AND m."userId" = $2
-              AND m."organizationId" = $1
+              cra."category_id" = c.id
+              AND m."user_id" = $2
+              AND m."organization_id" = $1
           )
       ),
 
@@ -343,7 +384,7 @@ export class CategoryRepository {
       start_node AS (
         SELECT *
         FROM accessible_categories
-        WHERE slug = $3
+        WHERE slug_path = $3
         LIMIT 1
       ),
 
@@ -371,7 +412,8 @@ export class CategoryRepository {
           json_build_object(
             'id', ut.id,
             'name', ut.name,
-            'slug', ut.slug
+            'slug', ut.slug,
+            'slugPath', ut.slug_path
           )
         ) as data
       FROM up_tree ut
@@ -385,6 +427,7 @@ export class CategoryRepository {
             'id', dt.id,
             'name', dt.name,
             'slug', dt.slug,
+            'slugPath', dt.slug_path,
             'parentId', dt."parentId"
           )
         ) as data
@@ -392,7 +435,7 @@ export class CategoryRepository {
     `,
       organizationId,
       userId,
-      slug,
+      slugPath,
     );
 
     if (!result || result.length === 0) {
@@ -495,7 +538,7 @@ export class CategoryRepository {
 
   async create(
     organizationId: string,
-    data: CreateCategoryDTO & { slug: string },
+    data: CreateCategoryDTO & { slug: string; slugPath: string },
     userId: string,
   ): Promise<void> {
     try {
@@ -505,6 +548,7 @@ export class CategoryRepository {
           organizationId,
           name: data.name,
           slug: data.slug,
+          slugPath: data.slugPath,
           order: data.order,
           isActive: data.isActive ?? true,
           ...(data.parentId && { parentId: data.parentId }),
@@ -531,23 +575,41 @@ export class CategoryRepository {
   async update(
     id: string,
     organizationId: string,
-    data: UpdateCategoryDTO,
+    data: UpdateCategoryDTO & { slugPath?: string },
     userId: string,
   ): Promise<void> {
     try {
-      await this.prisma.category.update({
-        where: {
-          id,
-          organizationId,
-          isDeleted: false,
-        },
-        data: {
-          ...(data.name !== undefined && { name: data.name }),
-          ...(data.slug !== undefined && { slug: data.slug }),
-          ...(data.order !== undefined && { order: data.order }),
-          ...(data.isActive !== undefined && { isActive: data.isActive }),
-          ...(data.parentId !== undefined && { parentId: data.parentId }),
-        },
+      const { slugPath, ...updateData } = data;
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.category.update({
+          where: {
+            id,
+            organizationId,
+            isDeleted: false,
+          },
+          data: {
+            ...(updateData.name !== undefined && { name: updateData.name }),
+            ...(updateData.slug !== undefined && { slug: updateData.slug }),
+            ...(updateData.order !== undefined && { order: updateData.order }),
+            ...(updateData.isActive !== undefined && {
+              isActive: updateData.isActive,
+            }),
+            ...(updateData.parentId !== undefined && {
+              parentId: updateData.parentId,
+            }),
+            ...(slugPath !== undefined && { slugPath }),
+          },
+        });
+
+        if (slugPath !== undefined) {
+          await this.recalculateDescendantSlugPaths(
+            tx,
+            organizationId,
+            id,
+            slugPath,
+          );
+        }
       });
 
       void this.logger.info('Categoria atualizada', {
@@ -633,6 +695,41 @@ export class CategoryRepository {
     }
   }
 
+  private async recalculateDescendantSlugPaths(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    parentId: string,
+    parentSlugPath: string,
+  ): Promise<void> {
+    const children = await tx.category.findMany({
+      where: {
+        organizationId,
+        parentId,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        slug: true,
+      },
+    });
+
+    for (const child of children) {
+      const childSlugPath = `${parentSlugPath}/${child.slug}`;
+
+      await tx.category.update({
+        where: { id: child.id },
+        data: { slugPath: childSlugPath },
+      });
+
+      await this.recalculateDescendantSlugPaths(
+        tx,
+        organizationId,
+        child.id,
+        childSlugPath,
+      );
+    }
+  }
+
   private buildPath(nodes: any[]) {
     // cria mapa
     const map = new Map(nodes.map((n) => [n.id, n]));
@@ -648,6 +745,7 @@ export class CategoryRepository {
         id: current.id,
         name: current.name,
         slug: current.slug,
+        slugPath: current.slugPath,
       });
 
       current = map.get(current.parentId);

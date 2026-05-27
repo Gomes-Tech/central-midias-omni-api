@@ -174,8 +174,9 @@ model Category {
   id             String @id @default(cuid())
   organizationId String @map("organization_id")
 
-  name String
-  slug String
+  name     String
+  slug     String
+  slugPath String @map("slug_path")
 
   isActive Boolean @default(true) @map("is_active")
   order    Int
@@ -194,7 +195,8 @@ model Category {
   categoryRoleAccesses CategoryRoleAccess[]
   materials            Material[]
 
-  @@unique([organizationId, slug])
+  @@unique([organizationId, slugPath])
+  @@unique([organizationId, parentId, slug])
   @@unique([organizationId, parentId, order])
   @@index([organizationId])
   @@index([parentId])

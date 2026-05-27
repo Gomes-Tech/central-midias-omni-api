@@ -24,7 +24,7 @@ import {
   DeleteCategoryUseCase,
   FindAllCategoriesUseCase,
   FindCategoryByIdUseCase,
-  FindCategoryTreeBySlugUseCase,
+  FindCategoryTreeBySlugPathUseCase,
   FindCategoryTreeUseCase,
   UpdateCategoryUseCase,
 } from './use-cases';
@@ -36,7 +36,7 @@ export class CategoryController {
     private readonly deleteCategoryUseCase: DeleteCategoryUseCase,
     private readonly findAllCategoriesUseCase: FindAllCategoriesUseCase,
     private readonly findCategoryByIdUseCase: FindCategoryByIdUseCase,
-    private readonly findCategoryTreeBySlugUseCase: FindCategoryTreeBySlugUseCase,
+    private readonly findCategoryTreeBySlugPathUseCase: FindCategoryTreeBySlugPathUseCase,
     private readonly findCategoryTreeUseCase: FindCategoryTreeUseCase,
     private readonly updateCategoryUseCase: UpdateCategoryUseCase,
   ) {}
@@ -57,14 +57,14 @@ export class CategoryController {
   }
 
   @UseGuards(CategoryPermissionGuard)
-  @Get('slug/:slug')
-  async findBySlug(
-    @Param('slug') slug: string,
+  @Get('path')
+  async findByPath(
+    @Query('path') slugPath: string,
     @OrgId() organizationId: string,
     @UserId() userId: string,
   ) {
-    return await this.findCategoryTreeBySlugUseCase.execute(
-      slug,
+    return await this.findCategoryTreeBySlugPathUseCase.execute(
+      slugPath,
       organizationId,
       userId,
     );

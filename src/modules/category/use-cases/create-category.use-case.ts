@@ -1,10 +1,9 @@
 import { BadRequestException } from '@common/filters';
-import { toSlug } from '@common/utils';
+import { buildSlugPath, toSlug } from '@common/utils';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateCategoryDTO } from '../dto';
 import { CategoryRepository } from '../repository';
 import { FindCategoryByIdUseCase } from './find-category-by-id.use-case';
-import { FindCategoryBySlugUseCase } from './find-category-by-slug.use-case';
 
 @Injectable()
 export class CreateCategoryUseCase {
@@ -12,7 +11,6 @@ export class CreateCategoryUseCase {
     @Inject('CategoryRepository')
     private readonly categoryRepository: CategoryRepository,
     private readonly findCategoryByIdUseCase: FindCategoryByIdUseCase,
-    private readonly fincCategoryBySlugUseCase: FindCategoryBySlugUseCase,
   ) {}
 
   async execute(
@@ -21,19 +19,24 @@ export class CreateCategoryUseCase {
     userId: string,
   ): Promise<void> {
     const slug = toSlug(data.name);
+    const parentId = data.parentId ?? null;
 
-    const existingSlug = await this.fincCategoryBySlugUseCase
-      .execute(slug, organizationId)
-      .catch(() => null);
+    const existingSibling = await this.categoryRepository.findSiblingBySlug(
+      slug,
+      organizationId,
+      parentId,
+    );
 
-    if (existingSlug) {
-      throw new BadRequestException('Já existe uma categoria com este slug');
+    if (existingSibling) {
+      throw new BadRequestException(
+        'Já existe uma categoria com este slug neste nível',
+      );
     }
 
     const existingOrder = await this.categoryRepository.findSiblingByOrder(
       data.order,
       organizationId,
-      data.parentId ?? null,
+      parentId,
     );
 
     if (existingOrder) {
@@ -41,6 +44,8 @@ export class CreateCategoryUseCase {
         'Já existe uma categoria com esta ordem neste nível',
       );
     }
+
+    let parentSlugPath: string | null = null;
 
     if (data.parentId) {
       const parentCategory = await this.findCategoryByIdUseCase.execute(
@@ -51,11 +56,15 @@ export class CreateCategoryUseCase {
       if (!parentCategory.isActive) {
         throw new BadRequestException('Categoria pai está inativa');
       }
+
+      parentSlugPath = parentCategory.slugPath;
     }
+
+    const slugPath = buildSlugPath(parentSlugPath, slug);
 
     await this.categoryRepository.create(
       organizationId,
-      { slug, ...data },
+      { slug, slugPath, ...data },
       userId,
     );
   }

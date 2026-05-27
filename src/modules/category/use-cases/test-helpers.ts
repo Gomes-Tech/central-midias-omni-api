@@ -29,6 +29,7 @@ export function makeCategoryDetails(
     organizationId: 'org-id',
     name: 'Categoria',
     slug: 'categoria',
+    slugPath: 'categoria',
     isActive: true,
     order: 0,
     parentId: null,

@@ -21,9 +21,9 @@ export class CategoryPermissionGuard implements CanActivate {
     const loginPayload = authorizationToLoginPayload(authorization ?? '');
     const userId = loginPayload?.id;
 
-    const categorySlug: string = request.params.slug;
+    const categorySlugPath: string = request.query?.path;
 
-    if (!categorySlug) return true;
+    if (!categorySlugPath) return true;
     if (!userId) {
       throw new UnauthorizedException('Usuário não autenticado.');
     }
@@ -41,18 +41,15 @@ export class CategoryPermissionGuard implements CanActivate {
     });
 
     if (!member) {
-      // Se não existe Member para (userId, organizationId), não há acesso à org.
       throw new ForbiddenException('Você não tem acesso a esta organização.');
     }
 
-    const category = await this.prisma.category.findUnique({
+    const category = await this.prisma.category.findFirst({
       where: {
+        organizationId,
+        slugPath: categorySlugPath,
         isActive: true,
         isDeleted: false,
-        organizationId_slug: {
-          organizationId,
-          slug: categorySlug,
-        },
         categoryRoleAccesses: {
           some: {
             role: {

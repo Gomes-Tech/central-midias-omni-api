@@ -2,6 +2,7 @@ export interface CategoryListItem {
   id: string;
   name: string;
   slug: string;
+  slugPath: string;
   isActive: boolean;
   order: number;
   parentId?: string | null;
@@ -13,6 +14,7 @@ export interface CategoryTreeItem {
   id: string;
   name: string;
   slug: string;
+  slugPath: string;
   isActive: boolean;
   order: number;
   parentId?: string | null;
@@ -24,6 +26,7 @@ export interface CategoryDetails {
   organizationId: string;
   name: string;
   slug: string;
+  slugPath: string;
   isActive: boolean;
   order: number;
   parentId?: string | null;
@@ -34,11 +37,13 @@ export interface CategoryDetails {
     id: string;
     name: string;
     slug: string;
+    slugPath: string;
   } | null;
   children: Array<{
     id: string;
     name: string;
     slug: string;
+    slugPath: string;
     isActive: boolean;
     order: number;
   }>;

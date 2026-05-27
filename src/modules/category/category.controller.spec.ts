@@ -13,7 +13,7 @@ import {
   DeleteCategoryUseCase,
   FindAllCategoriesUseCase,
   FindCategoryByIdUseCase,
-  FindCategoryTreeBySlugUseCase,
+  FindCategoryTreeBySlugPathUseCase,
   FindCategoryTreeUseCase,
   UpdateCategoryUseCase,
 } from './use-cases';
@@ -24,7 +24,7 @@ describe('CategoryController', () => {
   let deleteCategoryUseCase: { execute: jest.Mock };
   let findAllCategoriesUseCase: { execute: jest.Mock };
   let findCategoryByIdUseCase: { execute: jest.Mock };
-  let findCategoryTreeBySlugUseCase: { execute: jest.Mock };
+  let findCategoryTreeBySlugPathUseCase: { execute: jest.Mock };
   let findCategoryTreeUseCase: { execute: jest.Mock };
   let updateCategoryUseCase: { execute: jest.Mock };
 
@@ -33,7 +33,7 @@ describe('CategoryController', () => {
     deleteCategoryUseCase = { execute: jest.fn() };
     findAllCategoriesUseCase = { execute: jest.fn() };
     findCategoryByIdUseCase = { execute: jest.fn() };
-    findCategoryTreeBySlugUseCase = { execute: jest.fn() };
+    findCategoryTreeBySlugPathUseCase = { execute: jest.fn() };
     findCategoryTreeUseCase = { execute: jest.fn() };
     updateCategoryUseCase = { execute: jest.fn() };
 
@@ -51,8 +51,8 @@ describe('CategoryController', () => {
           useValue: findCategoryByIdUseCase,
         },
         {
-          provide: FindCategoryTreeBySlugUseCase,
-          useValue: findCategoryTreeBySlugUseCase,
+          provide: FindCategoryTreeBySlugPathUseCase,
+          useValue: findCategoryTreeBySlugPathUseCase,
         },
         { provide: FindCategoryTreeUseCase, useValue: findCategoryTreeUseCase },
         { provide: UpdateCategoryUseCase, useValue: updateCategoryUseCase },
@@ -104,14 +104,14 @@ describe('CategoryController', () => {
     });
   });
 
-  describe('findBySlug', () => {
-    it('deve delegar ao FindCategoryTreeBySlugUseCase', async () => {
-      findCategoryTreeBySlugUseCase.execute.mockResolvedValue({});
+  describe('findByPath', () => {
+    it('deve delegar ao FindCategoryTreeBySlugPathUseCase', async () => {
+      findCategoryTreeBySlugPathUseCase.execute.mockResolvedValue({});
 
-      await controller.findBySlug('slug-x', 'org-1', 'user-1');
+      await controller.findByPath('marketing/redes-sociais', 'org-1', 'user-1');
 
-      expect(findCategoryTreeBySlugUseCase.execute).toHaveBeenCalledWith(
-        'slug-x',
+      expect(findCategoryTreeBySlugPathUseCase.execute).toHaveBeenCalledWith(
+        'marketing/redes-sociais',
         'org-1',
         'user-1',
       );

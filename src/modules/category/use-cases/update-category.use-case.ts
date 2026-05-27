@@ -1,4 +1,5 @@
 import { BadRequestException } from '@common/filters';
+import { buildSlugPath } from '@common/utils';
 import { Inject, Injectable } from '@nestjs/common';
 import { UpdateCategoryDTO } from '../dto';
 import { CategoryRepository } from '../repository';
@@ -23,27 +24,32 @@ export class UpdateCategoryUseCase {
       organizationId,
     );
 
-    if (data.slug && data.slug !== category.slug) {
-      const existingSlug = await this.categoryRepository.findBySlug(
-        data.slug,
+    const effectiveParentId =
+      data.parentId !== undefined ? data.parentId : category.parentId;
+    const effectiveSlug = data.slug ?? category.slug;
+    const slugChanged = data.slug !== undefined && data.slug !== category.slug;
+    const parentChanged =
+      data.parentId !== undefined && data.parentId !== category.parentId;
+
+    if (slugChanged || parentChanged) {
+      const existingSibling = await this.categoryRepository.findSiblingBySlug(
+        effectiveSlug,
         organizationId,
+        effectiveParentId,
+        id,
       );
 
-      if (existingSlug && existingSlug.id !== id) {
-        throw new BadRequestException('Já existe uma categoria com este slug');
+      if (existingSibling) {
+        throw new BadRequestException(
+          'Já existe uma categoria com este slug neste nível',
+        );
       }
     }
 
-    const effectiveParentId =
-      data.parentId !== undefined ? data.parentId : category.parentId;
     const effectiveOrder =
       typeof data.order === 'number' ? data.order : category.order;
-    const parentChanged =
-      data.parentId !== undefined && data.parentId !== category.parentId;
-    const orderChanged =
-      typeof data.order === 'number' && data.order !== category.order;
 
-    if (parentChanged || orderChanged) {
+    if (parentChanged || (typeof data.order === 'number' && data.order !== category.order)) {
       const existingOrder = await this.categoryRepository.findSiblingByOrder(
         effectiveOrder,
         organizationId,
@@ -91,6 +97,27 @@ export class UpdateCategoryUseCase {
       }
     }
 
-    await this.categoryRepository.update(id, organizationId, data, userId);
+    let slugPath: string | undefined;
+
+    if (slugChanged || parentChanged) {
+      let parentSlugPath: string | null = null;
+
+      if (effectiveParentId) {
+        const parent = await this.findCategoryByIdUseCase.execute(
+          effectiveParentId,
+          organizationId,
+        );
+        parentSlugPath = parent.slugPath;
+      }
+
+      slugPath = buildSlugPath(parentSlugPath, effectiveSlug);
+    }
+
+    await this.categoryRepository.update(
+      id,
+      organizationId,
+      { ...data, slugPath },
+      userId,
+    );
   }
 }
