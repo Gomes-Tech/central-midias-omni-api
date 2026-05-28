@@ -17,13 +17,17 @@ describe('FindCategoryTreeUseCase', () => {
     const tree = [] as Awaited<
       ReturnType<CategoryRepository['findTree']>
     >;
+    const filters = { searchTerm: 'conteudo', isActive: false };
 
     categoryRepository.findTree.mockResolvedValue(tree);
 
-    await expect(useCase.execute('org-id', 'user-id')).resolves.toEqual(tree);
+    await expect(
+      useCase.execute('org-id', 'user-id', filters),
+    ).resolves.toEqual(tree);
     expect(categoryRepository.findTree).toHaveBeenCalledWith(
       'org-id',
       'user-id',
+      filters,
     );
   });
 });

@@ -52,8 +52,16 @@ export class CategoryController {
   }
 
   @Get('tree')
-  async findTree(@OrgId() organizationId: string, @UserId() userId: string) {
-    return await this.findCategoryTreeUseCase.execute(organizationId, userId);
+  async findTree(
+    @OrgId() organizationId: string,
+    @UserId() userId: string,
+    @Query() filters: FindAllCategoriesFiltersDTO = {},
+  ) {
+    return await this.findCategoryTreeUseCase.execute(
+      organizationId,
+      userId,
+      filters,
+    );
   }
 
   @UseGuards(CategoryPermissionGuard)

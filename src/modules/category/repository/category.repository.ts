@@ -81,6 +81,7 @@ export class CategoryRepository {
   async findTree(
     organizationId: string,
     userId: string,
+    filters: FindAllCategoriesFiltersDTO = {},
   ): Promise<CategoryTreeItem[]> {
     try {
       const member = await this.prisma.member.findFirst({
@@ -98,12 +99,33 @@ export class CategoryRepository {
         return [];
       }
 
+      const where: Prisma.CategoryWhereInput = {
+        organizationId,
+        isDeleted: false,
+        ...(filters.parentId !== undefined && { parentId: filters.parentId }),
+        ...(typeof filters.isActive === 'boolean' && {
+          isActive: filters.isActive,
+        }),
+        ...(filters.searchTerm && {
+          OR: [
+            {
+              name: {
+                contains: filters.searchTerm,
+                mode: 'insensitive',
+              },
+            },
+            {
+              slug: {
+                contains: filters.searchTerm,
+                mode: 'insensitive',
+              },
+            },
+          ],
+        }),
+      };
+
       const categories = await this.prisma.category.findMany({
-        where: {
-          organizationId,
-          isDeleted: false,
-          isActive: true,
-        },
+        where,
         orderBy: [{ order: 'asc' }, { name: 'asc' }],
         select: {
           id: true,
@@ -203,6 +225,7 @@ export class CategoryRepository {
       void this.logger.error('CategoryRepository.findTree falhou', {
         error: String(error),
         organizationId,
+        filters,
       });
 
       throw new BadRequestException('Erro ao buscar árvore de categorias');

@@ -152,10 +152,45 @@ describe('CategoryRepository', () => {
           where: expect.objectContaining({
             organizationId: 'org-1',
             isDeleted: false,
-            isActive: true,
           }),
         }),
       );
+    });
+
+    it('deve aplicar os mesmos filtros do findAll na busca da árvore', async () => {
+      prisma.category.findMany.mockResolvedValue([]);
+
+      await repository.findTree('org-1', 'user-1', {
+        parentId: null,
+        isActive: false,
+        searchTerm: 'live',
+      });
+
+      expect(prisma.category.findMany).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          isDeleted: false,
+          parentId: null,
+          isActive: false,
+          OR: [
+            { name: { contains: 'live', mode: 'insensitive' } },
+            { slug: { contains: 'live', mode: 'insensitive' } },
+          ],
+        },
+        orderBy: [{ order: 'asc' }, { name: 'asc' }],
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          slugPath: true,
+          isActive: true,
+          order: true,
+          parentId: true,
+          categoryRoleAccesses: {
+            select: { roleId: true },
+          },
+        },
+      });
     });
 
     it('deve retornar vazio quando o usuário não for membro da organização', async () => {

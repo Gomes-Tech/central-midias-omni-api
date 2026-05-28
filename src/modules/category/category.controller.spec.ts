@@ -92,14 +92,16 @@ describe('CategoryController', () => {
   });
 
   describe('findTree', () => {
-    it('deve delegar ao FindCategoryTreeUseCase', async () => {
+    it('deve delegar ao FindCategoryTreeUseCase com filtros', async () => {
+      const filters = { parentId: 'parent-1', searchTerm: 'video' };
       findCategoryTreeUseCase.execute.mockResolvedValue([]);
 
-      await controller.findTree('org-1', 'user-1');
+      await controller.findTree('org-1', 'user-1', filters);
 
       expect(findCategoryTreeUseCase.execute).toHaveBeenCalledWith(
         'org-1',
         'user-1',
+        filters,
       );
     });
   });
