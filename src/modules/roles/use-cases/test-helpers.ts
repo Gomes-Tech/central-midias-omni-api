@@ -1,8 +1,4 @@
-import {
-  CreateGlobalRoleDTO,
-  CreateRoleDTO,
-  UpdateRoleDTO,
-} from '../dto';
+import { CreateGlobalRoleDTO, CreateRoleDTO, UpdateRoleDTO } from '../dto';
 import { Role } from '../entities';
 
 export function makeRole(overrides: Partial<Role> = {}): Role {
