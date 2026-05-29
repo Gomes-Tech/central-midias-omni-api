@@ -4,7 +4,11 @@ import { CacheService } from './cache.service';
 
 @Global()
 @Module({
-  imports: [Cache.register()],
+  imports: [
+    Cache.register({
+      isGlobal: true,
+    }),
+  ],
   controllers: [],
   providers: [CacheService],
   exports: [CacheService],
