@@ -24,7 +24,9 @@ export class RolesRepository {
     private readonly logger: LoggerService,
   ) {}
 
-  async findAll(filters: FindAllRolesFiltersDTO = {}): Promise<Role[]> {
+  async findAll(
+    filters: FindAllRolesFiltersDTO = {},
+  ): Promise<Omit<Role, 'categoryRoleAccesses'>[]> {
     try {
       const roles = await this.prisma.role.findMany({
         where: { deletedAt: null },
@@ -137,19 +139,54 @@ export class RolesRepository {
     }
   }
 
-  async findById(id: string): Promise<Role | null> {
+  async findById(
+    id: string,
+    organizationId: string,
+  ): Promise<Omit<Role, 'createdAt' | 'updatedAt' | 'isSystem'> | null> {
     try {
-      const role = await this.prisma.role.findUnique({
-        where: { id },
+      const role = await this.prisma.role.findFirst({
+        where: {
+          id,
+          deletedAt: null,
+          categoryRoleAccesses: { some: { organizationId } },
+        },
+        select: {
+          id: true,
+          label: true,
+          name: true,
+          canAccessBackoffice: true,
+          canHaveSubordinates: true,
+          categoryRoleAccesses: {
+            where: { organizationId },
+            select: {
+              id: true,
+              categoryId: true,
+              organizationId: true,
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+            orderBy: [{ category: { name: 'asc' } }],
+          },
+        },
       });
 
       return role;
     } catch (error) {
-      this.handleError('RolesRepository.findById falhou', error, { id });
+      this.handleError('RolesRepository.findById falhou', error, {
+        id,
+        organizationId,
+      });
     }
   }
 
-  async findByName(name: string): Promise<Role | null> {
+  async findByName(
+    name: string,
+  ): Promise<Omit<Role, 'categoryRoleAccesses'> | null> {
     try {
       const role = await this.prisma.role.findFirst({
         where: {
@@ -166,7 +203,9 @@ export class RolesRepository {
     }
   }
 
-  async findByCodes(roleCodes: string[]): Promise<Role[]> {
+  async findByCodes(
+    roleCodes: string[],
+  ): Promise<Omit<Role, 'categoryRoleAccesses'>[]> {
     try {
       if (!roleCodes.length) {
         return [];
@@ -301,7 +340,10 @@ export class RolesRepository {
     }
   }
 
-  async update(id: string, data: UpdateRoleDTO): Promise<Role> {
+  async update(
+    id: string,
+    data: UpdateRoleDTO,
+  ): Promise<Omit<Role, 'categoryRoleAccesses'>> {
     try {
       const role = await this.prisma.role.update({
         where: { id },

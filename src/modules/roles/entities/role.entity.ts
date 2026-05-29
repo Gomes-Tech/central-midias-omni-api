@@ -5,6 +5,7 @@ export interface Role {
   isSystem: boolean;
   canAccessBackoffice: boolean;
   canHaveSubordinates: boolean;
+  categoryRoleAccesses: RoleCategoryRoleAccessList[];
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date | null;

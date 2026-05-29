@@ -69,8 +69,8 @@ export class RolesController {
 
   @RequirePermission('roles', 'read')
   @Get(':id')
-  async findById(@Param('id') id: string) {
-    return await this.findRoleByIdUseCase.execute(id);
+  async findById(@Param('id') id: string, @OrgId() organizationId: string) {
+    return await this.findRoleByIdUseCase.execute(id, organizationId);
   }
 
   @RequirePermission('roles', 'create')

@@ -9,8 +9,8 @@ export class FindRoleByIdUseCase {
     private readonly rolesRepository: RolesRepository,
   ) {}
 
-  async execute(id: string) {
-    const role = await this.rolesRepository.findById(id);
+  async execute(id: string, organizationId: string) {
+    const role = await this.rolesRepository.findById(id, organizationId);
 
     if (!role) {
       throw new NotFoundException('Perfil não encontrado');
