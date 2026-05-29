@@ -21,7 +21,7 @@ services:
     # container_name: backoffice-prd
     image: central-midias-api
     expose:
-      - '4000'
+      - '4100'
     env_file:
       - .env
     depends_on:

@@ -21,7 +21,7 @@ RUN apk add dumb-init
 RUN apk add --no-cache openssl
 
 USER node
-EXPOSE 4000
+EXPOSE 4100
 COPY --chown=node:node --from=build /var/app/node_modules ./node_modules/
 COPY --chown=node:node --from=build /var/app/dist ./dist
 COPY --chown=node:node --from=build /var/app/package.json ./package.json
