@@ -11,8 +11,8 @@ export class UpdateRoleUseCase {
     private readonly findRoleByIdUseCase: FindRoleByIdUseCase,
   ) {}
 
-  async execute(id: string, data: UpdateRoleDTO) {
-    const role = await this.findRoleByIdUseCase.execute(id);
+  async execute(id: string, data: UpdateRoleDTO, organizationId: string) {
+    const role = await this.findRoleByIdUseCase.execute(id, organizationId);
 
     if (data.name && data.name !== role.name) {
       const existingRole = await this.rolesRepository.findByName(data.name);

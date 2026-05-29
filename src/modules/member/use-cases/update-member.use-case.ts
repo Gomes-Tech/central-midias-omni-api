@@ -25,7 +25,7 @@ export class UpdateMemberUseCase {
       throw new BadRequestException('O membro já está vinculado a este perfil');
     }
 
-    await this.findRoleByIdUseCase.execute(data.roleId);
+    await this.findRoleByIdUseCase.execute(data.roleId, organizationId);
 
     await this.memberRepository.update(id, organizationId, data, userId);
   }

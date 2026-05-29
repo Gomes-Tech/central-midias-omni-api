@@ -12,8 +12,8 @@ export class DeleteRoleUseCase {
     private readonly prisma: PrismaService,
   ) {}
 
-  async execute(id: string) {
-    const role = await this.findRoleByIdUseCase.execute(id);
+  async execute(id: string, organizationId: string) {
+    const role = await this.findRoleByIdUseCase.execute(id, organizationId);
 
     if (role.isSystem) {
       throw new BadRequestException(

@@ -90,13 +90,17 @@ export class RolesController {
 
   @RequirePermission('roles', 'update')
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateRoleDTO) {
-    return await this.updateRoleUseCase.execute(id, dto);
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateRoleDTO,
+    @OrgId() organizationId: string,
+  ) {
+    return await this.updateRoleUseCase.execute(id, dto, organizationId);
   }
 
   @RequirePermission('roles', 'delete')
   @Delete(':id')
-  async delete(@Param('id') id: string) {
-    return await this.deleteRoleUseCase.execute(id);
+  async delete(@Param('id') id: string, @OrgId() organizationId: string) {
+    return await this.deleteRoleUseCase.execute(id, organizationId);
   }
 }

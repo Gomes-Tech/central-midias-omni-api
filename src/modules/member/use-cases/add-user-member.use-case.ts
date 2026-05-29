@@ -35,7 +35,7 @@ export class AddUserMemberUseCase {
       );
     }
 
-    await this.findRoleByIdUseCase.execute(data.roleId);
+    await this.findRoleByIdUseCase.execute(data.roleId, organizationId);
 
     return this.memberRepository.create(organizationId, data, userId);
   }

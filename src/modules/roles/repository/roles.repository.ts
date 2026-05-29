@@ -142,7 +142,7 @@ export class RolesRepository {
   async findById(
     id: string,
     organizationId: string,
-  ): Promise<Omit<Role, 'createdAt' | 'updatedAt' | 'isSystem'> | null> {
+  ): Promise<Omit<Role, 'createdAt' | 'updatedAt'> | null> {
     try {
       const role = await this.prisma.role.findFirst({
         where: {
@@ -154,6 +154,7 @@ export class RolesRepository {
           id: true,
           label: true,
           name: true,
+          isSystem: true,
           canAccessBackoffice: true,
           canHaveSubordinates: true,
           categoryRoleAccesses: {

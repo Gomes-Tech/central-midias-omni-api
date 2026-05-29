@@ -40,7 +40,7 @@ export class CreateUserUseCase {
       );
     }
 
-    await this.findRoleByIdUseCase.execute(data.roleId);
+    await this.findRoleByIdUseCase.execute(data.roleId, organizationId);
 
     const hashedPassword = await this.cryptographyService.hash(
       data.taxIdentifier,
