@@ -3,21 +3,24 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BannerController } from './banner.controller';
 import { CreateBannerUseCase } from './use-cases/create-banner.use-case';
 import { DeleteBannerUseCase } from './use-cases/delete-banner.use-case';
+import { FindAllBannersUseCase } from './use-cases/find-all-banners.use-case';
 import { GetBannerUseCase } from './use-cases/get-banner-by-id.use-case';
-import { ListBannersUseCase } from './use-cases/list-banners.use-case';
+import { FindListBannersUseCase } from './use-cases/list-banner.use-case';
 import { UpdateBannerUseCase } from './use-cases/update-banner.use-case';
 
 describe('BannerController', () => {
   let controller: BannerController;
   let createBannerUseCase: { execute: jest.Mock };
-  let listBannersUseCase: { execute: jest.Mock };
+  let findAllBannersUseCase: { execute: jest.Mock };
+  let findListBannersUseCase: { execute: jest.Mock };
   let getBannerUseCase: { execute: jest.Mock };
   let updateBannerUseCase: { execute: jest.Mock };
   let deleteBannerUseCase: { execute: jest.Mock };
 
   beforeEach(async () => {
     createBannerUseCase = { execute: jest.fn() };
-    listBannersUseCase = { execute: jest.fn() };
+    findAllBannersUseCase = { execute: jest.fn() };
+    findListBannersUseCase = { execute: jest.fn() };
     getBannerUseCase = { execute: jest.fn() };
     updateBannerUseCase = { execute: jest.fn() };
     deleteBannerUseCase = { execute: jest.fn() };
@@ -26,7 +29,8 @@ describe('BannerController', () => {
       controllers: [BannerController],
       providers: [
         { provide: CreateBannerUseCase, useValue: createBannerUseCase },
-        { provide: ListBannersUseCase, useValue: listBannersUseCase },
+        { provide: FindAllBannersUseCase, useValue: findAllBannersUseCase },
+        { provide: FindListBannersUseCase, useValue: findListBannersUseCase },
         { provide: GetBannerUseCase, useValue: getBannerUseCase },
         { provide: UpdateBannerUseCase, useValue: updateBannerUseCase },
         { provide: DeleteBannerUseCase, useValue: deleteBannerUseCase },
@@ -40,10 +44,10 @@ describe('BannerController', () => {
   });
 
   describe('list', () => {
-    it('deve delegar ao ListBannersUseCase com os filtros da query', async () => {
+    it('deve delegar ao FindAllBannersUseCase com os filtros da query', async () => {
       const filters = { page: 1, limit: 25, searchTerm: 'promo' };
 
-      listBannersUseCase.execute.mockResolvedValue({
+      findAllBannersUseCase.execute.mockResolvedValue({
         data: [],
         total: 0,
         page: 1,
@@ -52,11 +56,14 @@ describe('BannerController', () => {
 
       await controller.list('org-1', filters);
 
-      expect(listBannersUseCase.execute).toHaveBeenCalledWith('org-1', filters);
+      expect(findAllBannersUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+        filters,
+      );
     });
 
     it('deve delegar com filtros vazios quando não informados', async () => {
-      listBannersUseCase.execute.mockResolvedValue({
+      findAllBannersUseCase.execute.mockResolvedValue({
         data: [],
         total: 0,
         page: 1,
@@ -65,11 +72,11 @@ describe('BannerController', () => {
 
       await controller.list('org-1', {});
 
-      expect(listBannersUseCase.execute).toHaveBeenCalledWith('org-1', {});
+      expect(findAllBannersUseCase.execute).toHaveBeenCalledWith('org-1', {});
     });
 
     it('deve usar filtros padrão quando query não for passada', async () => {
-      listBannersUseCase.execute.mockResolvedValue({
+      findAllBannersUseCase.execute.mockResolvedValue({
         data: [],
         total: 0,
         page: 1,
@@ -78,26 +85,19 @@ describe('BannerController', () => {
 
       await controller.list('org-1');
 
-      expect(listBannersUseCase.execute).toHaveBeenCalledWith('org-1', {});
+      expect(findAllBannersUseCase.execute).toHaveBeenCalledWith('org-1', {});
     });
   });
 
   describe('listWeb', () => {
-    it('deve listar banners ativos na data atual', async () => {
-      const payload = { data: [], total: 0, page: 1, totalPages: 0 };
-      listBannersUseCase.execute.mockResolvedValue(payload);
+    it('deve delegar ao FindListBannersUseCase', async () => {
+      const payload = [{ id: 'b1', name: 'Banner' }];
+      findListBannersUseCase.execute.mockResolvedValue(payload);
 
       const result = await controller.listWeb('org-1');
 
       expect(result).toBe(payload);
-      expect(listBannersUseCase.execute).toHaveBeenCalledWith(
-        'org-1',
-        expect.objectContaining({
-          onlyActive: true,
-          initialDate: expect.any(Date),
-          finishDate: expect.any(Date),
-        }),
-      );
+      expect(findListBannersUseCase.execute).toHaveBeenCalledWith('org-1');
     });
   });
 

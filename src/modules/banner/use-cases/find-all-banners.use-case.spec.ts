@@ -1,10 +1,10 @@
 import { BadRequestException } from '@common/filters';
 import { BannerRepository } from '../repository';
-import { ListBannersUseCase } from './list-banners.use-case';
+import { FindAllBannersUseCase } from './find-all-banners.use-case';
 import { makeBanner } from './test-helpers';
 
-describe('ListBannersUseCase', () => {
-  let useCase: ListBannersUseCase;
+describe('FindAllBannersUseCase', () => {
+  let useCase: FindAllBannersUseCase;
   let bannerRepository: jest.Mocked<BannerRepository>;
 
   beforeEach(() => {
@@ -12,7 +12,7 @@ describe('ListBannersUseCase', () => {
       findAll: jest.fn(),
     } as unknown as jest.Mocked<BannerRepository>;
 
-    useCase = new ListBannersUseCase(bannerRepository);
+    useCase = new FindAllBannersUseCase(bannerRepository);
   });
 
   it('deve retornar a lista do repositório quando não houver filtros de data', async () => {

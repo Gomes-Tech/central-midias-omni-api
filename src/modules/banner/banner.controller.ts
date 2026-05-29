@@ -22,8 +22,9 @@ import { CreateBannerDTO } from './dto/create-banner.dto';
 import { UpdateBannerDTO } from './dto/update-banner.dto';
 import { CreateBannerUseCase } from './use-cases/create-banner.use-case';
 import { DeleteBannerUseCase } from './use-cases/delete-banner.use-case';
+import { FindAllBannersUseCase } from './use-cases/find-all-banners.use-case';
 import { GetBannerUseCase } from './use-cases/get-banner-by-id.use-case';
-import { ListBannersUseCase } from './use-cases/list-banners.use-case';
+import { FindListBannersUseCase } from './use-cases/list-banner.use-case';
 import { UpdateBannerUseCase } from './use-cases/update-banner.use-case';
 
 type UploadedBannerFiles =
@@ -36,7 +37,8 @@ type UploadedBannerFiles =
 export class BannerController {
   constructor(
     private readonly createBannerUseCase: CreateBannerUseCase,
-    private readonly listBannersUseCase: ListBannersUseCase,
+    private readonly findAllBannersUseCase: FindAllBannersUseCase,
+    private readonly findListBannersUseCase: FindListBannersUseCase,
     private readonly getBannerUseCase: GetBannerUseCase,
     private readonly updateBannerUseCase: UpdateBannerUseCase,
     private readonly deleteBannerUseCase: DeleteBannerUseCase,
@@ -73,18 +75,12 @@ export class BannerController {
     @OrgId() organizationId: string,
     @Query() filters: FindAllBannersFiltersDTO = {},
   ) {
-    return await this.listBannersUseCase.execute(organizationId, filters);
+    return await this.findAllBannersUseCase.execute(organizationId, filters);
   }
 
   @Get('/list')
   async listWeb(@OrgId() organizationId: string) {
-    const now = new Date();
-
-    return await this.listBannersUseCase.execute(organizationId, {
-      onlyActive: true,
-      initialDate: now,
-      finishDate: now,
-    });
+    return await this.findListBannersUseCase.execute(organizationId);
   }
 
   @RequirePermission('banners', 'read')

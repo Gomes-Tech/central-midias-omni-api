@@ -4,8 +4,9 @@ import { BannerController } from './banner.controller';
 import { BannerRepository } from './repository/banner.repository';
 import { CreateBannerUseCase } from './use-cases/create-banner.use-case';
 import { DeleteBannerUseCase } from './use-cases/delete-banner.use-case';
+import { FindAllBannersUseCase } from './use-cases/find-all-banners.use-case';
 import { GetBannerUseCase } from './use-cases/get-banner-by-id.use-case';
-import { ListBannersUseCase } from './use-cases/list-banners.use-case';
+import { FindListBannersUseCase } from './use-cases/list-banner.use-case';
 import { UpdateBannerUseCase } from './use-cases/update-banner.use-case';
 
 @Module({
@@ -13,7 +14,8 @@ import { UpdateBannerUseCase } from './use-cases/update-banner.use-case';
   providers: [
     PlatformPermissionGuard,
     BannerRepository,
-    ListBannersUseCase,
+    FindAllBannersUseCase,
+    FindListBannersUseCase,
     GetBannerUseCase,
     CreateBannerUseCase,
     UpdateBannerUseCase,
@@ -25,7 +27,8 @@ import { UpdateBannerUseCase } from './use-cases/update-banner.use-case';
   ],
   exports: [
     BannerRepository,
-    ListBannersUseCase,
+    FindAllBannersUseCase,
+    FindListBannersUseCase,
     GetBannerUseCase,
     CreateBannerUseCase,
     UpdateBannerUseCase,

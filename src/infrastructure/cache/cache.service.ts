@@ -7,7 +7,8 @@ import { MetricsService } from '../metrics/metrics.service';
 @Injectable()
 export class CacheService {
   constructor(
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
     @Optional() private readonly metricsService?: MetricsService,
     @Optional() private readonly circuitBreakerService?: CircuitBreakerService,
   ) {}

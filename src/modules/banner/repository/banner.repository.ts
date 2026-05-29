@@ -8,7 +8,7 @@ import { PaginatedResponse } from '../../../types';
 import { FindAllBannersFiltersDTO } from '../dto';
 import { CreateBannerDTO } from '../dto/create-banner.dto';
 import { UpdateBannerDTO } from '../dto/update-banner.dto';
-import { BannerList } from '../entities';
+import { Banner, BannerList } from '../entities';
 
 const bannerListSelect = {
   id: true,
@@ -91,6 +91,48 @@ export class BannerRepository {
         initialDate,
         finishDate,
         searchTerm,
+      });
+
+      throw new BadRequestException('Erro ao buscar banners');
+    }
+  }
+
+  async findList(
+    organizationId: string,
+  ): Promise<Omit<Banner, 'mobileImageUrl' | 'desktopImageUrl'>[]> {
+    try {
+      const data = await this.prisma.banner.findMany({
+        where: {
+          isActive: true,
+          isDeleted: false,
+          organizationId,
+          initialDate: {
+            lte: new Date(),
+          },
+          finishDate: {
+            gte: new Date(),
+          },
+        },
+        orderBy: {
+          order: 'asc',
+        },
+        select: {
+          id: true,
+          name: true,
+          link: true,
+          order: true,
+          desktopImageKey: true,
+          mobileImageKey: true,
+          initialDate: true,
+          finishDate: true,
+          isActive: true,
+        },
+      });
+
+      return data;
+    } catch (error) {
+      void this.logger.error('BannerRepository.findList falhou', {
+        error: String(error),
       });
 
       throw new BadRequestException('Erro ao buscar banners');

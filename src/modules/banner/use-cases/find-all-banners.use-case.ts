@@ -6,7 +6,7 @@ import { BannerList } from '../entities';
 import { BannerRepository } from '../repository/banner.repository';
 
 @Injectable()
-export class ListBannersUseCase {
+export class FindAllBannersUseCase {
   constructor(
     @Inject('BannerRepository')
     private readonly bannerRepository: BannerRepository,
