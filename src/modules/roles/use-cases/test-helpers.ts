@@ -23,7 +23,7 @@ export function makeCreateRoleDTO(
     name: 'NEW_ROLE',
     label: 'Novo perfil',
     canHaveSubordinates: true,
-    categoryRoleAccesses: [{ categoryId: 'cat-1' }],
+    categoryRoleAccesses: ['cat-1'],
     ...overrides,
   };
 }

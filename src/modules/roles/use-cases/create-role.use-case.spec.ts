@@ -30,10 +30,7 @@ describe('CreateRoleUseCase', () => {
 
   it('deve criar perfil e vincular categorias quando o nome estiver livre', async () => {
     const dto = makeCreateRoleDTO({
-      categoryRoleAccesses: [
-        { categoryId: 'c1' },
-        { categoryId: 'c2' },
-      ],
+      categoryRoleAccesses: ['c1', 'c2'],
     });
     const orgId = 'org-1';
 

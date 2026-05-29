@@ -22,7 +22,7 @@ export class CreateRoleUseCase {
 
     for (const categoryRoleAccess of data.categoryRoleAccesses) {
       await this.createCategoryRoleAccessUseCase.execute(organizationId, {
-        categoryId: categoryRoleAccess.categoryId,
+        categoryId: categoryRoleAccess,
         roleId: role.id,
       });
     }
