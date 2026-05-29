@@ -4,8 +4,6 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - '6379:6379'
     volumes:
       - central_midias_api_redis_data:/data
     command: redis-server --appendonly yes
@@ -22,8 +20,8 @@ services:
       dockerfile: Dockerfile
     # container_name: backoffice-prd
     image: central-midias-api
-    ports:
-      - '4000:4000'
+    expose:
+      - '4000'
     env_file:
       - .env
     depends_on:
@@ -44,6 +42,16 @@ services:
       retries: 3
       start_period: 40s
 
+    networks:
+      - default
+      - proxy
+
 volumes:
   central_midias_api_redis_data:
     name: central-midias-api-redis-data
+
+networks:
+  default:
+    driver: bridge
+  proxy:
+    external: true
