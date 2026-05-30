@@ -42,15 +42,9 @@ describe('MaterialRepository', () => {
           id: 'material-id',
           name: 'Material institucional',
           description: 'Descricao',
-          categoryId: 'category-id',
-          createdAt: new Date('2024-01-01T00:00:00.000Z'),
-          updatedAt: new Date('2024-01-02T00:00:00.000Z'),
           category: {
-            id: 'category-id',
             name: 'Categoria',
-            slug: 'categoria',
           },
-          tags: [{ id: 'tag-id', name: 'Campanha' }],
           materialFiles: [{ id: 'file-1' }, { id: 'file-2' }],
         },
       ]);
@@ -61,11 +55,15 @@ describe('MaterialRepository', () => {
       });
 
       expect(result).toEqual([
-        expect.objectContaining({
+        {
           id: 'material-id',
-          tags: [{ id: 'tag-id', name: 'Campanha' }],
+          name: 'Material institucional',
+          description: 'Descricao',
+          category: {
+            name: 'Categoria',
+          },
           materialFilesCount: 2,
-        }),
+        },
       ]);
       expect(prisma.material.findMany).toHaveBeenCalledWith({
         where: {
@@ -154,6 +152,7 @@ describe('MaterialRepository', () => {
         expect.objectContaining({
           id: 'material-id',
           deletedAt: null,
+          tags: ['tag-id'],
         }),
       );
     });

@@ -1,4 +1,7 @@
-import { normalizeMaterialTags } from './material-tags.transform';
+import {
+  normalizeMaterialTags,
+  readMaterialTagsField,
+} from './material-tags.transform';
 
 describe('normalizeMaterialTags', () => {
   it('deve retornar undefined quando valor for undefined ou null', () => {
@@ -59,5 +62,24 @@ describe('normalizeMaterialTags', () => {
 
   it('deve aceitar string simples', () => {
     expect(normalizeMaterialTags('Campanha')).toEqual(['Campanha']);
+  });
+
+  it('deve extrair name de objetos em array JSON', () => {
+    expect(
+      normalizeMaterialTags('[{"name":"Campanha"},{"name":"Novo"}]'),
+    ).toEqual(['Campanha', 'Novo']);
+  });
+
+  it('deve separar tags por vírgula em string simples', () => {
+    expect(normalizeMaterialTags('Campanha, Novo')).toEqual([
+      'Campanha',
+      'Novo',
+    ]);
+  });
+
+  it('deve ler tags[] como fallback do body multipart', () => {
+    expect(
+      normalizeMaterialTags(readMaterialTagsField({ 'tags[]': ['Campanha'] })),
+    ).toEqual(['Campanha']);
   });
 });

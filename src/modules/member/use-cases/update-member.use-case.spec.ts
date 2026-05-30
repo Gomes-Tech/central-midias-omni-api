@@ -52,7 +52,10 @@ describe('UpdateMemberUseCase', () => {
       'member-id',
       'org-id',
     );
-    expect(findRoleByIdUseCase.execute).toHaveBeenCalledWith(roleIdB);
+    expect(findRoleByIdUseCase.execute).toHaveBeenCalledWith(
+      roleIdB,
+      'org-id',
+    );
     expect(memberRepository.update).toHaveBeenCalledWith(
       'member-id',
       'org-id',

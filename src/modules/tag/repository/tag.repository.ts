@@ -136,6 +136,39 @@ export class TagRepository {
     }
   }
 
+  async findManyByIds(
+    ids: string[],
+    organizationId: string,
+  ): Promise<Array<{ id: string; name: string }>> {
+    if (!ids.length) {
+      return [];
+    }
+
+    try {
+      return await this.prisma.tag.findMany({
+        where: {
+          organizationId,
+          id: {
+            in: ids,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: [{ name: 'asc' }],
+      });
+    } catch (error) {
+      void this.logger.error('TagRepository.findManyByIds falhou', {
+        error: String(error),
+        ids,
+        organizationId,
+      });
+
+      throw new BadRequestException('Erro ao buscar tags');
+    }
+  }
+
   async findManyByNames(
     names: string[],
     organizationId: string,

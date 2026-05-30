@@ -16,12 +16,24 @@ import {
 } from '../entities';
 import type { ResolvedMaterialTags } from '../use-cases/resolve-material-tags.use-case';
 
-const materialTagSelect = {
-  id: true,
-  name: true,
-} satisfies Prisma.TagSelect;
+const buildMaterialListSelect = () =>
+  ({
+    id: true,
+    name: true,
+    description: true,
+    category: {
+      select: {
+        name: true,
+      },
+    },
+    materialFiles: {
+      select: {
+        id: true,
+      },
+    },
+  }) satisfies Prisma.MaterialSelect;
 
-const buildMaterialListSelect = (organizationId: string) =>
+const buildMaterialDetailsSelect = (organizationId: string) =>
   ({
     id: true,
     name: true,
@@ -29,6 +41,7 @@ const buildMaterialListSelect = (organizationId: string) =>
     categoryId: true,
     createdAt: true,
     updatedAt: true,
+    deletedAt: true,
     category: {
       select: {
         id: true,
@@ -40,7 +53,9 @@ const buildMaterialListSelect = (organizationId: string) =>
       where: {
         organizationId,
       },
-      select: materialTagSelect,
+      select: {
+        id: true,
+      },
       orderBy: [{ name: 'asc' }],
     },
     materialFiles: {
@@ -48,12 +63,6 @@ const buildMaterialListSelect = (organizationId: string) =>
         id: true,
       },
     },
-  }) satisfies Prisma.MaterialSelect;
-
-const buildMaterialDetailsSelect = (organizationId: string) =>
-  ({
-    ...buildMaterialListSelect(organizationId),
-    deletedAt: true,
   }) satisfies Prisma.MaterialSelect;
 
 const materialFileSelect = {
@@ -123,7 +132,7 @@ export class MaterialRepository {
 
       const materials = await this.prisma.material.findMany({
         where,
-        select: buildMaterialListSelect(organizationId),
+        select: buildMaterialListSelect(),
         orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
       });
 
@@ -131,11 +140,7 @@ export class MaterialRepository {
         id: material.id,
         name: material.name,
         description: material.description,
-        categoryId: material.categoryId,
-        createdAt: material.createdAt,
-        updatedAt: material.updatedAt,
         category: material.category,
-        tags: material.tags,
         materialFilesCount: material.materialFiles.length,
       }));
     } catch (error) {
@@ -196,7 +201,7 @@ export class MaterialRepository {
       });
 
       return material
-        ? ({
+        ? {
             id: material.id,
             name: material.name,
             description: material.description,
@@ -204,10 +209,10 @@ export class MaterialRepository {
             createdAt: material.createdAt,
             updatedAt: material.updatedAt,
             category: material.category,
-            tags: material.tags,
+            tags: material.tags.map((tag) => tag.id),
             materialFilesCount: material.materialFiles.length,
             deletedAt: material.deletedAt,
-          } as MaterialDetails)
+          }
         : null;
     } catch (error) {
       void this.logger.error('MaterialRepository.findById falhou', {

@@ -97,7 +97,10 @@ describe('MemberRepository', () => {
         totalPages: 3,
       });
       expect(prisma.member.findMany).toHaveBeenCalledWith({
-        where: { organizationId: 'org-1' },
+        where: {
+          organizationId: 'org-1',
+          role: { canAccessBackoffice: false },
+        },
         select: memberSelect,
         orderBy: [{ user: { name: 'asc' } }],
       });
@@ -116,6 +119,7 @@ describe('MemberRepository', () => {
         expect.objectContaining({
           where: {
             organizationId: 'org-1',
+            role: { canAccessBackoffice: false },
             roleId: 'role-x',
             OR: [
               {
@@ -151,22 +155,51 @@ describe('MemberRepository', () => {
     it('deve retornar membro com seleção padrão', async () => {
       const row = {
         id: 'm1',
+        roleId: 'role-1',
         user: {
-          id: 'u1',
           name: 'B',
+          socialReason: 'Razão Social',
           email: 'b@c.com',
-          avatarKey: null,
+          taxIdentifier: '12345678900',
+          phone: '11999999999',
+          birthDate: new Date('1990-01-01'),
+          admissionDate: new Date('2020-01-01'),
           isActive: true,
         },
-        role: { label: 'Editor' },
       };
       prisma.member.findFirst.mockResolvedValue(row);
 
-      await expect(repository.findById('m1', 'org-1')).resolves.toEqual(row);
+      await expect(repository.findById('m1', 'org-1')).resolves.toEqual({
+        id: 'm1',
+        name: 'B',
+        socialReason: 'Razão Social',
+        email: 'b@c.com',
+        taxIdentifier: '12345678900',
+        phone: '11999999999',
+        birthDate: new Date('1990-01-01'),
+        admissionDate: new Date('2020-01-01'),
+        roleId: 'role-1',
+        isActive: true,
+      });
 
       expect(prisma.member.findFirst).toHaveBeenCalledWith({
         where: { id: 'm1', organizationId: 'org-1' },
-        select: memberSelect,
+        select: {
+          id: true,
+          roleId: true,
+          user: {
+            select: {
+              name: true,
+              socialReason: true,
+              email: true,
+              taxIdentifier: true,
+              admissionDate: true,
+              birthDate: true,
+              phone: true,
+              isActive: true,
+            },
+          },
+        },
       });
     });
 

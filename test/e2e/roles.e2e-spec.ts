@@ -23,7 +23,9 @@ describe('Roles (e2e)', () => {
       .expect(200);
 
     expect(Array.isArray(response.body)).toBe(true);
-    expect(response.body.some((r: { name: string }) => r.name === 'ADMIN')).toBe(true);
+    expect(
+      response.body.some((r: { name: string }) => r.name === 'ADMIN'),
+    ).toBe(true);
   });
 
   it('GET /api/roles/select deve retornar opções', async () => {

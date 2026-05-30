@@ -210,6 +210,62 @@ describe('TagRepository', () => {
     });
   });
 
+  describe('findManyByIds', () => {
+    it('deve retornar array vazio quando não houver ids', async () => {
+      await expect(repository.findManyByIds([], organizationId)).resolves.toEqual(
+        [],
+      );
+      expect(prisma.tag.findMany).not.toHaveBeenCalled();
+    });
+
+    it('deve buscar por múltiplos ids dentro da organização', async () => {
+      prisma.tag.findMany.mockResolvedValue([
+        {
+          id: 'tag-id',
+          name: 'Campanha',
+        },
+      ]);
+
+      await expect(
+        repository.findManyByIds(['tag-id', 'tag-id-2'], organizationId),
+      ).resolves.toEqual([
+        {
+          id: 'tag-id',
+          name: 'Campanha',
+        },
+      ]);
+
+      expect(prisma.tag.findMany).toHaveBeenCalledWith({
+        where: {
+          organizationId,
+          id: {
+            in: ['tag-id', 'tag-id-2'],
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: [{ name: 'asc' }],
+      });
+    });
+
+    it('deve lançar BadRequest quando findMany falhar', async () => {
+      prisma.tag.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findManyByIds(['tag-id'], organizationId),
+      ).rejects.toThrow('Erro ao buscar tags');
+      expect(logger.error).toHaveBeenCalledWith(
+        'TagRepository.findManyByIds falhou',
+        expect.objectContaining({
+          ids: ['tag-id'],
+          organizationId,
+        }),
+      );
+    });
+  });
+
   describe('findManyByNames', () => {
     it('deve retornar array vazio quando não houver nomes', async () => {
       await expect(repository.findManyByNames([], organizationId)).resolves.toEqual(

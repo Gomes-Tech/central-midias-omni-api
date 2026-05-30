@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PaginatedResponse } from '../../../types';
 import { FindAllMembersFiltersDTO } from '../dto';
-import { Member } from '../entities';
+import { MemberList } from '../entities';
 import { MemberRepository } from '../repository';
 
 @Injectable()
@@ -11,7 +11,7 @@ export class FindAllMembersUseCase {
   async execute(
     organizationId: string,
     filters: FindAllMembersFiltersDTO = {},
-  ): Promise<PaginatedResponse<Member>> {
+  ): Promise<PaginatedResponse<MemberList>> {
     return this.memberRepository.findAll(organizationId, filters);
   }
 }

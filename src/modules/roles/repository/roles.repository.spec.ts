@@ -304,28 +304,39 @@ describe('RolesRepository', () => {
   });
 
   describe('findById', () => {
-    it('deve retornar null quando não existir', async () => {
-      prisma.role.findUnique.mockResolvedValue(null);
+    const organizationId = 'org-1';
 
-      await expect(repository.findById('missing')).resolves.toBeNull();
-      expect(prisma.role.findUnique).toHaveBeenCalledWith({
-        where: { id: 'missing' },
+    it('deve retornar null quando não existir', async () => {
+      prisma.role.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findById('missing', organizationId),
+      ).resolves.toBeNull();
+      expect(prisma.role.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'missing',
+          deletedAt: null,
+          categoryRoleAccesses: { some: { organizationId } },
+        },
+        select: expect.any(Object),
       });
     });
 
     it('deve retornar o perfil quando existir', async () => {
       const role = makeRole();
-      prisma.role.findUnique.mockResolvedValue(role);
+      prisma.role.findFirst.mockResolvedValue(role);
 
-      await expect(repository.findById(role.id)).resolves.toEqual(role);
+      await expect(
+        repository.findById(role.id, organizationId),
+      ).resolves.toEqual(role);
     });
 
-    it('deve lançar InternalServerError quando findUnique falhar com erro genérico', async () => {
-      prisma.role.findUnique.mockRejectedValue(new Error('db'));
+    it('deve lançar InternalServerError quando findFirst falhar com erro genérico', async () => {
+      prisma.role.findFirst.mockRejectedValue(new Error('db'));
 
-      await expect(repository.findById('id')).rejects.toBeInstanceOf(
-        InternalServerErrorException,
-      );
+      await expect(
+        repository.findById('id', organizationId),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
       expect(logger.error).toHaveBeenCalled();
     });
   });

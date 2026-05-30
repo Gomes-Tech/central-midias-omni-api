@@ -36,7 +36,7 @@ describe('DeleteRoleUseCase', () => {
     findRoleByIdUseCase.execute.mockResolvedValue(role);
     prisma.member.count.mockResolvedValue(0);
 
-    await expect(useCase.execute('r1')).resolves.toBeUndefined();
+    await expect(useCase.execute('r1', 'org-id')).resolves.toBeUndefined();
 
     expect(prisma.member.count).toHaveBeenCalledWith({
       where: { roleId: 'r1' },
@@ -49,7 +49,7 @@ describe('DeleteRoleUseCase', () => {
       makeRole({ id: 'r1', isSystem: true }),
     );
 
-    await expect(useCase.execute('r1')).rejects.toThrow(
+    await expect(useCase.execute('r1', 'org-id')).rejects.toThrow(
       'Não é possível inativar um perfil sistema',
     );
 
@@ -63,7 +63,7 @@ describe('DeleteRoleUseCase', () => {
     );
     prisma.member.count.mockResolvedValue(2);
 
-    await expect(useCase.execute('r1')).rejects.toThrow(
+    await expect(useCase.execute('r1', 'org-id')).rejects.toThrow(
       'Não é possível inativar um perfil vinculado a usuários',
     );
 

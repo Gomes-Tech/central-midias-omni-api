@@ -11,12 +11,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { PaginatedResponse } from '../../types';
 import {
   CreateMemberDTO,
   CreateMemberWithUserDTO,
   FindAllMembersFiltersDTO,
   UpdateMemberDTO,
 } from './dto';
+import { Member, MemberList } from './entities';
 import {
   AddUserMemberUseCase,
   CreateMemberWithUserUseCase,
@@ -47,7 +49,7 @@ export class MemberController {
   async findAll(
     @OrgId() organizationId: string,
     @Query() filters: FindAllMembersFiltersDTO = {},
-  ) {
+  ): Promise<PaginatedResponse<MemberList>> {
     return await this.findAllMembersUseCase.execute(organizationId, filters);
   }
 
@@ -69,7 +71,10 @@ export class MemberController {
 
   @RequirePermission('members', 'read')
   @Get(':id')
-  async findById(@Param('id') id: string, @OrgId() organizationId: string) {
+  async findById(
+    @Param('id') id: string,
+    @OrgId() organizationId: string,
+  ): Promise<Member> {
     return await this.findMemberByIdUseCase.execute(id, organizationId);
   }
 

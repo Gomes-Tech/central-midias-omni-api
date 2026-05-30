@@ -55,7 +55,10 @@ describe('AddUserMemberUseCase', () => {
       dto.userId,
     );
     expect(findUserByIdUseCase.execute).toHaveBeenCalledWith(dto.userId);
-    expect(findRoleByIdUseCase.execute).toHaveBeenCalledWith(dto.roleId);
+    expect(findRoleByIdUseCase.execute).toHaveBeenCalledWith(
+      dto.roleId,
+      'org-id',
+    );
     expect(memberRepository.create).toHaveBeenCalledWith(
       'org-id',
       dto,

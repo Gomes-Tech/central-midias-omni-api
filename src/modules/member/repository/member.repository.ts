@@ -4,11 +4,13 @@ import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
 import { Action, Prisma } from '@prisma/client';
+import { PaginatedResponse } from '../../../types';
 import {
   CreateMemberDTO,
   FindAllMembersFiltersDTO,
   UpdateMemberDTO,
 } from '../dto';
+import { Member, MemberList } from '../entities';
 
 @Injectable()
 export class MemberRepository {
@@ -38,17 +40,21 @@ export class MemberRepository {
   async findAll(
     organizationId: string,
     filters: FindAllMembersFiltersDTO = {},
-  ): Promise<{
-    data: any[];
-    total: number;
-    page: number;
-    totalPages: number;
-  }> {
-    const { page = 1, limit = 25, roleId, searchTerm } = filters;
+  ): Promise<PaginatedResponse<MemberList>> {
+    const {
+      page = 1,
+      limit = 25,
+      roleId,
+      searchTerm,
+      canAccessBackoffice = false,
+    } = filters;
     try {
       const where: Prisma.MemberWhereInput = {
         organizationId,
         ...(roleId && { roleId: roleId }),
+        ...(canAccessBackoffice !== undefined && {
+          role: { canAccessBackoffice },
+        }),
         ...(searchTerm && {
           OR: [
             {
@@ -103,15 +109,47 @@ export class MemberRepository {
     }
   }
 
-  async findById(id: string, organizationId: string): Promise<any | null> {
+  async findById(id: string, organizationId: string): Promise<Member | null> {
     try {
-      return await this.prisma.member.findFirst({
+      const member = await this.prisma.member.findFirst({
         where: {
           id,
           organizationId,
         },
-        select: this.memberSelect,
+        select: {
+          id: true,
+          roleId: true,
+          user: {
+            select: {
+              name: true,
+              socialReason: true,
+              email: true,
+              taxIdentifier: true,
+              admissionDate: true,
+              birthDate: true,
+              phone: true,
+              isActive: true,
+            },
+          },
+        },
       });
+
+      if (!member) {
+        return null;
+      }
+
+      return {
+        id: member.id,
+        name: member.user.name,
+        socialReason: member.user.socialReason,
+        email: member.user.email,
+        taxIdentifier: member.user.taxIdentifier,
+        phone: member.user.phone,
+        birthDate: member.user.birthDate,
+        admissionDate: member.user.admissionDate,
+        roleId: member.roleId,
+        isActive: member.user.isActive,
+      };
     } catch (error) {
       void this.logger.error('MemberRepository.findById falhou', {
         error: String(error),

@@ -1,6 +1,19 @@
 export interface Member {
   id: string;
   name: string;
+  socialReason: string;
+  email: string;
+  taxIdentifier: string;
+  phone: string;
+  birthDate: Date;
+  admissionDate: Date;
+  roleId: string;
+  isActive: boolean;
+}
+
+export interface MemberList {
+  id: string;
+  name: string;
   email: string;
   isActive: boolean;
   role: string;

@@ -3,14 +3,14 @@ import { FindCategoryByIdUseCase } from '@modules/category';
 import { MaterialRepository } from '../repository';
 import { UpdateMaterialUseCase } from './update-material.use-case';
 import { FindMaterialByIdUseCase } from './find-material-by-id.use-case';
-import { ResolveMaterialTagsUseCase } from './resolve-material-tags.use-case';
+import { ResolveMaterialTagIdsUseCase } from './resolve-material-tag-ids.use-case';
 import { makeMaterialDetails, makeUpdateMaterialDTO } from './test-helpers';
 
 describe('UpdateMaterialUseCase', () => {
   let materialRepository: jest.Mocked<MaterialRepository>;
   let findMaterialByIdUseCase: { execute: jest.Mock };
   let findCategoryByIdUseCase: { execute: jest.Mock };
-  let resolveMaterialTagsUseCase: { execute: jest.Mock };
+  let resolveMaterialTagIdsUseCase: { execute: jest.Mock };
   let useCase: UpdateMaterialUseCase;
 
   beforeEach(() => {
@@ -21,13 +21,13 @@ describe('UpdateMaterialUseCase', () => {
 
     findMaterialByIdUseCase = { execute: jest.fn() };
     findCategoryByIdUseCase = { execute: jest.fn() };
-    resolveMaterialTagsUseCase = { execute: jest.fn() };
+    resolveMaterialTagIdsUseCase = { execute: jest.fn() };
 
     useCase = new UpdateMaterialUseCase(
       materialRepository,
       findMaterialByIdUseCase as unknown as FindMaterialByIdUseCase,
       findCategoryByIdUseCase as unknown as FindCategoryByIdUseCase,
-      resolveMaterialTagsUseCase as unknown as ResolveMaterialTagsUseCase,
+      resolveMaterialTagIdsUseCase as unknown as ResolveMaterialTagIdsUseCase,
     );
   });
 
@@ -36,7 +36,7 @@ describe('UpdateMaterialUseCase', () => {
     const dto = makeUpdateMaterialDTO({ description: 'Novo texto' });
 
     findMaterialByIdUseCase.execute.mockResolvedValue(material);
-    resolveMaterialTagsUseCase.execute.mockResolvedValue(undefined);
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue(undefined);
     materialRepository.update.mockResolvedValue(undefined);
 
     await expect(
@@ -69,9 +69,9 @@ describe('UpdateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
-    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue({
       existingTagIds: ['tag-id'],
-      newTagNames: ['Novo'],
+      newTagNames: [],
     });
     materialRepository.update.mockResolvedValue(undefined);
 
@@ -85,7 +85,7 @@ describe('UpdateMaterialUseCase', () => {
       'Novo nome',
       'other-category',
     );
-    expect(resolveMaterialTagsUseCase.execute).toHaveBeenCalledWith(
+    expect(resolveMaterialTagIdsUseCase.execute).toHaveBeenCalledWith(
       'org-id',
       dto.tags,
     );
@@ -127,12 +127,12 @@ describe('UpdateMaterialUseCase', () => {
 
   it('deve sincronizar tags quando forem informadas', async () => {
     const material = makeMaterialDetails();
-    const dto = makeUpdateMaterialDTO({ tags: ['Campanha', 'Novo'] });
+    const dto = makeUpdateMaterialDTO({ tags: ['tag-id', 'tag-id-2'] });
 
     findMaterialByIdUseCase.execute.mockResolvedValue(material);
-    resolveMaterialTagsUseCase.execute.mockResolvedValue({
-      existingTagIds: ['tag-id'],
-      newTagNames: ['Novo'],
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue({
+      existingTagIds: ['tag-id', 'tag-id-2'],
+      newTagNames: [],
     });
     materialRepository.update.mockResolvedValue(undefined);
 
@@ -147,8 +147,8 @@ describe('UpdateMaterialUseCase', () => {
       'user-id',
       {
         tags: {
-          existingTagIds: ['tag-id'],
-          newTagNames: ['Novo'],
+          existingTagIds: ['tag-id', 'tag-id-2'],
+          newTagNames: [],
         },
       },
     );

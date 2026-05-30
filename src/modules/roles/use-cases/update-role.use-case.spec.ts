@@ -30,7 +30,7 @@ describe('UpdateRoleUseCase', () => {
 
     const data = makeUpdateRoleDTO({ label: 'Novo' });
 
-    await expect(useCase.execute('r1', data)).resolves.toEqual(updated);
+    await expect(useCase.execute('r1', data, 'org-id')).resolves.toEqual(updated);
 
     expect(rolesRepository.findByName).not.toHaveBeenCalled();
     expect(rolesRepository.update).toHaveBeenCalledWith('r1', data);
@@ -45,7 +45,7 @@ describe('UpdateRoleUseCase', () => {
 
     const data = makeUpdateRoleDTO({ name: 'NEW' });
 
-    await expect(useCase.execute('r1', data)).resolves.toEqual(updated);
+    await expect(useCase.execute('r1', data, 'org-id')).resolves.toEqual(updated);
 
     expect(rolesRepository.findByName).toHaveBeenCalledWith('NEW');
     expect(rolesRepository.update).toHaveBeenCalledWith('r1', data);
@@ -59,7 +59,7 @@ describe('UpdateRoleUseCase', () => {
 
     const data = makeUpdateRoleDTO({ name: 'CODE', label: 'X' });
 
-    await expect(useCase.execute('r1', data)).resolves.toEqual(updated);
+    await expect(useCase.execute('r1', data, 'org-id')).resolves.toEqual(updated);
 
     expect(rolesRepository.findByName).not.toHaveBeenCalled();
   });
@@ -73,7 +73,7 @@ describe('UpdateRoleUseCase', () => {
 
     const data = makeUpdateRoleDTO({ name: 'TAKEN' });
 
-    await expect(useCase.execute('r1', data)).rejects.toThrow(
+    await expect(useCase.execute('r1', data, 'org-id')).rejects.toThrow(
       'Já existe um perfil com este nome',
     );
 

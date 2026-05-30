@@ -17,8 +17,15 @@ describe('FindMemberByIdUseCase', () => {
   it('deve retornar o membro quando existir', async () => {
     const member = {
       id: 'member-id',
-      user: { name: 'Ana', email: 'ana@test.com', isActive: true },
-      role: { label: 'Editor' },
+      name: 'Ana',
+      socialReason: 'Razão Social',
+      email: 'ana@test.com',
+      taxIdentifier: '12345678900',
+      phone: '11999999999',
+      birthDate: new Date('1990-01-01'),
+      admissionDate: new Date('2020-01-01'),
+      roleId: 'role-id',
+      isActive: true,
     };
 
     memberRepository.findById.mockResolvedValue(member);

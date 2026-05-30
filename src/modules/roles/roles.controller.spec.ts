@@ -134,9 +134,9 @@ describe('RolesController', () => {
     it('deve delegar ao FindRoleByIdUseCase', async () => {
       findRoleByIdUseCase.execute.mockResolvedValue({ id: 'r1' });
 
-      await controller.findById('r1');
+      await controller.findById('r1', 'org-1');
 
-      expect(findRoleByIdUseCase.execute).toHaveBeenCalledWith('r1');
+      expect(findRoleByIdUseCase.execute).toHaveBeenCalledWith('r1', 'org-1');
     });
   });
 
@@ -167,9 +167,9 @@ describe('RolesController', () => {
       const dto = makeUpdateRoleDTO();
       updateRoleUseCase.execute.mockResolvedValue({});
 
-      await controller.update('r1', dto);
+      await controller.update('r1', dto, 'org-1');
 
-      expect(updateRoleUseCase.execute).toHaveBeenCalledWith('r1', dto);
+      expect(updateRoleUseCase.execute).toHaveBeenCalledWith('r1', dto, 'org-1');
     });
   });
 
@@ -177,9 +177,9 @@ describe('RolesController', () => {
     it('deve delegar ao DeleteRoleUseCase', async () => {
       deleteRoleUseCase.execute.mockResolvedValue(undefined);
 
-      await controller.delete('r1');
+      await controller.delete('r1', 'org-1');
 
-      expect(deleteRoleUseCase.execute).toHaveBeenCalledWith('r1');
+      expect(deleteRoleUseCase.execute).toHaveBeenCalledWith('r1', 'org-1');
     });
   });
 });

@@ -41,6 +41,21 @@ export function makeFindAllMaterialsFiltersDTO(
 export function makeMaterialListItem(
   overrides: Partial<MaterialListItem> = {},
 ): MaterialListItem {
+  return {
+    id: 'material-id',
+    name: 'Material institucional',
+    description: 'Descricao',
+    category: {
+      name: 'Categoria',
+    },
+    materialFilesCount: 0,
+    ...overrides,
+  };
+}
+
+export function makeMaterialDetails(
+  overrides: Partial<MaterialDetails> = {},
+): MaterialDetails {
   const now = new Date('2024-01-01T00:00:00.000Z');
 
   return {
@@ -55,17 +70,8 @@ export function makeMaterialListItem(
       name: 'Categoria',
       slug: 'categoria',
     },
-    tags: [makeMaterialTagSummary()],
+    tags: ['tag-id'],
     materialFilesCount: 0,
-    ...overrides,
-  };
-}
-
-export function makeMaterialDetails(
-  overrides: Partial<MaterialDetails> = {},
-): MaterialDetails {
-  return {
-    ...makeMaterialListItem(),
     deletedAt: null,
     ...overrides,
   };

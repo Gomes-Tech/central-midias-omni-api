@@ -21,13 +21,15 @@ describe('FindRoleByIdUseCase', () => {
     const role = makeRole();
     repository.findById.mockResolvedValue(role);
 
-    await expect(useCase.execute(role.id)).resolves.toEqual(role);
-    expect(repository.findById).toHaveBeenCalledWith(role.id);
+    await expect(useCase.execute(role.id, 'org-id')).resolves.toEqual(role);
+    expect(repository.findById).toHaveBeenCalledWith(role.id, 'org-id');
   });
 
   it('deve lançar NotFound quando não existir', async () => {
     repository.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute('missing')).rejects.toThrow(NotFoundException);
+    await expect(useCase.execute('missing', 'org-id')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

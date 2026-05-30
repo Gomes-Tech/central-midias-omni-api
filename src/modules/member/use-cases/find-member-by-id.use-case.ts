@@ -1,5 +1,6 @@
 import { NotFoundException } from '@common/filters';
 import { Inject, Injectable } from '@nestjs/common';
+import { Member } from '../entities';
 import { MemberRepository } from '../repository';
 
 @Injectable()
@@ -9,7 +10,7 @@ export class FindMemberByIdUseCase {
     private readonly memberRepository: MemberRepository,
   ) {}
 
-  async execute(id: string, organizationId: string) {
+  async execute(id: string, organizationId: string): Promise<Member> {
     const member = await this.memberRepository.findById(id, organizationId);
 
     if (!member) {

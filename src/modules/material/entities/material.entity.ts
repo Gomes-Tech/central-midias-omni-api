@@ -13,11 +13,9 @@ export interface MaterialListItem {
   id: string;
   name: string;
   description?: string | null;
-  categoryId: string;
-  createdAt: Date;
-  updatedAt: Date;
-  category: MaterialCategorySummary;
-  tags: MaterialTagSummary[];
+  category: {
+    name: string;
+  };
   materialFilesCount: number;
 }
 
@@ -52,6 +50,15 @@ export interface MaterialFileWithUrl extends Omit<MaterialFileItem, 'fileKey'> {
 //   };
 // }[];
 
-export interface MaterialDetails extends MaterialListItem {
+export interface MaterialDetails {
+  id: string;
+  name: string;
+  description?: string | null;
+  categoryId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  category: MaterialCategorySummary;
+  tags: string[];
+  materialFilesCount: number;
   deletedAt?: Date | null;
 }
