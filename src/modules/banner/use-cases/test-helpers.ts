@@ -1,5 +1,5 @@
-import { Banner as BannerEntity } from '../entities';
 import { CreateBannerDTO, UpdateBannerDTO } from '../dto';
+import { Banner as BannerEntity } from '../entities';
 
 type BannerFixture = BannerEntity & {
   organizationId: string;
@@ -9,7 +9,9 @@ type BannerFixture = BannerEntity & {
   deletedAt: Date | null;
 };
 
-export function makeBanner(overrides: Partial<BannerFixture> = {}): BannerFixture {
+export function makeBanner(
+  overrides: Partial<BannerFixture> = {},
+): BannerFixture {
   return {
     id: 'banner-id',
     organizationId: 'organization-id',

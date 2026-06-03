@@ -203,6 +203,12 @@ describe('MemberRepository', () => {
       });
     });
 
+    it('deve retornar null quando o membro não existir', async () => {
+      prisma.member.findFirst.mockResolvedValue(null);
+
+      await expect(repository.findById('m1', 'org-1')).resolves.toBeNull();
+    });
+
     it('deve lançar BadRequest quando falhar', async () => {
       prisma.member.findFirst.mockRejectedValue(new Error('db'));
 

@@ -281,6 +281,26 @@ describe('CategoryRepository', () => {
       expect(tree[0].children[0].id).toBe('f1');
     });
 
+    it('deve interromper ascensão quando pai não estiver no resultado da busca', async () => {
+      prisma.category.findMany.mockResolvedValue([
+        {
+          id: 'f1',
+          name: 'Filho',
+          slug: 'filho',
+          isActive: true,
+          order: 0,
+          parentId: 'missing-parent',
+          categoryRoleAccesses: [],
+        },
+      ]);
+
+      const tree = await repository.findTree('org-1', 'user-1');
+
+      expect(tree).toHaveLength(1);
+      expect(tree[0].id).toBe('f1');
+      expect(tree[0].children).toEqual([]);
+    });
+
     it('deve ocultar categorias restritas a outro papel', async () => {
       prisma.category.findMany.mockResolvedValue([
         {
@@ -340,18 +360,25 @@ describe('CategoryRepository', () => {
         },
       ]);
 
-      const originalSet = Map.prototype.set;
-      const setSpy = jest
-        .spyOn(Map.prototype, 'set')
+      const originalGet = Map.prototype.get;
+      const getSpy = jest
+        .spyOn(Map.prototype, 'get')
         .mockImplementation(function (
           this: Map<string, unknown>,
           key: unknown,
-          value: unknown,
         ) {
-          if (key === 'b') {
-            return this;
+          const value = originalGet.call(this, key as string);
+          const isTreeNode =
+            value !== null &&
+            typeof value === 'object' &&
+            'children' in value &&
+            key === 'b';
+
+          if (isTreeNode) {
+            return undefined;
           }
-          return originalSet.call(this, key as string, value);
+
+          return value;
         });
 
       try {
@@ -359,7 +386,7 @@ describe('CategoryRepository', () => {
         expect(tree).toHaveLength(1);
         expect(tree[0].id).toBe('a');
       } finally {
-        setSpy.mockRestore();
+        getSpy.mockRestore();
       }
     });
   });

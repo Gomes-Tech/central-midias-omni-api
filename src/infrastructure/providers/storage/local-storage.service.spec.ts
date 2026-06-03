@@ -171,4 +171,35 @@ describe('LocalStorageService', () => {
 
     expect(result.path).toMatch(/\.pdf$/);
   });
+
+  it('uploadFile deve usar mimetype padrão quando mimetype for falsy', async () => {
+    const file: MulterFile = {
+      originalname: 'sem-ext',
+      mimetype: '',
+      size: 1,
+      buffer: Buffer.from('x'),
+    };
+
+    const result = await service.uploadFile(file);
+
+    expect(fsp.writeFile).toHaveBeenCalled();
+    expect(result.path.replaceAll('\\', '/')).toContain('organizations/');
+  });
+
+  it('storePublicationAttachment deve usar originalName e mimeType padrão quando ausentes', async () => {
+    const file: MulterFile = {
+      originalname: '   ',
+      mimetype: '',
+      size: 2,
+      buffer: Buffer.from('ab'),
+    };
+
+    const stored = await service.storePublicationAttachment({
+      publicationId: 'pub-1',
+      file,
+    });
+
+    expect(stored.originalName).toBe('arquivo');
+    expect(stored.mimeType).toBe('application/octet-stream');
+  });
 });

@@ -55,7 +55,7 @@ describe('HealthCheckService', () => {
   });
 
   it('checkHealth deve tratar exceção no cache com mensagem genérica', async () => {
-    cache.set.mockRejectedValue('cache-boom');
+    cache.del.mockRejectedValue('cache-boom');
 
     const result = await service.checkHealth();
 
@@ -64,10 +64,30 @@ describe('HealthCheckService', () => {
     expect(result.cache.error).toBe('Unknown cache error');
   });
 
+  it('checkHealth deve tratar erro de cache Error com mensagem original', async () => {
+    cache.set.mockRejectedValue(new Error('cache set failed'));
+
+    const result = await service.checkHealth();
+
+    expect(result.status).toBe('error');
+    expect(result.cache.status).toBe('error');
+    expect(result.cache.error).toBe('cache set failed');
+  });
+
   it('checkLiveness deve retornar status ok', () => {
     expect(service.checkLiveness()).toEqual({
       status: 'ok',
       uptime: expect.any(Number),
+    });
+  });
+
+  it('checkReadiness deve retornar ok quando banco e cache respondem', async () => {
+    const result = await service.checkReadiness();
+
+    expect(result).toEqual({
+      status: 'ok',
+      database: { status: 'ok' },
+      cache: { status: 'ok' },
     });
   });
 

@@ -61,4 +61,38 @@ describe('ResolveMaterialTagsUseCase', () => {
       newTagNames: [],
     });
   });
+
+  it('deve resolver apenas tags existentes quando todas já estiverem cadastradas', async () => {
+    tagRepository.findManyByNames.mockResolvedValue([
+      { id: 'tag-1', name: 'Campanha' },
+      { id: 'tag-2', name: 'Institucional' },
+    ]);
+
+    await expect(
+      useCase.execute('org-id', ['Campanha', 'Institucional']),
+    ).resolves.toEqual({
+      existingTagIds: ['tag-1', 'tag-2'],
+      newTagNames: [],
+    });
+  });
+
+  it('deve corresponder tag existente ignorando espaços no nome retornado pelo repositório', async () => {
+    tagRepository.findManyByNames.mockResolvedValue([
+      { id: 'tag-id', name: '  Campanha  ' },
+    ]);
+
+    await expect(useCase.execute('org-id', ['Campanha'])).resolves.toEqual({
+      existingTagIds: ['tag-id'],
+      newTagNames: [],
+    });
+  });
+
+  it('deve classificar todas as tags como novas quando nenhuma existir no banco', async () => {
+    tagRepository.findManyByNames.mockResolvedValue([]);
+
+    await expect(useCase.execute('org-id', ['Alpha', 'Beta'])).resolves.toEqual({
+      existingTagIds: [],
+      newTagNames: ['Alpha', 'Beta'],
+    });
+  });
 });

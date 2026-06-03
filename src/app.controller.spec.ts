@@ -1,5 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { StorageService } from '@infrastructure/providers';
+import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -32,7 +32,9 @@ describe('AppController', () => {
 
   describe('getFile', () => {
     it('deve retornar URL pública quando path for informado', async () => {
-      storageService.getPublicUrl.mockResolvedValue('https://cdn.test/file.png');
+      storageService.getPublicUrl.mockResolvedValue(
+        'https://cdn.test/file.png',
+      );
 
       await expect(appController.getFile('org/file.png')).resolves.toBe(
         'https://cdn.test/file.png',

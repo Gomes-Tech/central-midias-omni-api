@@ -162,6 +162,17 @@ export function createE2eSeed(): E2eStore {
     updatedAt: now,
   };
 
+  const categoryRoleAccess = {
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    roleId: E2E_IDS.roleId,
+    categoryId: E2E_IDS.categoryId,
+    organizationId: E2E_IDS.orgId,
+    category,
+  };
+
+  role.categoryRoleAccesses = [categoryRoleAccess];
+  memberRole.categoryRoleAccesses = [categoryRoleAccess];
+
   const tag = {
     id: E2E_IDS.tagId,
     organizationId: E2E_IDS.orgId,
@@ -213,7 +224,7 @@ export function createE2eSeed(): E2eStore {
     banners: [banner],
     materials: [material],
     materialFiles: [],
-    categoryRoleAccesses: [],
+    categoryRoleAccesses: [categoryRoleAccess],
     passwordResetTokens: [],
     logs: [],
     tagSearches: [],

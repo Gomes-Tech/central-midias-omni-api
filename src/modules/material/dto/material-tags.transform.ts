@@ -4,9 +4,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-export function readMaterialTagsField(
-  obj: Record<string, unknown>,
-): unknown {
+export function readMaterialTagsField(obj: Record<string, unknown>): unknown {
   if (obj.tags !== undefined && obj.tags !== null) {
     return obj.tags;
   }

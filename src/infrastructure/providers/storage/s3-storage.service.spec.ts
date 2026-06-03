@@ -5,6 +5,7 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import * as allowedUpload from '@common/constants/allowed-upload-files';
 import {
   BadRequestException,
   InternalServerErrorException,
@@ -39,7 +40,14 @@ describe('S3StorageService', () => {
 
   afterEach(() => {
     process.env = originalEnv;
+    jest.restoreAllMocks();
   });
+
+  function extensionDot(service: S3StorageService, originalName: string): string {
+    return (
+      service as unknown as { extensionDot: (name: string) => string }
+    ).extensionDot(originalName);
+  }
 
   it('deve lançar quando AWS_REGION ou S3_BUCKET não estiverem configurados', () => {
     delete process.env.AWS_REGION;
@@ -192,6 +200,64 @@ describe('S3StorageService', () => {
 
     expect(result.path).toContain('organizations/');
     expect(send).toHaveBeenCalledWith(expect.any(PutObjectCommand));
+  });
+
+  it('uploadFile deve usar fallback arquivo quando originalname for vazio', async () => {
+    send.mockResolvedValue({});
+    jest.spyOn(allowedUpload, 'isAllowedUploadFile').mockReturnValue(true);
+    jest.spyOn(allowedUpload, 'getUploadFileExtension').mockReturnValue('pdf');
+
+    const service = new S3StorageService();
+    const file = {
+      originalname: '   ',
+      mimetype: 'application/pdf',
+      size: 1,
+      buffer: Buffer.from('pdf'),
+    };
+
+    const result = await service.uploadFile(file);
+
+    expect(result.path).toMatch(/organizations\/[^/]+\.pdf$/);
+    expect(send).toHaveBeenCalledWith(expect.any(PutObjectCommand));
+  });
+
+  it('extensionDot deve usar fallback arquivo e retornar extensão com ponto', () => {
+    jest.spyOn(allowedUpload, 'getUploadFileExtension').mockReturnValue('png');
+    const service = new S3StorageService();
+
+    expect(extensionDot(service, '   ')).toBe('.png');
+    expect(allowedUpload.getUploadFileExtension).toHaveBeenCalledWith('arquivo');
+  });
+
+  it('extensionDot deve retornar string vazia quando não houver extensão', () => {
+    jest.spyOn(allowedUpload, 'getUploadFileExtension').mockReturnValue('');
+    const service = new S3StorageService();
+
+    expect(extensionDot(service, 'documento')).toBe('');
+  });
+
+  it('storePublicationAttachment deve usar fallbacks de nome, mime e tamanho', async () => {
+    send.mockResolvedValue({});
+    jest.spyOn(allowedUpload, 'isAllowedUploadFile').mockReturnValue(true);
+    jest.spyOn(allowedUpload, 'getUploadFileExtension').mockReturnValue('png');
+
+    const service = new S3StorageService();
+    const file = {
+      originalname: '   ',
+      mimetype: undefined,
+      size: Number.NaN,
+      buffer: Buffer.from('png'),
+    };
+
+    const stored = await service.storePublicationAttachment({
+      publicationId: 'pub-1',
+      file,
+    });
+
+    expect(stored.originalName).toBe('arquivo');
+    expect(stored.mimeType).toBe('application/octet-stream');
+    expect(stored.sizeBytes).toBe(0);
+    expect(stored.relativePath).toMatch(/publications\/pub-1\/[^/]+\.png$/);
   });
 
   it('uploadFile deve lançar quando caminho for inválido', async () => {

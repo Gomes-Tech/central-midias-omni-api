@@ -42,6 +42,32 @@ describe('BannerRepository', () => {
   });
 
   describe('findAll', () => {
+    it('deve usar filtros padrão quando filters não for informado', async () => {
+      prisma.banner.findMany.mockResolvedValue([]);
+      prisma.banner.count.mockResolvedValue(0);
+
+      await repository.findAll(undefined as never, 'org-1');
+
+      expect(prisma.banner.findMany).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          isDeleted: false,
+        },
+        select: {
+          id: true,
+          name: true,
+          link: true,
+          order: true,
+          isActive: true,
+          initialDate: true,
+          finishDate: true,
+        },
+        orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+        skip: 0,
+        take: 25,
+      });
+    });
+
     it('deve filtrar por organização, não deletados, ativos e ordenar', async () => {
       const rows = [
         makeBanner({ order: 1 }),
@@ -208,6 +234,69 @@ describe('BannerRepository', () => {
       expect(logger.error).toHaveBeenCalledWith(
         'BannerRepository.findAll falhou',
         expect.objectContaining({ organizationId: 'org-1' }),
+      );
+    });
+  });
+
+  describe('findList', () => {
+    it('deve listar banners ativos da organização dentro do período vigente', async () => {
+      const rows = [
+        {
+          id: 'banner-1',
+          name: 'Banner principal',
+          link: 'https://example.com',
+          order: 1,
+          desktopImageKey: '/d.png',
+          mobileImageKey: '/m.png',
+          initialDate: new Date('2024-01-01'),
+          finishDate: new Date('2024-12-31'),
+          isActive: true,
+        },
+      ];
+
+      prisma.banner.findMany.mockResolvedValue(rows);
+
+      await expect(repository.findList('org-1')).resolves.toEqual(rows);
+
+      expect(prisma.banner.findMany).toHaveBeenCalledWith({
+        where: {
+          isActive: true,
+          isDeleted: false,
+          organizationId: 'org-1',
+          initialDate: { lte: expect.any(Date) },
+          finishDate: { gte: expect.any(Date) },
+        },
+        orderBy: { order: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          link: true,
+          order: true,
+          desktopImageKey: true,
+          mobileImageKey: true,
+          initialDate: true,
+          finishDate: true,
+          isActive: true,
+        },
+      });
+    });
+
+    it('deve retornar lista vazia quando não houver banners vigentes', async () => {
+      prisma.banner.findMany.mockResolvedValue([]);
+
+      await expect(repository.findList('org-1')).resolves.toEqual([]);
+    });
+
+    it('deve lançar BadRequest quando findMany falhar', async () => {
+      prisma.banner.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(repository.findList('org-1')).rejects.toThrow(
+        'Erro ao buscar banners',
+      );
+
+      expect(logger.error).toHaveBeenCalledWith(
+        'BannerRepository.findList falhou',
+        expect.objectContaining({ error: 'Error: db' }),
       );
     });
   });

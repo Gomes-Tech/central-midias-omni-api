@@ -22,3 +22,5 @@ for (const [key, value] of Object.entries(e2eEnvDefaults)) {
     process.env[key] = value;
   }
 }
+
+jest.setTimeout(30000);

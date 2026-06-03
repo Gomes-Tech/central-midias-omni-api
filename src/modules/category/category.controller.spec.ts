@@ -92,6 +92,18 @@ describe('CategoryController', () => {
   });
 
   describe('findTree', () => {
+    it('deve usar filtros vazios quando query não for passada', async () => {
+      findCategoryTreeUseCase.execute.mockResolvedValue([]);
+
+      await controller.findTree('org-1', 'user-1');
+
+      expect(findCategoryTreeUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+        'user-1',
+        {},
+      );
+    });
+
     it('deve delegar ao FindCategoryTreeUseCase com filtros', async () => {
       const filters = { parentId: 'parent-1', searchTerm: 'video' };
       findCategoryTreeUseCase.execute.mockResolvedValue([]);

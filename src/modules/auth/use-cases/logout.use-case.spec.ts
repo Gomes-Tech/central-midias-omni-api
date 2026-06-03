@@ -106,6 +106,15 @@ describe('LogoutUserUseCase', () => {
     expect(tokenBlacklistService.addToBlacklist).not.toHaveBeenCalled();
   });
 
+  it('deve engolir erro de verify no refresh que não seja expiração', async () => {
+    jwtService.verifyAsync.mockRejectedValue(new Error('malformed'));
+
+    await expect(useCase.execute(undefined, 'rt')).resolves.toBeUndefined();
+    expect(
+      tokenBlacklistService.addRefreshTokenToBlacklist,
+    ).not.toHaveBeenCalled();
+  });
+
   it('deve engolir rejeição não-Error no refresh token', async () => {
     jwtService.verifyAsync.mockRejectedValue('invalid-refresh');
 

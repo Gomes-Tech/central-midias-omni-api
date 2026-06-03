@@ -26,13 +26,13 @@ describe('Banners (e2e)', () => {
     expect(response.body.data.length).toBeGreaterThan(0);
   });
 
-  it('GET /api/banners/list deve listar com paginação', async () => {
+  it('GET /api/banners/list deve listar banners ativos', async () => {
     const response = await e2eRequest(app)
       .get('/api/banners/list')
       .set(e2eAuthHeaders(accessToken))
       .expect(200);
 
-    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(Array.isArray(response.body)).toBe(true);
   });
 
   it('GET /api/banners/:id deve retornar banner', async () => {

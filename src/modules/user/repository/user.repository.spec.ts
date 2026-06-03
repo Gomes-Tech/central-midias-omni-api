@@ -188,12 +188,13 @@ describe('UserRepository', () => {
     isFirstAccess: true,
     isActive: true,
     globalRole: {
-      select: { canAccessBackoffice: true },
+      select: { label: true, canAccessBackoffice: true },
     },
     members: {
       select: {
+        organizationId: true,
         role: {
-          select: { canAccessBackoffice: true },
+          select: { label: true, canAccessBackoffice: true },
         },
       },
     },
@@ -252,7 +253,7 @@ describe('UserRepository', () => {
   });
 
   describe('getMe', () => {
-    it('deve usar o mesmo select que findById e formatar resultado', async () => {
+    it('deve buscar perfil com select enriquecido e formatar resultado', async () => {
       const prismaRow = {
         name: 'Me',
         email: 'me@y.com',
@@ -262,7 +263,7 @@ describe('UserRepository', () => {
         avatarKey: 'k',
         isFirstAccess: false,
         isActive: true,
-        globalRole: { canAccessBackoffice: false },
+        globalRole: { label: 'Admin Global', canAccessBackoffice: false },
         members: [],
       };
       prisma.user.findFirstOrThrow.mockResolvedValue(prismaRow);
@@ -278,6 +279,7 @@ describe('UserRepository', () => {
         avatarKey: 'k',
         isFirstAccess: false,
         isActive: true,
+        role: 'Admin Global',
         canAccessBackoffice: false,
       });
       expect(prisma.user.findFirstOrThrow).toHaveBeenCalledWith({
@@ -296,12 +298,50 @@ describe('UserRepository', () => {
         avatarKey: 'k',
         isFirstAccess: false,
         isActive: true,
-        globalRole: { canAccessBackoffice: false },
-        members: [{ role: { canAccessBackoffice: true } }],
+        globalRole: { label: null, canAccessBackoffice: false },
+        members: [
+          {
+            organizationId: 'org-1',
+            role: { label: 'Editor', canAccessBackoffice: true },
+          },
+        ],
       });
 
       await expect(repository.getMe('me-id')).resolves.toEqual(
         expect.objectContaining({ canAccessBackoffice: true }),
+      );
+    });
+
+    it('deve usar role da membership da organização informada', async () => {
+      prisma.user.findFirstOrThrow.mockResolvedValue({
+        name: 'Me',
+        email: 'me@y.com',
+        taxIdentifier: '999',
+        phone: null,
+        socialReason: null,
+        avatarKey: 'k',
+        isFirstAccess: false,
+        isActive: true,
+        globalRole: null,
+        members: [
+          {
+            organizationId: 'org-other',
+            role: { label: 'Editor', canAccessBackoffice: false },
+          },
+          {
+            organizationId: 'org-target',
+            role: { label: 'Gerente', canAccessBackoffice: true },
+          },
+        ],
+      });
+
+      const result = await repository.getMe('me-id', 'org-target');
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          role: 'Gerente',
+          canAccessBackoffice: true,
+        }),
       );
     });
 

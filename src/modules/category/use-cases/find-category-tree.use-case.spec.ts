@@ -30,4 +30,19 @@ describe('FindCategoryTreeUseCase', () => {
       filters,
     );
   });
+
+  it('deve usar objeto vazio quando filters não for informado', async () => {
+    const tree = [] as Awaited<
+      ReturnType<CategoryRepository['findTree']>
+    >;
+
+    categoryRepository.findTree.mockResolvedValue(tree);
+
+    await expect(useCase.execute('org-id', 'user-id')).resolves.toEqual(tree);
+    expect(categoryRepository.findTree).toHaveBeenCalledWith(
+      'org-id',
+      'user-id',
+      {},
+    );
+  });
 });

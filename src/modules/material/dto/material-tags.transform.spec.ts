@@ -82,4 +82,21 @@ describe('normalizeMaterialTags', () => {
       normalizeMaterialTags(readMaterialTagsField({ 'tags[]': ['Campanha'] })),
     ).toEqual(['Campanha']);
   });
+
+  it('deve ignorar objetos sem name válido', () => {
+    expect(normalizeMaterialTags([{ id: 1 }, { name: 123 }])).toEqual([]);
+  });
+});
+
+describe('readMaterialTagsField', () => {
+  it('deve retornar tags quando o campo tags estiver presente', () => {
+    expect(readMaterialTagsField({ tags: ['Campanha', 'Novo'] })).toEqual([
+      'Campanha',
+      'Novo',
+    ]);
+  });
+
+  it('deve retornar undefined quando tags e tags[] estiverem ausentes', () => {
+    expect(readMaterialTagsField({})).toBeUndefined();
+  });
 });

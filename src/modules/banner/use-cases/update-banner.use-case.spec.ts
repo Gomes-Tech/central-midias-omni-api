@@ -392,12 +392,167 @@ describe('UpdateBannerUseCase', () => {
     await useCase.execute(
       'banner-id',
       'organization-id',
-      makeUpdateBannerDTO({ name: 'só nome' }),
+      makeUpdateBannerDTO({
+        name: 'só nome',
+        initialDate: undefined,
+        finishDate: undefined,
+      }),
       'user-id',
       emptyUpdateBannerFiles,
     );
 
     expect(bannerRepository.update).toHaveBeenCalled();
+  });
+
+  it('deve usar finishDate do banner quando payload enviar somente initialDate', async () => {
+    getBannerUseCase.execute.mockResolvedValue(
+      makeBanner({
+        initialDate: new Date('2024-01-01T00:00:00.000Z'),
+        finishDate: new Date('2024-01-20T00:00:00.000Z'),
+      }),
+    );
+    bannerRepository.update.mockResolvedValue(undefined);
+
+    await useCase.execute(
+      'banner-id',
+      'organization-id',
+      makeUpdateBannerDTO({
+        initialDate: new Date('2024-01-05T00:00:00.000Z'),
+        finishDate: undefined,
+      }),
+      'user-id',
+      emptyUpdateBannerFiles,
+    );
+
+    expect(bannerRepository.update).toHaveBeenCalledWith(
+      'banner-id',
+      'organization-id',
+      makeUpdateBannerDTO({
+        initialDate: new Date('2024-01-05T00:00:00.000Z'),
+        finishDate: undefined,
+      }),
+      'user-id',
+    );
+  });
+
+  it('deve impedir atualização quando initialDate enviada for maior que finishDate do banner', async () => {
+    getBannerUseCase.execute.mockResolvedValue(
+      makeBanner({
+        initialDate: new Date('2024-01-01T00:00:00.000Z'),
+        finishDate: new Date('2024-01-10T00:00:00.000Z'),
+      }),
+    );
+
+    const result = useCase.execute(
+      'banner-id',
+      'organization-id',
+      makeUpdateBannerDTO({
+        initialDate: new Date('2024-01-15T00:00:00.000Z'),
+        finishDate: undefined,
+      }),
+      'user-id',
+      emptyUpdateBannerFiles,
+    );
+
+    await expect(result).rejects.toBeInstanceOf(BadRequestException);
+    await expect(result).rejects.toThrow(
+      'A data inicial não pode ser maior que a data final',
+    );
+    expect(bannerRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('deve atualizar quando banner não tiver datas e payload também não enviar datas', async () => {
+    getBannerUseCase.execute.mockResolvedValue(
+      makeBanner({
+        initialDate: null,
+        finishDate: null,
+      }),
+    );
+    bannerRepository.update.mockResolvedValue(undefined);
+
+    await useCase.execute(
+      'banner-id',
+      'organization-id',
+      makeUpdateBannerDTO({
+        initialDate: undefined,
+        finishDate: undefined,
+      }),
+      'user-id',
+      emptyUpdateBannerFiles,
+    );
+
+    expect(bannerRepository.update).toHaveBeenCalledWith(
+      'banner-id',
+      'organization-id',
+      makeUpdateBannerDTO({
+        initialDate: undefined,
+        finishDate: undefined,
+      }),
+      'user-id',
+    );
+  });
+
+  it('deve atualizar sem upload quando files for undefined', async () => {
+    getBannerUseCase.execute.mockResolvedValue(makeBanner());
+    bannerRepository.update.mockResolvedValue(undefined);
+
+    await useCase.execute(
+      'banner-id',
+      'organization-id',
+      makeUpdateBannerDTO({ name: 'sem arquivos' }),
+      'user-id',
+      undefined as unknown as {
+        desktopImage: Express.Multer.File;
+        mobileImage: Express.Multer.File;
+      },
+    );
+
+    expect(storageService.uploadFile).not.toHaveBeenCalled();
+    expect(storageService.deleteFile).not.toHaveBeenCalled();
+    expect(bannerRepository.update).toHaveBeenCalled();
+  });
+
+  it('deve manter path absoluto ao remover desktop antigo sem prefixo /storage/', async () => {
+    const files = {
+      mobileImage: undefined as unknown as Express.Multer.File,
+      desktopImage: makeBannerFile({ originalname: 'banner-desktop.png' }),
+    };
+
+    getBannerUseCase.execute.mockResolvedValue(
+      makeBanner({
+        desktopImageKey: 'banners/raw-desktop.png',
+      }),
+    );
+    storageService.uploadFile.mockResolvedValue(
+      makeStorageFile({ path: 'banners/new-desktop.png' }),
+    );
+    storageService.deleteFile.mockResolvedValue(undefined);
+    bannerRepository.update.mockResolvedValue(undefined);
+
+    await useCase.execute(
+      'banner-id',
+      'organization-id',
+      makeUpdateBannerDTO(),
+      'user-id',
+      files,
+    );
+
+    expect(storageService.uploadFile).toHaveBeenCalledWith(
+      files.desktopImage,
+      'banners',
+    );
+    expect(storageService.deleteFile).toHaveBeenCalledWith([
+      'banners/raw-desktop.png',
+    ]);
+    expect(bannerRepository.update).toHaveBeenCalledWith(
+      'banner-id',
+      'organization-id',
+      {
+        ...makeUpdateBannerDTO(),
+        desktopImageKey: 'banners/new-desktop.png',
+      },
+      'user-id',
+    );
   });
 
   it('deve manter path absoluto ao remover imagem antiga sem prefixo /storage/', async () => {

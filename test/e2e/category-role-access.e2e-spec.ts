@@ -32,8 +32,14 @@ describe('CategoryRoleAccess (e2e)', () => {
       .expect(200);
 
     expect(response.body).toEqual({
-      isUnrestricted: true,
-      roles: [],
+      isUnrestricted: false,
+      roles: [
+        {
+          id: E2E_IDS.roleId,
+          name: 'ADMIN',
+          label: 'Administrador',
+        },
+      ],
     });
   });
 });

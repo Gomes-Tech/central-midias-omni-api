@@ -139,6 +139,11 @@ function resolveRelation(
       (access) => access.roleId === record.id,
     );
   }
+  if (relationKey === 'categoryRoleAccesses' && record.categoryId) {
+    return store.categoryRoleAccesses.filter(
+      (access) => access.categoryId === record.categoryId,
+    );
+  }
   if (relationKey === 'tags' && record.id) {
     const material = store.materials.find((m) => m.id === record.id);
     return material?.tags ?? [];
@@ -192,6 +197,7 @@ export function matchWhere(
       'module',
       'permissions',
       'category',
+      'categoryRoleAccesses',
       'material',
       'tags',
       'materialFiles',

@@ -1,3 +1,4 @@
+import * as allowedUpload from '@common/constants/allowed-upload-files';
 import { createClient } from '@supabase/supabase-js';
 import {
   BadRequestException,
@@ -10,6 +11,7 @@ jest.mock('@supabase/supabase-js');
 describe('SupabaseService', () => {
   const upload = jest.fn();
   const createSignedUrl = jest.fn();
+  const from = jest.fn();
   const originalEnv = process.env;
 
   beforeEach(() => {
@@ -26,19 +28,25 @@ describe('SupabaseService', () => {
       data: { signedUrl: 'https://signed.example/file' },
       error: null,
     });
+    from.mockReturnValue({
+      upload,
+      createSignedUrl,
+    });
     jest.mocked(createClient).mockReturnValue({
-      storage: {
-        from: jest.fn(() => ({
-          upload,
-          createSignedUrl,
-        })),
-      },
+      storage: { from },
     } as never);
   });
 
   afterEach(() => {
     process.env = originalEnv;
+    jest.restoreAllMocks();
   });
+
+  function extensionDot(service: SupabaseService, originalName: string): string {
+    return (
+      service as unknown as { extensionDot: (name: string) => string }
+    ).extensionDot(originalName);
+  }
 
   it('deve lançar quando variáveis de ambiente estiverem ausentes', () => {
     delete process.env.SUPABASE_URL;
@@ -178,5 +186,53 @@ describe('SupabaseService', () => {
     await expect(service.uploadFile(file)).rejects.toBeInstanceOf(
       InternalServerErrorException,
     );
+  });
+
+  it('deve usar bucket padrão quando SUPABASE_BUCKET não estiver definido', async () => {
+    delete process.env.SUPABASE_BUCKET;
+    const service = new SupabaseService();
+    const file = {
+      originalname: 'doc.pdf',
+      mimetype: 'application/pdf',
+      size: 4,
+      buffer: Buffer.from('pdf'),
+    };
+
+    await service.uploadFile(file);
+
+    expect(from).toHaveBeenCalledWith('uploads');
+  });
+
+  it('extensionDot deve usar fallback arquivo e retornar extensão com ponto', () => {
+    jest.spyOn(allowedUpload, 'getUploadFileExtension').mockReturnValue('png');
+    const service = new SupabaseService();
+
+    expect(extensionDot(service, '   ')).toBe('.png');
+    expect(allowedUpload.getUploadFileExtension).toHaveBeenCalledWith('arquivo');
+  });
+
+  it('extensionDot deve retornar string vazia quando não houver extensão', () => {
+    jest.spyOn(allowedUpload, 'getUploadFileExtension').mockReturnValue('');
+    const service = new SupabaseService();
+
+    expect(extensionDot(service, 'documento')).toBe('');
+  });
+
+  it('uploadFile deve usar fallback arquivo quando originalname for vazio', async () => {
+    jest.spyOn(allowedUpload, 'isAllowedUploadFile').mockReturnValue(true);
+    jest.spyOn(allowedUpload, 'getUploadFileExtension').mockReturnValue('pdf');
+
+    const service = new SupabaseService();
+    const file = {
+      originalname: '   ',
+      mimetype: 'application/pdf',
+      size: 1,
+      buffer: Buffer.from('pdf'),
+    };
+
+    const result = await service.uploadFile(file);
+
+    expect(result.path).toMatch(/organizations\/[^/]+\.pdf$/);
+    expect(upload).toHaveBeenCalled();
   });
 });

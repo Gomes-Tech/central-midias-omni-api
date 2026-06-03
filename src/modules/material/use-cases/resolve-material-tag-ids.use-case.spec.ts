@@ -69,4 +69,25 @@ describe('ResolveMaterialTagIdsUseCase', () => {
     });
     expect(tagRepository.findManyByIds).not.toHaveBeenCalled();
   });
+
+  it('deve ignorar ids vazios ou só com espaços na normalização', async () => {
+    tagRepository.findManyByIds.mockResolvedValue([
+      {
+        id: 'tag-id',
+        name: 'Campanha',
+      },
+    ]);
+
+    await expect(
+      useCase.execute('org-id', ['tag-id', '', '   ', '  tag-id  ']),
+    ).resolves.toEqual({
+      existingTagIds: ['tag-id'],
+      newTagNames: [],
+    });
+
+    expect(tagRepository.findManyByIds).toHaveBeenCalledWith(
+      ['tag-id'],
+      'org-id',
+    );
+  });
 });

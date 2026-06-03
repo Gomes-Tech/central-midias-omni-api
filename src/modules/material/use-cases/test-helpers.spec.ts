@@ -29,6 +29,10 @@ describe('material use-cases test-helpers', () => {
       Date,
     );
     expect(makeMaterialFile({ size: 512 }).size).toBe(512);
+    expect(makeMaterialTagSummary()).toEqual({
+      id: 'tag-id',
+      name: 'Campanha',
+    });
     expect(makeMaterialTagSummary({ name: 'T' }).name).toBe('T');
     expect(makeUploadFile({ originalname: 'a.png' }).originalname).toBe('a.png');
   });
