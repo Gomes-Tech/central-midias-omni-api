@@ -180,7 +180,7 @@ export class UserRepository {
     }
   }
 
-  async getMe(id: string): Promise<any | null> {
+  async getMe(id: string, organizationId?: string): Promise<any | null> {
     try {
       const user = await this.prisma.user.findFirstOrThrow({
         where: {
@@ -198,13 +198,16 @@ export class UserRepository {
           isActive: true,
           globalRole: {
             select: {
+              label: true,
               canAccessBackoffice: true,
             },
           },
           members: {
             select: {
+              organizationId: true,
               role: {
                 select: {
+                  label: true,
                   canAccessBackoffice: true,
                 },
               },
@@ -215,6 +218,14 @@ export class UserRepository {
 
       const formattedUser = {
         ...user,
+        role:
+          user?.globalRole?.label ||
+          user?.members.filter((m) => {
+            if (organizationId) {
+              return m.organizationId === organizationId;
+            }
+            return true;
+          })[0]?.role.label,
         canAccessBackoffice:
           user.globalRole?.canAccessBackoffice ||
           user.members.some((member) => member.role.canAccessBackoffice),
