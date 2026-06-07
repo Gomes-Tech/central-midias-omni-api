@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { FindAllUsersFilters } from '../dto';
+import { PaginatedResponse } from '../../../types';
+import { FindAllUsersFiltersDTO } from '../dto';
 import { ListUser } from '../entities';
 import { UserRepository } from '../repository';
 
@@ -10,12 +11,10 @@ export class FindAllUsersUseCase {
     private readonly userRepository: UserRepository,
   ) {}
 
-  async execute(filters: FindAllUsersFilters): Promise<{
-    data: ListUser[];
-    total: number;
-    page: number;
-    totalPages: number;
-  }> {
-    return this.userRepository.findAll(filters);
+  async execute(
+    filters: FindAllUsersFiltersDTO,
+    organizationId: string,
+  ): Promise<PaginatedResponse<ListUser>> {
+    return await this.userRepository.findAll(filters, organizationId);
   }
 }

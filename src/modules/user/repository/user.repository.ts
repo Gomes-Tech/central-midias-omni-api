@@ -4,12 +4,14 @@ import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { PaginatedResponse } from '../../../types';
 import {
   CreateGlobalUserDTO,
   CreateUserDTO,
-  FindAllUsersFilters,
+  FindAllUsersFiltersDTO,
   UpdateUserDTO,
 } from '../dto';
+import { ListUser } from '../entities';
 
 @Injectable()
 export class UserRepository {
@@ -18,25 +20,24 @@ export class UserRepository {
     private readonly logger: LoggerService,
   ) {}
 
-  async findAll(filters: FindAllUsersFilters = {}): Promise<{
-    data: any[];
-    total: number;
-    page: number;
-    totalPages: number;
-  }> {
+  async findAll(
+    filters: FindAllUsersFiltersDTO = {},
+    organizationId?: string,
+  ): Promise<PaginatedResponse<ListUser>> {
     try {
-      const page = filters.page && filters.page > 0 ? filters.page : 1;
-      const limit = filters.limit && filters.limit > 0 ? filters.limit : 10;
-      const skip = (page - 1) * limit;
-      const organizationId = filters.organizationId ?? filters.companyId;
+      const { page = 1, limit = 25 } = filters;
 
       const where: Prisma.UserWhereInput = {
         isDeleted: false,
+        globalRoleId: { not: null },
         ...(typeof filters.isActive === 'boolean' && {
           isActive: filters.isActive,
         }),
+        ...(filters.platformRoleId && {
+          globalRoleId: filters.platformRoleId,
+        }),
         ...(organizationId && {
-          platformUserOrganizations: {
+          members: {
             some: {
               organizationId,
             },
@@ -47,18 +48,6 @@ export class UserRepository {
             some: {
               managerId: filters.managerId,
             },
-          },
-        }),
-        ...(filters.name && {
-          name: {
-            contains: filters.name,
-            mode: 'insensitive',
-          },
-        }),
-        ...(filters.email && {
-          email: {
-            contains: filters.email,
-            mode: 'insensitive',
           },
         }),
         ...(filters.searchTerm && {
@@ -96,11 +85,18 @@ export class UserRepository {
             id: true,
             name: true,
             email: true,
-            avatarKey: true,
             isActive: true,
-            globalRoleId: true,
+            members: {
+              select: {
+                role: {
+                  select: {
+                    label: true,
+                  },
+                },
+              },
+            },
           },
-          skip,
+          skip: (page - 1) * limit,
           take: limit,
           orderBy: {
             name: 'asc',
@@ -109,8 +105,16 @@ export class UserRepository {
         this.prisma.user.count({ where }),
       ]);
 
+      const formattedUsers = users.map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        isActive: user.isActive,
+        globalRole: user.members[0].role.label,
+      }));
+
       return {
-        data: users,
+        data: formattedUsers,
         total,
         page,
         totalPages: Math.ceil(total / limit),
@@ -121,7 +125,7 @@ export class UserRepository {
         filters,
       });
 
-      throw new BadRequestException('Erro ao buscar usu?rios');
+      throw new BadRequestException('Erro ao buscar usuários');
     }
   }
 

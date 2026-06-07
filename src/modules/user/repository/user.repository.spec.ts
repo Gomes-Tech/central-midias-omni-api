@@ -38,40 +38,103 @@ describe('UserRepository', () => {
   });
 
   describe('findAll', () => {
-    it('deve retornar lista paginada com padrões page=1 e limit=10', async () => {
-      const rows = [{ id: '1', name: 'A', email: 'a@b.com' }];
+    it('deve usar filtros padrão quando findAll for chamado sem argumentos', async () => {
+      prisma.user.findMany.mockResolvedValue([]);
+      prisma.user.count.mockResolvedValue(0);
+
+      await repository.findAll();
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 0,
+          take: 25,
+          where: {
+            isDeleted: false,
+            globalRoleId: { not: null },
+          },
+        }),
+      );
+    });
+
+    it('deve aplicar platformRoleId no filtro globalRoleId', async () => {
+      prisma.user.findMany.mockResolvedValue([]);
+      prisma.user.count.mockResolvedValue(0);
+
+      await repository.findAll({ platformRoleId: 'role-123' });
+
+      const call = prisma.user.findMany.mock.calls[0][0];
+      const where = call.where as Record<string, unknown>;
+      expect(where.globalRoleId).toBe('role-123');
+      expect(prisma.user.count).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          globalRoleId: 'role-123',
+        }),
+      });
+    });
+
+    it('deve retornar lista paginada com padrões page=1 e limit=25', async () => {
+      const rows = [
+        {
+          id: '1',
+          name: 'A',
+          email: 'a@b.com',
+          isActive: true,
+          members: [{ role: { label: 'Admin' } }],
+        },
+      ];
       prisma.user.findMany.mockResolvedValue(rows);
       prisma.user.count.mockResolvedValue(25);
 
-      const result = await repository.findAll();
+      const result = await repository.findAll({}, 'org-1');
 
       expect(result).toEqual({
-        data: rows,
+        data: [
+          {
+            id: '1',
+            name: 'A',
+            email: 'a@b.com',
+            isActive: true,
+            globalRole: 'Admin',
+          },
+        ],
         total: 25,
         page: 1,
-        totalPages: 3,
+        totalPages: 1,
       });
       expect(prisma.user.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           skip: 0,
-          take: 10,
-          where: { isDeleted: false },
+          take: 25,
+          where: {
+            isDeleted: false,
+            globalRoleId: { not: null },
+            members: {
+              some: { organizationId: 'org-1' },
+            },
+          },
         }),
       );
       expect(prisma.user.count).toHaveBeenCalledWith({
-        where: { isDeleted: false },
+        where: {
+          isDeleted: false,
+          globalRoleId: { not: null },
+          members: {
+            some: { organizationId: 'org-1' },
+          },
+        },
       });
     });
 
-    it('deve aplicar companyId como organizationId no filtro', async () => {
+    it('deve aplicar organizationId no filtro de members', async () => {
       prisma.user.findMany.mockResolvedValue([]);
       prisma.user.count.mockResolvedValue(0);
 
-      await repository.findAll({ companyId: 'org-x', page: 2, limit: 5 });
+      await repository.findAll({ page: 2, limit: 5 }, 'org-x');
 
       const expectedWhere = {
         isDeleted: false,
-        platformUserOrganizations: {
+        globalRoleId: { not: null },
+        members: {
           some: { organizationId: 'org-x' },
         },
       };
@@ -91,7 +154,7 @@ describe('UserRepository', () => {
       prisma.user.findMany.mockResolvedValue([]);
       prisma.user.count.mockResolvedValue(0);
 
-      await repository.findAll({ searchTerm: 'joão 123' });
+      await repository.findAll({ searchTerm: 'joão 123' }, 'org-1');
 
       const call = prisma.user.findMany.mock.calls[0][0];
       const or = (call.where as { OR?: unknown[] }).OR;
@@ -108,48 +171,46 @@ describe('UserRepository', () => {
       prisma.user.findMany.mockResolvedValue([]);
       prisma.user.count.mockResolvedValue(0);
 
-      await repository.findAll({ searchTerm: 'só texto' });
+      await repository.findAll({ searchTerm: 'só texto' }, 'org-1');
 
       const call = prisma.user.findMany.mock.calls[0][0];
       const or = (call.where as { OR?: unknown[] }).OR;
       expect(or).toHaveLength(2);
     });
 
-    it('deve aplicar isActive, organizationId, managerId, name e email nos filtros', async () => {
+    it('deve aplicar isActive, organizationId, managerId e searchTerm nos filtros', async () => {
       prisma.user.findMany.mockResolvedValue([]);
       prisma.user.count.mockResolvedValue(0);
 
-      await repository.findAll({
-        isActive: false,
-        organizationId: 'org-z',
-        managerId: 'mgr-1',
-        name: 'Ana',
-        email: 'ana@',
-      });
+      await repository.findAll(
+        {
+          isActive: false,
+          managerId: 'mgr-1',
+          searchTerm: 'Ana',
+        },
+        'org-z',
+      );
 
       const call = prisma.user.findMany.mock.calls[0][0];
       const where = call.where as Record<string, unknown>;
       expect(where.isActive).toBe(false);
-      expect(where.platformUserOrganizations).toEqual({
+      expect(where.globalRoleId).toEqual({ not: null });
+      expect(where.members).toEqual({
         some: { organizationId: 'org-z' },
       });
       expect(where.managerOf).toEqual({
         some: { managerId: 'mgr-1' },
       });
-      expect(where.name).toEqual({
-        contains: 'Ana',
-        mode: 'insensitive',
-      });
-      expect(where.email).toEqual({
-        contains: 'ana@',
-        mode: 'insensitive',
-      });
+      expect(where.OR).toEqual([
+        { name: { contains: 'Ana', mode: 'insensitive' } },
+        { email: { contains: 'Ana', mode: 'insensitive' } },
+      ]);
     });
 
     it('deve lançar BadRequest quando findMany falhar', async () => {
       prisma.user.findMany.mockRejectedValue(new Error('db'));
 
-      await expect(repository.findAll()).rejects.toBeInstanceOf(
+      await expect(repository.findAll({}, 'org-1')).rejects.toBeInstanceOf(
         BadRequestException,
       );
       expect(logger.error).toHaveBeenCalled();

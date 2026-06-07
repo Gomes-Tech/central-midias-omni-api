@@ -11,7 +11,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { CreateGlobalUserDTO, CreateUserDTO, UpdateUserDTO } from './dto';
+import {
+  CreateGlobalUserDTO,
+  CreateUserDTO,
+  FindAllUsersFiltersDTO,
+  UpdateUserDTO,
+} from './dto';
 import {
   CreateGlobalUserUseCase,
   CreateUserUseCase,
@@ -38,33 +43,10 @@ export class UserController {
   @RequirePermission('users', 'read')
   @Get()
   async getList(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('name') name?: string,
-    @Query('email') email?: string,
-    @Query('searchTerm') searchTerm?: string,
-    @Query('role') role?: string,
-    @Query('platformRoleId') platformRoleId?: string,
-    @Query('platformRoleName') platformRoleName?: string,
-    @Query('companyId') companyId?: string,
-    @Query('organizationId') organizationId?: string,
-    @Query('managerId') managerId?: string,
-    @Query('isActive') isActive?: string,
+    @Query() filters: FindAllUsersFiltersDTO = {},
+    @OrgId() organizationId: string,
   ) {
-    return await this.findAllUsersUseCase.execute({
-      page: page ? Number(page) : undefined,
-      limit: limit ? Number(limit) : undefined,
-      name,
-      email,
-      searchTerm,
-      role,
-      platformRoleId,
-      platformRoleName,
-      companyId,
-      organizationId,
-      managerId,
-      isActive: isActive ? isActive === 'true' : undefined,
-    });
+    return await this.findAllUsersUseCase.execute(filters, organizationId);
   }
 
   @Get('/me')

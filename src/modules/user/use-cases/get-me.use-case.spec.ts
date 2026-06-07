@@ -58,7 +58,9 @@ describe('GetMeUseCase', () => {
       isActive: true,
       canAccessBackoffice: true,
     });
-    storageService.getPublicUrl.mockResolvedValue('https://cdn.example/beto.png');
+    storageService.getPublicUrl.mockResolvedValue(
+      'https://cdn.example/beto.png',
+    );
 
     await expect(useCase.execute('user-2')).resolves.toEqual({
       name: 'Beto',
@@ -72,7 +74,9 @@ describe('GetMeUseCase', () => {
       avatarUrl: 'https://cdn.example/beto.png',
     });
 
-    expect(storageService.getPublicUrl).toHaveBeenCalledWith('avatars/beto.png');
+    expect(storageService.getPublicUrl).toHaveBeenCalledWith(
+      'avatars/beto.png',
+    );
   });
 
   it('deve lançar NotFound quando o repositório não encontrar usuário', async () => {

@@ -55,31 +55,11 @@ describe('UserController', () => {
   });
 
   describe('getList', () => {
-    it('deve repassar filtros numéricos e isActive como boolean', async () => {
+    it('deve repassar filtros e organizationId para o use case', async () => {
       const payload = { data: [], total: 0, page: 1, totalPages: 0 };
-      findAllUsersUseCase.execute.mockResolvedValue(payload);
-
-      const result = await controller.getList(
-        '2',
-        '20',
-        'Ana',
-        'ana@x.com',
-        'busca',
-        'r1',
-        'pr1',
-        'Admin',
-        'c1',
-        'o1',
-        'm1',
-        'true',
-      );
-
-      expect(result).toBe(payload);
-      expect(findAllUsersUseCase.execute).toHaveBeenCalledWith({
+      const filters = {
         page: 2,
         limit: 20,
-        name: 'Ana',
-        email: 'ana@x.com',
         searchTerm: 'busca',
         role: 'r1',
         platformRoleId: 'pr1',
@@ -88,51 +68,24 @@ describe('UserController', () => {
         organizationId: 'o1',
         managerId: 'm1',
         isActive: true,
-      });
-    });
+      };
+      findAllUsersUseCase.execute.mockResolvedValue(payload);
 
-    it('deve omitir page, limit e isActive quando query vier vazia', async () => {
-      findAllUsersUseCase.execute.mockResolvedValue({});
+      const result = await controller.getList(filters, 'org-ctx');
 
-      await controller.getList();
-
-      expect(findAllUsersUseCase.execute).toHaveBeenCalledWith({
-        page: undefined,
-        limit: undefined,
-        name: undefined,
-        email: undefined,
-        searchTerm: undefined,
-        role: undefined,
-        platformRoleId: undefined,
-        platformRoleName: undefined,
-        companyId: undefined,
-        organizationId: undefined,
-        managerId: undefined,
-        isActive: undefined,
-      });
-    });
-
-    it('deve enviar isActive false quando query for string diferente de true', async () => {
-      findAllUsersUseCase.execute.mockResolvedValue({});
-
-      await controller.getList(
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        'false',
-      );
-
+      expect(result).toBe(payload);
       expect(findAllUsersUseCase.execute).toHaveBeenCalledWith(
-        expect.objectContaining({ isActive: false }),
+        filters,
+        'org-ctx',
       );
+    });
+
+    it('deve usar filtros vazios quando query não for passada', async () => {
+      findAllUsersUseCase.execute.mockResolvedValue({});
+
+      await controller.getList(undefined, 'org-ctx');
+
+      expect(findAllUsersUseCase.execute).toHaveBeenCalledWith({}, 'org-ctx');
     });
   });
 

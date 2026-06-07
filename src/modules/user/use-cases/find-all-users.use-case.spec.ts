@@ -23,13 +23,19 @@ describe('FindAllUsersUseCase', () => {
 
     userRepository.findAll.mockResolvedValue(response);
 
-    const result = await useCase.execute({ page: 1, limit: 10, name: 'John' });
+    const result = await useCase.execute(
+      { page: 1, limit: 10, searchTerm: 'John' },
+      'org-1',
+    );
 
-    expect(userRepository.findAll).toHaveBeenCalledWith({
-      page: 1,
-      limit: 10,
-      name: 'John',
-    });
+    expect(userRepository.findAll).toHaveBeenCalledWith(
+      {
+        page: 1,
+        limit: 10,
+        searchTerm: 'John',
+      },
+      'org-1',
+    );
     expect(result).toEqual(response);
   });
 });

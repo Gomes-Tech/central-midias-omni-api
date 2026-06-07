@@ -62,19 +62,6 @@ export interface ListUser {
   id: string;
   name: string;
   email: string;
-  taxIdentifier: string;
-  phone?: string | null;
-  socialReason?: string | null;
-  avatarKey?: string | null;
-  isFirstAccess: boolean;
   isActive: boolean;
-  isDeleted: boolean;
-  platformRoleId: string;
-  platformRole: PlatformRoleSummary;
-  organizations: UserOrganizationAccess[];
-  managerCount: number;
-  subordinateCount: number;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date | null;
+  globalRole: string;
 }
