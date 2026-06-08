@@ -1,4 +1,9 @@
-import { CreateGlobalRoleDTO, CreateRoleDTO, UpdateRoleDTO } from '../dto';
+import {
+  CreateGlobalRoleDTO,
+  CreateRoleDTO,
+  UpdateGlobalRoleDTO,
+  UpdateRoleDTO,
+} from '../dto';
 import { Role } from '../entities';
 
 export function makeRole(overrides: Partial<Role> = {}): Role {
@@ -45,6 +50,15 @@ export function makeUpdateRoleDTO(
 ): UpdateRoleDTO {
   return {
     label: 'Atualizado',
+    ...overrides,
+  };
+}
+
+export function makeUpdateGlobalRoleDTO(
+  overrides: Partial<UpdateGlobalRoleDTO> = {},
+): UpdateGlobalRoleDTO {
+  return {
+    label: 'Global atualizado',
     ...overrides,
   };
 }

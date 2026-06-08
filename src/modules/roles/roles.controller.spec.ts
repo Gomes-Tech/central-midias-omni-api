@@ -4,16 +4,21 @@ import { RolesController } from './roles.controller';
 import {
   makeCreateGlobalRoleDTO,
   makeCreateRoleDTO,
+  makeUpdateGlobalRoleDTO,
   makeUpdateRoleDTO,
 } from './use-cases/test-helpers';
 import {
   CreateGlobalRoleUseCase,
   CreateRoleUseCase,
+  DeleteGlobalRoleUseCase,
   DeleteRoleUseCase,
+  FindAllGlobalRolesSelectUseCase,
   FindAllRolePermissionsUseCase,
   FindAllRolesUseCase,
   FindAllSelectRolesUseCase,
+  FindGlobalRoleByIdUseCase,
   FindRoleByIdUseCase,
+  UpdateGlobalRoleUseCase,
   UpdateRoleUseCase,
 } from './use-cases';
 
@@ -25,8 +30,12 @@ describe('RolesController', () => {
   let findRoleByIdUseCase: { execute: jest.Mock };
   let createRoleUseCase: { execute: jest.Mock };
   let createGlobalRoleUseCase: { execute: jest.Mock };
+  let findGlobalRoleByIdUseCase: { execute: jest.Mock };
+  let updateGlobalRoleUseCase: { execute: jest.Mock };
+  let deleteGlobalRoleUseCase: { execute: jest.Mock };
   let updateRoleUseCase: { execute: jest.Mock };
   let deleteRoleUseCase: { execute: jest.Mock };
+  let findAllGlobalRolesSelectUseCase: { execute: jest.Mock };
 
   beforeEach(async () => {
     findAllRolesUseCase = { execute: jest.fn() };
@@ -35,8 +44,12 @@ describe('RolesController', () => {
     findRoleByIdUseCase = { execute: jest.fn() };
     createRoleUseCase = { execute: jest.fn() };
     createGlobalRoleUseCase = { execute: jest.fn() };
+    findGlobalRoleByIdUseCase = { execute: jest.fn() };
+    updateGlobalRoleUseCase = { execute: jest.fn() };
+    deleteGlobalRoleUseCase = { execute: jest.fn() };
     updateRoleUseCase = { execute: jest.fn() };
     deleteRoleUseCase = { execute: jest.fn() };
+    findAllGlobalRolesSelectUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RolesController],
@@ -53,8 +66,24 @@ describe('RolesController', () => {
         { provide: FindRoleByIdUseCase, useValue: findRoleByIdUseCase },
         { provide: CreateRoleUseCase, useValue: createRoleUseCase },
         { provide: CreateGlobalRoleUseCase, useValue: createGlobalRoleUseCase },
+        {
+          provide: FindGlobalRoleByIdUseCase,
+          useValue: findGlobalRoleByIdUseCase,
+        },
+        {
+          provide: UpdateGlobalRoleUseCase,
+          useValue: updateGlobalRoleUseCase,
+        },
+        {
+          provide: DeleteGlobalRoleUseCase,
+          useValue: deleteGlobalRoleUseCase,
+        },
         { provide: UpdateRoleUseCase, useValue: updateRoleUseCase },
         { provide: DeleteRoleUseCase, useValue: deleteRoleUseCase },
+        {
+          provide: FindAllGlobalRolesSelectUseCase,
+          useValue: findAllGlobalRolesSelectUseCase,
+        },
       ],
     })
       .overrideGuard(PlatformPermissionGuard)
@@ -140,6 +169,18 @@ describe('RolesController', () => {
     });
   });
 
+  describe('findGlobalRoleById', () => {
+    it('deve delegar ao FindGlobalRoleByIdUseCase sem organizationId', async () => {
+      findGlobalRoleByIdUseCase.execute.mockResolvedValue({ id: 'r-global' });
+
+      await controller.findGlobalRoleById('r-global');
+
+      expect(findGlobalRoleByIdUseCase.execute).toHaveBeenCalledWith(
+        'r-global',
+      );
+    });
+  });
+
   describe('create', () => {
     it('deve delegar ao CreateGlobalRoleUseCase', async () => {
       const dto = makeCreateGlobalRoleDTO();
@@ -148,6 +189,32 @@ describe('RolesController', () => {
       await controller.create(dto);
 
       expect(createGlobalRoleUseCase.execute).toHaveBeenCalledWith(dto);
+    });
+  });
+
+  describe('updateGlobalRole', () => {
+    it('deve delegar ao UpdateGlobalRoleUseCase sem organizationId', async () => {
+      const dto = makeUpdateGlobalRoleDTO({
+        permissions: [{ moduleId: 'mod-1', action: 'READ' }],
+      });
+      updateGlobalRoleUseCase.execute.mockResolvedValue({});
+
+      await controller.updateGlobalRole('r-global', dto);
+
+      expect(updateGlobalRoleUseCase.execute).toHaveBeenCalledWith(
+        'r-global',
+        dto,
+      );
+    });
+  });
+
+  describe('deleteGlobalRole', () => {
+    it('deve delegar ao DeleteGlobalRoleUseCase sem organizationId', async () => {
+      deleteGlobalRoleUseCase.execute.mockResolvedValue(undefined);
+
+      await controller.deleteGlobalRole('r-global');
+
+      expect(deleteGlobalRoleUseCase.execute).toHaveBeenCalledWith('r-global');
     });
   });
 
@@ -169,7 +236,11 @@ describe('RolesController', () => {
 
       await controller.update('r1', dto, 'org-1');
 
-      expect(updateRoleUseCase.execute).toHaveBeenCalledWith('r1', dto, 'org-1');
+      expect(updateRoleUseCase.execute).toHaveBeenCalledWith(
+        'r1',
+        dto,
+        'org-1',
+      );
     });
   });
 

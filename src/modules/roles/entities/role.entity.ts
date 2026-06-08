@@ -37,3 +37,21 @@ export interface RolePermissionListResponse {
   currentPage: number;
   totalPages: number;
 }
+
+export interface GlobalRoleDetails extends Omit<
+  Role,
+  'categoryRoleAccesses' | 'createdAt' | 'updatedAt'
+> {
+  permissions: GlobalRolePermission[];
+}
+
+export interface GlobalRolePermission {
+  id: string;
+  moduleId: string;
+  action: string;
+  module: {
+    id: string;
+    name: string;
+    label: string;
+  } | null;
+}

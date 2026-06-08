@@ -12,10 +12,15 @@ import {
   CreateRoleDTO,
   FindAllRolePermissionsFiltersDTO,
   FindAllRolesFiltersDTO,
+  UpdateGlobalRoleDTO,
   UpdateRoleDTO,
 } from '../dto';
 import { CreateGlobalRoleDTO } from '../dto/create-global-role.dto';
-import { Role, RolePermissionListResponse } from '../entities';
+import {
+  GlobalRoleDetails,
+  Role,
+  RolePermissionListResponse,
+} from '../entities';
 
 @Injectable()
 export class RolesRepository {
@@ -152,6 +157,48 @@ export class RolesRepository {
         'RolesRepository.findAllGlobalRolesSelect falhou',
         error,
       );
+    }
+  }
+
+  async findGlobalRoleById(id: string): Promise<GlobalRoleDetails | null> {
+    try {
+      const role = await this.prisma.role.findFirst({
+        where: {
+          id,
+          deletedAt: null,
+          canAccessBackoffice: true,
+        },
+        select: {
+          id: true,
+          label: true,
+          name: true,
+          isSystem: true,
+          canAccessBackoffice: true,
+          canHaveSubordinates: true,
+          deletedAt: true,
+          permissions: {
+            select: {
+              id: true,
+              moduleId: true,
+              action: true,
+              module: {
+                select: {
+                  id: true,
+                  name: true,
+                  label: true,
+                },
+              },
+            },
+            orderBy: [{ moduleId: 'asc' }, { action: 'asc' }],
+          },
+        },
+      });
+
+      return role;
+    } catch (error) {
+      this.handleError('RolesRepository.findGlobalRoleById falhou', error, {
+        id,
+      });
     }
   }
 
@@ -388,6 +435,74 @@ export class RolesRepository {
     }
   }
 
+  async updateGlobalRole(
+    id: string,
+    data: UpdateGlobalRoleDTO,
+  ): Promise<GlobalRoleDetails> {
+    try {
+      const role = await this.prisma.$transaction(async (tx) => {
+        if (data.permissions !== undefined) {
+          await tx.rolePermission.deleteMany({
+            where: { roleId: id },
+          });
+
+          if (data.permissions.length > 0) {
+            await tx.rolePermission.createMany({
+              data: data.permissions.map((permission) => ({
+                id: generateId(),
+                roleId: id,
+                moduleId: permission.moduleId,
+                action: permission.action as Action,
+              })),
+            });
+          }
+        }
+
+        return await tx.role.update({
+          where: { id },
+          data: {
+            ...(data.label !== undefined && { label: data.label }),
+            ...(data.name !== undefined && { name: data.name }),
+          },
+          select: {
+            id: true,
+            label: true,
+            name: true,
+            isSystem: true,
+            canAccessBackoffice: true,
+            canHaveSubordinates: true,
+            deletedAt: true,
+            permissions: {
+              select: {
+                id: true,
+                moduleId: true,
+                action: true,
+                module: {
+                  select: {
+                    id: true,
+                    name: true,
+                    label: true,
+                  },
+                },
+              },
+              orderBy: [{ moduleId: 'asc' }, { action: 'asc' }],
+            },
+          },
+        });
+      });
+
+      void this.logger.info('Perfil global atualizado', {
+        roleId: id,
+      });
+
+      return role;
+    } catch (error) {
+      this.handleError('RolesRepository.updateGlobalRole falhou', error, {
+        roleId: id,
+      });
+    }
+  }
+
   async softDelete(id: string): Promise<void> {
     try {
       await this.prisma.role.update({
@@ -400,6 +515,23 @@ export class RolesRepository {
       void this.logger.info('Perfil inativado', { roleId: id });
     } catch (error) {
       this.handleError('RolesRepository.softDelete falhou', error, {
+        roleId: id,
+      });
+    }
+  }
+
+  async softDeleteGlobalRole(id: string): Promise<void> {
+    try {
+      await this.prisma.role.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+
+      void this.logger.info('Perfil global inativado', { roleId: id });
+    } catch (error) {
+      this.handleError('RolesRepository.softDeleteGlobalRole falhou', error, {
         roleId: id,
       });
     }

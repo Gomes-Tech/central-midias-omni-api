@@ -21,9 +21,11 @@ function createPrismaMock() {
     },
     user: {
       findFirst: jest.fn(),
+      count: jest.fn(),
     },
     rolePermission: {
       createMany: jest.fn(),
+      deleteMany: jest.fn(),
     },
     $transaction: jest.fn(),
   };
@@ -300,6 +302,79 @@ describe('RolesRepository', () => {
         'RolesRepository.findAllSelect falhou',
         expect.objectContaining({ error: expect.any(String) }),
       );
+    });
+  });
+
+  describe('findAllGlobalRolesSelect', () => {
+    it('deve listar apenas perfis globais não deletados', async () => {
+      const rows = [{ id: 'r-global', label: 'Admin global' }];
+      prisma.role.findMany.mockResolvedValue(rows);
+
+      const result = await repository.findAllGlobalRolesSelect();
+
+      expect(result).toEqual(rows);
+      expect(prisma.role.findMany).toHaveBeenCalledWith({
+        where: { deletedAt: null, canAccessBackoffice: true },
+        select: { id: true, label: true },
+      });
+    });
+  });
+
+  describe('findGlobalRoleById', () => {
+    it('deve buscar perfil global por id sem organizationId', async () => {
+      const role = {
+        id: 'r-global',
+        label: 'Admin global',
+        name: 'ADMIN_GLOBAL',
+        isSystem: false,
+        canAccessBackoffice: true,
+        canHaveSubordinates: false,
+        deletedAt: null,
+        permissions: [
+          {
+            id: 'perm-1',
+            moduleId: 'mod-1',
+            action: 'READ',
+            module: { id: 'mod-1', name: 'users', label: 'Usuários' },
+          },
+        ],
+      };
+      prisma.role.findFirst.mockResolvedValue(role);
+
+      const result = await repository.findGlobalRoleById('r-global');
+
+      expect(result).toEqual(role);
+      expect(prisma.role.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'r-global',
+          deletedAt: null,
+          canAccessBackoffice: true,
+        },
+        select: {
+          id: true,
+          label: true,
+          name: true,
+          isSystem: true,
+          canAccessBackoffice: true,
+          canHaveSubordinates: true,
+          deletedAt: true,
+          permissions: {
+            select: {
+              id: true,
+              moduleId: true,
+              action: true,
+              module: {
+                select: {
+                  id: true,
+                  name: true,
+                  label: true,
+                },
+              },
+            },
+            orderBy: [{ moduleId: 'asc' }, { action: 'asc' }],
+          },
+        },
+      });
     });
   });
 
@@ -604,6 +679,112 @@ describe('RolesRepository', () => {
     });
   });
 
+  describe('updateGlobalRole', () => {
+    it('deve atualizar metadados e substituir permissões quando informadas', async () => {
+      const txDeleteMany = jest.fn().mockResolvedValue({ count: 2 });
+      const txCreateMany = jest.fn().mockResolvedValue({ count: 1 });
+      const updated = {
+        id: 'r-global',
+        label: 'Novo global',
+        name: 'NOVO_GLOBAL',
+        isSystem: false,
+        canAccessBackoffice: true,
+        canHaveSubordinates: false,
+        deletedAt: null,
+        permissions: [
+          {
+            id: 'perm-1',
+            moduleId: 'mod-1',
+            action: 'READ',
+            module: { id: 'mod-1', name: 'users', label: 'Usuários' },
+          },
+        ],
+      };
+      const txUpdate = jest.fn().mockResolvedValue(updated);
+
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) =>
+          fn({
+            role: { update: txUpdate },
+            rolePermission: {
+              deleteMany: txDeleteMany,
+              createMany: txCreateMany,
+            },
+          }),
+      );
+
+      const result = await repository.updateGlobalRole('r-global', {
+        label: 'Novo global',
+        name: 'NOVO_GLOBAL',
+        permissions: [{ moduleId: 'mod-1', action: 'READ' }],
+      });
+
+      expect(result).toEqual(updated);
+      expect(txDeleteMany).toHaveBeenCalledWith({
+        where: { roleId: 'r-global' },
+      });
+      expect(txCreateMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            roleId: 'r-global',
+            moduleId: 'mod-1',
+            action: 'READ',
+          }),
+        ],
+      });
+      expect(txUpdate).toHaveBeenCalledWith({
+        where: { id: 'r-global' },
+        data: {
+          label: 'Novo global',
+          name: 'NOVO_GLOBAL',
+        },
+        select: expect.objectContaining({
+          id: true,
+          permissions: expect.any(Object),
+        }),
+      });
+      expect(logger.info).toHaveBeenCalled();
+    });
+
+    it('não deve alterar permissões quando permissions não for informado', async () => {
+      const txDeleteMany = jest.fn();
+      const txCreateMany = jest.fn();
+      const txUpdate = jest.fn().mockResolvedValue({
+        id: 'r-global',
+        label: 'Novo global',
+        name: 'GLOBAL',
+        isSystem: false,
+        canAccessBackoffice: true,
+        canHaveSubordinates: false,
+        deletedAt: null,
+        permissions: [],
+      });
+
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) =>
+          fn({
+            role: { update: txUpdate },
+            rolePermission: {
+              deleteMany: txDeleteMany,
+              createMany: txCreateMany,
+            },
+          }),
+      );
+
+      await repository.updateGlobalRole('r-global', {
+        label: 'Novo global',
+      });
+
+      expect(txDeleteMany).not.toHaveBeenCalled();
+      expect(txCreateMany).not.toHaveBeenCalled();
+      expect(txUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { label: 'Novo global' },
+        }),
+      );
+    });
+  });
+
   describe('softDelete', () => {
     it('deve definir deletedAt', async () => {
       prisma.role.update.mockResolvedValue({} as never);
@@ -623,6 +804,31 @@ describe('RolesRepository', () => {
       await expect(repository.softDelete('rid')).rejects.toBeInstanceOf(
         InternalServerErrorException,
       );
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('softDeleteGlobalRole', () => {
+    it('deve definir deletedAt em perfil global', async () => {
+      prisma.role.update.mockResolvedValue({} as never);
+
+      await repository.softDeleteGlobalRole('r-global');
+
+      expect(prisma.role.update).toHaveBeenCalledWith({
+        where: { id: 'r-global' },
+        data: { deletedAt: expect.any(Date) },
+      });
+      expect(logger.info).toHaveBeenCalledWith('Perfil global inativado', {
+        roleId: 'r-global',
+      });
+    });
+
+    it('deve lançar InternalServerError quando update falhar com erro genérico', async () => {
+      prisma.role.update.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.softDeleteGlobalRole('r-global'),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
       expect(logger.error).toHaveBeenCalled();
     });
   });
