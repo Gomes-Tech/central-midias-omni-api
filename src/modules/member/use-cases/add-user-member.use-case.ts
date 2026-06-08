@@ -1,4 +1,6 @@
-import { BadRequestException } from '@common/filters';
+import { BadRequestException, NotFoundException } from '@common/filters';
+import { SyncGlobalRoleCategoryAccessesUseCase } from '@modules/category-role-access/use-cases/sync-global-role-category-accesses.use-case';
+import { FindGlobalRoleByIdUseCase } from '@modules/roles/use-cases/find-global-role-by-id.use-case';
 import { FindRoleByIdUseCase } from '@modules/roles/use-cases/find-role-by-id.use-case';
 import { FindUserByIdUseCase } from '@modules/user';
 import { Inject, Injectable } from '@nestjs/common';
@@ -12,6 +14,8 @@ export class AddUserMemberUseCase {
     private readonly memberRepository: MemberRepository,
     private readonly findUserByIdUseCase: FindUserByIdUseCase,
     private readonly findRoleByIdUseCase: FindRoleByIdUseCase,
+    private readonly findGlobalRoleByIdUseCase: FindGlobalRoleByIdUseCase,
+    private readonly syncGlobalRoleCategoryAccessesUseCase: SyncGlobalRoleCategoryAccessesUseCase,
   ) {}
 
   async execute(organizationId: string, data: CreateMemberDTO, userId: string) {
@@ -35,8 +39,28 @@ export class AddUserMemberUseCase {
       );
     }
 
-    await this.findRoleByIdUseCase.execute(data.roleId, organizationId);
+    await this.validateAndSyncRole(data.roleId, organizationId);
 
     return this.memberRepository.create(organizationId, data, userId);
+  }
+
+  private async validateAndSyncRole(
+    roleId: string,
+    organizationId: string,
+  ): Promise<void> {
+    try {
+      await this.findRoleByIdUseCase.execute(roleId, organizationId);
+      return;
+    } catch (error) {
+      if (!(error instanceof NotFoundException)) {
+        throw error;
+      }
+    }
+
+    await this.findGlobalRoleByIdUseCase.execute(roleId);
+    await this.syncGlobalRoleCategoryAccessesUseCase.execute(
+      roleId,
+      organizationId,
+    );
   }
 }

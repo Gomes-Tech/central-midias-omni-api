@@ -1,4 +1,5 @@
 import { PlatformPermissionGuard } from '@common/guards';
+import { CategoryRoleAccessModule } from '@modules/category-role-access/category-role-access.module';
 import { RolesModule } from '@modules/roles';
 import { UserModule } from '@modules/user';
 import { Module } from '@nestjs/common';
@@ -16,7 +17,7 @@ import {
 } from './use-cases';
 
 @Module({
-  imports: [UserModule, RolesModule],
+  imports: [UserModule, RolesModule, CategoryRoleAccessModule],
   controllers: [MemberController],
   providers: [
     PlatformPermissionGuard,

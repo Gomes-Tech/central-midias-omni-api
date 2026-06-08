@@ -22,6 +22,7 @@
     "prisma:generate": "prisma generate",
     "db:deploy": "prisma migrate deploy && prisma db seed",
     "db:seed": "node prisma/seed.js",
+    "db:sync-global-roles": "node prisma/sync-global-role-categories.js",
     "prepare": "husky"
   },
   "prisma": {

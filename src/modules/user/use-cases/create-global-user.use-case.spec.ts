@@ -1,6 +1,7 @@
 import { BadRequestException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
 import { MailService } from '@infrastructure/providers';
+import { SyncGlobalRoleCategoryAccessesUseCase } from '@modules/category-role-access/use-cases/sync-global-role-category-accesses.use-case';
 import { UserRepository } from '../repository';
 import { CreateGlobalUserUseCase } from './create-global-user.use-case';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
@@ -14,6 +15,9 @@ describe('CreateGlobalUserUseCase', () => {
   let findByEmailUseCase: jest.Mocked<FindUserByEmailUseCase>;
   let cryptographyService: jest.Mocked<CryptographyService>;
   let mailService: jest.Mocked<MailService>;
+  let syncGlobalRoleCategoryAccessesUseCase: jest.Mocked<
+    Pick<SyncGlobalRoleCategoryAccessesUseCase, 'execute'>
+  >;
 
   beforeEach(() => {
     userRepository = {
@@ -33,11 +37,16 @@ describe('CreateGlobalUserUseCase', () => {
       sendMail: jest.fn(),
     } as unknown as jest.Mocked<MailService>;
 
+    syncGlobalRoleCategoryAccessesUseCase = {
+      execute: jest.fn().mockResolvedValue(undefined),
+    };
+
     useCase = new CreateGlobalUserUseCase(
       userRepository as unknown as UserRepository,
       findByEmailUseCase,
       cryptographyService,
       mailService,
+      syncGlobalRoleCategoryAccessesUseCase as unknown as SyncGlobalRoleCategoryAccessesUseCase,
     );
   });
 
@@ -54,6 +63,10 @@ describe('CreateGlobalUserUseCase', () => {
       await useCase.execute(dto, 'requester-id');
 
       expect(cryptographyService.hash).toHaveBeenCalledWith(dto.taxIdentifier);
+      expect(syncGlobalRoleCategoryAccessesUseCase.execute).toHaveBeenCalledWith(
+        dto.globalRoleId,
+        dto.organizationIds[0],
+      );
       expect(userRepository.createGlobalUser).toHaveBeenCalledWith(
         {
           ...dto,

@@ -23,6 +23,7 @@ import {
   CreateUserUseCase,
   DeleteUserUseCase,
   FindAllUsersUseCase,
+  FindGlobalUsersSelectUseCase,
   FindUserByIdUseCase,
   GetMeUseCase,
   UpdateUserUseCase,
@@ -35,6 +36,7 @@ export class UserController {
     private readonly createUserUseCase: CreateUserUseCase,
     private readonly createGlobalUserUseCase: CreateGlobalUserUseCase,
     private readonly findAllUsersUseCase: FindAllUsersUseCase,
+    private readonly findGlobalUsersSelectUseCase: FindGlobalUsersSelectUseCase,
     private readonly findUserByIdUseCase: FindUserByIdUseCase,
     private readonly getMeUseCase: GetMeUseCase,
     private readonly updateUserUseCase: UpdateUserUseCase,
@@ -53,6 +55,12 @@ export class UserController {
   @Get('/me')
   async getMe(@UserId() userId: string) {
     return await this.getMeUseCase.execute(userId);
+  }
+
+  @RequirePermission('users', 'read')
+  @Get('/global/select')
+  async findGlobalUsersSelect() {
+    return await this.findGlobalUsersSelectUseCase.execute();
   }
 
   @RequirePermission('users', 'read')

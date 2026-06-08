@@ -714,16 +714,18 @@ describe('CategoryRepository', () => {
     it('deve criar com generateId e defaults', async () => {
       prisma.category.create.mockResolvedValue({} as never);
 
-      await repository.create(
-        'org-1',
-        {
-          name: 'Nome',
-          slug: 'nome',
-          slugPath: 'nome',
-          order: 1,
-        },
-        'user-1',
-      );
+      await expect(
+        repository.create(
+          'org-1',
+          {
+            name: 'Nome',
+            slug: 'nome',
+            slugPath: 'nome',
+            order: 1,
+          },
+          'user-1',
+        ),
+      ).resolves.toEqual({ id: 'generated-category-id' });
 
       expect(prisma.category.create).toHaveBeenCalledWith({
         data: {

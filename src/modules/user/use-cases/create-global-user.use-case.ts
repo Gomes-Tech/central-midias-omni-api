@@ -1,6 +1,7 @@
 import { BadRequestException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
 import { MailService } from '@infrastructure/providers';
+import { SyncGlobalRoleCategoryAccessesUseCase } from '@modules/category-role-access/use-cases/sync-global-role-category-accesses.use-case';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateGlobalUserDTO } from '../dto';
 import { UserRepository } from '../repository';
@@ -14,6 +15,7 @@ export class CreateGlobalUserUseCase {
     private readonly findByEmailUseCase: FindUserByEmailUseCase,
     private readonly cryptographyService: CryptographyService,
     private readonly mailService: MailService,
+    private readonly syncGlobalRoleCategoryAccessesUseCase: SyncGlobalRoleCategoryAccessesUseCase,
   ) {}
 
   async execute(data: CreateGlobalUserDTO, userId: string) {
@@ -35,6 +37,15 @@ export class CreateGlobalUserUseCase {
 
     const hashedPassword = await this.cryptographyService.hash(
       data.taxIdentifier,
+    );
+
+    await Promise.all(
+      data.organizationIds.map((organizationId) =>
+        this.syncGlobalRoleCategoryAccessesUseCase.execute(
+          data.globalRoleId,
+          organizationId,
+        ),
+      ),
     );
 
     const newUser = await this.userRepository.createGlobalUser(

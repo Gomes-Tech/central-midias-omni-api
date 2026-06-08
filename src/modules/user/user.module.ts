@@ -1,4 +1,5 @@
 import { PlatformPermissionGuard } from '@common/guards';
+import { CategoryRoleAccessModule } from '@modules/category-role-access/category-role-access.module';
 import { RolesModule } from '@modules/roles';
 import { Module } from '@nestjs/common';
 import { UserRepository } from './repository';
@@ -7,6 +8,7 @@ import {
   CreateUserUseCase,
   DeleteUserUseCase,
   FindAllUsersUseCase,
+  FindGlobalUsersSelectUseCase,
   FindUserByEmailUseCase,
   FindUserByIdUseCase,
   GetMeUseCase,
@@ -15,11 +17,12 @@ import {
 import { UserController } from './user.controller';
 
 @Module({
-  imports: [RolesModule],
+  imports: [RolesModule, CategoryRoleAccessModule],
   controllers: [UserController],
   providers: [
     PlatformPermissionGuard,
     FindAllUsersUseCase,
+    FindGlobalUsersSelectUseCase,
     FindUserByIdUseCase,
     GetMeUseCase,
     FindUserByEmailUseCase,

@@ -221,6 +221,200 @@ export class CategoryRoleAccessRepository {
     }
   }
 
+  async findAllActiveGlobalRoleIds(): Promise<string[]> {
+    try {
+      const roles = await this.prisma.role.findMany({
+        where: {
+          deletedAt: null,
+          canAccessBackoffice: true,
+        },
+        select: { id: true },
+        orderBy: [{ label: 'asc' }],
+      });
+
+      return roles.map((role) => role.id);
+    } catch (error) {
+      void this.logger.error(
+        'CategoryRoleAccessRepository.findAllActiveGlobalRoleIds falhou',
+        {
+          error: String(error),
+        },
+      );
+
+      throw new BadRequestException('Erro ao buscar perfis globais');
+    }
+  }
+
+  async findAllActiveOrganizationIds(): Promise<string[]> {
+    try {
+      const organizations = await this.prisma.organization.findMany({
+        where: { isActive: true, isDeleted: false },
+        select: { id: true },
+      });
+
+      return organizations.map((organization) => organization.id);
+    } catch (error) {
+      void this.logger.error(
+        'CategoryRoleAccessRepository.findAllActiveOrganizationIds falhou',
+        {
+          error: String(error),
+        },
+      );
+
+      throw new BadRequestException('Erro ao buscar organizações');
+    }
+  }
+
+  async syncGlobalRoleWithOrganizationCategories(
+    roleId: string,
+    organizationId: string,
+  ): Promise<void> {
+    try {
+      const categories = await this.prisma.category.findMany({
+        where: {
+          organizationId,
+          isDeleted: false,
+        },
+        select: { id: true },
+      });
+
+      if (categories.length === 0) {
+        return;
+      }
+
+      const existingAccesses = await this.prisma.categoryRoleAccess.findMany({
+        where: {
+          roleId,
+          organizationId,
+          categoryId: { in: categories.map((category) => category.id) },
+        },
+        select: { categoryId: true },
+      });
+
+      const existingCategoryIds = new Set(
+        existingAccesses.map((access) => access.categoryId),
+      );
+
+      const accessesToCreate = categories
+        .filter((category) => !existingCategoryIds.has(category.id))
+        .map((category) => ({
+          id: generateId(),
+          categoryId: category.id,
+          roleId,
+          organizationId,
+        }));
+
+      if (accessesToCreate.length === 0) {
+        return;
+      }
+
+      await this.prisma.categoryRoleAccess.createMany({
+        data: accessesToCreate,
+        skipDuplicates: true,
+      });
+    } catch (error) {
+      void this.logger.error(
+        'CategoryRoleAccessRepository.syncGlobalRoleWithOrganizationCategories falhou',
+        {
+          error: String(error),
+          roleId,
+          organizationId,
+        },
+      );
+
+      throw new BadRequestException(
+        'Erro ao sincronizar categorias do perfil global',
+      );
+    }
+  }
+
+  async syncCategoryWithGlobalRolesInOrganization(
+    categoryId: string,
+    organizationId: string,
+  ): Promise<void> {
+    try {
+      const [accessRoleIds, memberRoleIds] = await Promise.all([
+        this.prisma.categoryRoleAccess.findMany({
+          where: {
+            organizationId,
+            role: {
+              deletedAt: null,
+              canAccessBackoffice: true,
+            },
+          },
+          distinct: ['roleId'],
+          select: { roleId: true },
+        }),
+        this.prisma.member.findMany({
+          where: {
+            organizationId,
+            role: {
+              deletedAt: null,
+              canAccessBackoffice: true,
+            },
+          },
+          distinct: ['roleId'],
+          select: { roleId: true },
+        }),
+      ]);
+
+      const globalRoleIds = [
+        ...new Set([
+          ...accessRoleIds.map((row) => row.roleId),
+          ...memberRoleIds.map((row) => row.roleId),
+        ]),
+      ];
+
+      if (globalRoleIds.length === 0) {
+        return;
+      }
+
+      const existingAccesses = await this.prisma.categoryRoleAccess.findMany({
+        where: {
+          categoryId,
+          organizationId,
+          roleId: { in: globalRoleIds },
+        },
+        select: { roleId: true },
+      });
+
+      const existingRoleIds = new Set(
+        existingAccesses.map((access) => access.roleId),
+      );
+
+      const accessesToCreate = globalRoleIds
+        .filter((roleId) => !existingRoleIds.has(roleId))
+        .map((roleId) => ({
+          id: generateId(),
+          categoryId,
+          roleId,
+          organizationId,
+        }));
+
+      if (accessesToCreate.length === 0) {
+        return;
+      }
+
+      await this.prisma.categoryRoleAccess.createMany({
+        data: accessesToCreate,
+        skipDuplicates: true,
+      });
+    } catch (error) {
+      void this.logger.error(
+        'CategoryRoleAccessRepository.syncCategoryWithGlobalRolesInOrganization falhou',
+        {
+          error: String(error),
+          categoryId,
+          organizationId,
+        },
+      );
+
+      throw new BadRequestException(
+        'Erro ao sincronizar perfis globais com a categoria',
+      );
+    }
+  }
+
   async findRolesByIds(
     ids: string[],
   ): Promise<{ id: string; name: string; label: string }[]> {

@@ -1,4 +1,6 @@
-import { BadRequestException } from '@common/filters';
+import { BadRequestException, NotFoundException } from '@common/filters';
+import { SyncGlobalRoleCategoryAccessesUseCase } from '@modules/category-role-access/use-cases/sync-global-role-category-accesses.use-case';
+import { FindGlobalRoleByIdUseCase } from '@modules/roles/use-cases/find-global-role-by-id.use-case';
 import { FindRoleByIdUseCase } from '@modules/roles/use-cases/find-role-by-id.use-case';
 import { FindUserByIdUseCase } from '@modules/user/use-cases/find-user-by-id.use-case';
 import { makeUser } from '@modules/user/use-cases/test-helpers';
@@ -10,6 +12,8 @@ describe('AddUserMemberUseCase', () => {
   let memberRepository: jest.Mocked<MemberRepository>;
   let findUserByIdUseCase: jest.Mocked<FindUserByIdUseCase>;
   let findRoleByIdUseCase: jest.Mocked<FindRoleByIdUseCase>;
+  let findGlobalRoleByIdUseCase: jest.Mocked<FindGlobalRoleByIdUseCase>;
+  let syncGlobalRoleCategoryAccessesUseCase: jest.Mocked<SyncGlobalRoleCategoryAccessesUseCase>;
   let useCase: AddUserMemberUseCase;
 
   beforeEach(() => {
@@ -26,10 +30,20 @@ describe('AddUserMemberUseCase', () => {
       execute: jest.fn(),
     } as unknown as jest.Mocked<FindRoleByIdUseCase>;
 
+    findGlobalRoleByIdUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<FindGlobalRoleByIdUseCase>;
+
+    syncGlobalRoleCategoryAccessesUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<SyncGlobalRoleCategoryAccessesUseCase>;
+
     useCase = new AddUserMemberUseCase(
       memberRepository,
       findUserByIdUseCase,
       findRoleByIdUseCase,
+      findGlobalRoleByIdUseCase,
+      syncGlobalRoleCategoryAccessesUseCase,
     );
   });
 
@@ -98,6 +112,38 @@ describe('AddUserMemberUseCase', () => {
 
     expect(findRoleByIdUseCase.execute).not.toHaveBeenCalled();
     expect(memberRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('deve aceitar perfil global quando não houver vínculo de categoria na organização', async () => {
+    const dto = makeCreateMemberDTO();
+    const user = makeUser({
+      id: dto.userId,
+      isActive: true,
+      isDeleted: false,
+    });
+
+    memberRepository.findByOrganizationAndUser.mockResolvedValue(null);
+    findUserByIdUseCase.execute.mockResolvedValue(user);
+    findRoleByIdUseCase.execute.mockRejectedValue(
+      new NotFoundException('Perfil não encontrado'),
+    );
+    findGlobalRoleByIdUseCase.execute.mockResolvedValue({} as never);
+    memberRepository.create.mockResolvedValue(undefined);
+
+    await expect(
+      useCase.execute('org-id', dto, 'requester-id'),
+    ).resolves.toBeUndefined();
+
+    expect(findGlobalRoleByIdUseCase.execute).toHaveBeenCalledWith(dto.roleId);
+    expect(syncGlobalRoleCategoryAccessesUseCase.execute).toHaveBeenCalledWith(
+      dto.roleId,
+      'org-id',
+    );
+    expect(memberRepository.create).toHaveBeenCalledWith(
+      'org-id',
+      dto,
+      'requester-id',
+    );
   });
 
   it('deve lançar erro quando usuário estiver removido (soft delete)', async () => {

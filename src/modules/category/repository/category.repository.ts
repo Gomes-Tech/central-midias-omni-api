@@ -563,11 +563,13 @@ export class CategoryRepository {
     organizationId: string,
     data: CreateCategoryDTO & { slug: string; slugPath: string },
     userId: string,
-  ): Promise<void> {
+  ): Promise<{ id: string }> {
     try {
+      const id = generateId();
+
       await this.prisma.category.create({
         data: {
-          id: generateId(),
+          id,
           organizationId,
           name: data.name,
           slug: data.slug,
@@ -583,6 +585,8 @@ export class CategoryRepository {
         userId,
         slug: data.slug,
       });
+
+      return { id };
     } catch (error) {
       void this.logger.error('CategoryRepository.create falhou', {
         error: String(error),

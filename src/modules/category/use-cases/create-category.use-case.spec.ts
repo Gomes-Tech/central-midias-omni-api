@@ -1,4 +1,5 @@
 import { BadRequestException, NotFoundException } from '@common/filters';
+import { SyncCategoryGlobalRolesUseCase } from '@modules/category-role-access/use-cases/sync-category-global-roles.use-case';
 import { CategoryRepository } from '../repository';
 import { CreateCategoryUseCase } from './create-category.use-case';
 import { FindCategoryByIdUseCase } from './find-category-by-id.use-case';
@@ -9,22 +10,30 @@ describe('CreateCategoryUseCase', () => {
     Pick<CategoryRepository, 'findSiblingBySlug' | 'findSiblingByOrder' | 'create'>
   >;
   let findCategoryByIdUseCase: jest.Mocked<Pick<FindCategoryByIdUseCase, 'execute'>>;
+  let syncCategoryGlobalRolesUseCase: jest.Mocked<
+    Pick<SyncCategoryGlobalRolesUseCase, 'execute'>
+  >;
   let useCase: CreateCategoryUseCase;
 
   beforeEach(() => {
     categoryRepository = {
       findSiblingBySlug: jest.fn(),
       findSiblingByOrder: jest.fn(),
-      create: jest.fn(),
+      create: jest.fn().mockResolvedValue({ id: 'category-1' }),
     };
 
     findCategoryByIdUseCase = {
       execute: jest.fn(),
     };
 
+    syncCategoryGlobalRolesUseCase = {
+      execute: jest.fn().mockResolvedValue(undefined),
+    };
+
     useCase = new CreateCategoryUseCase(
       categoryRepository as unknown as CategoryRepository,
       findCategoryByIdUseCase as unknown as FindCategoryByIdUseCase,
+      syncCategoryGlobalRolesUseCase as unknown as SyncCategoryGlobalRolesUseCase,
     );
   });
 
@@ -33,7 +42,6 @@ describe('CreateCategoryUseCase', () => {
 
     categoryRepository.findSiblingBySlug.mockResolvedValue(null);
     categoryRepository.findSiblingByOrder.mockResolvedValue(null);
-    categoryRepository.create.mockResolvedValue();
 
     await expect(
       useCase.execute('org-id', dto, 'user-id'),
@@ -43,6 +51,10 @@ describe('CreateCategoryUseCase', () => {
       'org-id',
       { slug: 'categoria', slugPath: 'categoria', ...dto },
       'user-id',
+    );
+    expect(syncCategoryGlobalRolesUseCase.execute).toHaveBeenCalledWith(
+      'category-1',
+      'org-id',
     );
     expect(findCategoryByIdUseCase.execute).not.toHaveBeenCalled();
     expect(categoryRepository.findSiblingBySlug).toHaveBeenCalledWith(
@@ -72,7 +84,6 @@ describe('CreateCategoryUseCase', () => {
     categoryRepository.findSiblingBySlug.mockResolvedValue(null);
     categoryRepository.findSiblingByOrder.mockResolvedValue(null);
     findCategoryByIdUseCase.execute.mockResolvedValue(parent);
-    categoryRepository.create.mockResolvedValue();
 
     await expect(
       useCase.execute('org-id', dto, 'user-id'),
@@ -139,7 +150,6 @@ describe('CreateCategoryUseCase', () => {
     categoryRepository.findSiblingBySlug.mockResolvedValue(null);
     categoryRepository.findSiblingByOrder.mockResolvedValue(null);
     findCategoryByIdUseCase.execute.mockResolvedValue(parent);
-    categoryRepository.create.mockResolvedValue();
 
     await expect(
       useCase.execute('org-id', dto, 'user-id'),

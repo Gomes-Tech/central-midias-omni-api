@@ -585,7 +585,9 @@ describe('RolesRepository', () => {
         ],
       };
 
-      await expect(repository.createGlobalRole(data)).resolves.toBeUndefined();
+      await expect(repository.createGlobalRole(data)).resolves.toEqual({
+        id: 'r-global',
+      });
 
       expect(txRoleCreate).toHaveBeenCalledWith(
         expect.objectContaining({

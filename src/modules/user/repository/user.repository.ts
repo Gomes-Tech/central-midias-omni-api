@@ -129,6 +129,30 @@ export class UserRepository {
     }
   }
 
+  async findGlobalUsersSelect(): Promise<{ id: string; name: string }[]> {
+    try {
+      return await this.prisma.user.findMany({
+        where: {
+          isDeleted: false,
+          isActive: true,
+          globalRoleId: {
+            not: null,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+    } catch (error) {
+      void this.logger.error('UserRepository.findGlobalUsersSelect falhou', {
+        error: String(error),
+      });
+
+      throw new BadRequestException('Erro ao buscar usuários');
+    }
+  }
+
   async findById(id: string): Promise<UserById | null> {
     try {
       const user = await this.prisma.user.findFirstOrThrow({

@@ -366,7 +366,7 @@ export class RolesRepository {
     }
   }
 
-  async createGlobalRole(data: CreateGlobalRoleDTO): Promise<void> {
+  async createGlobalRole(data: CreateGlobalRoleDTO): Promise<{ id: string }> {
     try {
       const role = await this.prisma.$transaction(async (tx) => {
         const role = await tx.role.create({
@@ -396,6 +396,8 @@ export class RolesRepository {
       void this.logger.info('Perfil global criado', {
         roleId: role.id,
       });
+
+      return role;
     } catch (error) {
       void this.logger.error('RolesRepository.createGlobalRole falhou', {
         error: String(error),

@@ -1,5 +1,6 @@
 import { BadRequestException } from '@common/filters';
 import { buildSlugPath, toSlug } from '@common/utils';
+import { SyncCategoryGlobalRolesUseCase } from '@modules/category-role-access/use-cases/sync-category-global-roles.use-case';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateCategoryDTO } from '../dto';
 import { CategoryRepository } from '../repository';
@@ -11,6 +12,7 @@ export class CreateCategoryUseCase {
     @Inject('CategoryRepository')
     private readonly categoryRepository: CategoryRepository,
     private readonly findCategoryByIdUseCase: FindCategoryByIdUseCase,
+    private readonly syncCategoryGlobalRolesUseCase: SyncCategoryGlobalRolesUseCase,
   ) {}
 
   async execute(
@@ -62,10 +64,15 @@ export class CreateCategoryUseCase {
 
     const slugPath = buildSlugPath(parentSlugPath, slug);
 
-    await this.categoryRepository.create(
+    const category = await this.categoryRepository.create(
       organizationId,
       { slug, slugPath, ...data },
       userId,
+    );
+
+    await this.syncCategoryGlobalRolesUseCase.execute(
+      category.id,
+      organizationId,
     );
   }
 }
