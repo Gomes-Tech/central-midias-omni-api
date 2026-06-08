@@ -11,7 +11,7 @@ import {
   FindAllUsersFiltersDTO,
   UpdateUserDTO,
 } from '../dto';
-import { ListUser } from '../entities';
+import { ListUser, UserById } from '../entities';
 
 @Injectable()
 export class UserRepository {
@@ -129,7 +129,7 @@ export class UserRepository {
     }
   }
 
-  async findById(id: string): Promise<any | null> {
+  async findById(id: string): Promise<UserById | null> {
     try {
       const user = await this.prisma.user.findFirstOrThrow({
         where: {
@@ -141,11 +141,14 @@ export class UserRepository {
           name: true,
           email: true,
           taxIdentifier: true,
+          password: true,
           phone: true,
           socialReason: true,
           avatarKey: true,
           isFirstAccess: true,
           isActive: true,
+          isDeleted: true,
+          globalRoleId: true,
           globalRole: {
             select: {
               canAccessBackoffice: true,
@@ -162,6 +165,10 @@ export class UserRepository {
           },
         },
       });
+
+      if (!user) {
+        return null;
+      }
 
       const formattedUser = {
         ...user,
@@ -479,6 +486,9 @@ export class UserRepository {
           ...(data.isActive !== undefined && { isActive: data.isActive }),
           ...(data.isFirstAccess !== undefined && {
             isFirstAccess: data.isFirstAccess,
+          }),
+          ...(data.globalRoleId !== undefined && {
+            globalRoleId: data.globalRoleId,
           }),
         },
       });

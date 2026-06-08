@@ -66,4 +66,8 @@ export class UpdateUserDTO {
   @ValidateNested({ each: true })
   @Type(() => UserManagerAssignmentDTO)
   managerAssignments?: UserManagerAssignmentDTO[];
+
+  @IsOptional()
+  @IsUUID()
+  globalRoleId?: string;
 }

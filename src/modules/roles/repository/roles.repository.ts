@@ -139,6 +139,22 @@ export class RolesRepository {
     }
   }
 
+  async findAllGlobalRolesSelect(): Promise<{ id: string; label: string }[]> {
+    try {
+      const roles = await this.prisma.role.findMany({
+        where: { deletedAt: null, canAccessBackoffice: true },
+        select: { id: true, label: true },
+      });
+
+      return roles;
+    } catch (error) {
+      this.handleError(
+        'RolesRepository.findAllGlobalRolesSelect falhou',
+        error,
+      );
+    }
+  }
+
   async findById(
     id: string,
     organizationId: string,

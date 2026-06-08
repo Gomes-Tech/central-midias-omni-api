@@ -58,6 +58,21 @@ export interface User {
   deletedAt?: Date | null;
 }
 
+export interface UserById {
+  id: string;
+  name: string;
+  email: string;
+  taxIdentifier: string;
+  password: string;
+  phone: string | null;
+  socialReason: string | null;
+  isFirstAccess: boolean;
+  isActive: boolean;
+  isDeleted: boolean;
+  canAccessBackoffice: boolean;
+  globalRoleId: string | null;
+}
+
 export interface ListUser {
   id: string;
   name: string;

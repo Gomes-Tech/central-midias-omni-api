@@ -17,6 +17,7 @@ import {
   FindAllUsersFiltersDTO,
   UpdateUserDTO,
 } from './dto';
+import { UserById } from './entities';
 import {
   CreateGlobalUserUseCase,
   CreateUserUseCase,
@@ -56,7 +57,7 @@ export class UserController {
 
   @RequirePermission('users', 'read')
   @Get('/:id')
-  async findById(@Param('id') id: string) {
+  async findById(@Param('id') id: string): Promise<UserById> {
     const user = await this.findUserByIdUseCase.execute(id);
 
     delete user.password;

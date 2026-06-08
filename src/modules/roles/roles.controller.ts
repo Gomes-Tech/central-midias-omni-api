@@ -22,6 +22,7 @@ import {
   CreateGlobalRoleUseCase,
   CreateRoleUseCase,
   DeleteRoleUseCase,
+  FindAllGlobalRolesSelectUseCase,
   FindAllRolePermissionsUseCase,
   FindAllRolesUseCase,
   FindAllSelectRolesUseCase,
@@ -41,6 +42,7 @@ export class RolesController {
     private readonly createGlobalRoleUseCase: CreateGlobalRoleUseCase,
     private readonly updateRoleUseCase: UpdateRoleUseCase,
     private readonly deleteRoleUseCase: DeleteRoleUseCase,
+    private readonly findAllGlobalRolesSelectUseCase: FindAllGlobalRolesSelectUseCase,
   ) {}
 
   @RequirePermission('roles', 'read')
@@ -53,6 +55,12 @@ export class RolesController {
   @Get('/select')
   async findAllSelect(@Query('isMember') isMember: boolean = false) {
     return await this.findAllSelectRolesUseCase.execute(isMember);
+  }
+
+  @RequirePermission('roles', 'read')
+  @Get('/global/select')
+  async findAllGlobalRolesSelect() {
+    return await this.findAllGlobalRolesSelectUseCase.execute();
   }
 
   @RequirePermission('roles', 'read')

@@ -1,6 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { UserRepository } from '../repository';
 import { NotFoundException } from '@common/filters';
+import { Inject, Injectable } from '@nestjs/common';
+import { UserById } from '../entities';
+import { UserRepository } from '../repository';
 
 @Injectable()
 export class FindUserByIdUseCase {
@@ -9,7 +10,7 @@ export class FindUserByIdUseCase {
     private readonly userRepository: UserRepository,
   ) {}
 
-  async execute(id: string) {
+  async execute(id: string): Promise<UserById> {
     const user = await this.userRepository.findById(id);
 
     if (!user) {
