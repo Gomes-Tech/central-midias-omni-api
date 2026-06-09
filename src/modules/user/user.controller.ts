@@ -98,8 +98,9 @@ export class UserController {
     @Param('id') id: string,
     @Body() dto: UpdateUserDTO,
     @UserId() userId: string,
+    @OrgId() organizationId: string,
   ) {
-    await this.updateUserUseCase.execute(id, dto, userId);
+    await this.updateUserUseCase.execute(id, dto, userId, organizationId);
   }
 
   @RequirePermission('users', 'delete')

@@ -88,6 +88,7 @@ export class UserRepository {
             isActive: true,
             members: {
               select: {
+                id: true,
                 role: {
                   select: {
                     label: true,
@@ -111,6 +112,7 @@ export class UserRepository {
         email: user.email,
         isActive: user.isActive,
         globalRole: user.members[0].role.label,
+        memberId: user.members[0].id,
       }));
 
       return {
@@ -492,32 +494,54 @@ export class UserRepository {
     }
   }
 
-  async update(id: string, data: UpdateUserDTO, userId: string): Promise<void> {
+  async update(
+    id: string,
+    data: UpdateUserDTO,
+    userId: string,
+    organizationId?: string,
+  ): Promise<void> {
+    const updateUser = {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.email !== undefined && { email: data.email }),
+      ...(data.password !== undefined && { password: data.password }),
+      ...(data.taxIdentifier !== undefined && {
+        taxIdentifier: data.taxIdentifier,
+      }),
+      ...(data.phone !== undefined && { phone: data.phone }),
+      ...(data.socialReason !== undefined && {
+        socialReason: data.socialReason,
+      }),
+      ...(data.isActive !== undefined && { isActive: data.isActive }),
+      ...(data.isFirstAccess !== undefined && {
+        isFirstAccess: data.isFirstAccess,
+      }),
+      ...(data.globalRoleId !== undefined && {
+        globalRoleId: data.globalRoleId,
+      }),
+    };
     try {
-      await this.prisma.user.update({
-        where: { id },
-        data: {
-          ...(data.name !== undefined && { name: data.name }),
-          ...(data.email !== undefined && { email: data.email }),
-          ...(data.password !== undefined && { password: data.password }),
-          ...(data.taxIdentifier !== undefined && {
-            taxIdentifier: data.taxIdentifier,
-          }),
-          ...(data.phone !== undefined && { phone: data.phone }),
-          ...(data.socialReason !== undefined && {
-            socialReason: data.socialReason,
-          }),
-          ...(data.isActive !== undefined && { isActive: data.isActive }),
-          ...(data.isFirstAccess !== undefined && {
-            isFirstAccess: data.isFirstAccess,
-          }),
-          ...(data.globalRoleId !== undefined && {
-            globalRoleId: data.globalRoleId,
-          }),
-        },
+      await this.prisma.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id },
+          data: updateUser,
+        });
+
+        if (data.globalRoleId && organizationId) {
+          await tx.member.update({
+            where: {
+              organizationId_userId: {
+                organizationId,
+                userId: id,
+              },
+            },
+            data: {
+              roleId: data.globalRoleId,
+            },
+          });
+        }
       });
 
-      void this.logger.info('Usu?rio atualizado', {
+      void this.logger.info('Usuário atualizado', {
         userId: id,
         updatedBy: userId,
       });
@@ -527,7 +551,7 @@ export class UserRepository {
         userId: id,
       });
 
-      throw new BadRequestException('Erro ao atualizar usu?rio');
+      throw new BadRequestException('Erro ao atualizar usuário');
     }
   }
 
@@ -542,14 +566,14 @@ export class UserRepository {
         },
       });
 
-      void this.logger.info('Usu?rio exclu?do (soft delete)', { userId: id });
+      void this.logger.info('Usuário excluído (soft delete)', { userId: id });
     } catch (error) {
       void this.logger.error('UserRepository.delete falhou', {
         error: String(error),
         userId: id,
       });
 
-      throw new BadRequestException('Erro ao deletar usu?rio');
+      throw new BadRequestException('Erro ao deletar usuário');
     }
   }
 }

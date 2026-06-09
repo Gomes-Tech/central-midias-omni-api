@@ -16,7 +16,12 @@ export class UpdateUserUseCase {
     private readonly cryptographyService: CryptographyService,
   ) {}
 
-  async execute(id: string, data: UpdateUserDTO, userId: string) {
+  async execute(
+    id: string,
+    data: UpdateUserDTO,
+    userId: string,
+    organizationId?: string,
+  ) {
     const user = await this.findUserByIdUseCase.execute(id);
 
     if (data.email && data.email !== user.email) {
@@ -65,6 +70,6 @@ export class UpdateUserUseCase {
     //   delete data.isActive;
     // }
 
-    await this.userRepository.update(id, data, userId);
+    await this.userRepository.update(id, data, userId, organizationId);
   }
 }

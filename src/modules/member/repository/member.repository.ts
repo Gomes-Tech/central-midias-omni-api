@@ -457,9 +457,25 @@ export class MemberRepository {
     data: UpdateMemberDTO,
     updatedBy: string,
   ): Promise<void> {
+    const updateUser = {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.email !== undefined && { email: data.email }),
+      ...(data.taxIdentifier !== undefined && {
+        taxIdentifier: data.taxIdentifier,
+      }),
+      ...(data.phone !== undefined && { phone: data.phone }),
+      ...(data.socialReason !== undefined && {
+        socialReason: data.socialReason,
+      }),
+      ...(data.birthDate !== undefined && { birthDate: data.birthDate }),
+      ...(data.admissionDate !== undefined && {
+        admissionDate: data.admissionDate,
+      }),
+    };
+
     try {
       await this.prisma.$transaction(async (tx) => {
-        await tx.member.updateMany({
+        const member = await tx.member.update({
           where: {
             id,
             organizationId,
@@ -467,15 +483,19 @@ export class MemberRepository {
           data: {
             roleId: data.roleId,
           },
+          select: {
+            userId: true,
+          },
         });
 
-        return tx.member.findFirstOrThrow({
-          where: {
-            id,
-            organizationId,
-          },
-          select: this.memberSelect,
-        });
+        if (Object.keys(updateUser).length > 0) {
+          await tx.user.update({
+            where: {
+              id: member.userId,
+            },
+            data: updateUser,
+          });
+        }
       });
 
       void this.logger.info('Membro atualizado', {

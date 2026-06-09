@@ -79,4 +79,5 @@ export interface ListUser {
   email: string;
   isActive: boolean;
   globalRole: string;
+  memberId: string;
 }

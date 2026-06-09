@@ -1,4 +1,3 @@
-import { BadRequestException } from '@common/filters';
 import { FindRoleByIdUseCase } from '@modules/roles/use-cases/find-role-by-id.use-case';
 import { Injectable } from '@nestjs/common';
 import { UpdateMemberDTO } from '../dto';
@@ -19,11 +18,7 @@ export class UpdateMemberUseCase {
     data: UpdateMemberDTO,
     userId: string,
   ): Promise<void> {
-    const member = await this.findMemberByIdUseCase.execute(id, organizationId);
-
-    if (member.roleId === data.roleId) {
-      throw new BadRequestException('O membro já está vinculado a este perfil');
-    }
+    await this.findMemberByIdUseCase.execute(id, organizationId);
 
     await this.findRoleByIdUseCase.execute(data.roleId, organizationId);
 
