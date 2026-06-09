@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { PaginatedResponse } from '../../../types';
 import { FindAllTagsFiltersDTO } from '../dto';
+import { TagEntity } from '../entities';
 import { TagRepository } from '../repository';
 
 @Injectable()
@@ -9,7 +11,10 @@ export class FindAllTagsUseCase {
     private readonly tagRepository: TagRepository,
   ) {}
 
-  async execute(organizationId: string, filters: FindAllTagsFiltersDTO = {}) {
-    return await this.tagRepository.findAll(organizationId, filters);
+  async execute(
+    organizationId: string,
+    filters: FindAllTagsFiltersDTO = {},
+  ): Promise<PaginatedResponse<TagEntity>> {
+    return await this.tagRepository.findAll(filters, organizationId);
   }
 }

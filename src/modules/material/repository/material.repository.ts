@@ -4,6 +4,7 @@ import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { PaginatedResponse } from '../../../types';
 import {
   CreateMaterialDTO,
   FindAllMaterialsFiltersDTO,
@@ -16,22 +17,21 @@ import {
 } from '../entities';
 import type { ResolvedMaterialTags } from '../use-cases/resolve-material-tags.use-case';
 
-const buildMaterialListSelect = () =>
-  ({
-    id: true,
-    name: true,
-    description: true,
-    category: {
-      select: {
-        name: true,
-      },
+const materialListSelect = {
+  id: true,
+  name: true,
+  description: true,
+  category: {
+    select: {
+      name: true,
     },
-    materialFiles: {
-      select: {
-        id: true,
-      },
+  },
+  materialFiles: {
+    select: {
+      id: true,
     },
-  }) satisfies Prisma.MaterialSelect;
+  },
+} satisfies Prisma.MaterialSelect;
 
 const buildMaterialDetailsSelect = (organizationId: string) =>
   ({
@@ -101,9 +101,12 @@ export class MaterialRepository {
   ) {}
 
   async findAll(
-    organizationId: string,
     filters: FindAllMaterialsFiltersDTO = {},
-  ): Promise<MaterialListItem[]> {
+    organizationId: string,
+  ): Promise<PaginatedResponse<MaterialListItem>> {
+    const { page = 1, limit = 25, categoryId, searchTerm } = filters;
+    const skip = (page - 1) * limit;
+
     try {
       const where: Prisma.MaterialWhereInput = {
         deletedAt: null,
@@ -111,18 +114,18 @@ export class MaterialRepository {
           organizationId,
           isDeleted: false,
         },
-        ...(filters.categoryId && { categoryId: filters.categoryId }),
-        ...(filters.searchTerm && {
+        ...(categoryId && { categoryId }),
+        ...(searchTerm && {
           OR: [
             {
               name: {
-                contains: filters.searchTerm,
+                contains: searchTerm,
                 mode: 'insensitive',
               },
             },
             {
               description: {
-                contains: filters.searchTerm,
+                contains: searchTerm,
                 mode: 'insensitive',
               },
             },
@@ -130,24 +133,35 @@ export class MaterialRepository {
         }),
       };
 
-      const materials = await this.prisma.material.findMany({
-        where,
-        select: buildMaterialListSelect(),
-        orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
-      });
+      const [materials, total] = await Promise.all([
+        this.prisma.material.findMany({
+          where,
+          select: materialListSelect,
+          orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+          skip,
+          take: limit,
+        }),
+        this.prisma.material.count({ where }),
+      ]);
 
-      return materials.map((material) => ({
-        id: material.id,
-        name: material.name,
-        description: material.description,
-        category: material.category,
-        materialFilesCount: material.materialFiles.length,
-      }));
+      return {
+        data: materials.map((material) => ({
+          id: material.id,
+          name: material.name,
+          description: material.description,
+          category: material.category,
+          materialFilesCount: material.materialFiles.length,
+        })),
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      };
     } catch (error) {
       void this.logger.error('MaterialRepository.findAll falhou', {
         error: String(error),
         organizationId,
-        filters,
+        categoryId,
+        searchTerm,
       });
 
       throw new BadRequestException('Erro ao buscar materiais');

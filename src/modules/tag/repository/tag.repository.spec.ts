@@ -7,6 +7,7 @@ function createPrismaMock() {
   return {
     tag: {
       findMany: jest.fn(),
+      count: jest.fn(),
       findFirst: jest.fn(),
       create: jest.fn(),
       updateMany: jest.fn(),
@@ -31,6 +32,23 @@ describe('TagRepository', () => {
   });
 
   describe('findAll', () => {
+    it('deve usar filtros padrão quando filters não for informado', async () => {
+      prisma.tag.findMany.mockResolvedValue([]);
+      prisma.tag.count.mockResolvedValue(0);
+
+      await repository.findAll(undefined as never, organizationId);
+
+      expect(prisma.tag.findMany).toHaveBeenCalledWith({
+        where: {
+          organizationId,
+        },
+        select: expect.any(Object),
+        orderBy: [{ name: 'asc' }],
+        skip: 0,
+        take: 25,
+      });
+    });
+
     it('deve buscar tags com filtro opcional e mapear contagens', async () => {
       prisma.tag.findMany.mockResolvedValue([
         {
@@ -45,19 +63,28 @@ describe('TagRepository', () => {
           },
         },
       ]);
+      prisma.tag.count.mockResolvedValue(1);
 
-      const result = await repository.findAll(organizationId, {
-        searchTerm: 'cam',
+      const result = await repository.findAll(
+        {
+          searchTerm: 'cam',
+        },
+        organizationId,
+      );
+
+      expect(result).toEqual({
+        data: [
+          expect.objectContaining({
+            id: 'tag-id',
+            organizationId,
+            materialsCount: 2,
+            tagSearchesCount: 1,
+          }),
+        ],
+        total: 1,
+        page: 1,
+        totalPages: 1,
       });
-
-      expect(result).toEqual([
-        expect.objectContaining({
-          id: 'tag-id',
-          organizationId,
-          materialsCount: 2,
-          tagSearchesCount: 1,
-        }),
-      ]);
       expect(prisma.tag.findMany).toHaveBeenCalledWith({
         where: {
           organizationId,
@@ -68,18 +95,30 @@ describe('TagRepository', () => {
         },
         select: expect.any(Object),
         orderBy: [{ name: 'asc' }],
+        skip: 0,
+        take: 25,
+      });
+      expect(prisma.tag.count).toHaveBeenCalledWith({
+        where: {
+          organizationId,
+          name: {
+            contains: 'cam',
+            mode: 'insensitive',
+          },
+        },
       });
     });
 
     it('deve lançar BadRequest quando findMany falhar', async () => {
       prisma.tag.findMany.mockRejectedValue(new Error('db'));
+      prisma.tag.count.mockResolvedValue(0);
 
-      await expect(repository.findAll(organizationId)).rejects.toThrow(
+      await expect(repository.findAll({}, organizationId)).rejects.toThrow(
         'Erro ao buscar tags',
       );
       expect(logger.error).toHaveBeenCalledWith(
         'TagRepository.findAll falhou',
-        expect.objectContaining({ filters: {}, organizationId }),
+        expect.objectContaining({ organizationId }),
       );
     });
   });

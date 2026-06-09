@@ -7,6 +7,7 @@ function createPrismaMock() {
   return {
     material: {
       findMany: jest.fn(),
+      count: jest.fn(),
       findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
@@ -36,6 +37,27 @@ describe('MaterialRepository', () => {
   });
 
   describe('findAll', () => {
+    it('deve usar filtros padrão quando filters não for informado', async () => {
+      prisma.material.findMany.mockResolvedValue([]);
+      prisma.material.count.mockResolvedValue(0);
+
+      await repository.findAll(undefined as never, 'org-id');
+
+      expect(prisma.material.findMany).toHaveBeenCalledWith({
+        where: {
+          deletedAt: null,
+          category: {
+            organizationId: 'org-id',
+            isDeleted: false,
+          },
+        },
+        select: expect.any(Object),
+        orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+        skip: 0,
+        take: 25,
+      });
+    });
+
     it('deve buscar materiais no escopo da organização e mapear contagem de arquivos', async () => {
       prisma.material.findMany.mockResolvedValue([
         {
@@ -48,23 +70,32 @@ describe('MaterialRepository', () => {
           materialFiles: [{ id: 'file-1' }, { id: 'file-2' }],
         },
       ]);
+      prisma.material.count.mockResolvedValue(1);
 
-      const result = await repository.findAll('org-id', {
-        categoryId: 'category-id',
-        searchTerm: 'inst',
-      });
-
-      expect(result).toEqual([
+      const result = await repository.findAll(
         {
-          id: 'material-id',
-          name: 'Material institucional',
-          description: 'Descricao',
-          category: {
-            name: 'Categoria',
-          },
-          materialFilesCount: 2,
+          categoryId: 'category-id',
+          searchTerm: 'inst',
         },
-      ]);
+        'org-id',
+      );
+
+      expect(result).toEqual({
+        data: [
+          {
+            id: 'material-id',
+            name: 'Material institucional',
+            description: 'Descricao',
+            category: {
+              name: 'Categoria',
+            },
+            materialFilesCount: 2,
+          },
+        ],
+        total: 1,
+        page: 1,
+        totalPages: 1,
+      });
       expect(prisma.material.findMany).toHaveBeenCalledWith({
         where: {
           deletedAt: null,
@@ -80,13 +111,30 @@ describe('MaterialRepository', () => {
         },
         select: expect.any(Object),
         orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+        skip: 0,
+        take: 25,
+      });
+      expect(prisma.material.count).toHaveBeenCalledWith({
+        where: {
+          deletedAt: null,
+          category: {
+            organizationId: 'org-id',
+            isDeleted: false,
+          },
+          categoryId: 'category-id',
+          OR: [
+            { name: { contains: 'inst', mode: 'insensitive' } },
+            { description: { contains: 'inst', mode: 'insensitive' } },
+          ],
+        },
       });
     });
 
     it('deve lançar BadRequest quando findMany falhar', async () => {
       prisma.material.findMany.mockRejectedValue(new Error('db'));
+      prisma.material.count.mockResolvedValue(0);
 
-      await expect(repository.findAll('org-id')).rejects.toThrow(
+      await expect(repository.findAll({}, 'org-id')).rejects.toThrow(
         'Erro ao buscar materiais',
       );
       expect(logger.error).toHaveBeenCalledWith(

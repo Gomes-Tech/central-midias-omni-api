@@ -14,20 +14,30 @@ describe('FindAllRolesUseCase', () => {
   });
 
   it('deve delegar ao repositório com filtros', async () => {
-    const list = [makeRole()];
-    repository.findAll.mockResolvedValue(list);
+    const response = {
+      data: [makeRole()],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    };
+    repository.findAll.mockResolvedValue(response);
 
     const filters = { isSystem: true };
 
-    await expect(useCase.execute(filters)).resolves.toEqual(list);
+    await expect(useCase.execute(filters)).resolves.toEqual(response);
     expect(repository.findAll).toHaveBeenCalledWith(filters);
   });
 
   it('deve usar filtros vazios por padrão', async () => {
-    repository.findAll.mockResolvedValue([]);
+    const response = {
+      data: [],
+      total: 0,
+      page: 1,
+      totalPages: 0,
+    };
+    repository.findAll.mockResolvedValue(response);
 
-    await useCase.execute();
-
+    await expect(useCase.execute()).resolves.toEqual(response);
     expect(repository.findAll).toHaveBeenCalledWith({});
   });
 });

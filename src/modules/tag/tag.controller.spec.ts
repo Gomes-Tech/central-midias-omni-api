@@ -54,7 +54,12 @@ describe('TagController', () => {
 
   it('deve delegar findAll', async () => {
     const filters = makeFindAllTagsFiltersDTO({ searchTerm: 'cam' });
-    const payload = [makeTagEntity()];
+    const payload = {
+      data: [makeTagEntity()],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    };
 
     findAllTagsUseCase.execute.mockResolvedValue(payload);
 
@@ -68,7 +73,12 @@ describe('TagController', () => {
   });
 
   it('deve delegar findAll sem filtros explícitos', async () => {
-    const payload = [makeTagEntity()];
+    const payload = {
+      data: [makeTagEntity()],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    };
 
     findAllTagsUseCase.execute.mockResolvedValue(payload);
 

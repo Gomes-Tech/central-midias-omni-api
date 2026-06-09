@@ -78,7 +78,12 @@ describe('MaterialController', () => {
   });
 
   it('deve delegar findAll sem filtros explícitos', async () => {
-    const payload = [makeMaterialListItem()];
+    const payload = {
+      data: [makeMaterialListItem()],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    };
     findAllMaterialsUseCase.execute.mockResolvedValue(payload);
 
     const result = await controller.findAll('org-id');
@@ -89,7 +94,12 @@ describe('MaterialController', () => {
 
   it('deve delegar findAll com org e filtros', async () => {
     const filters = makeFindAllMaterialsFiltersDTO({ searchTerm: 'inst' });
-    const payload = [makeMaterialListItem()];
+    const payload = {
+      data: [makeMaterialListItem()],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    };
     findAllMaterialsUseCase.execute.mockResolvedValue(payload);
 
     const result = await controller.findAll('org-id', filters);

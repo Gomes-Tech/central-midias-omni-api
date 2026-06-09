@@ -17,22 +17,32 @@ describe('FindAllTagsUseCase', () => {
 
   it('deve retornar as tags filtradas', async () => {
     const filters = makeFindAllTagsFiltersDTO({ searchTerm: 'cam' });
-    const tags = [makeTagEntity()];
+    const response = {
+      data: [makeTagEntity()],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    };
 
-    tagRepository.findAll.mockResolvedValue(tags);
+    tagRepository.findAll.mockResolvedValue(response);
 
     await expect(useCase.execute(organizationId, filters)).resolves.toEqual(
-      tags,
+      response,
     );
-    expect(tagRepository.findAll).toHaveBeenCalledWith(organizationId, filters);
+    expect(tagRepository.findAll).toHaveBeenCalledWith(filters, organizationId);
   });
 
   it('deve usar filtros vazios quando não informados', async () => {
-    const tags = [makeTagEntity()];
+    const response = {
+      data: [makeTagEntity()],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    };
 
-    tagRepository.findAll.mockResolvedValue(tags);
+    tagRepository.findAll.mockResolvedValue(response);
 
-    await expect(useCase.execute(organizationId)).resolves.toEqual(tags);
-    expect(tagRepository.findAll).toHaveBeenCalledWith(organizationId, {});
+    await expect(useCase.execute(organizationId)).resolves.toEqual(response);
+    expect(tagRepository.findAll).toHaveBeenCalledWith({}, organizationId);
   });
 });

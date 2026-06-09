@@ -19,20 +19,30 @@ describe('FindAllMaterialsUseCase', () => {
 
   it('deve retornar os materiais filtrados', async () => {
     const filters = makeFindAllMaterialsFiltersDTO({ searchTerm: 'inst' });
-    const materials = [makeMaterialListItem()];
+    const response = {
+      data: [makeMaterialListItem()],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    };
 
-    materialRepository.findAll.mockResolvedValue(materials);
+    materialRepository.findAll.mockResolvedValue(response);
 
-    await expect(useCase.execute('org-id', filters)).resolves.toEqual(materials);
-    expect(materialRepository.findAll).toHaveBeenCalledWith('org-id', filters);
+    await expect(useCase.execute('org-id', filters)).resolves.toEqual(response);
+    expect(materialRepository.findAll).toHaveBeenCalledWith(filters, 'org-id');
   });
 
   it('deve usar filtros vazios quando não informados', async () => {
-    const materials = [makeMaterialListItem()];
+    const response = {
+      data: [makeMaterialListItem()],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    };
 
-    materialRepository.findAll.mockResolvedValue(materials);
+    materialRepository.findAll.mockResolvedValue(response);
 
-    await expect(useCase.execute('org-id')).resolves.toEqual(materials);
-    expect(materialRepository.findAll).toHaveBeenCalledWith('org-id', {});
+    await expect(useCase.execute('org-id')).resolves.toEqual(response);
+    expect(materialRepository.findAll).toHaveBeenCalledWith({}, 'org-id');
   });
 });

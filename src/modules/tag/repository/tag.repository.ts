@@ -4,6 +4,7 @@ import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { PaginatedResponse } from '../../../types';
 import { CreateTagDTO, FindAllTagsFiltersDTO, UpdateTagDTO } from '../dto';
 import { TagEntity } from '../entities';
 
@@ -33,30 +34,45 @@ export class TagRepository {
   ) {}
 
   async findAll(
-    organizationId: string,
     filters: FindAllTagsFiltersDTO = {},
-  ): Promise<TagEntity[]> {
-    try {
-      const tags = await this.prisma.tag.findMany({
-        where: {
-          organizationId,
-          ...(filters.searchTerm && {
-            name: {
-              contains: filters.searchTerm,
-              mode: 'insensitive',
-            },
-          }),
-        },
-        select: tagSelect,
-        orderBy: [{ name: 'asc' }],
-      });
+    organizationId: string,
+  ): Promise<PaginatedResponse<TagEntity>> {
+    const { page = 1, limit = 25, searchTerm } = filters;
+    const skip = (page - 1) * limit;
 
-      return tags.map((tag) => this.mapTag(tag));
+    try {
+      const where: Prisma.TagWhereInput = {
+        organizationId,
+        ...(searchTerm && {
+          name: {
+            contains: searchTerm,
+            mode: 'insensitive',
+          },
+        }),
+      };
+
+      const [tags, total] = await Promise.all([
+        this.prisma.tag.findMany({
+          where,
+          select: tagSelect,
+          orderBy: [{ name: 'asc' }],
+          skip,
+          take: limit,
+        }),
+        this.prisma.tag.count({ where }),
+      ]);
+
+      return {
+        data: tags.map((tag) => this.mapTag(tag)),
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      };
     } catch (error) {
       void this.logger.error('TagRepository.findAll falhou', {
         error: String(error),
         organizationId,
-        filters,
+        searchTerm,
       });
 
       throw new BadRequestException('Erro ao buscar tags');

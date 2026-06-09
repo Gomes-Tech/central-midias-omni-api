@@ -46,24 +46,50 @@ describe('RolesRepository', () => {
   });
 
   describe('findAll', () => {
+    it('deve usar filtros padrão quando filters não for informado', async () => {
+      prisma.role.findMany.mockResolvedValue([]);
+      prisma.role.count.mockResolvedValue(0);
+
+      await repository.findAll();
+
+      expect(prisma.role.findMany).toHaveBeenCalledWith({
+        where: { deletedAt: null },
+        orderBy: [{ label: 'asc' }],
+        skip: 0,
+        take: 25,
+      });
+    });
+
     it('deve listar perfis não deletados ordenados por label', async () => {
       const rows = [
         makeRole({ id: '1', label: 'A' }),
         makeRole({ id: '2', label: 'B' }),
       ];
       prisma.role.findMany.mockResolvedValue(rows);
+      prisma.role.count.mockResolvedValue(rows.length);
 
       const result = await repository.findAll({});
 
-      expect(result).toEqual(rows);
+      expect(result).toEqual({
+        data: rows,
+        total: 2,
+        page: 1,
+        totalPages: 1,
+      });
       expect(prisma.role.findMany).toHaveBeenCalledWith({
         where: { deletedAt: null },
         orderBy: [{ label: 'asc' }],
+        skip: 0,
+        take: 25,
+      });
+      expect(prisma.role.count).toHaveBeenCalledWith({
+        where: { deletedAt: null },
       });
     });
 
     it('deve propagar HttpException sem envolver', async () => {
       prisma.role.findMany.mockRejectedValue(new NotFoundException('x'));
+      prisma.role.count.mockResolvedValue(0);
 
       await expect(repository.findAll()).rejects.toBeInstanceOf(
         NotFoundException,
@@ -72,6 +98,7 @@ describe('RolesRepository', () => {
 
     it('deve lançar InternalServerError quando findMany falhar com erro genérico', async () => {
       prisma.role.findMany.mockRejectedValue(new Error('db'));
+      prisma.role.count.mockResolvedValue(0);
 
       await expect(repository.findAll()).rejects.toBeInstanceOf(
         InternalServerErrorException,
@@ -115,7 +142,6 @@ describe('RolesRepository', () => {
         data: rows,
         total: 1,
         page: 2,
-        currentPage: 2,
         totalPages: 1,
       });
       expect(prisma.role.findMany).toHaveBeenCalledWith({
@@ -205,7 +231,6 @@ describe('RolesRepository', () => {
         data: [],
         total: 0,
         page: 1,
-        currentPage: 1,
         totalPages: 0,
       });
       expect(prisma.role.findMany).toHaveBeenCalledWith({

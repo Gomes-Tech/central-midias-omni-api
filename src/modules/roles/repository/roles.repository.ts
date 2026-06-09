@@ -8,6 +8,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { Action } from '@prisma/client';
+import { PaginatedResponse } from '../../../types';
 import {
   CreateRoleDTO,
   FindAllRolePermissionsFiltersDTO,
@@ -16,11 +17,7 @@ import {
   UpdateRoleDTO,
 } from '../dto';
 import { CreateGlobalRoleDTO } from '../dto/create-global-role.dto';
-import {
-  GlobalRoleDetails,
-  Role,
-  RolePermissionListResponse,
-} from '../entities';
+import { GlobalRoleDetails, Role, RolePermissionList } from '../entities';
 
 @Injectable()
 export class RolesRepository {
@@ -47,34 +44,27 @@ export class RolesRepository {
   async findAllPermissions(
     organizationId: string,
     filters: FindAllRolePermissionsFiltersDTO = {},
-  ): Promise<RolePermissionListResponse> {
+  ): Promise<PaginatedResponse<RolePermissionList>> {
     const { page = 1, limit = 25, searchTerm } = filters;
     const skip = (page - 1) * limit;
 
     try {
       const where = {
         deletedAt: null,
-        canAccessBackoffice: false,
+        canAccessBackoffice:
+          filters.canAccessBackoffice !== undefined
+            ? filters.canAccessBackoffice
+            : false,
         categoryRoleAccesses: {
           some: {
             organizationId,
           },
         },
         ...(searchTerm && {
-          OR: [
-            {
-              label: {
-                contains: searchTerm,
-                mode: 'insensitive' as const,
-              },
-            },
-            {
-              name: {
-                contains: searchTerm,
-                mode: 'insensitive' as const,
-              },
-            },
-          ],
+          label: {
+            contains: searchTerm,
+            mode: 'insensitive' as const,
+          },
         }),
       };
 
@@ -114,7 +104,6 @@ export class RolesRepository {
         data,
         total,
         page,
-        currentPage: page,
         totalPages: Math.ceil(total / limit),
       };
     } catch (error) {

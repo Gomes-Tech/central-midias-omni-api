@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { PaginatedResponse } from '../../../types';
 import { FindAllMaterialsFiltersDTO } from '../dto';
+import { MaterialListItem } from '../entities';
 import { MaterialRepository } from '../repository';
 
 @Injectable()
@@ -12,7 +14,7 @@ export class FindAllMaterialsUseCase {
   async execute(
     organizationId: string,
     filters: FindAllMaterialsFiltersDTO = {},
-  ) {
-    return await this.materialRepository.findAll(organizationId, filters);
+  ): Promise<PaginatedResponse<MaterialListItem>> {
+    return await this.materialRepository.findAll(filters, organizationId);
   }
 }
