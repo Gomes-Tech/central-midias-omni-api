@@ -5,7 +5,12 @@ import { FindRoleByIdUseCase } from './find-role-by-id.use-case';
 import { UpdateRoleUseCase } from './update-role.use-case';
 
 describe('UpdateRoleUseCase', () => {
-  let rolesRepository: jest.Mocked<Pick<RolesRepository, 'findByName' | 'update'>>;
+  let rolesRepository: jest.Mocked<
+    Pick<
+      RolesRepository,
+      'findByName' | 'update' | 'updateWithCategoryRoleAccesses'
+    >
+  >;
   let findRoleByIdUseCase: jest.Mocked<Pick<FindRoleByIdUseCase, 'execute'>>;
   let useCase: UpdateRoleUseCase;
 
@@ -13,6 +18,7 @@ describe('UpdateRoleUseCase', () => {
     rolesRepository = {
       findByName: jest.fn(),
       update: jest.fn(),
+      updateWithCategoryRoleAccesses: jest.fn(),
     };
     findRoleByIdUseCase = { execute: jest.fn() };
 
@@ -30,10 +36,15 @@ describe('UpdateRoleUseCase', () => {
 
     const data = makeUpdateRoleDTO({ label: 'Novo' });
 
-    await expect(useCase.execute('r1', data, 'org-id')).resolves.toEqual(updated);
+    await expect(useCase.execute('r1', data, 'org-id')).resolves.toEqual(
+      updated,
+    );
 
     expect(rolesRepository.findByName).not.toHaveBeenCalled();
     expect(rolesRepository.update).toHaveBeenCalledWith('r1', data);
+    expect(
+      rolesRepository.updateWithCategoryRoleAccesses,
+    ).not.toHaveBeenCalled();
   });
 
   it('deve atualizar quando o nome mudar para um disponível', async () => {
@@ -45,10 +56,15 @@ describe('UpdateRoleUseCase', () => {
 
     const data = makeUpdateRoleDTO({ name: 'NEW' });
 
-    await expect(useCase.execute('r1', data, 'org-id')).resolves.toEqual(updated);
+    await expect(useCase.execute('r1', data, 'org-id')).resolves.toEqual(
+      updated,
+    );
 
     expect(rolesRepository.findByName).toHaveBeenCalledWith('NEW');
     expect(rolesRepository.update).toHaveBeenCalledWith('r1', data);
+    expect(
+      rolesRepository.updateWithCategoryRoleAccesses,
+    ).not.toHaveBeenCalled();
   });
 
   it('deve permitir manter o mesmo nome do próprio perfil', async () => {
@@ -59,9 +75,38 @@ describe('UpdateRoleUseCase', () => {
 
     const data = makeUpdateRoleDTO({ name: 'CODE', label: 'X' });
 
-    await expect(useCase.execute('r1', data, 'org-id')).resolves.toEqual(updated);
+    await expect(useCase.execute('r1', data, 'org-id')).resolves.toEqual(
+      updated,
+    );
 
     expect(rolesRepository.findByName).not.toHaveBeenCalled();
+    expect(rolesRepository.update).toHaveBeenCalledWith('r1', data);
+    expect(
+      rolesRepository.updateWithCategoryRoleAccesses,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('deve usar update transacional quando categoryRoleAccesses for informado', async () => {
+    const role = makeRole({ id: 'r1' });
+    const updated = makeRole({ id: 'r1', label: 'Novo label' });
+    const data = makeUpdateRoleDTO({
+      label: 'Novo label',
+      categoryRoleAccesses: ['cat-2', 'cat-3', 'cat-3'],
+    });
+
+    findRoleByIdUseCase.execute.mockResolvedValue(role);
+    rolesRepository.updateWithCategoryRoleAccesses.mockResolvedValue(updated);
+
+    await expect(useCase.execute('r1', data, 'org-id')).resolves.toEqual(
+      updated,
+    );
+
+    expect(rolesRepository.update).not.toHaveBeenCalled();
+    expect(rolesRepository.updateWithCategoryRoleAccesses).toHaveBeenCalledWith(
+      'r1',
+      data,
+      'org-id',
+    );
   });
 
   it('deve lançar BadRequest quando outro perfil já usar o nome', async () => {
@@ -78,5 +123,8 @@ describe('UpdateRoleUseCase', () => {
     );
 
     expect(rolesRepository.update).not.toHaveBeenCalled();
+    expect(
+      rolesRepository.updateWithCategoryRoleAccesses,
+    ).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,5 @@
 import { Sanitize } from '@common/decorators';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class UpdateRoleDTO {
   @IsOptional()
@@ -19,4 +19,9 @@ export class UpdateRoleDTO {
   @IsOptional()
   @IsBoolean()
   canHaveSubordinates?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  categoryRoleAccesses?: string[];
 }

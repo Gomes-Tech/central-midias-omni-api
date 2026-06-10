@@ -1,10 +1,8 @@
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
-import {
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
-import { CreateRoleDTO } from '../dto';
+import { NotFoundException } from '@common/filters';
+import { InternalServerErrorException } from '@nestjs/common';
+import { CreateRoleDTO, UpdateRoleDTO } from '../dto';
 import { CreateGlobalRoleDTO } from '../dto/create-global-role.dto';
 import { makeRole } from '../use-cases/test-helpers';
 import { RolesRepository } from './roles.repository';
@@ -24,6 +22,14 @@ function createPrismaMock() {
       count: jest.fn(),
     },
     rolePermission: {
+      createMany: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    category: {
+      findMany: jest.fn(),
+    },
+    categoryRoleAccess: {
+      findMany: jest.fn(),
       createMany: jest.fn(),
       deleteMany: jest.fn(),
     },
@@ -703,6 +709,106 @@ describe('RolesRepository', () => {
         repository.update('id-1', { label: 'x' }),
       ).rejects.toBeInstanceOf(InternalServerErrorException);
       expect(logger.error).toHaveBeenCalled();
+    });
+
+    it('deve atualizar perfil e sincronizar categoryRoleAccesses em transação', async () => {
+      const txCategoryFindMany = jest
+        .fn()
+        .mockResolvedValue([{ id: 'cat-2' }, { id: 'cat-3' }]);
+      const txAccessFindMany = jest.fn().mockResolvedValue([
+        { id: 'access-1', categoryId: 'cat-1' },
+        { id: 'access-2', categoryId: 'cat-2' },
+      ]);
+      const txAccessCreateMany = jest.fn().mockResolvedValue({ count: 1 });
+      const txAccessDeleteMany = jest.fn().mockResolvedValue({ count: 1 });
+      const updated = makeRole({ id: 'r1', label: 'Novo label' });
+      const txRoleUpdate = jest.fn().mockResolvedValue(updated);
+
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) =>
+          fn({
+            category: { findMany: txCategoryFindMany },
+            categoryRoleAccess: {
+              findMany: txAccessFindMany,
+              createMany: txAccessCreateMany,
+              deleteMany: txAccessDeleteMany,
+            },
+            role: { update: txRoleUpdate },
+          }),
+      );
+
+      const data: UpdateRoleDTO = {
+        label: 'Novo label',
+        categoryRoleAccesses: ['cat-2', 'cat-3', 'cat-3'],
+      };
+
+      await expect(
+        repository.updateWithCategoryRoleAccesses('r1', data, 'org-id'),
+      ).resolves.toEqual(updated);
+
+      expect(txCategoryFindMany).toHaveBeenCalledWith({
+        where: {
+          id: { in: ['cat-2', 'cat-3'] },
+          organizationId: 'org-id',
+          isDeleted: false,
+        },
+        select: { id: true },
+      });
+      expect(txAccessFindMany).toHaveBeenCalledWith({
+        where: { roleId: 'r1', organizationId: 'org-id' },
+        select: { id: true, categoryId: true },
+      });
+      expect(txAccessCreateMany).toHaveBeenCalledWith({
+        data: [
+          {
+            id: 'mocked-uuid',
+            categoryId: 'cat-3',
+            roleId: 'r1',
+            organizationId: 'org-id',
+          },
+        ],
+        skipDuplicates: true,
+      });
+      expect(txAccessDeleteMany).toHaveBeenCalledWith({
+        where: {
+          id: { in: ['access-1'] },
+          organizationId: 'org-id',
+        },
+      });
+      expect(txRoleUpdate).toHaveBeenCalledWith({
+        where: { id: 'r1' },
+        data: { label: 'Novo label' },
+      });
+      expect(logger.info).toHaveBeenCalled();
+    });
+
+    it('deve rejeitar categoria inválida sem atualizar perfil na transação', async () => {
+      const txCategoryFindMany = jest.fn().mockResolvedValue([{ id: 'cat-2' }]);
+      const txAccessFindMany = jest.fn();
+      const txRoleUpdate = jest.fn();
+
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) =>
+          fn({
+            category: { findMany: txCategoryFindMany },
+            categoryRoleAccess: { findMany: txAccessFindMany },
+            role: { update: txRoleUpdate },
+          }),
+      );
+
+      await expect(
+        repository.updateWithCategoryRoleAccesses(
+          'r1',
+          {
+            label: 'Novo label',
+            categoryRoleAccesses: ['cat-2', 'cat-missing'],
+          },
+          'org-id',
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(txAccessFindMany).not.toHaveBeenCalled();
+      expect(txRoleUpdate).not.toHaveBeenCalled();
     });
   });
 

@@ -22,6 +22,14 @@ export class UpdateRoleUseCase {
       }
     }
 
-    return this.rolesRepository.update(id, data);
+    if (data.categoryRoleAccesses !== undefined) {
+      return await this.rolesRepository.updateWithCategoryRoleAccesses(
+        id,
+        data,
+        organizationId,
+      );
+    }
+
+    return await this.rolesRepository.update(id, data);
   }
 }

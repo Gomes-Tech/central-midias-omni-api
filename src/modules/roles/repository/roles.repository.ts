@@ -1,4 +1,4 @@
-import { BadRequestException } from '@common/filters';
+import { BadRequestException, NotFoundException } from '@common/filters';
 import { generateId } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
@@ -402,16 +402,7 @@ export class RolesRepository {
     try {
       const role = await this.prisma.role.update({
         where: { id },
-        data: {
-          ...(data.label !== undefined && { label: data.label }),
-          ...(data.name !== undefined && { name: data.name }),
-          ...(data.canAccessBackoffice !== undefined && {
-            canAccessBackoffice: data.canAccessBackoffice,
-          }),
-          ...(data.canHaveSubordinates !== undefined && {
-            canHaveSubordinates: data.canHaveSubordinates,
-          }),
-        },
+        data: this.buildUpdateData(data),
       });
 
       void this.logger.info('Perfil atualizado', {
@@ -423,6 +414,94 @@ export class RolesRepository {
       this.handleError('RolesRepository.update falhou', error, {
         roleId: id,
       });
+    }
+  }
+
+  async updateWithCategoryRoleAccesses(
+    id: string,
+    data: UpdateRoleDTO,
+    organizationId: string,
+  ): Promise<Omit<Role, 'categoryRoleAccesses'>> {
+    try {
+      const role = await this.prisma.$transaction(async (tx) => {
+        const requestedCategoryIds = [
+          ...new Set(data.categoryRoleAccesses ?? []),
+        ];
+
+        if (requestedCategoryIds.length > 0) {
+          const activeCategories = await tx.category.findMany({
+            where: {
+              id: { in: requestedCategoryIds },
+              organizationId,
+              isDeleted: false,
+            },
+            select: { id: true },
+          });
+
+          if (activeCategories.length !== requestedCategoryIds.length) {
+            throw new NotFoundException('Categoria não encontrada');
+          }
+        }
+
+        const currentAccesses = await tx.categoryRoleAccess.findMany({
+          where: { roleId: id, organizationId },
+          select: { id: true, categoryId: true },
+        });
+
+        const requestedCategoryIdsSet = new Set(requestedCategoryIds);
+        const currentCategoryIdsSet = new Set(
+          currentAccesses.map((access) => access.categoryId),
+        );
+
+        const accessesToCreate = requestedCategoryIds
+          .filter((categoryId) => !currentCategoryIdsSet.has(categoryId))
+          .map((categoryId) => ({
+            id: generateId(),
+            categoryId,
+            roleId: id,
+            organizationId,
+          }));
+
+        if (accessesToCreate.length > 0) {
+          await tx.categoryRoleAccess.createMany({
+            data: accessesToCreate,
+            skipDuplicates: true,
+          });
+        }
+
+        const accessIdsToDelete = currentAccesses
+          .filter((access) => !requestedCategoryIdsSet.has(access.categoryId))
+          .map((access) => access.id);
+
+        if (accessIdsToDelete.length > 0) {
+          await tx.categoryRoleAccess.deleteMany({
+            where: {
+              id: { in: accessIdsToDelete },
+              organizationId,
+            },
+          });
+        }
+
+        return await tx.role.update({
+          where: { id },
+          data: this.buildUpdateData(data),
+        });
+      });
+
+      void this.logger.info('Perfil atualizado', {
+        roleId: id,
+      });
+
+      return role;
+    } catch (error) {
+      this.handleError(
+        'RolesRepository.updateWithCategoryRoleAccesses falhou',
+        error,
+        {
+          roleId: id,
+          organizationId,
+        },
+      );
     }
   }
 
@@ -543,5 +622,18 @@ export class RolesRepository {
     });
 
     throw new InternalServerErrorException(error);
+  }
+
+  private buildUpdateData(data: UpdateRoleDTO) {
+    return {
+      ...(data.label !== undefined && { label: data.label }),
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.canAccessBackoffice !== undefined && {
+        canAccessBackoffice: data.canAccessBackoffice,
+      }),
+      ...(data.canHaveSubordinates !== undefined && {
+        canHaveSubordinates: data.canHaveSubordinates,
+      }),
+    };
   }
 }
