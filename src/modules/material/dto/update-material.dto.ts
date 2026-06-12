@@ -1,5 +1,6 @@
 import { Sanitize } from '@common/decorators';
-import { IsArray, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class UpdateMaterialDTO {
   @IsOptional()
@@ -20,4 +21,9 @@ export class UpdateMaterialDTO {
   @IsArray()
   @IsString({ each: true })
   tags?: string[];
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  requiresAcceptance?: boolean;
 }

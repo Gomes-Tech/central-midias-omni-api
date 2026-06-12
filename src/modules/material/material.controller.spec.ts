@@ -2,9 +2,11 @@ import { PlatformPermissionGuard } from '@common/guards';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MaterialController } from './material.controller';
 import {
+  AcceptMaterialUseCase,
   CreateMaterialUseCase,
   DeleteMaterialFileUseCase,
   DeleteMaterialUseCase,
+  ExportMaterialAcceptanceReportUseCase,
   FindAllMaterialsUseCase,
   FindMaterialFilesUseCase,
   FindMaterialByIdUseCase,
@@ -34,6 +36,8 @@ describe('MaterialController', () => {
   let uploadMaterialFilesUseCase: { execute: jest.Mock };
   let updateMaterialUseCase: { execute: jest.Mock };
   let deleteMaterialFileUseCase: { execute: jest.Mock };
+  let acceptMaterialUseCase: { execute: jest.Mock };
+  let exportMaterialAcceptanceReportUseCase: { execute: jest.Mock };
 
   beforeEach(async () => {
     createMaterialUseCase = { execute: jest.fn() };
@@ -45,6 +49,8 @@ describe('MaterialController', () => {
     uploadMaterialFilesUseCase = { execute: jest.fn() };
     updateMaterialUseCase = { execute: jest.fn() };
     deleteMaterialFileUseCase = { execute: jest.fn() };
+    acceptMaterialUseCase = { execute: jest.fn() };
+    exportMaterialAcceptanceReportUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MaterialController],
@@ -76,6 +82,11 @@ describe('MaterialController', () => {
           useValue: deleteMaterialFileUseCase,
         },
         { provide: UpdateMaterialUseCase, useValue: updateMaterialUseCase },
+        { provide: AcceptMaterialUseCase, useValue: acceptMaterialUseCase },
+        {
+          provide: ExportMaterialAcceptanceReportUseCase,
+          useValue: exportMaterialAcceptanceReportUseCase,
+        },
       ],
     })
       .overrideGuard(PlatformPermissionGuard)
@@ -143,12 +154,56 @@ describe('MaterialController', () => {
     const material = makeMaterialDetails();
     findMaterialByIdUseCase.execute.mockResolvedValue(material);
 
-    await controller.findById(material.id, 'org-id');
+    await controller.findById(material.id, 'org-id', 'user-id');
 
     expect(findMaterialByIdUseCase.execute).toHaveBeenCalledWith(
       material.id,
       'org-id',
+      'user-id',
     );
+  });
+
+  it('deve delegar acceptMaterial', async () => {
+    const payload = { acceptedAt: new Date('2024-02-01T00:00:00.000Z') };
+    acceptMaterialUseCase.execute.mockResolvedValue(payload);
+
+    const result = await controller.acceptMaterial(
+      'material-id',
+      { accepted: true },
+      'org-id',
+      'user-id',
+    );
+
+    expect(result).toBe(payload);
+    expect(acceptMaterialUseCase.execute).toHaveBeenCalledWith(
+      'material-id',
+      'org-id',
+      'user-id',
+      { accepted: true },
+    );
+  });
+
+  it('deve delegar exportAcceptanceReport', async () => {
+    const res = {
+      setHeader: jest.fn(),
+      send: jest.fn(),
+    } as unknown as import('express').Response;
+    exportMaterialAcceptanceReportUseCase.execute.mockResolvedValue({
+      filename: 'material-aceite.csv',
+      content: 'nome,email,visualizou,data_aceite',
+    });
+
+    await controller.exportAcceptanceReport('material-id', 'org-id', res);
+
+    expect(exportMaterialAcceptanceReportUseCase.execute).toHaveBeenCalledWith(
+      'material-id',
+      'org-id',
+    );
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Content-Disposition',
+      'attachment; filename="material-aceite.csv"',
+    );
+    expect(res.send).toHaveBeenCalledWith('nome,email,visualizou,data_aceite');
   });
 
   it('deve delegar findFiles', async () => {

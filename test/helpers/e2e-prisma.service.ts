@@ -120,6 +120,7 @@ export class E2ePrismaService {
   tag = createDelegate('tags');
   category = createDelegate('categories');
   banner = createDelegate('banners');
+  socialHighlight = createDelegate('socialHighlights');
   material = createDelegate('materials');
   materialFile = createDelegate('materialFiles');
   categoryRoleAccess = createDelegate('categoryRoleAccesses');

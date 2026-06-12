@@ -24,6 +24,9 @@ services:
       - '4100'
     env_file:
       - .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
       redis:
         condition: service_healthy

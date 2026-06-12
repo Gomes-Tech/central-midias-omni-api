@@ -3,17 +3,22 @@ import { CategoryModule } from '@modules/category';
 import { TagModule } from '@modules/tag';
 import { Module } from '@nestjs/common';
 import { MaterialController } from './material.controller';
+import { MaterialAcceptanceEmailProcessor } from './queue/material-acceptance-email.processor';
 import { MaterialRepository } from './repository';
 import {
+  AcceptMaterialUseCase,
   CreateMaterialUseCase,
   DeleteMaterialFileUseCase,
   DeleteMaterialUseCase,
+  EnqueueMaterialAcceptanceEmailsUseCase,
+  ExportMaterialAcceptanceReportUseCase,
   FindAllMaterialsUseCase,
   FindMaterialFilesUseCase,
   FindMaterialByIdUseCase,
   ResolveMaterialTagIdsUseCase,
   ResolveMaterialTagsUseCase,
   SearchMaterialsUseCase,
+  SendMaterialAcceptanceEmailUseCase,
   UploadMaterialFilesUseCase,
   UpdateMaterialUseCase,
 } from './use-cases';
@@ -35,6 +40,11 @@ import {
     UploadMaterialFilesUseCase,
     FindMaterialFilesUseCase,
     DeleteMaterialFileUseCase,
+    AcceptMaterialUseCase,
+    ExportMaterialAcceptanceReportUseCase,
+    EnqueueMaterialAcceptanceEmailsUseCase,
+    SendMaterialAcceptanceEmailUseCase,
+    MaterialAcceptanceEmailProcessor,
     {
       provide: 'MaterialRepository',
       useExisting: MaterialRepository,

@@ -21,9 +21,17 @@ function createPrismaMock() {
     },
     member: {
       findFirst: jest.fn(),
+      findMany: jest.fn(),
     },
     user: {
       findFirst: jest.fn(),
+    },
+    categoryRoleAccess: {
+      findMany: jest.fn(),
+    },
+    materialAcceptance: {
+      upsert: jest.fn(),
+      findMany: jest.fn(),
     },
   };
 }
@@ -358,6 +366,7 @@ describe('MaterialRepository', () => {
         name: 'Material institucional',
         description: 'Descricao',
         categoryId: 'category-id',
+        requiresAcceptance: false,
         createdAt: new Date('2024-01-01T00:00:00.000Z'),
         updatedAt: new Date('2024-01-02T00:00:00.000Z'),
         deletedAt: null,
@@ -465,6 +474,7 @@ describe('MaterialRepository', () => {
           name: 'Material institucional',
           description: 'Descricao',
           categoryId: 'category-id',
+          requiresAcceptance: false,
           tags: {
             connectOrCreate: [
               {
@@ -529,6 +539,7 @@ describe('MaterialRepository', () => {
           name: 'Material',
           description: null,
           categoryId: 'category-id',
+          requiresAcceptance: false,
         },
         select: { id: true },
       });
@@ -558,6 +569,7 @@ describe('MaterialRepository', () => {
           name: 'Material',
           description: null,
           categoryId: 'category-id',
+          requiresAcceptance: false,
         },
         select: { id: true },
       });
@@ -627,6 +639,7 @@ describe('MaterialRepository', () => {
           name: 'Material institucional',
           description: 'Descricao',
           categoryId: 'category-id',
+          requiresAcceptance: false,
           tags: {
             connectOrCreate: [
               {

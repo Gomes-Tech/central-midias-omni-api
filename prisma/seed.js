@@ -28,6 +28,7 @@ async function main() {
     { id: randomUUID(), name: 'members', label: 'Membros' },
     { id: randomUUID(), name: 'categories', label: 'Categorias' },
     { id: randomUUID(), name: 'banners', label: 'Banners' },
+    { id: randomUUID(), name: 'social-highlights', label: 'Ta na Rede' },
     { id: randomUUID(), name: 'materials', label: 'Materiais' },
     { id: randomUUID(), name: 'tags', label: 'Tags' },
   ];

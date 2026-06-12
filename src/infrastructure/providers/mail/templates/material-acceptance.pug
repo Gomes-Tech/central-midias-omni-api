@@ -1,0 +1,14 @@
+doctype html
+html
+  head
+    title Confirmação de leitura
+  body(style="font-family: Arial, sans-serif; padding: 20px;")
+    h1(style="color: #333;") Confirmação de leitura
+    p Olá#{name ? ' ' + name : ''},
+    p Foi publicado um novo material que exige confirmação de leitura:
+    p
+      strong #{materialName}
+    if materialLink
+      p
+        a(href=materialLink, style="color: #0066cc;") Acessar material
+    p Por favor, acesse o material e confirme que leu e aceitou o conteúdo.

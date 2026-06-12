@@ -3,6 +3,7 @@ import { StorageService } from '@infrastructure/providers';
 import { FindCategoryByIdUseCase } from '@modules/category';
 import { MaterialRepository } from '../repository';
 import { CreateMaterialUseCase } from './create-material.use-case';
+import { EnqueueMaterialAcceptanceEmailsUseCase } from './enqueue-material-acceptance-emails.use-case';
 import { ResolveMaterialTagsUseCase } from './resolve-material-tags.use-case';
 import { makeCreateMaterialDTO, makeUploadFile } from './test-helpers';
 
@@ -13,6 +14,7 @@ describe('CreateMaterialUseCase', () => {
   let storageService: jest.Mocked<
     Pick<StorageService, 'uploadFile' | 'deleteFile'>
   >;
+  let enqueueMaterialAcceptanceEmailsUseCase: { execute: jest.Mock };
   let useCase: CreateMaterialUseCase;
 
   beforeEach(() => {
@@ -27,12 +29,16 @@ describe('CreateMaterialUseCase', () => {
       uploadFile: jest.fn(),
       deleteFile: jest.fn(),
     };
+    enqueueMaterialAcceptanceEmailsUseCase = {
+      execute: jest.fn().mockResolvedValue({ enqueued: 1 }),
+    };
 
     useCase = new CreateMaterialUseCase(
       materialRepository,
       findCategoryByIdUseCase as unknown as FindCategoryByIdUseCase,
       resolveMaterialTagsUseCase as unknown as ResolveMaterialTagsUseCase,
       storageService as unknown as StorageService,
+      enqueueMaterialAcceptanceEmailsUseCase as unknown as EnqueueMaterialAcceptanceEmailsUseCase,
     );
   });
 
@@ -79,6 +85,28 @@ describe('CreateMaterialUseCase', () => {
       },
     );
     expect(storageService.uploadFile).not.toHaveBeenCalled();
+    expect(enqueueMaterialAcceptanceEmailsUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('deve disparar notificação quando requiresAcceptance for true', async () => {
+    const dto = makeCreateMaterialDTO({ requiresAcceptance: true });
+    findCategoryByIdUseCase.execute.mockResolvedValue({
+      id: dto.categoryId,
+      isActive: true,
+    });
+    materialRepository.findByName.mockResolvedValue(null);
+    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+      existingTagIds: [],
+      newTagNames: [],
+    });
+    materialRepository.create.mockResolvedValue(undefined);
+
+    await useCase.execute('org-id', dto, 'user-id');
+
+    expect(enqueueMaterialAcceptanceEmailsUseCase.execute).toHaveBeenCalledWith(
+      'mocked-uuid',
+      'org-id',
+    );
   });
 
   it('deve usar mimeType e size padrão quando arquivo não informar metadados', async () => {

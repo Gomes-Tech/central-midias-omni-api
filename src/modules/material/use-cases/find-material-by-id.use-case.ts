@@ -9,8 +9,12 @@ export class FindMaterialByIdUseCase {
     private readonly materialRepository: MaterialRepository,
   ) {}
 
-  async execute(id: string, organizationId: string) {
-    const material = await this.materialRepository.findById(id, organizationId);
+  async execute(id: string, organizationId: string, userId?: string) {
+    const material = await this.materialRepository.findById(
+      id,
+      organizationId,
+      userId,
+    );
 
     if (!material) {
       throw new NotFoundException('Material não encontrado');

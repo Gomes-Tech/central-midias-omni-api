@@ -18,11 +18,13 @@ import { JwtModule } from '@infrastructure/jwt';
 import { LogModule } from '@infrastructure/log';
 import { MetricsInterceptor, MetricsModule } from '@infrastructure/metrics';
 import { PrismaModule } from '@infrastructure/prisma';
+import { QueueModule } from '@infrastructure/queue';
 import { MailModule, StorageModule } from '@infrastructure/providers';
 import { SecurityModule } from '@infrastructure/security';
 import { ThrottlerConfigModule } from '@infrastructure/throttler';
 import { AuthModule } from '@modules/auth';
 import { BannerModule } from '@modules/banner';
+import { SocialHighlightModule } from '@modules/social-highlight';
 import { CategoryModule } from '@modules/category';
 import { CategoryRoleAccessModule } from '@modules/category-role-access/category-role-access.module';
 import { MaterialModule } from '@modules/material';
@@ -47,6 +49,7 @@ import { AppService } from './app.service';
 @Module({
   imports: [
     PrismaModule,
+    QueueModule,
     JwtModule,
     SecurityModule,
     ConfigModule,
@@ -71,6 +74,7 @@ import { AppService } from './app.service';
     AuthModule,
     CategoryRoleAccessModule,
     BannerModule,
+    SocialHighlightModule,
   ],
   controllers: [AppController],
   providers: [

@@ -47,6 +47,11 @@ import * as Joi from 'joi';
             password: process.env.POSTGRES_PASSWORD,
             db: process.env.POSTGRES_DB,
           },
+          redis: {
+            host: process.env.REDIS_HOST ?? 'localhost',
+            port: Number(process.env.REDIS_PORT ?? '6379'),
+            password: process.env.REDIS_PASSWORD,
+          },
         }),
       ],
       validationSchema: Joi.object({
@@ -97,6 +102,10 @@ import * as Joi from 'joi';
         POSTGRES_USER: Joi.string().optional(),
         POSTGRES_PASSWORD: Joi.string().optional(),
         POSTGRES_DB: Joi.string().optional(),
+
+        REDIS_HOST: Joi.string().optional(),
+        REDIS_PORT: Joi.number().default(6379).optional(),
+        REDIS_PASSWORD: Joi.string().optional(),
       }),
     }),
   ],

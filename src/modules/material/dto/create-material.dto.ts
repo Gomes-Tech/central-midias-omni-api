@@ -1,6 +1,12 @@
 import { Sanitize } from '@common/decorators';
-import { Transform } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import {
   normalizeMaterialTags,
   readMaterialTagsField,
@@ -28,4 +34,9 @@ export class CreateMaterialDTO {
   @IsArray()
   @IsString({ each: true })
   tags?: string[];
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  requiresAcceptance?: boolean;
 }

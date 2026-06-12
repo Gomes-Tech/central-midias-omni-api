@@ -5,6 +5,7 @@ import { FindCategoryByIdUseCase } from '@modules/category';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateMaterialDTO } from '../dto';
 import { MaterialRepository } from '../repository';
+import { EnqueueMaterialAcceptanceEmailsUseCase } from './enqueue-material-acceptance-emails.use-case';
 import { ResolveMaterialTagsUseCase } from './resolve-material-tags.use-case';
 
 @Injectable()
@@ -15,6 +16,7 @@ export class CreateMaterialUseCase {
     private readonly findCategoryByIdUseCase: FindCategoryByIdUseCase,
     private readonly resolveMaterialTagsUseCase: ResolveMaterialTagsUseCase,
     private readonly storageService: StorageService,
+    private readonly enqueueMaterialAcceptanceEmailsUseCase: EnqueueMaterialAcceptanceEmailsUseCase,
   ) {}
 
   async execute(
@@ -71,6 +73,12 @@ export class CreateMaterialUseCase {
         })),
         tags: resolvedTags,
       });
+
+      if (data.requiresAcceptance === true) {
+        void this.enqueueMaterialAcceptanceEmailsUseCase
+          .execute(materialId, organizationId)
+          .catch(() => undefined);
+      }
     } catch (error) {
       if (uploadedFiles.length) {
         await this.storageService.deleteFile(

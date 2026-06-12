@@ -72,6 +72,7 @@ export function makeMaterialDetails(
     name: 'Material institucional',
     description: 'Descricao',
     categoryId: 'category-id',
+    requiresAcceptance: false,
     createdAt: now,
     updatedAt: now,
     category: {

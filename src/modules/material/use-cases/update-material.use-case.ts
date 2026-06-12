@@ -3,6 +3,7 @@ import { FindCategoryByIdUseCase } from '@modules/category';
 import { Inject, Injectable } from '@nestjs/common';
 import { UpdateMaterialDTO } from '../dto';
 import { MaterialRepository } from '../repository';
+import { EnqueueMaterialAcceptanceEmailsUseCase } from './enqueue-material-acceptance-emails.use-case';
 import { FindMaterialByIdUseCase } from './find-material-by-id.use-case';
 import { ResolveMaterialTagIdsUseCase } from './resolve-material-tag-ids.use-case';
 
@@ -14,6 +15,7 @@ export class UpdateMaterialUseCase {
     private readonly findMaterialByIdUseCase: FindMaterialByIdUseCase,
     private readonly findCategoryByIdUseCase: FindCategoryByIdUseCase,
     private readonly resolveMaterialTagIdsUseCase: ResolveMaterialTagIdsUseCase,
+    private readonly enqueueMaterialAcceptanceEmailsUseCase: EnqueueMaterialAcceptanceEmailsUseCase,
   ) {}
 
   async execute(
@@ -26,6 +28,8 @@ export class UpdateMaterialUseCase {
       id,
       organizationId,
     );
+
+    const previousRequiresAcceptance = material.requiresAcceptance;
 
     const nextCategoryId = data.categoryId ?? material.categoryId;
     const nextName = data.name ?? material.name;
@@ -65,5 +69,14 @@ export class UpdateMaterialUseCase {
     await this.materialRepository.update(id, organizationId, data, userId, {
       tags: resolvedTags,
     });
+
+    if (
+      data.requiresAcceptance === true &&
+      previousRequiresAcceptance === false
+    ) {
+      void this.enqueueMaterialAcceptanceEmailsUseCase
+        .execute(id, organizationId)
+        .catch(() => undefined);
+    }
   }
 }

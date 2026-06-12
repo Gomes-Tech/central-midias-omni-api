@@ -31,7 +31,8 @@ model User {
 
   managedUsers UserHierarchy[] @relation("ManagerRelation")
   managerOf    UserHierarchy[] @relation("SubordinateRelation")
-  members      Member[]
+  members              Member[]
+  materialAcceptances  MaterialAcceptance[]
 
   @@index([email])
   @@map("users")
@@ -159,6 +160,7 @@ model Organization {
   members                Member[]
   categories             Category[]
   banners                Banner[]
+  socialHighlights       SocialHighlight[]
   tags                   Tag[]
   category_role_accesses CategoryRoleAccess[]
   userHierarchies        UserHierarchy[]
@@ -246,12 +248,36 @@ model Banner {
   @@map("banners")
 }
 
+model SocialHighlight {
+  id              String    @id @default(cuid())
+  organizationId  String    @map("organization_id")
+  mobileImageKey  String    @map("mobile_image_key")
+  desktopImageKey String    @map("desktop_image_key")
+  name            String
+  link            String?
+  order           Int
+  isActive        Boolean   @default(true) @map("is_active")
+  initialDate     DateTime? @map("initial_date")
+  finishDate      DateTime? @map("finish_date")
+
+  isDeleted    Boolean      @default(false) @map("is_deleted")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at")
+  deletedAt    DateTime?    @map("deleted_at")
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@map("social_highlights")
+}
+
 // ATENÇÃO!
 // Material está fora do padrão de soft delete. Corrigir para deletedAt e isDeleted, e ajustar queries para considerar ambos os campos.
 model Material {
   id          String  @id @default(uuid())
   name        String
   description String?
+
+  requiresAcceptance Boolean @default(false) @map("requires_acceptance")
 
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
@@ -260,10 +286,28 @@ model Material {
   categoryId    String         @map("category_id")
   category      Category       @relation(fields: [categoryId], references: [id])
   tags          Tag[]          @relation("MaterialTag")
+  materialAcceptances MaterialAcceptance[]
 
   @@unique([categoryId, name])
   @@index([categoryId])
   @@map("materials")
+}
+
+model MaterialAcceptance {
+  id         String   @id @default(uuid())
+  materialId String   @map("material_id")
+  userId     String   @map("user_id")
+  accepted   Boolean  @default(true)
+  acceptedAt DateTime @default(now()) @map("accepted_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@unique([materialId, userId])
+  @@index([materialId])
+  @@index([userId])
+  @@map("material_acceptances")
 }
 
 model MaterialFile {

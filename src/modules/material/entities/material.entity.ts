@@ -55,10 +55,19 @@ export interface MaterialDetails {
   name: string;
   description?: string | null;
   categoryId: string;
+  requiresAcceptance: boolean;
   createdAt: Date;
   updatedAt: Date;
   category: MaterialCategorySummary;
   tags: string[];
   materialFilesCount: number;
   deletedAt?: Date | null;
+  currentUserAcceptedAt?: Date | null;
+}
+
+export interface MaterialAcceptanceReportRow {
+  name: string;
+  email: string;
+  viewed: boolean;
+  acceptedAt: Date | null;
 }

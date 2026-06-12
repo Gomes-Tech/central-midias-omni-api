@@ -11,6 +11,7 @@ export const E2E_IDS = {
   tagId: '55555555-5555-4555-8555-555555555555',
   categoryId: '66666666-6666-4666-8666-666666666666',
   bannerId: '77777777-7777-4777-8777-777777777777',
+  socialHighlightId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
   materialId: '88888888-8888-4888-8888-888888888888',
 } as const;
 
@@ -21,6 +22,7 @@ const MODULE_DEFS = [
   { name: 'members', label: 'Membros' },
   { name: 'categories', label: 'Categorias' },
   { name: 'banners', label: 'Banners' },
+  { name: 'social-highlights', label: 'Ta na Rede' },
   { name: 'materials', label: 'Materiais' },
   { name: 'tags', label: 'Tags' },
 ] as const;
@@ -42,6 +44,7 @@ export type E2eStore = {
   tags: Record<string, unknown>[];
   categories: Record<string, unknown>[];
   banners: Record<string, unknown>[];
+  socialHighlights: Record<string, unknown>[];
   materials: Record<string, unknown>[];
   materialFiles: Record<string, unknown>[];
   categoryRoleAccesses: Record<string, unknown>[];
@@ -199,6 +202,23 @@ export function createE2eSeed(): E2eStore {
     deletedAt: null,
   };
 
+  const socialHighlight = {
+    id: E2E_IDS.socialHighlightId,
+    organizationId: E2E_IDS.orgId,
+    mobileImageKey: 'social-highlights/mobile.png',
+    desktopImageKey: 'social-highlights/desktop.png',
+    name: 'Destaque Social E2E',
+    link: null,
+    order: 1,
+    isActive: true,
+    initialDate: null,
+    finishDate: null,
+    isDeleted: false,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+  };
+
   const material = {
     id: E2E_IDS.materialId,
     name: 'Material E2E',
@@ -222,6 +242,7 @@ export function createE2eSeed(): E2eStore {
     tags: [tag],
     categories: [category],
     banners: [banner],
+    socialHighlights: [socialHighlight],
     materials: [material],
     materialFiles: [],
     categoryRoleAccesses: [categoryRoleAccess],

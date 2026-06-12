@@ -12,6 +12,7 @@ import {
   UpdateMaterialDTO,
 } from '../dto';
 import {
+  MaterialAcceptanceReportRow,
   MaterialDetails,
   MaterialFileItem,
   MaterialListItem,
@@ -40,6 +41,7 @@ const buildMaterialDetailsSelect = (organizationId: string) =>
     name: true,
     description: true,
     categoryId: true,
+    requiresAcceptance: true,
     createdAt: true,
     updatedAt: true,
     deletedAt: true,
@@ -176,7 +178,7 @@ export class MaterialRepository {
   ): Promise<PaginatedResponse<MaterialListItem>> {
     const { page = 1, limit = 25, term } = filters;
 
-    if (!term) {
+    if (!term?.trim()) {
       return { data: [], total: 0, page, totalPages: 0 };
     }
 
@@ -333,6 +335,7 @@ export class MaterialRepository {
   async findById(
     id: string,
     organizationId: string,
+    userId?: string,
   ): Promise<MaterialDetails | null> {
     try {
       const material = await this.prisma.material.findFirst({
@@ -344,7 +347,16 @@ export class MaterialRepository {
             isDeleted: false,
           },
         },
-        select: buildMaterialDetailsSelect(organizationId),
+        select: {
+          ...buildMaterialDetailsSelect(organizationId),
+          ...(userId && {
+            materialAcceptances: {
+              where: { userId },
+              select: { acceptedAt: true },
+              take: 1,
+            },
+          }),
+        },
       });
 
       return material
@@ -353,12 +365,17 @@ export class MaterialRepository {
             name: material.name,
             description: material.description,
             categoryId: material.categoryId,
+            requiresAcceptance: material.requiresAcceptance,
             createdAt: material.createdAt,
             updatedAt: material.updatedAt,
             category: material.category,
             tags: material.tags.map((tag) => tag.id),
             materialFilesCount: material.materialFiles.length,
             deletedAt: material.deletedAt,
+            currentUserAcceptedAt:
+              userId && 'materialAcceptances' in material
+                ? (material.materialAcceptances[0]?.acceptedAt ?? null)
+                : undefined,
           }
         : null;
     } catch (error) {
@@ -413,6 +430,7 @@ export class MaterialRepository {
         name: data.name,
         description: data.description ?? null,
         categoryId: data.categoryId,
+        requiresAcceptance: data.requiresAcceptance ?? false,
       };
 
       const tagsData = options.tags
@@ -497,6 +515,10 @@ export class MaterialRepository {
 
       if (data.categoryId !== undefined) {
         updateData.categoryId = data.categoryId;
+      }
+
+      if (data.requiresAcceptance !== undefined) {
+        updateData.requiresAcceptance = data.requiresAcceptance;
       }
 
       if (options.tags !== undefined) {
@@ -785,5 +807,226 @@ export class MaterialRepository {
       mimeType: file.mimeType,
       size: file.size,
     };
+  }
+
+  async upsertAcceptance(
+    materialId: string,
+    userId: string,
+    acceptedAt: Date,
+  ): Promise<void> {
+    try {
+      await this.prisma.materialAcceptance.upsert({
+        where: {
+          materialId_userId: {
+            materialId,
+            userId,
+          },
+        },
+        create: {
+          id: generateId(),
+          materialId,
+          userId,
+          accepted: true,
+          acceptedAt,
+        },
+        update: {
+          accepted: true,
+          acceptedAt,
+        },
+      });
+    } catch (error) {
+      void this.logger.error('MaterialRepository.upsertAcceptance falhou', {
+        error: String(error),
+        materialId,
+        userId,
+      });
+
+      throw new BadRequestException('Erro ao registrar aceite do material');
+    }
+  }
+
+  async findRoleIdsByCategoryAndOrganization(
+    categoryId: string,
+    organizationId: string,
+  ): Promise<string[]> {
+    const rows = await this.prisma.categoryRoleAccess.findMany({
+      where: { categoryId, organizationId },
+      select: { roleId: true },
+    });
+
+    return rows.map((row) => row.roleId);
+  }
+
+  async findEligibleMembersForCategory(
+    organizationId: string,
+    categoryId: string,
+  ): Promise<Array<{ userId: string; name: string; email: string }>> {
+    try {
+      const roleIds = await this.findRoleIdsByCategoryAndOrganization(
+        categoryId,
+        organizationId,
+      );
+
+      const members = await this.prisma.member.findMany({
+        where: {
+          organizationId,
+          user: {
+            isActive: true,
+            isDeleted: false,
+          },
+          ...(roleIds.length > 0 && {
+            roleId: { in: roleIds },
+          }),
+        },
+        select: {
+          userId: true,
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: [{ user: { name: 'asc' } }],
+      });
+
+      return members.map((member) => ({
+        userId: member.userId,
+        name: member.user.name,
+        email: member.user.email,
+      }));
+    } catch (error) {
+      void this.logger.error(
+        'MaterialRepository.findEligibleMembersForCategory falhou',
+        {
+          error: String(error),
+          organizationId,
+          categoryId,
+        },
+      );
+
+      throw new BadRequestException(
+        'Erro ao buscar membros elegíveis para o material',
+      );
+    }
+  }
+
+  async userHasCategoryAccess(
+    organizationId: string,
+    categoryId: string,
+    userId: string,
+  ): Promise<boolean> {
+    const canViewAllCategories = await this.isGlobalAdmin(userId);
+
+    if (canViewAllCategories) {
+      return true;
+    }
+
+    const member = await this.findActiveMember(organizationId, userId);
+
+    if (!member) {
+      return false;
+    }
+
+    const roleIds = await this.findRoleIdsByCategoryAndOrganization(
+      categoryId,
+      organizationId,
+    );
+
+    if (roleIds.length === 0) {
+      return true;
+    }
+
+    return roleIds.includes(member.roleId);
+  }
+
+  async findAcceptanceReportRows(
+    materialId: string,
+    organizationId: string,
+  ): Promise<MaterialAcceptanceReportRow[]> {
+    try {
+      const material = await this.prisma.material.findFirst({
+        where: {
+          id: materialId,
+          deletedAt: null,
+          category: {
+            organizationId,
+            isDeleted: false,
+          },
+        },
+        select: {
+          categoryId: true,
+        },
+      });
+
+      if (!material) {
+        return [];
+      }
+
+      const eligibleMembers = await this.findEligibleMembersForCategory(
+        organizationId,
+        material.categoryId,
+      );
+
+      const acceptances = await this.prisma.materialAcceptance.findMany({
+        where: { materialId },
+        select: {
+          userId: true,
+          acceptedAt: true,
+        },
+      });
+
+      const acceptanceByUserId = new Map(
+        acceptances.map((acceptance) => [
+          acceptance.userId,
+          acceptance.acceptedAt,
+        ]),
+      );
+
+      return eligibleMembers.map((member) => {
+        const acceptedAt = acceptanceByUserId.get(member.userId) ?? null;
+
+        return {
+          name: member.name,
+          email: member.email,
+          viewed: acceptedAt !== null,
+          acceptedAt,
+        };
+      });
+    } catch (error) {
+      void this.logger.error(
+        'MaterialRepository.findAcceptanceReportRows falhou',
+        {
+          error: String(error),
+          materialId,
+          organizationId,
+        },
+      );
+
+      throw new BadRequestException(
+        'Erro ao gerar relatório de aceite do material',
+      );
+    }
+  }
+
+  async findMaterialSummaryById(
+    materialId: string,
+    organizationId: string,
+  ): Promise<{ id: string; name: string; categoryId: string } | null> {
+    return await this.prisma.material.findFirst({
+      where: {
+        id: materialId,
+        deletedAt: null,
+        category: {
+          organizationId,
+          isDeleted: false,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        categoryId: true,
+      },
+    });
   }
 }

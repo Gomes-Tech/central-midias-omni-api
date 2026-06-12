@@ -1,0 +1,511 @@
+﻿import { LoggerService } from '@infrastructure/log';
+import { PrismaService } from '@infrastructure/prisma';
+import { makeSocialHighlight, makeCreateSocialHighlightDTO } from '../use-cases/test-helpers';
+import { SocialHighlightRepository } from './social-highlight.repository';
+
+function toSocialHighlightList(banner: ReturnType<typeof makeSocialHighlight>) {
+  return {
+    id: banner.id,
+    name: banner.name,
+    link: banner.link,
+    order: banner.order,
+    isActive: banner.isActive,
+    initialDate: banner.initialDate,
+    finishDate: banner.finishDate,
+  };
+}
+
+function createPrismaMock() {
+  return {
+    socialHighlight: {
+      findMany: jest.fn(),
+      count: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      updateMany: jest.fn(),
+    },
+  };
+}
+
+describe('SocialHighlightRepository', () => {
+  let repository: SocialHighlightRepository;
+  let prisma: ReturnType<typeof createPrismaMock>;
+  let logger: { error: jest.Mock; info: jest.Mock };
+
+  beforeEach(() => {
+    prisma = createPrismaMock();
+    logger = { error: jest.fn(), info: jest.fn() };
+    repository = new SocialHighlightRepository(
+      prisma as unknown as PrismaService,
+      logger as unknown as LoggerService,
+    );
+  });
+
+  describe('findAll', () => {
+    it('deve usar filtros padrão quando filters não for informado', async () => {
+      prisma.socialHighlight.findMany.mockResolvedValue([]);
+      prisma.socialHighlight.count.mockResolvedValue(0);
+
+      await repository.findAll(undefined as never, 'org-1');
+
+      expect(prisma.socialHighlight.findMany).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          isDeleted: false,
+        },
+        select: {
+          id: true,
+          name: true,
+          link: true,
+          order: true,
+          isActive: true,
+          initialDate: true,
+          finishDate: true,
+        },
+        orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+        skip: 0,
+        take: 25,
+      });
+    });
+
+    it('deve filtrar por organização, não deletados, ativos e ordenar', async () => {
+      const rows = [
+        makeSocialHighlight({ order: 1 }),
+        makeSocialHighlight({ id: 'b2', order: 2 }),
+      ];
+      const data = rows.map(toSocialHighlightList);
+
+      prisma.socialHighlight.findMany.mockResolvedValue(data);
+      prisma.socialHighlight.count.mockResolvedValue(data.length);
+
+      const result = await repository.findAll({}, 'org-1');
+
+      expect(result).toEqual({
+        data,
+        total: 2,
+        page: 1,
+        totalPages: 1,
+      });
+      expect(prisma.socialHighlight.findMany).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          isDeleted: false,
+        },
+        select: {
+          id: true,
+          name: true,
+          link: true,
+          order: true,
+          isActive: true,
+          initialDate: true,
+          finishDate: true,
+        },
+        orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+        skip: 0,
+        take: 25,
+      });
+      expect(prisma.socialHighlight.count).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          isDeleted: false,
+        },
+      });
+    });
+
+    it('deve filtrar por onlyActive e searchTerm', async () => {
+      prisma.socialHighlight.findMany.mockResolvedValue([]);
+      prisma.socialHighlight.count.mockResolvedValue(0);
+
+      await repository.findAll(
+        { onlyActive: true, searchTerm: 'promo' },
+        'org-1',
+      );
+
+      expect(prisma.socialHighlight.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            organizationId: 'org-1',
+            isDeleted: false,
+            isActive: true,
+            name: { contains: 'promo', mode: 'insensitive' },
+          },
+        }),
+      );
+    });
+
+    it('deve omitir isActive quando onlyActive for false', async () => {
+      prisma.socialHighlight.findMany.mockResolvedValue([]);
+      prisma.socialHighlight.count.mockResolvedValue(0);
+
+      await repository.findAll({ onlyActive: false }, 'org-1');
+
+      expect(prisma.socialHighlight.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            organizationId: 'org-1',
+            isDeleted: false,
+          },
+        }),
+      );
+      expect(
+        (
+          prisma.socialHighlight.findMany.mock.calls[0][0].where as {
+            isActive?: boolean;
+          }
+        ).isActive,
+      ).toBeUndefined();
+    });
+
+    it('deve aplicar filtro só de initialDate quando finishDate não for enviado', async () => {
+      prisma.socialHighlight.findMany.mockResolvedValue([]);
+      prisma.socialHighlight.count.mockResolvedValue(0);
+      const initialDate = new Date('2025-06-15T12:00:00.000Z');
+
+      await repository.findAll({ initialDate }, 'org-1');
+
+      const where = prisma.socialHighlight.findMany.mock.calls[0][0].where as {
+        AND: unknown[];
+      };
+
+      expect(where.AND).toHaveLength(1);
+      expect(where.AND[0]).toEqual({
+        OR: [{ initialDate: null }, { initialDate: { lte: initialDate } }],
+      });
+    });
+
+    it('deve aplicar filtro só de finishDate quando initialDate não for enviado', async () => {
+      prisma.socialHighlight.findMany.mockResolvedValue([]);
+      prisma.socialHighlight.count.mockResolvedValue(0);
+      const finishDate = new Date('2025-06-15T12:00:00.000Z');
+
+      await repository.findAll({ finishDate }, 'org-1');
+
+      const where = prisma.socialHighlight.findMany.mock.calls[0][0].where as {
+        AND: unknown[];
+      };
+
+      expect(where.AND).toHaveLength(1);
+      expect(where.AND[0]).toEqual({
+        OR: [{ finishDate: null }, { finishDate: { gte: finishDate } }],
+      });
+    });
+
+    it('deve aplicar ambos os filtros de data quando initialDate e finishDate forem enviados', async () => {
+      prisma.socialHighlight.findMany.mockResolvedValue([]);
+      prisma.socialHighlight.count.mockResolvedValue(0);
+      const initialDate = new Date('2025-06-01T00:00:00.000Z');
+      const finishDate = new Date('2025-06-30T23:59:59.000Z');
+
+      await repository.findAll({ initialDate, finishDate }, 'org-1');
+
+      const where = prisma.socialHighlight.findMany.mock.calls[0][0].where as {
+        AND: unknown[];
+      };
+
+      expect(where.AND).toHaveLength(2);
+      expect(where.AND[0]).toEqual({
+        OR: [{ initialDate: null }, { initialDate: { lte: initialDate } }],
+      });
+      expect(where.AND[1]).toEqual({
+        OR: [{ finishDate: null }, { finishDate: { gte: finishDate } }],
+      });
+    });
+
+    it('deve retornar page do filtro e aplicar skip/take', async () => {
+      prisma.socialHighlight.findMany.mockResolvedValue([]);
+      prisma.socialHighlight.count.mockResolvedValue(50);
+
+      const result = await repository.findAll({ page: 2, limit: 10 }, 'org-1');
+
+      expect(result.page).toBe(2);
+      expect(result.totalPages).toBe(5);
+      expect(prisma.socialHighlight.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 10, take: 10 }),
+      );
+    });
+
+    it('deve lançar BadRequest quando findMany falhar', async () => {
+      prisma.socialHighlight.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(repository.findAll({}, 'org-1')).rejects.toThrow(
+        'Erro ao buscar destaques sociais',
+      );
+
+      expect(logger.error).toHaveBeenCalledWith(
+        'SocialHighlightRepository.findAll falhou',
+        expect.objectContaining({ organizationId: 'org-1' }),
+      );
+    });
+  });
+
+  describe('findList', () => {
+    it('deve listar banners ativos da organização dentro do período vigente', async () => {
+      const rows = [
+        {
+          id: 'social-highlight-1',
+          name: 'Destaque social principal',
+          link: 'https://example.com',
+          order: 1,
+          desktopImageKey: '/d.png',
+          mobileImageKey: '/m.png',
+          initialDate: new Date('2024-01-01'),
+          finishDate: new Date('2024-12-31'),
+          isActive: true,
+        },
+      ];
+
+      prisma.socialHighlight.findMany.mockResolvedValue(rows);
+
+      await expect(repository.findList('org-1')).resolves.toEqual(rows);
+
+      expect(prisma.socialHighlight.findMany).toHaveBeenCalledWith({
+        where: {
+          isActive: true,
+          isDeleted: false,
+          organizationId: 'org-1',
+          initialDate: { lte: expect.any(Date) },
+          finishDate: { gte: expect.any(Date) },
+        },
+        orderBy: { order: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          link: true,
+          order: true,
+          desktopImageKey: true,
+          mobileImageKey: true,
+          initialDate: true,
+          finishDate: true,
+          isActive: true,
+        },
+      });
+    });
+
+    it('deve retornar lista vazia quando não houver banners vigentes', async () => {
+      prisma.socialHighlight.findMany.mockResolvedValue([]);
+
+      await expect(repository.findList('org-1')).resolves.toEqual([]);
+    });
+
+    it('deve lançar BadRequest quando findMany falhar', async () => {
+      prisma.socialHighlight.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(repository.findList('org-1')).rejects.toThrow(
+        'Erro ao buscar destaques sociais',
+      );
+
+      expect(logger.error).toHaveBeenCalledWith(
+        'SocialHighlightRepository.findList falhou',
+        expect.objectContaining({ error: 'Error: db' }),
+      );
+    });
+  });
+
+  describe('findById', () => {
+    it('deve retornar banner quando existir', async () => {
+      const banner = makeSocialHighlight();
+      prisma.socialHighlight.findFirst.mockResolvedValue(banner);
+
+      await expect(
+        repository.findById(banner.id, banner.organizationId),
+      ).resolves.toEqual(banner);
+
+      expect(prisma.socialHighlight.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: banner.id,
+          organizationId: banner.organizationId,
+          isDeleted: false,
+        },
+        select: {
+          id: true,
+          name: true,
+          link: true,
+          order: true,
+          isActive: true,
+          initialDate: true,
+          finishDate: true,
+          mobileImageKey: true,
+          desktopImageKey: true,
+        },
+      });
+    });
+
+    it('deve lançar BadRequest quando findFirst falhar', async () => {
+      prisma.socialHighlight.findFirst.mockRejectedValue(new Error('db'));
+
+      await expect(repository.findById('id', 'org')).rejects.toThrow(
+        'Erro ao buscar destaque social',
+      );
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('create', () => {
+    it('deve persistir com URLs de imagem e defaults de link/datas', async () => {
+      prisma.socialHighlight.create.mockResolvedValue({} as never);
+
+      await repository.create(
+        'org-1',
+        {
+          name: 'Banner mínimo',
+          order: 0,
+          mobileImageKey: '/m.png',
+          desktopImageKey: '/d.png',
+        },
+        'user-1',
+      );
+
+      expect(prisma.socialHighlight.create).toHaveBeenCalledWith({
+        data: {
+          id: 'mocked-uuid',
+          organizationId: 'org-1',
+          name: 'Banner mínimo',
+          link: null,
+          order: 0,
+          isActive: true,
+          initialDate: null,
+          finishDate: null,
+          mobileImageKey: '/m.png',
+          desktopImageKey: '/d.png',
+        },
+      });
+      expect(logger.info).toHaveBeenCalledWith(
+        'Destaque social criado',
+        expect.objectContaining({
+          organizationId: 'org-1',
+          userId: 'user-1',
+          name: 'Banner mínimo',
+        }),
+      );
+    });
+
+    it('deve lançar BadRequest quando create falhar', async () => {
+      prisma.socialHighlight.create.mockRejectedValue(new Error('db'));
+      const dto = makeCreateSocialHighlightDTO();
+
+      await expect(
+        repository.create(
+          'org-1',
+          {
+            ...dto,
+            mobileImageKey: '/m.png',
+            desktopImageKey: '/d.png',
+          },
+          'user-1',
+        ),
+      ).rejects.toThrow('Erro ao criar destaque social');
+
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('update', () => {
+    it('deve aplicar apenas campos enviados', async () => {
+      prisma.socialHighlight.updateMany.mockResolvedValue({ count: 1 });
+
+      await repository.update('bid', 'org-1', { name: 'Só nome' }, 'user-1');
+
+      expect(prisma.socialHighlight.updateMany).toHaveBeenCalledWith({
+        where: { id: 'bid', organizationId: 'org-1', isDeleted: false },
+        data: { name: 'Só nome' },
+      });
+      expect(logger.info).toHaveBeenCalled();
+    });
+
+    it('deve incluir URLs opcionais quando informadas', async () => {
+      prisma.socialHighlight.updateMany.mockResolvedValue({ count: 1 });
+
+      await repository.update(
+        'bid',
+        'org-1',
+        { mobileImageKey: '/new-m.png', order: 3 },
+        'user-1',
+      );
+
+      expect(prisma.socialHighlight.updateMany).toHaveBeenCalledWith({
+        where: { id: 'bid', organizationId: 'org-1', isDeleted: false },
+        data: { order: 3, mobileImageKey: '/new-m.png' },
+      });
+    });
+
+    it('deve atualizar todos os campos opcionais quando informados', async () => {
+      prisma.socialHighlight.updateMany.mockResolvedValue({ count: 1 });
+      const initialDate = new Date('2025-01-01');
+      const finishDate = new Date('2025-12-31');
+
+      await repository.update(
+        'bid',
+        'org-1',
+        {
+          name: 'N',
+          link: 'https://x.com',
+          order: 1,
+          isActive: false,
+          initialDate,
+          finishDate,
+          mobileImageKey: '/m.png',
+          desktopImageKey: '/d.png',
+        },
+        'user-1',
+      );
+
+      expect(prisma.socialHighlight.updateMany).toHaveBeenCalledWith({
+        where: { id: 'bid', organizationId: 'org-1', isDeleted: false },
+        data: {
+          name: 'N',
+          link: 'https://x.com',
+          order: 1,
+          isActive: false,
+          initialDate,
+          finishDate,
+          mobileImageKey: '/m.png',
+          desktopImageKey: '/d.png',
+        },
+      });
+    });
+
+    it('deve lançar BadRequest quando updateMany falhar', async () => {
+      prisma.socialHighlight.updateMany.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.update('bid', 'org-1', { name: 'x' }, 'user-1'),
+      ).rejects.toThrow('Erro ao atualizar destaque social');
+
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('softDelete', () => {
+    it('deve marcar isDeleted e deletedAt', async () => {
+      prisma.socialHighlight.updateMany.mockResolvedValue({ count: 1 });
+
+      await repository.softDelete('bid', 'org-1', 'user-1');
+
+      expect(prisma.socialHighlight.updateMany).toHaveBeenCalledWith({
+        where: { id: 'bid', organizationId: 'org-1', isDeleted: false },
+        data: {
+          isDeleted: true,
+          deletedAt: expect.any(Date),
+        },
+      });
+      expect(logger.info).toHaveBeenCalledWith(
+        'Destaque social removido',
+        expect.objectContaining({
+          socialHighlightId: 'bid',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        }),
+      );
+    });
+
+    it('deve lançar BadRequest quando softDelete falhar', async () => {
+      prisma.socialHighlight.updateMany.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.softDelete('bid', 'org-1', 'user-1'),
+      ).rejects.toThrow('Erro ao remover destaque social');
+
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+});

@@ -1,3 +1,4 @@
+export * from './accept-material.dto';
 export * from './create-material.dto';
 export * from './find-all-materials-filters.dto';
 export * from './search-materials-filters.dto';

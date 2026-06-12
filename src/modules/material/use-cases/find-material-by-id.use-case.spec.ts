@@ -26,6 +26,24 @@ describe('FindMaterialByIdUseCase', () => {
     expect(materialRepository.findById).toHaveBeenCalledWith(
       material.id,
       'org-id',
+      undefined,
+    );
+  });
+
+  it('deve repassar userId para consultar aceite do usuário', async () => {
+    const material = makeMaterialDetails({
+      currentUserAcceptedAt: new Date('2024-02-01T00:00:00.000Z'),
+    });
+
+    materialRepository.findById.mockResolvedValue(material);
+
+    await expect(
+      useCase.execute(material.id, 'org-id', 'user-id'),
+    ).resolves.toEqual(material);
+    expect(materialRepository.findById).toHaveBeenCalledWith(
+      material.id,
+      'org-id',
+      'user-id',
     );
   });
 

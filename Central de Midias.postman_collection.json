@@ -2002,6 +2002,11 @@
                   "type": "text"
                 },
                 {
+                  "key": "requiresAcceptance",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
                   "key": "files",
                   "type": "file",
                   "src": []
@@ -2137,6 +2142,70 @@
                 "{{materialId}}",
                 "files",
                 "{{fileId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Accept Material",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"accepted\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/materials/{{materialId}}/acceptance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials",
+                "{{materialId}}",
+                "acceptance"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Export Material Acceptance Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/materials/{{materialId}}/acceptance/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials",
+                "{{materialId}}",
+                "acceptance",
+                "export"
               ]
             }
           },
