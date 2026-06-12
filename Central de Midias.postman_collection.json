@@ -1,0 +1,2618 @@
+{
+  "info": {
+    "_postman_id": "b5f8bb71-764e-4334-acfd-f0c12c1afac7",
+    "name": "Central de Midias",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "20221314",
+    "_collection_link": "https://go.postman.co/collection/20221314-b5f8bb71-764e-4334-acfd-f0c12c1afac7?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Sign In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {\r",
+                  "    const jsonData = pm.response.json();\r",
+                  "    pm.environment.set(\"accessToken\", jsonData.accessToken);\r",
+                  "    pm.environment.set(\"refreshToken\", jsonData.refreshToken);\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "api_key",
+                "value": "secret",
+                "disabled": true
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin@admin.com\",\n    \"password\": \"V9!rK#4pT@7zL$2qX8mF\"\n    // \"email\": \"marketing@teste.com\",\n    // \"password\": \"42883014086\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/auth/sign-in",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "4000",
+              "path": [
+                "api",
+                "auth",
+                "sign-in"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set(\"accessToken\", jsonData.accessToken);",
+                  "    pm.environment.set(\"refreshToken\", jsonData.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerAccessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"refreshToken\": \"{{refreshToken}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"refreshToken\": \"{{refreshToken}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "First Access",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"newPassword\": \"V9!rK#4pT@7zL$2qX8mF\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/first-access",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "first-access"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"marketing@teste.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-password"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"token\": \"\",\r\n    \"email\": \"marketing@teste.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "verify-token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"token\": \"\",\r\n    \"email\": \"marketing@teste.com\",\r\n    \"password\": \"V9!rK#4pT@7zL$2qX8mF\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "reset-password"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "noauth"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get Users",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Global User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"taxIdentifier\": \"42883014086\",\r\n    \"name\": \"usuario marketing\",\r\n    \"email\": \"marketing@teste.com\",\r\n    \"globalRoleId\": \"566dc53e-2554-49ed-b1da-a26acde869ea\",\r\n    \"organizationIds\": [\"0d37f08a-0408-4124-9608-c7ae88ef9415\"]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/global",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "global"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"usuario marketing\",\r\n    \"taxIdentifier\": \"42883014086\",\r\n    \"email\": \"marketing@teste.com\",\r\n    \"phone\": \"13999999999\",\r\n    \"socialReason\": \"FULANO DE TAL\",\r\n    \"birthDate\": \"1990-01-01\",\r\n    \"admissionDate\": \"2024-01-01\",\r\n    \"roleId\": \"9940dfb6-e3bf-4d0a-b696-c233f1e9395b\",\r\n    \"managerAssignments\": []\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Global Users Select",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/global/select",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "global",
+                "select"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Roles",
+      "item": [
+        {
+          "name": "Get Roles",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"MARKETING\",\r\n    \"label\": \"Marketing\",\r\n    \"permissions\": [\r\n        {\r\n            \"moduleId\": \"d9dff990-7a1b-4cce-89d9-9accccac30ee\",\r\n            \"action\": \"CREATE\"\r\n        },\r\n        {\r\n            \"moduleId\": \"d9dff990-7a1b-4cce-89d9-9accccac30ee\",\r\n            \"action\": \"READ\"\r\n        },\r\n        {\r\n            \"moduleId\": \"d9dff990-7a1b-4cce-89d9-9accccac30ee\",\r\n            \"action\": \"UPDATE\"\r\n        },\r\n        {\r\n            \"moduleId\": \"d9dff990-7a1b-4cce-89d9-9accccac30ee\",\r\n            \"action\": \"DELETE\"\r\n        }\r\n    ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Role By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/9940dfb6-e3bf-4d0a-b696-c233f1e9395b",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "9940dfb6-e3bf-4d0a-b696-c233f1e9395b"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"label\": \"\",\r\n    \"name\": \"\",\r\n    \"canAccessBackoffice\": true,\r\n    \"canHaveSubordinates\": false\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/9940dfb6-e3bf-4d0a-b696-c233f1e9395b",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "9940dfb6-e3bf-4d0a-b696-c233f1e9395b"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/9940dfb6-e3bf-4d0a-b696-c233f1e9395b",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "9940dfb6-e3bf-4d0a-b696-c233f1e9395b"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Roles Select",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/select",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "select"
+              ],
+              "query": [
+                {
+                  "key": "isMember",
+                  "value": "false",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Global Roles Select",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/global/select",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "global",
+                "select"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Global Role By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/global/566dc53e-2554-49ed-b1da-a26acde869ea",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "global",
+                "566dc53e-2554-49ed-b1da-a26acde869ea"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Role Permissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roles/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "permissions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Role Permissions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"MARKETING\",\r\n    \"label\": \"Marketing\",\r\n    \"permissions\": [\r\n        {\r\n            \"moduleId\": \"d9dff990-7a1b-4cce-89d9-9accccac30ee\",\r\n            \"action\": \"CREATE\"\r\n        },\r\n        {\r\n            \"moduleId\": \"d9dff990-7a1b-4cce-89d9-9accccac30ee\",\r\n            \"action\": \"READ\"\r\n        }\r\n    ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "permissions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Global Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"label\": \"\",\r\n    \"name\": \"\",\r\n    \"canAccessBackoffice\": true,\r\n    \"canHaveSubordinates\": false\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/global/566dc53e-2554-49ed-b1da-a26acde869ea",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "global",
+                "566dc53e-2554-49ed-b1da-a26acde869ea"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Global Role",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/global/566dc53e-2554-49ed-b1da-a26acde869ea",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "global",
+                "566dc53e-2554-49ed-b1da-a26acde869ea"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Organizations",
+      "item": [
+        {
+          "name": "Create Organization",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Arisco",
+                  "type": "text",
+                  "uuid": "352bf2c1-a5f8-47f3-9ea5-eebb08a0660e"
+                },
+                {
+                  "key": "slug",
+                  "value": "arisco",
+                  "type": "text",
+                  "uuid": "18f26ec2-a047-41de-9882-8731c775022e"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "uuid": "7d1ee971-8d37-45d6-8de5-1ab4fd1676b3",
+                  "src": "/C:/Users/kinho/Downloads/arisco.png"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/organizations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Organizations",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/organizations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Org",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "url": {
+              "raw": "{{baseUrl}}/organizations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Org",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "url": {
+              "raw": "{{baseUrl}}/organizations/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Organization By ID",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "central-midias",
+                "type": "text"
+              },
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "url": {
+              "raw": "{{baseUrl}}/organizations/28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations",
+                "28d990f0-ceee-4ccb-a6be-8fb04d779c22"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Accessible",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "central-midias",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "url": {
+              "raw": "{{baseUrl}}/organizations/accessible",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations",
+                "accessible"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Organizations Select",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/organizations/select",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations",
+                "select"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Members",
+      "item": [
+        {
+          "name": "Get Members",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members"
+              ],
+              "query": [
+                {
+                  "key": "canAccessBackoffice",
+                  "value": "false",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Member By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/members/4ace6d11-eb70-443a-b780-2de72effa168",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "4ace6d11-eb70-443a-b780-2de72effa168"
+              ],
+              "query": [
+                {
+                  "key": "canAccessBackoffice",
+                  "value": "false",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "a39f380d-1fab-41b5-9489-bf98b632dcc5",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"userId\": \"9a8646c3-5926-427b-8c6f-94a7949d8a88\",\r\n    \"roleId\": \"9940dfb6-e3bf-4d0a-b696-c233f1e9395b\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/members/add",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "add"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create New Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "a39f380d-1fab-41b5-9489-bf98b632dcc5",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"usuario marketing\",\r\n    \"taxIdentifier\": \"42883014086\",\r\n    \"email\": \"marketing@teste.com\",\r\n    \"phone\": \"13999999999\",\r\n    \"socialReason\": \"FULANO DE TAL\",\r\n    \"birthDate\": \"string\",\r\n    \"admissionDate\": \"string\",\r\n    \"roleId\": \"string\",\r\n    \"managerAssignments\": []\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/members/new",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "new"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Member Role",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "central-midias",
+                "type": "text"
+              },
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/members/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Member Role Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/members/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "role"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Member",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"roleId\": \"9940dfb6-e3bf-4d0a-b696-c233f1e9395b\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/members/4ace6d11-eb70-443a-b780-2de72effa168",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "4ace6d11-eb70-443a-b780-2de72effa168"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Member",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/members/4ace6d11-eb70-443a-b780-2de72effa168",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "4ace6d11-eb70-443a-b780-2de72effa168"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Banners",
+      "item": [
+        {
+          "name": "Get Banners List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "b9326a44-fba1-4ce4-b79f-969cbd386e12",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/banners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "banners"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Banner By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "b9326a44-fba1-4ce4-b79f-969cbd386e12",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/banners/cmp1jb5a80001bohwbo7khdkf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "banners",
+                "cmp1jb5a80001bohwbo7khdkf"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Banner",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "url": {
+              "raw": "{{baseUrl}}/banners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "banners"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Banner",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "url": {
+              "raw": "{{baseUrl}}/banners/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "banners",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Banner",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/banners/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "banners",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Banners List Web",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "b9326a44-fba1-4ce4-b79f-969cbd386e12",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/banners/list",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "banners",
+                "list"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Modules",
+      "item": [
+        {
+          "name": "Get Modules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/modules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "modules"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Module",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/modules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "modules"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Modules Select",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/modules/select",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "modules",
+                "select"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Module By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/modules/d9dff990-7a1b-4cce-89d9-9accccac30ee",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "modules",
+                "d9dff990-7a1b-4cce-89d9-9accccac30ee"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Module",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"\",\r\n    \"label\": \"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/modules/d9dff990-7a1b-4cce-89d9-9accccac30ee",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "modules",
+                "d9dff990-7a1b-4cce-89d9-9accccac30ee"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Module",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/modules/d9dff990-7a1b-4cce-89d9-9accccac30ee",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "modules",
+                "d9dff990-7a1b-4cce-89d9-9accccac30ee"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Get Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Categories Tree",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/tree",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "tree"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category By Path",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/path?path=categoria-exemplo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "path"
+              ],
+              "query": [
+                {
+                  "key": "path",
+                  "value": "categoria-exemplo",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "{{categoryId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Nova Categoria\",\r\n    \"order\": 0,\r\n    \"isActive\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Categoria Atualizada\",\r\n    \"order\": 1,\r\n    \"isActive\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "{{categoryId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "{{categoryId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Materials",
+      "item": [
+        {
+          "name": "Get Materials",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/materials",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "categoryId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Materials",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/materials/search?term=&page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "term",
+                  "value": "",
+                  "type": "text"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Material By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/materials/{{materialId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials",
+                "{{materialId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Material Files",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/materials/{{materialId}}/files",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials",
+                "{{materialId}}",
+                "files"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Material",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Material Exemplo",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Descrição do material",
+                  "type": "text"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "tags",
+                  "value": "[\"tag1\", \"tag2\"]",
+                  "type": "text"
+                },
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/materials",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Material Files",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/materials/{{materialId}}/files",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials",
+                "{{materialId}}",
+                "files"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Material",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Material Atualizado\",\r\n    \"description\": \"Nova descrição\",\r\n    \"categoryId\": \"{{categoryId}}\",\r\n    \"tags\": [\"tag1\"]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/materials/{{materialId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials",
+                "{{materialId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Material",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/materials/{{materialId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials",
+                "{{materialId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Material File",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/materials/{{materialId}}/files/{{fileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials",
+                "{{materialId}}",
+                "files",
+                "{{fileId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Tags",
+      "item": [
+        {
+          "name": "Get Tags",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tags",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tags"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Tags Select",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tags/select",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tags",
+                "select"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Tag By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tags/{{tagId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tags",
+                "{{tagId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Tag",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Nova Tag\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tags",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tags"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Tag",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Tag Atualizada\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tags/{{tagId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tags",
+                "{{tagId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Tag",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tags/{{tagId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tags",
+                "{{tagId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Category Role Access",
+      "item": [
+        {
+          "name": "Get Category Role Accesses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/category-role-accesses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "category-role-accesses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Roles By Category",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/category-role-accesses/category/{{categoryId}}/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "category-role-accesses",
+                "category",
+                "{{categoryId}}",
+                "roles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Category Role Access",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"categoryId\": \"{{categoryId}}\",\r\n    \"roleId\": \"9940dfb6-e3bf-4d0a-b696-c233f1e9395b\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/category-role-accesses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "category-role-accesses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Category Role Access",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/category-role-accesses/{{categoryRoleAccessId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "category-role-accesses",
+                "{{categoryRoleAccessId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Liveness",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/live",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "live"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/ready",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "ready"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Metrics",
+      "item": [
+        {
+          "name": "Get Metrics",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/metrics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metrics"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Get Public URL",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "central-midias",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/file/?path=organizations/647a8ba9-8328-4efb-9789-0352be13fbff.png",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "file",
+            ""
+          ],
+          "query": [
+            {
+              "key": "path",
+              "value": "organizations/647a8ba9-8328-4efb-9789-0352be13fbff.png",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Public URL By Path Param",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "central-midias",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/file/organizations/647a8ba9-8328-4efb-9789-0352be13fbff.png",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "file",
+            "organizations",
+            "647a8ba9-8328-4efb-9789-0352be13fbff.png"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.request.headers.upsert({ key: \"x-api-key\", value: pm.environment.get(\"api_key\") });"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

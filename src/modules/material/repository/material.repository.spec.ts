@@ -19,6 +19,12 @@ function createPrismaMock() {
       findFirst: jest.fn(),
       deleteMany: jest.fn(),
     },
+    member: {
+      findFirst: jest.fn(),
+    },
+    user: {
+      findFirst: jest.fn(),
+    },
   };
 }
 
@@ -140,6 +146,176 @@ describe('MaterialRepository', () => {
       expect(logger.error).toHaveBeenCalledWith(
         'MaterialRepository.findAll falhou',
         expect.objectContaining({ organizationId: 'org-id' }),
+      );
+    });
+  });
+
+  describe('search', () => {
+    it('deve retornar vazio quando term não for informado', async () => {
+      const result = await repository.search('org-id', 'user-id', {});
+
+      expect(result).toEqual({
+        data: [],
+        total: 0,
+        page: 1,
+        totalPages: 0,
+      });
+      expect(prisma.member.findFirst).not.toHaveBeenCalled();
+      expect(prisma.material.findMany).not.toHaveBeenCalled();
+    });
+
+    it('deve retornar vazio quando term for apenas espaços', async () => {
+      const result = await repository.search('org-id', 'user-id', {
+        term: '   ',
+      });
+
+      expect(result).toEqual({
+        data: [],
+        total: 0,
+        page: 1,
+        totalPages: 0,
+      });
+      expect(prisma.member.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('deve retornar vazio quando usuário não for membro nem admin global', async () => {
+      prisma.member.findFirst.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
+
+      const result = await repository.search('org-id', 'user-id', {
+        term: 'campanha',
+      });
+
+      expect(result).toEqual({
+        data: [],
+        total: 0,
+        page: 1,
+        totalPages: 0,
+      });
+      expect(prisma.material.findMany).not.toHaveBeenCalled();
+    });
+
+    it('deve buscar materiais com filtro por role do membro', async () => {
+      prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.material.findMany.mockResolvedValue([
+        {
+          id: 'material-id',
+          name: 'Material campanha',
+          description: 'Descricao',
+          category: { name: 'Categoria' },
+          materialFiles: [{ id: 'file-1' }],
+        },
+      ]);
+      prisma.material.count.mockResolvedValue(1);
+
+      const result = await repository.search('org-id', 'user-id', {
+        term: 'campanha',
+        page: 2,
+        limit: 10,
+      });
+
+      expect(result).toEqual({
+        data: [
+          {
+            id: 'material-id',
+            name: 'Material campanha',
+            description: 'Descricao',
+            category: { name: 'Categoria' },
+            materialFilesCount: 1,
+          },
+        ],
+        total: 1,
+        page: 2,
+        totalPages: 1,
+      });
+      expect(prisma.material.findMany).toHaveBeenCalledWith({
+        where: {
+          deletedAt: null,
+          category: {
+            organizationId: 'org-id',
+            isDeleted: false,
+            OR: [
+              { categoryRoleAccesses: { none: {} } },
+              {
+                categoryRoleAccesses: {
+                  some: { roleId: 'role-1', organizationId: 'org-id' },
+                },
+              },
+            ],
+          },
+          OR: [
+            { name: { contains: 'campanha', mode: 'insensitive' } },
+            {
+              tags: {
+                some: {
+                  organizationId: 'org-id',
+                  name: { contains: 'campanha', mode: 'insensitive' },
+                },
+              },
+            },
+          ],
+        },
+        select: expect.any(Object),
+        orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+        skip: 10,
+        take: 10,
+      });
+    });
+
+    it('deve buscar sem filtro de role para admin global', async () => {
+      prisma.member.findFirst.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue({
+        globalRole: {
+          name: 'ADMIN',
+          canAccessBackoffice: true,
+        },
+      });
+      prisma.material.findMany.mockResolvedValue([]);
+      prisma.material.count.mockResolvedValue(0);
+
+      await repository.search('org-id', 'admin-id', { term: 'video' });
+
+      expect(prisma.material.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            deletedAt: null,
+            category: {
+              organizationId: 'org-id',
+              isDeleted: false,
+            },
+            OR: [
+              { name: { contains: 'video', mode: 'insensitive' } },
+              {
+                tags: {
+                  some: {
+                    organizationId: 'org-id',
+                    name: { contains: 'video', mode: 'insensitive' },
+                  },
+                },
+              },
+            ],
+          },
+        }),
+      );
+    });
+
+    it('deve lançar BadRequest quando findMany falhar', async () => {
+      prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.material.findMany.mockRejectedValue(new Error('db'));
+      prisma.material.count.mockResolvedValue(0);
+
+      await expect(
+        repository.search('org-id', 'user-id', { term: 'campanha' }),
+      ).rejects.toThrow('Erro ao buscar materiais');
+      expect(logger.error).toHaveBeenCalledWith(
+        'MaterialRepository.search falhou',
+        expect.objectContaining({
+          organizationId: 'org-id',
+          userId: 'user-id',
+          term: 'campanha',
+        }),
       );
     });
   });

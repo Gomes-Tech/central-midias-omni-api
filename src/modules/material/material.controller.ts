@@ -12,11 +12,14 @@ import {
   UploadedFiles,
   UseGuards,
 } from '@nestjs/common';
+import { PaginatedResponse } from '../../types';
 import {
   CreateMaterialDTO,
   FindAllMaterialsFiltersDTO,
+  SearchMaterialsFiltersDTO,
   UpdateMaterialDTO,
 } from './dto';
+import { MaterialListItem } from './entities';
 import {
   CreateMaterialUseCase,
   DeleteMaterialFileUseCase,
@@ -24,6 +27,7 @@ import {
   FindAllMaterialsUseCase,
   FindMaterialByIdUseCase,
   FindMaterialFilesUseCase,
+  SearchMaterialsUseCase,
   UpdateMaterialUseCase,
   UploadMaterialFilesUseCase,
 } from './use-cases';
@@ -38,6 +42,7 @@ type UploadedMaterialFiles =
 export class MaterialController {
   constructor(
     private readonly findAllMaterialsUseCase: FindAllMaterialsUseCase,
+    private readonly searchMaterialsUseCase: SearchMaterialsUseCase,
     private readonly findMaterialByIdUseCase: FindMaterialByIdUseCase,
     private readonly createMaterialUseCase: CreateMaterialUseCase,
     private readonly updateMaterialUseCase: UpdateMaterialUseCase,
@@ -68,6 +73,19 @@ export class MaterialController {
     @Query() filters: FindAllMaterialsFiltersDTO = {},
   ) {
     return await this.findAllMaterialsUseCase.execute(organizationId, filters);
+  }
+
+  @Get('search')
+  async search(
+    @OrgId() organizationId: string,
+    @UserId() userId: string,
+    @Query() filters: SearchMaterialsFiltersDTO = {},
+  ): Promise<PaginatedResponse<MaterialListItem>> {
+    return await this.searchMaterialsUseCase.execute(
+      organizationId,
+      userId,
+      filters,
+    );
   }
 
   @RequirePermission('materials', 'read')

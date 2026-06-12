@@ -8,6 +8,7 @@ import { PaginatedResponse } from '../../../types';
 import {
   CreateMaterialDTO,
   FindAllMaterialsFiltersDTO,
+  SearchMaterialsFiltersDTO,
   UpdateMaterialDTO,
 } from '../dto';
 import {
@@ -166,6 +167,138 @@ export class MaterialRepository {
 
       throw new BadRequestException('Erro ao buscar materiais');
     }
+  }
+
+  async search(
+    organizationId: string,
+    userId: string,
+    filters: SearchMaterialsFiltersDTO = {},
+  ): Promise<PaginatedResponse<MaterialListItem>> {
+    const { page = 1, limit = 25, term } = filters;
+
+    if (!term) {
+      return { data: [], total: 0, page, totalPages: 0 };
+    }
+
+    try {
+      const member = await this.findActiveMember(organizationId, userId);
+      const canViewAllCategories = await this.isGlobalAdmin(userId);
+
+      if (!member && !canViewAllCategories) {
+        return { data: [], total: 0, page, totalPages: 0 };
+      }
+
+      const skip = (page - 1) * limit;
+
+      const categoryWhere: Prisma.CategoryWhereInput = {
+        organizationId,
+        isDeleted: false,
+        ...(!canViewAllCategories &&
+          member && {
+            OR: [
+              { categoryRoleAccesses: { none: {} } },
+              {
+                categoryRoleAccesses: {
+                  some: { roleId: member.roleId, organizationId },
+                },
+              },
+            ],
+          }),
+      };
+
+      const where: Prisma.MaterialWhereInput = {
+        deletedAt: null,
+        category: categoryWhere,
+        OR: [
+          {
+            name: {
+              contains: term,
+              mode: 'insensitive',
+            },
+          },
+          {
+            tags: {
+              some: {
+                organizationId,
+                name: {
+                  contains: term,
+                  mode: 'insensitive',
+                },
+              },
+            },
+          },
+        ],
+      };
+
+      const [materials, total] = await Promise.all([
+        this.prisma.material.findMany({
+          where,
+          select: materialListSelect,
+          orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+          skip,
+          take: limit,
+        }),
+        this.prisma.material.count({ where }),
+      ]);
+
+      return {
+        data: materials.map((material) => ({
+          id: material.id,
+          name: material.name,
+          description: material.description,
+          category: material.category,
+          materialFilesCount: material.materialFiles.length,
+        })),
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      void this.logger.error('MaterialRepository.search falhou', {
+        error: String(error),
+        organizationId,
+        userId,
+        term,
+      });
+
+      throw new BadRequestException('Erro ao buscar materiais');
+    }
+  }
+
+  private async findActiveMember(
+    organizationId: string,
+    userId: string,
+  ): Promise<{ roleId: string } | null> {
+    return await this.prisma.member.findFirst({
+      where: {
+        organizationId,
+        userId,
+        user: { isActive: true, isDeleted: false },
+      },
+      select: { roleId: true },
+    });
+  }
+
+  private async isGlobalAdmin(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: userId,
+        isActive: true,
+        isDeleted: false,
+      },
+      select: {
+        globalRole: {
+          select: {
+            name: true,
+            canAccessBackoffice: true,
+          },
+        },
+      },
+    });
+
+    return (
+      user?.globalRole?.name === 'ADMIN' && user.globalRole.canAccessBackoffice
+    );
   }
 
   async findAllSelect(

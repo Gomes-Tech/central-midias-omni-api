@@ -13,6 +13,7 @@ import {
   FindMaterialByIdUseCase,
   ResolveMaterialTagIdsUseCase,
   ResolveMaterialTagsUseCase,
+  SearchMaterialsUseCase,
   UploadMaterialFilesUseCase,
   UpdateMaterialUseCase,
 } from './use-cases';
@@ -25,6 +26,7 @@ import {
     MaterialRepository,
     FindAllMaterialsUseCase,
     FindMaterialByIdUseCase,
+    SearchMaterialsUseCase,
     ResolveMaterialTagsUseCase,
     ResolveMaterialTagIdsUseCase,
     CreateMaterialUseCase,
@@ -42,6 +44,7 @@ import {
     MaterialRepository,
     FindAllMaterialsUseCase,
     FindMaterialByIdUseCase,
+    SearchMaterialsUseCase,
     ResolveMaterialTagsUseCase,
     CreateMaterialUseCase,
     UpdateMaterialUseCase,

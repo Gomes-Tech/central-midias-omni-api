@@ -8,6 +8,7 @@ import {
   FindAllMaterialsUseCase,
   FindMaterialFilesUseCase,
   FindMaterialByIdUseCase,
+  SearchMaterialsUseCase,
   UploadMaterialFilesUseCase,
   UpdateMaterialUseCase,
 } from './use-cases';
@@ -17,6 +18,7 @@ import {
   makeMaterialFile,
   makeMaterialDetails,
   makeMaterialListItem,
+  makeSearchMaterialsFiltersDTO,
   makeUploadFile,
   makeUpdateMaterialDTO,
 } from './use-cases/test-helpers';
@@ -26,6 +28,7 @@ describe('MaterialController', () => {
   let createMaterialUseCase: { execute: jest.Mock };
   let deleteMaterialUseCase: { execute: jest.Mock };
   let findAllMaterialsUseCase: { execute: jest.Mock };
+  let searchMaterialsUseCase: { execute: jest.Mock };
   let findMaterialFilesUseCase: { execute: jest.Mock };
   let findMaterialByIdUseCase: { execute: jest.Mock };
   let uploadMaterialFilesUseCase: { execute: jest.Mock };
@@ -36,6 +39,7 @@ describe('MaterialController', () => {
     createMaterialUseCase = { execute: jest.fn() };
     deleteMaterialUseCase = { execute: jest.fn() };
     findAllMaterialsUseCase = { execute: jest.fn() };
+    searchMaterialsUseCase = { execute: jest.fn() };
     findMaterialFilesUseCase = { execute: jest.fn() };
     findMaterialByIdUseCase = { execute: jest.fn() };
     uploadMaterialFilesUseCase = { execute: jest.fn() };
@@ -50,6 +54,10 @@ describe('MaterialController', () => {
         {
           provide: FindAllMaterialsUseCase,
           useValue: findAllMaterialsUseCase,
+        },
+        {
+          provide: SearchMaterialsUseCase,
+          useValue: searchMaterialsUseCase,
         },
         {
           provide: FindMaterialByIdUseCase,
@@ -107,6 +115,26 @@ describe('MaterialController', () => {
     expect(result).toBe(payload);
     expect(findAllMaterialsUseCase.execute).toHaveBeenCalledWith(
       'org-id',
+      filters,
+    );
+  });
+
+  it('deve delegar search com org, user e filtros', async () => {
+    const filters = makeSearchMaterialsFiltersDTO({ term: 'campanha' });
+    const payload = {
+      data: [makeMaterialListItem()],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    };
+    searchMaterialsUseCase.execute.mockResolvedValue(payload);
+
+    const result = await controller.search('org-id', 'user-id', filters);
+
+    expect(result).toBe(payload);
+    expect(searchMaterialsUseCase.execute).toHaveBeenCalledWith(
+      'org-id',
+      'user-id',
       filters,
     );
   });

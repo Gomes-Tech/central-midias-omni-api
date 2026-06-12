@@ -6,5 +6,6 @@ export * from './find-material-files.use-case';
 export * from './find-material-by-id.use-case';
 export * from './resolve-material-tag-ids.use-case';
 export * from './resolve-material-tags.use-case';
+export * from './search-materials.use-case';
 export * from './upload-material-files.use-case';
 export * from './update-material.use-case';

@@ -1,6 +1,7 @@
 import {
   CreateMaterialDTO,
   FindAllMaterialsFiltersDTO,
+  SearchMaterialsFiltersDTO,
   UpdateMaterialDTO,
 } from '../dto';
 import {
@@ -33,6 +34,14 @@ export function makeUpdateMaterialDTO(
 export function makeFindAllMaterialsFiltersDTO(
   overrides: Partial<FindAllMaterialsFiltersDTO> = {},
 ): FindAllMaterialsFiltersDTO {
+  return {
+    ...overrides,
+  };
+}
+
+export function makeSearchMaterialsFiltersDTO(
+  overrides: Partial<SearchMaterialsFiltersDTO> = {},
+): SearchMaterialsFiltersDTO {
   return {
     ...overrides,
   };
