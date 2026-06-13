@@ -12,6 +12,7 @@ import {
   FindUserByEmailUseCase,
   FindUserByIdUseCase,
   GetMeUseCase,
+  RecordUserPlatformLoginUseCase,
   UpdateUserUseCase,
 } from './use-cases';
 import { UserController } from './user.controller';
@@ -30,6 +31,7 @@ import { UserController } from './user.controller';
     CreateGlobalUserUseCase,
     UpdateUserUseCase,
     DeleteUserUseCase,
+    RecordUserPlatformLoginUseCase,
     UserRepository,
     {
       provide: 'UserRepository',
@@ -43,6 +45,7 @@ import { UserController } from './user.controller';
     GetMeUseCase,
     CreateGlobalUserUseCase,
     UpdateUserUseCase,
+    RecordUserPlatformLoginUseCase,
     UserRepository,
     {
       provide: 'UserRepository',

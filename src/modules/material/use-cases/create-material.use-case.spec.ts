@@ -4,6 +4,7 @@ import { FindCategoryByIdUseCase } from '@modules/category';
 import { MaterialRepository } from '../repository';
 import { CreateMaterialUseCase } from './create-material.use-case';
 import { EnqueueMaterialAcceptanceEmailsUseCase } from './enqueue-material-acceptance-emails.use-case';
+import { EnqueueMaterialNotificationEmailsUseCase } from './enqueue-material-notification-emails.use-case';
 import { ResolveMaterialTagsUseCase } from './resolve-material-tags.use-case';
 import { makeCreateMaterialDTO, makeUploadFile } from './test-helpers';
 
@@ -15,6 +16,7 @@ describe('CreateMaterialUseCase', () => {
     Pick<StorageService, 'uploadFile' | 'deleteFile'>
   >;
   let enqueueMaterialAcceptanceEmailsUseCase: { execute: jest.Mock };
+  let enqueueMaterialNotificationEmailsUseCase: { execute: jest.Mock };
   let useCase: CreateMaterialUseCase;
 
   beforeEach(() => {
@@ -32,6 +34,9 @@ describe('CreateMaterialUseCase', () => {
     enqueueMaterialAcceptanceEmailsUseCase = {
       execute: jest.fn().mockResolvedValue({ enqueued: 1 }),
     };
+    enqueueMaterialNotificationEmailsUseCase = {
+      execute: jest.fn().mockResolvedValue({ enqueued: 1 }),
+    };
 
     useCase = new CreateMaterialUseCase(
       materialRepository,
@@ -39,6 +44,7 @@ describe('CreateMaterialUseCase', () => {
       resolveMaterialTagsUseCase as unknown as ResolveMaterialTagsUseCase,
       storageService as unknown as StorageService,
       enqueueMaterialAcceptanceEmailsUseCase as unknown as EnqueueMaterialAcceptanceEmailsUseCase,
+      enqueueMaterialNotificationEmailsUseCase as unknown as EnqueueMaterialNotificationEmailsUseCase,
     );
   });
 
@@ -86,6 +92,49 @@ describe('CreateMaterialUseCase', () => {
     );
     expect(storageService.uploadFile).not.toHaveBeenCalled();
     expect(enqueueMaterialAcceptanceEmailsUseCase.execute).not.toHaveBeenCalled();
+    expect(enqueueMaterialNotificationEmailsUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('deve disparar notificação quando notifyUsers for true', async () => {
+    const dto = makeCreateMaterialDTO({ notifyUsers: true });
+    findCategoryByIdUseCase.execute.mockResolvedValue({
+      id: dto.categoryId,
+      isActive: true,
+    });
+    materialRepository.findByName.mockResolvedValue(null);
+    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+      existingTagIds: [],
+      newTagNames: [],
+    });
+    materialRepository.create.mockResolvedValue(undefined);
+
+    await useCase.execute('org-id', dto, 'user-id');
+
+    expect(enqueueMaterialNotificationEmailsUseCase.execute).toHaveBeenCalledWith(
+      'mocked-uuid',
+      'org-id',
+    );
+  });
+
+  it('não deve impedir criação quando enfileiramento de notificação falhar', async () => {
+    const dto = makeCreateMaterialDTO({ notifyUsers: true });
+    findCategoryByIdUseCase.execute.mockResolvedValue({
+      id: dto.categoryId,
+      isActive: true,
+    });
+    materialRepository.findByName.mockResolvedValue(null);
+    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+      existingTagIds: [],
+      newTagNames: [],
+    });
+    materialRepository.create.mockResolvedValue(undefined);
+    enqueueMaterialNotificationEmailsUseCase.execute.mockRejectedValue(
+      new Error('queue'),
+    );
+
+    await expect(useCase.execute('org-id', dto, 'user-id')).resolves.toBe(
+      undefined,
+    );
   });
 
   it('deve disparar notificação quando requiresAcceptance for true', async () => {

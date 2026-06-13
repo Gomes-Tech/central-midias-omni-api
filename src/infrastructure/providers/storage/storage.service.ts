@@ -28,6 +28,10 @@ export class StorageService {
     return await this.s3StorageService.getSignedUrl(path, expieresIn);
   }
 
+  async getDownloadUrl(path: string, filename: string): Promise<string> {
+    return await this.s3StorageService.getSignedDownloadUrl(path, filename);
+  }
+
   async deleteFile(paths: string[]): Promise<void> {
     console.log('deleteFile', paths);
   }

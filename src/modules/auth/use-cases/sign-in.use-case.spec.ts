@@ -3,6 +3,7 @@ import { CryptographyService } from '@infrastructure/criptography';
 import { SecurityLoggerService } from '@infrastructure/security';
 import { FindUserBackofficeAccessUseCase } from '@modules/roles';
 import { FindUserByEmailUseCase } from '@modules/user/use-cases/find-user-by-email.use-case';
+import { RecordUserPlatformLoginUseCase } from '@modules/user/use-cases/record-user-platform-login.use-case';
 import { makeUser } from '@modules/user/use-cases/test-helpers';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -12,6 +13,7 @@ import { makeLoginDTO } from './test-helpers';
 describe('SignInUseCase', () => {
   let findUserByEmailUseCase: jest.Mocked<FindUserByEmailUseCase>;
   let findUserBackofficeAccessUseCase: jest.Mocked<FindUserBackofficeAccessUseCase>;
+  let recordUserPlatformLoginUseCase: jest.Mocked<RecordUserPlatformLoginUseCase>;
   let jwtService: jest.Mocked<JwtService>;
   let cryptographyService: jest.Mocked<CryptographyService>;
   let securityLogger: jest.Mocked<SecurityLoggerService>;
@@ -26,6 +28,10 @@ describe('SignInUseCase', () => {
     findUserBackofficeAccessUseCase = {
       execute: jest.fn(),
     } as unknown as jest.Mocked<FindUserBackofficeAccessUseCase>;
+
+    recordUserPlatformLoginUseCase = {
+      execute: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<RecordUserPlatformLoginUseCase>;
 
     jwtService = {
       sign: jest.fn(),
@@ -54,6 +60,7 @@ describe('SignInUseCase', () => {
     useCase = new SignInUseCase(
       findUserByEmailUseCase,
       findUserBackofficeAccessUseCase,
+      recordUserPlatformLoginUseCase,
       jwtService,
       cryptographyService,
       securityLogger,
@@ -98,6 +105,47 @@ describe('SignInUseCase', () => {
     expect(securityLogger.logFailedLogin).not.toHaveBeenCalled();
     expect(jwtService.sign).toHaveBeenCalledTimes(2);
     expect(findUserBackofficeAccessUseCase.execute).toHaveBeenCalledWith(user.id);
+    expect(recordUserPlatformLoginUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('deve registrar login de plataforma quando canAccessBackoffice for false', async () => {
+    const dto = makeLoginDTO();
+    const user = makeUser({ email: dto.email, password: 'stored-hash' });
+
+    findUserByEmailUseCase.execute.mockResolvedValue(user);
+    findUserBackofficeAccessUseCase.execute.mockResolvedValue({
+      canAccessBackoffice: false,
+    });
+    cryptographyService.compare.mockResolvedValue(true);
+    jwtService.sign.mockReturnValue('token');
+
+    await useCase.execute(dto);
+
+    expect(recordUserPlatformLoginUseCase.execute).toHaveBeenCalledWith(
+      user.id,
+      'sign-in',
+    );
+  });
+
+  it('deve concluir login mesmo quando registro de plataforma falhar', async () => {
+    const dto = makeLoginDTO();
+    const user = makeUser({ email: dto.email, password: 'stored-hash' });
+
+    findUserByEmailUseCase.execute.mockResolvedValue(user);
+    findUserBackofficeAccessUseCase.execute.mockResolvedValue({
+      canAccessBackoffice: false,
+    });
+    cryptographyService.compare.mockResolvedValue(true);
+    jwtService.sign.mockReturnValue('token');
+    recordUserPlatformLoginUseCase.execute.mockRejectedValue(
+      new Error('db down'),
+    );
+
+    await expect(useCase.execute(dto)).resolves.toEqual({
+      accessToken: 'token',
+      refreshToken: 'token',
+      canAccessBackoffice: false,
+    });
   });
 
   it('deve registrar login com ip unknown quando não informado', async () => {

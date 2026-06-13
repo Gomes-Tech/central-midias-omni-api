@@ -33,6 +33,12 @@ function createPrismaMock() {
       upsert: jest.fn(),
       findMany: jest.fn(),
     },
+    materialView: {
+      create: jest.fn(),
+    },
+    materialDownload: {
+      create: jest.fn(),
+    },
   };
 }
 
@@ -1056,6 +1062,283 @@ describe('MaterialRepository', () => {
       await expect(
         repository.deleteFile('file-id', 'material-id', 'org-id', 'user-id'),
       ).rejects.toThrow('Erro ao remover arquivo do material');
+    });
+  });
+
+  describe('registerView', () => {
+    it('deve criar registro de visualização com materialId e viewedAt', async () => {
+      const viewedAt = new Date('2024-06-12T12:00:00.000Z');
+      prisma.materialView.create.mockResolvedValue({
+        id: 'view-id',
+        materialId: 'material-id',
+        viewedAt,
+      });
+
+      await expect(
+        repository.registerView('material-id', viewedAt),
+      ).resolves.toBeUndefined();
+
+      expect(prisma.materialView.create).toHaveBeenCalledWith({
+        data: {
+          id: expect.any(String),
+          materialId: 'material-id',
+          viewedAt,
+        },
+      });
+    });
+
+    it('deve lançar BadRequest quando create falhar', async () => {
+      prisma.materialView.create.mockRejectedValue(new Error('db'));
+
+      await expect(repository.registerView('material-id')).rejects.toThrow(
+        'Erro ao registrar visualização do material',
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'MaterialRepository.registerView falhou',
+        expect.objectContaining({ materialId: 'material-id' }),
+      );
+    });
+  });
+
+  describe('findMostViewedMaterials', () => {
+    it('deve retornar lista vazia quando usuário não tiver acesso', async () => {
+      prisma.member.findFirst.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findMostViewedMaterials('org-id', 'user-id', 3),
+      ).resolves.toEqual([]);
+
+      expect(prisma.material.findMany).not.toHaveBeenCalled();
+    });
+
+    it('deve buscar materiais mais visualizados com filtro de role', async () => {
+      prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.material.findMany.mockResolvedValue([
+        {
+          id: 'material-id',
+          name: 'Material popular',
+          description: 'Descricao',
+          categoryId: 'category-1',
+          materialFiles: [],
+        },
+      ]);
+
+      await expect(
+        repository.findMostViewedMaterials('org-id', 'user-id', 3),
+      ).resolves.toEqual([
+        {
+          id: 'material-id',
+          name: 'Material popular',
+          description: 'Descricao',
+          categoryId: 'category-1',
+          materialFiles: [],
+        },
+      ]);
+
+      expect(prisma.material.findMany).toHaveBeenCalledWith({
+        where: {
+          deletedAt: null,
+          category: {
+            organizationId: 'org-id',
+            isDeleted: false,
+            OR: [
+              { categoryRoleAccesses: { none: {} } },
+              {
+                categoryRoleAccesses: {
+                  some: { roleId: 'role-1', organizationId: 'org-id' },
+                },
+              },
+            ],
+          },
+          materialViews: { some: {} },
+        },
+        orderBy: {
+          materialViews: {
+            _count: 'desc',
+          },
+        },
+        take: 3,
+        select: expect.any(Object),
+      });
+    });
+  });
+
+  describe('findLatestMaterialsPerCategory', () => {
+    it('deve retornar no máximo um material por categoria e excluir IDs informados', async () => {
+      prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.material.findMany.mockResolvedValue([
+        {
+          id: 'material-1',
+          name: 'Mais recente A',
+          description: null,
+          categoryId: 'category-a',
+          materialFiles: [],
+        },
+        {
+          id: 'material-2',
+          name: 'Segundo da categoria A',
+          description: null,
+          categoryId: 'category-a',
+          materialFiles: [],
+        },
+        {
+          id: 'material-3',
+          name: 'Mais recente B',
+          description: null,
+          categoryId: 'category-b',
+          materialFiles: [],
+        },
+      ]);
+
+      await expect(
+        repository.findLatestMaterialsPerCategory('org-id', 'user-id', 2, [
+          'excluded-id',
+        ]),
+      ).resolves.toEqual([
+        {
+          id: 'material-1',
+          name: 'Mais recente A',
+          description: null,
+          categoryId: 'category-a',
+          materialFiles: [],
+        },
+        {
+          id: 'material-3',
+          name: 'Mais recente B',
+          description: null,
+          categoryId: 'category-b',
+          materialFiles: [],
+        },
+      ]);
+
+      expect(prisma.material.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: { notIn: ['excluded-id'] },
+          }),
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        }),
+      );
+    });
+  });
+
+  describe('registerDownload', () => {
+    it('deve criar registro de download com materialId, userId e downloadedAt', async () => {
+      const downloadedAt = new Date('2024-06-12T12:00:00.000Z');
+      prisma.materialDownload.create.mockResolvedValue({
+        id: 'download-id',
+        materialId: 'material-id',
+        userId: 'user-id',
+        downloadedAt,
+      });
+
+      await expect(
+        repository.registerDownload('material-id', 'user-id', downloadedAt),
+      ).resolves.toBeUndefined();
+
+      expect(prisma.materialDownload.create).toHaveBeenCalledWith({
+        data: {
+          id: expect.any(String),
+          materialId: 'material-id',
+          userId: 'user-id',
+          downloadedAt,
+        },
+      });
+    });
+
+    it('deve lançar BadRequest quando create falhar', async () => {
+      prisma.materialDownload.create.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.registerDownload('material-id', 'user-id'),
+      ).rejects.toThrow('Erro ao registrar download do material');
+      expect(logger.error).toHaveBeenCalledWith(
+        'MaterialRepository.registerDownload falhou',
+        expect.objectContaining({
+          materialId: 'material-id',
+          userId: 'user-id',
+        }),
+      );
+    });
+  });
+
+  describe('findPlatformMembersForCategory', () => {
+    it('deve filtrar membros da plataforma com acesso à categoria', async () => {
+      prisma.categoryRoleAccess.findMany.mockResolvedValue([
+        { roleId: 'role-1' },
+      ]);
+      prisma.member.findMany.mockResolvedValue([
+        {
+          userId: 'user-1',
+          user: { name: 'João', email: 'joao@teste.com' },
+        },
+      ]);
+
+      await expect(
+        repository.findPlatformMembersForCategory('org-id', 'category-id'),
+      ).resolves.toEqual([
+        { userId: 'user-1', name: 'João', email: 'joao@teste.com' },
+      ]);
+
+      expect(prisma.member.findMany).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-id',
+          role: { canAccessBackoffice: false },
+          user: {
+            isActive: true,
+            isDeleted: false,
+            OR: [
+              { globalRoleId: null },
+              { globalRole: { canAccessBackoffice: false } },
+            ],
+          },
+          roleId: { in: ['role-1'] },
+        },
+        select: {
+          userId: true,
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: [{ user: { name: 'asc' } }],
+      });
+    });
+
+    it('deve buscar todos os membros da plataforma quando categoria não tiver restrição', async () => {
+      prisma.categoryRoleAccess.findMany.mockResolvedValue([]);
+      prisma.member.findMany.mockResolvedValue([]);
+
+      await repository.findPlatformMembersForCategory('org-id', 'category-id');
+
+      expect(prisma.member.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId: 'org-id',
+            role: { canAccessBackoffice: false },
+          }),
+        }),
+      );
+      expect(prisma.member.findMany.mock.calls[0][0].where).not.toHaveProperty(
+        'roleId',
+      );
+    });
+
+    it('deve lançar BadRequest quando findMany falhar', async () => {
+      prisma.categoryRoleAccess.findMany.mockResolvedValue([]);
+      prisma.member.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findPlatformMembersForCategory('org-id', 'category-id'),
+      ).rejects.toThrow(
+        'Erro ao buscar membros da plataforma para notificação do material',
+      );
     });
   });
 });

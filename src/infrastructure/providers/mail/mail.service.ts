@@ -1,6 +1,7 @@
 import { BadRequestException } from '@common/filters';
 import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable } from '@nestjs/common';
+import { Attachment } from 'nodemailer/lib/mailer';
 
 @Injectable()
 export class MailService {
@@ -11,11 +12,13 @@ export class MailService {
     subject,
     template,
     context = {},
+    attachments,
   }: {
     to: string;
     subject: string;
     template: string;
     context?: Record<string, any>;
+    attachments?: Attachment[];
   }): Promise<void> {
     await this.mailerService
       .sendMail({
@@ -23,6 +26,7 @@ export class MailService {
         subject,
         template,
         context,
+        attachments,
       })
       .catch((error) => {
         console.error('Error sending email:', error);

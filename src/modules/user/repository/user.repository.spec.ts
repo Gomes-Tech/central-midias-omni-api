@@ -19,6 +19,10 @@ function createPrismaMock() {
       create: jest.fn(),
       update: jest.fn(),
     },
+    userPlatformLogin: {
+      upsert: jest.fn(),
+      findUnique: jest.fn(),
+    },
     $transaction: jest.fn(),
   };
 }
@@ -703,6 +707,84 @@ describe('UserRepository', () => {
       await expect(repository.delete('u')).rejects.toBeInstanceOf(
         BadRequestException,
       );
+    });
+  });
+
+  describe('upsertPlatformLogin', () => {
+    it('deve fazer upsert do último login', async () => {
+      const loginAt = new Date('2026-06-12T15:00:00.000Z');
+      prisma.userPlatformLogin.upsert.mockResolvedValue({});
+
+      await repository.upsertPlatformLogin('user-1', loginAt);
+
+      expect(prisma.userPlatformLogin.upsert).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        create: expect.objectContaining({
+          userId: 'user-1',
+          lastLoginAt: loginAt,
+        }),
+        update: { lastLoginAt: loginAt },
+      });
+    });
+
+    it('não deve lançar erro quando upsert falhar', async () => {
+      prisma.userPlatformLogin.upsert.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.upsertPlatformLogin('user-1'),
+      ).resolves.toBeUndefined();
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('updatePlatformLoginIfDifferentDay', () => {
+    it('deve criar registro quando usuário ainda não possui login registrado', async () => {
+      const loginAt = new Date('2026-06-12T15:00:00.000Z');
+      prisma.userPlatformLogin.findUnique.mockResolvedValue(null);
+      prisma.userPlatformLogin.upsert.mockResolvedValue({});
+
+      await repository.updatePlatformLoginIfDifferentDay('user-1', loginAt);
+
+      expect(prisma.userPlatformLogin.upsert).toHaveBeenCalled();
+    });
+
+    it('não deve atualizar quando último login for no mesmo dia', async () => {
+      const loginAt = new Date('2026-06-12T20:00:00.000Z');
+      prisma.userPlatformLogin.findUnique.mockResolvedValue({
+        lastLoginAt: new Date('2026-06-12T10:00:00.000Z'),
+      });
+
+      await repository.updatePlatformLoginIfDifferentDay('user-1', loginAt);
+
+      expect(prisma.userPlatformLogin.upsert).not.toHaveBeenCalled();
+    });
+
+    it('deve atualizar quando último login for em dia diferente', async () => {
+      const loginAt = new Date('2026-06-13T10:00:00.000Z');
+      prisma.userPlatformLogin.findUnique.mockResolvedValue({
+        lastLoginAt: new Date('2026-06-12T22:00:00.000Z'),
+      });
+      prisma.userPlatformLogin.upsert.mockResolvedValue({});
+
+      await repository.updatePlatformLoginIfDifferentDay('user-1', loginAt);
+
+      expect(prisma.userPlatformLogin.upsert).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        create: expect.objectContaining({
+          userId: 'user-1',
+          lastLoginAt: loginAt,
+        }),
+        update: { lastLoginAt: loginAt },
+      });
+    });
+
+    it('não deve lançar erro quando consulta ou upsert falhar', async () => {
+      prisma.userPlatformLogin.findUnique.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.updatePlatformLoginIfDifferentDay('user-1'),
+      ).resolves.toBeUndefined();
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 });

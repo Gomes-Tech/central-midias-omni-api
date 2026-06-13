@@ -6,10 +6,13 @@ import {
   CreateMaterialUseCase,
   DeleteMaterialFileUseCase,
   DeleteMaterialUseCase,
-  ExportMaterialAcceptanceReportUseCase,
+  EnqueueMaterialAcceptanceExportUseCase,
   FindAllMaterialsUseCase,
   FindMaterialFilesUseCase,
   FindMaterialByIdUseCase,
+  ViewMaterialByIdUseCase,
+  DownloadMaterialUseCase,
+  FindMostAccessedMaterialsUseCase,
   SearchMaterialsUseCase,
   UploadMaterialFilesUseCase,
   UpdateMaterialUseCase,
@@ -33,11 +36,14 @@ describe('MaterialController', () => {
   let searchMaterialsUseCase: { execute: jest.Mock };
   let findMaterialFilesUseCase: { execute: jest.Mock };
   let findMaterialByIdUseCase: { execute: jest.Mock };
+  let viewMaterialByIdUseCase: { execute: jest.Mock };
+  let downloadMaterialUseCase: { execute: jest.Mock };
+  let findMostAccessedMaterialsUseCase: { execute: jest.Mock };
   let uploadMaterialFilesUseCase: { execute: jest.Mock };
   let updateMaterialUseCase: { execute: jest.Mock };
   let deleteMaterialFileUseCase: { execute: jest.Mock };
   let acceptMaterialUseCase: { execute: jest.Mock };
-  let exportMaterialAcceptanceReportUseCase: { execute: jest.Mock };
+  let enqueueMaterialAcceptanceExportUseCase: { execute: jest.Mock };
 
   beforeEach(async () => {
     createMaterialUseCase = { execute: jest.fn() };
@@ -46,11 +52,14 @@ describe('MaterialController', () => {
     searchMaterialsUseCase = { execute: jest.fn() };
     findMaterialFilesUseCase = { execute: jest.fn() };
     findMaterialByIdUseCase = { execute: jest.fn() };
+    viewMaterialByIdUseCase = { execute: jest.fn() };
+    downloadMaterialUseCase = { execute: jest.fn() };
+    findMostAccessedMaterialsUseCase = { execute: jest.fn() };
     uploadMaterialFilesUseCase = { execute: jest.fn() };
     updateMaterialUseCase = { execute: jest.fn() };
     deleteMaterialFileUseCase = { execute: jest.fn() };
     acceptMaterialUseCase = { execute: jest.fn() };
-    exportMaterialAcceptanceReportUseCase = { execute: jest.fn() };
+    enqueueMaterialAcceptanceExportUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MaterialController],
@@ -70,6 +79,18 @@ describe('MaterialController', () => {
           useValue: findMaterialByIdUseCase,
         },
         {
+          provide: ViewMaterialByIdUseCase,
+          useValue: viewMaterialByIdUseCase,
+        },
+        {
+          provide: DownloadMaterialUseCase,
+          useValue: downloadMaterialUseCase,
+        },
+        {
+          provide: FindMostAccessedMaterialsUseCase,
+          useValue: findMostAccessedMaterialsUseCase,
+        },
+        {
           provide: FindMaterialFilesUseCase,
           useValue: findMaterialFilesUseCase,
         },
@@ -84,8 +105,8 @@ describe('MaterialController', () => {
         { provide: UpdateMaterialUseCase, useValue: updateMaterialUseCase },
         { provide: AcceptMaterialUseCase, useValue: acceptMaterialUseCase },
         {
-          provide: ExportMaterialAcceptanceReportUseCase,
-          useValue: exportMaterialAcceptanceReportUseCase,
+          provide: EnqueueMaterialAcceptanceExportUseCase,
+          useValue: enqueueMaterialAcceptanceExportUseCase,
         },
       ],
     })
@@ -130,6 +151,27 @@ describe('MaterialController', () => {
     );
   });
 
+  it('deve delegar findMostAccessed', async () => {
+    const payload = [
+      {
+        id: 'material-id',
+        name: 'Material popular',
+        description: 'Descricao',
+        mobileUrl: 'https://cdn.test/mobile.png',
+        desktopUrl: 'https://cdn.test/desktop.png',
+      },
+    ];
+    findMostAccessedMaterialsUseCase.execute.mockResolvedValue(payload);
+
+    const result = await controller.findMostAccessed('org-id', 'user-id');
+
+    expect(result).toBe(payload);
+    expect(findMostAccessedMaterialsUseCase.execute).toHaveBeenCalledWith(
+      'org-id',
+      'user-id',
+    );
+  });
+
   it('deve delegar search com org, user e filtros', async () => {
     const filters = makeSearchMaterialsFiltersDTO({ term: 'campanha' });
     const payload = {
@@ -147,6 +189,42 @@ describe('MaterialController', () => {
       'org-id',
       'user-id',
       filters,
+    );
+  });
+
+  it('deve delegar downloadMaterial', async () => {
+    const files = [{ ...makeMaterialFile(), url: 'https://cdn.test/file.pdf' }];
+    downloadMaterialUseCase.execute.mockResolvedValue(files);
+
+    const result = await controller.downloadMaterial(
+      'material-id',
+      'org-id',
+      'user-id',
+    );
+
+    expect(result).toBe(files);
+    expect(downloadMaterialUseCase.execute).toHaveBeenCalledWith(
+      'material-id',
+      'org-id',
+      'user-id',
+    );
+  });
+
+  it('deve delegar findDetailsById', async () => {
+    const material = makeMaterialDetails();
+    viewMaterialByIdUseCase.execute.mockResolvedValue(material);
+
+    const result = await controller.findDetailsById(
+      material.id,
+      'org-id',
+      'user-id',
+    );
+
+    expect(result).toBe(material);
+    expect(viewMaterialByIdUseCase.execute).toHaveBeenCalledWith(
+      material.id,
+      'org-id',
+      'user-id',
     );
   });
 
@@ -183,27 +261,26 @@ describe('MaterialController', () => {
     );
   });
 
-  it('deve delegar exportAcceptanceReport', async () => {
-    const res = {
-      setHeader: jest.fn(),
-      send: jest.fn(),
-    } as unknown as import('express').Response;
-    exportMaterialAcceptanceReportUseCase.execute.mockResolvedValue({
-      filename: 'material-aceite.csv',
-      content: 'nome,email,visualizou,data_aceite',
+  it('deve delegar exportAcceptanceReport para enfileiramento', async () => {
+    enqueueMaterialAcceptanceExportUseCase.execute.mockResolvedValue({
+      enqueued: true,
     });
 
-    await controller.exportAcceptanceReport('material-id', 'org-id', res);
-
-    expect(exportMaterialAcceptanceReportUseCase.execute).toHaveBeenCalledWith(
+    const result = await controller.exportAcceptanceReport(
       'material-id',
       'org-id',
+      'user-id',
     );
-    expect(res.setHeader).toHaveBeenCalledWith(
-      'Content-Disposition',
-      'attachment; filename="material-aceite.csv"',
+
+    expect(enqueueMaterialAcceptanceExportUseCase.execute).toHaveBeenCalledWith(
+      'material-id',
+      'org-id',
+      'user-id',
     );
-    expect(res.send).toHaveBeenCalledWith('nome,email,visualizou,data_aceite');
+    expect(result).toEqual({
+      message:
+        'Relatório enfileirado. Você receberá o CSV por e-mail em breve.',
+    });
   });
 
   it('deve delegar findFiles', async () => {

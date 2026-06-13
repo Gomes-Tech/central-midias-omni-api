@@ -2007,6 +2007,11 @@
                   "type": "text"
                 },
                 {
+                  "key": "notifyUsers",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
                   "key": "files",
                   "type": "file",
                   "src": []
@@ -2207,7 +2212,265 @@
                 "acceptance",
                 "export"
               ]
-            }
+            },
+            "description": "Enfileira a exportação do relatório de aceite. Retorna 202 Accepted; o CSV é enviado por e-mail ao usuário autenticado."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Get Top Users By Platform Logins",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/users/top-logins?page=1&limit=25",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "users",
+                "top-logins"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                }
+              ]
+            },
+            "description": "Lista paginada de usuários com mais logins na plataforma."
+          },
+          "response": []
+        },
+        {
+          "name": "Export Top Users By Platform Logins",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/users/top-logins/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "users",
+                "top-logins",
+                "export"
+              ]
+            },
+            "description": "Enfileira exportação CSV de usuários por login. Retorna 202 Accepted; o CSV é enviado por e-mail."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Top Users By Material Downloads",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/users/top-downloads?page=1&limit=25",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "users",
+                "top-downloads"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                }
+              ]
+            },
+            "description": "Lista paginada de usuários que mais baixam materiais."
+          },
+          "response": []
+        },
+        {
+          "name": "Export Top Users By Material Downloads",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/users/top-downloads/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "users",
+                "top-downloads",
+                "export"
+              ]
+            },
+            "description": "Enfileira exportação CSV de usuários por download. Retorna 202 Accepted; o CSV é enviado por e-mail."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Top Materials By Views",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/materials/top-views?page=1&limit=25",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "materials",
+                "top-views"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                }
+              ]
+            },
+            "description": "Lista paginada de materiais mais acessados."
+          },
+          "response": []
+        },
+        {
+          "name": "Export Top Materials By Views",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/materials/top-views/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "materials",
+                "top-views",
+                "export"
+              ]
+            },
+            "description": "Enfileira exportação CSV de materiais por visualização. Retorna 202 Accepted; o CSV é enviado por e-mail."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Top Materials By Downloads",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/materials/top-downloads?page=1&limit=25",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "materials",
+                "top-downloads"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                }
+              ]
+            },
+            "description": "Lista paginada de materiais com mais downloads."
+          },
+          "response": []
+        },
+        {
+          "name": "Export Top Materials By Downloads",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/materials/top-downloads/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "materials",
+                "top-downloads",
+                "export"
+              ]
+            },
+            "description": "Enfileira exportação CSV de materiais por download. Retorna 202 Accepted; o CSV é enviado por e-mail."
           },
           "response": []
         }

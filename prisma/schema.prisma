@@ -33,9 +33,35 @@ model User {
   managerOf    UserHierarchy[] @relation("SubordinateRelation")
   members              Member[]
   materialAcceptances  MaterialAcceptance[]
+  materialDownloads       MaterialDownload[]
+  platformLogin           UserPlatformLogin?
+  platformLoginEvents     UserPlatformLoginEvent[]
 
   @@index([email])
   @@map("users")
+}
+
+model UserPlatformLogin {
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  lastLoginAt DateTime @default(now()) @map("last_login_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([lastLoginAt])
+  @@map("user_platform_logins")
+}
+
+model UserPlatformLoginEvent {
+  id      String   @id @default(uuid())
+  userId  String   @map("user_id")
+  loginAt DateTime @default(now()) @map("login_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([loginAt])
+  @@map("user_platform_login_events")
 }
 
 model UserHierarchy {
@@ -287,6 +313,8 @@ model Material {
   category      Category       @relation(fields: [categoryId], references: [id])
   tags          Tag[]          @relation("MaterialTag")
   materialAcceptances MaterialAcceptance[]
+  materialViews       MaterialView[]
+  materialDownloads   MaterialDownload[]
 
   @@unique([categoryId, name])
   @@index([categoryId])
@@ -308,6 +336,33 @@ model MaterialAcceptance {
   @@index([materialId])
   @@index([userId])
   @@map("material_acceptances")
+}
+
+model MaterialView {
+  id         String   @id @default(uuid())
+  materialId String   @map("material_id")
+  viewedAt   DateTime @default(now()) @map("viewed_at")
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@index([materialId])
+  @@index([viewedAt])
+  @@map("material_views")
+}
+
+model MaterialDownload {
+  id           String   @id @default(uuid())
+  materialId   String   @map("material_id")
+  userId       String   @map("user_id")
+  downloadedAt DateTime @default(now()) @map("downloaded_at")
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@index([materialId])
+  @@index([userId])
+  @@index([downloadedAt])
+  @@map("material_downloads")
 }
 
 model MaterialFile {

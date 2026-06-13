@@ -4,7 +4,7 @@ import { CryptographyService } from '@infrastructure/criptography';
 import { JWT_SERVICE } from '@infrastructure/jwt';
 import { SecurityLoggerService } from '@infrastructure/security';
 import { FindUserBackofficeAccessUseCase } from '@modules/roles';
-import { FindUserByEmailUseCase, User } from '@modules/user';
+import { FindUserByEmailUseCase, RecordUserPlatformLoginUseCase, User } from '@modules/user';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
@@ -15,6 +15,7 @@ export class SignInUseCase {
   constructor(
     private readonly findUserByEmailUseCase: FindUserByEmailUseCase,
     private readonly findUserBackofficeAccessUseCase: FindUserBackofficeAccessUseCase,
+    private readonly recordUserPlatformLoginUseCase: RecordUserPlatformLoginUseCase,
     @Inject(JWT_SERVICE)
     private readonly jwtService: JwtService,
     private readonly cryptographyService: CryptographyService,
@@ -61,6 +62,12 @@ export class SignInUseCase {
       ip || 'unknown',
       userAgent,
     );
+
+    if (!canAccessBackoffice) {
+      void this.recordUserPlatformLoginUseCase
+        .execute(userExisting.id, 'sign-in')
+        .catch(() => undefined);
+    }
 
     return { accessToken, refreshToken, canAccessBackoffice };
   }

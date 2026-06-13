@@ -39,4 +39,9 @@ export class CreateMaterialDTO {
   @Type(() => Boolean)
   @IsBoolean()
   requiresAcceptance?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  notifyUsers?: boolean;
 }

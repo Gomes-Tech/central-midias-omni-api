@@ -31,6 +31,7 @@ import { MaterialModule } from '@modules/material';
 import { MemberModule } from '@modules/member';
 import { ModuleModule } from '@modules/module';
 import { OrganizationModule } from '@modules/organization';
+import { ReportsModule } from '@modules/reports';
 import { RolesModule } from '@modules/roles';
 import { TagModule } from '@modules/tag';
 import { TokenPasswordModule } from '@modules/token-password';
@@ -75,6 +76,7 @@ import { AppService } from './app.service';
     CategoryRoleAccessModule,
     BannerModule,
     SocialHighlightModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [

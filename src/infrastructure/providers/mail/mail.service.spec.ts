@@ -27,6 +27,31 @@ describe('MailService', () => {
     });
   });
 
+  it('sendMail deve repassar attachments quando informados', async () => {
+    const attachments = [
+      {
+        filename: 'relatorio.csv',
+        content: 'nome,email',
+        contentType: 'text/csv',
+      },
+    ];
+
+    await service.sendMail({
+      to: 'a@b.com',
+      subject: 's',
+      template: 'welcome',
+      attachments,
+    });
+
+    expect(mailer.sendMail).toHaveBeenCalledWith({
+      to: 'a@b.com',
+      subject: 's',
+      template: 'welcome',
+      context: {},
+      attachments,
+    });
+  });
+
   it('sendMail deve usar context vazio quando não informado', async () => {
     await service.sendMail({
       to: 'a@b.com',

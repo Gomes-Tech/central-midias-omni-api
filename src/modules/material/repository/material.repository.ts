@@ -80,6 +80,20 @@ type MaterialFileRow = Prisma.MaterialFileGetPayload<{
   select: typeof materialFileSelect;
 }>;
 
+const materialMostAccessedSelect = {
+  id: true,
+  name: true,
+  description: true,
+  categoryId: true,
+  materialFiles: {
+    select: materialFileSelect,
+  },
+} satisfies Prisma.MaterialSelect;
+
+export type MaterialMostAccessedRow = Prisma.MaterialGetPayload<{
+  select: typeof materialMostAccessedSelect;
+}>;
+
 export interface CreateMaterialFileInput {
   fileKey: string;
   mimeType: string;
@@ -183,30 +197,16 @@ export class MaterialRepository {
     }
 
     try {
-      const member = await this.findActiveMember(organizationId, userId);
-      const canViewAllCategories = await this.isGlobalAdmin(userId);
+      const categoryWhere = await this.buildAccessibleCategoryWhere(
+        organizationId,
+        userId,
+      );
 
-      if (!member && !canViewAllCategories) {
+      if (!categoryWhere) {
         return { data: [], total: 0, page, totalPages: 0 };
       }
 
       const skip = (page - 1) * limit;
-
-      const categoryWhere: Prisma.CategoryWhereInput = {
-        organizationId,
-        isDeleted: false,
-        ...(!canViewAllCategories &&
-          member && {
-            OR: [
-              { categoryRoleAccesses: { none: {} } },
-              {
-                categoryRoleAccesses: {
-                  some: { roleId: member.roleId, organizationId },
-                },
-              },
-            ],
-          }),
-      };
 
       const where: Prisma.MaterialWhereInput = {
         deletedAt: null,
@@ -301,6 +301,143 @@ export class MaterialRepository {
     return (
       user?.globalRole?.name === 'ADMIN' && user.globalRole.canAccessBackoffice
     );
+  }
+
+  private async buildAccessibleCategoryWhere(
+    organizationId: string,
+    userId: string,
+  ): Promise<Prisma.CategoryWhereInput | null> {
+    const member = await this.findActiveMember(organizationId, userId);
+    const canViewAllCategories = await this.isGlobalAdmin(userId);
+
+    if (!member && !canViewAllCategories) {
+      return null;
+    }
+
+    return {
+      organizationId,
+      isDeleted: false,
+      ...(!canViewAllCategories &&
+        member && {
+          OR: [
+            { categoryRoleAccesses: { none: {} } },
+            {
+              categoryRoleAccesses: {
+                some: { roleId: member.roleId, organizationId },
+              },
+            },
+          ],
+        }),
+    };
+  }
+
+  async findMostViewedMaterials(
+    organizationId: string,
+    userId: string,
+    limit = 3,
+  ): Promise<MaterialMostAccessedRow[]> {
+    try {
+      const categoryWhere = await this.buildAccessibleCategoryWhere(
+        organizationId,
+        userId,
+      );
+
+      if (!categoryWhere) {
+        return [];
+      }
+
+      return await this.prisma.material.findMany({
+        where: {
+          deletedAt: null,
+          category: categoryWhere,
+          materialViews: { some: {} },
+        },
+        orderBy: {
+          materialViews: {
+            _count: 'desc',
+          },
+        },
+        take: limit,
+        select: materialMostAccessedSelect,
+      });
+    } catch (error) {
+      void this.logger.error(
+        'MaterialRepository.findMostViewedMaterials falhou',
+        {
+          error: String(error),
+          organizationId,
+          userId,
+        },
+      );
+
+      throw new BadRequestException('Erro ao buscar materiais mais acessados');
+    }
+  }
+
+  async findLatestMaterialsPerCategory(
+    organizationId: string,
+    userId: string,
+    limit = 3,
+    excludeIds: string[] = [],
+  ): Promise<MaterialMostAccessedRow[]> {
+    try {
+      const categoryWhere = await this.buildAccessibleCategoryWhere(
+        organizationId,
+        userId,
+      );
+
+      if (!categoryWhere) {
+        return [];
+      }
+
+      const materials = await this.prisma.material.findMany({
+        where: {
+          deletedAt: null,
+          category: categoryWhere,
+          ...(excludeIds.length > 0 && {
+            id: { notIn: excludeIds },
+          }),
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        select: materialMostAccessedSelect,
+      });
+
+      const excludeSet = new Set(excludeIds);
+      const seenCategories = new Set<string>();
+      const selected: MaterialMostAccessedRow[] = [];
+
+      for (const material of materials) {
+        if (
+          excludeSet.has(material.id) ||
+          seenCategories.has(material.categoryId)
+        ) {
+          continue;
+        }
+
+        seenCategories.add(material.categoryId);
+        selected.push(material);
+
+        if (selected.length >= limit) {
+          break;
+        }
+      }
+
+      return selected;
+    } catch (error) {
+      void this.logger.error(
+        'MaterialRepository.findLatestMaterialsPerCategory falhou',
+        {
+          error: String(error),
+          organizationId,
+          userId,
+        },
+      );
+
+      throw new BadRequestException(
+        'Erro ao buscar materiais recentes por categoria',
+      );
+    }
   }
 
   async findAllSelect(
@@ -845,6 +982,55 @@ export class MaterialRepository {
     }
   }
 
+  async registerView(
+    materialId: string,
+    viewedAt: Date = new Date(),
+  ): Promise<void> {
+    try {
+      await this.prisma.materialView.create({
+        data: {
+          id: generateId(),
+          materialId,
+          viewedAt,
+        },
+      });
+    } catch (error) {
+      void this.logger.error('MaterialRepository.registerView falhou', {
+        error: String(error),
+        materialId,
+      });
+
+      throw new BadRequestException(
+        'Erro ao registrar visualização do material',
+      );
+    }
+  }
+
+  async registerDownload(
+    materialId: string,
+    userId: string,
+    downloadedAt: Date = new Date(),
+  ): Promise<void> {
+    try {
+      await this.prisma.materialDownload.create({
+        data: {
+          id: generateId(),
+          materialId,
+          userId,
+          downloadedAt,
+        },
+      });
+    } catch (error) {
+      void this.logger.error('MaterialRepository.registerDownload falhou', {
+        error: String(error),
+        materialId,
+        userId,
+      });
+
+      throw new BadRequestException('Erro ao registrar download do material');
+    }
+  }
+
   async findRoleIdsByCategoryAndOrganization(
     categoryId: string,
     organizationId: string,
@@ -907,6 +1093,65 @@ export class MaterialRepository {
 
       throw new BadRequestException(
         'Erro ao buscar membros elegíveis para o material',
+      );
+    }
+  }
+
+  async findPlatformMembersForCategory(
+    organizationId: string,
+    categoryId: string,
+  ): Promise<Array<{ userId: string; name: string; email: string }>> {
+    try {
+      const roleIds = await this.findRoleIdsByCategoryAndOrganization(
+        categoryId,
+        organizationId,
+      );
+
+      const members = await this.prisma.member.findMany({
+        where: {
+          organizationId,
+          role: { canAccessBackoffice: false },
+          user: {
+            isActive: true,
+            isDeleted: false,
+            OR: [
+              { globalRoleId: null },
+              { globalRole: { canAccessBackoffice: false } },
+            ],
+          },
+          ...(roleIds.length > 0 && {
+            roleId: { in: roleIds },
+          }),
+        },
+        select: {
+          userId: true,
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: [{ user: { name: 'asc' } }],
+      });
+
+      return members.map((member) => ({
+        userId: member.userId,
+        name: member.user.name,
+        email: member.user.email,
+      }));
+    } catch (error) {
+      void this.logger.error(
+        'MaterialRepository.findPlatformMembersForCategory falhou',
+        {
+          error: String(error),
+          organizationId,
+          categoryId,
+        },
+      );
+
+      throw new BadRequestException(
+        'Erro ao buscar membros da plataforma para notificação do material',
       );
     }
   }

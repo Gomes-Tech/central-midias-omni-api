@@ -4,6 +4,12 @@ import { BullModule } from '@nestjs/bullmq';
 import {
   MATERIAL_ACCEPTANCE_EMAIL_QUEUE,
   MATERIAL_ACCEPTANCE_EMAIL_QUEUE_OPTIONS,
+  MATERIAL_ACCEPTANCE_EXPORT_QUEUE,
+  MATERIAL_ACCEPTANCE_EXPORT_QUEUE_OPTIONS,
+  MATERIAL_NOTIFICATION_EMAIL_QUEUE,
+  MATERIAL_NOTIFICATION_EMAIL_QUEUE_OPTIONS,
+  REPORT_EXPORT_QUEUE,
+  REPORT_EXPORT_QUEUE_OPTIONS,
 } from './queue.constants';
 
 @Global()
@@ -24,6 +30,18 @@ import {
     BullModule.registerQueue({
       name: MATERIAL_ACCEPTANCE_EMAIL_QUEUE,
       defaultJobOptions: MATERIAL_ACCEPTANCE_EMAIL_QUEUE_OPTIONS,
+    }),
+    BullModule.registerQueue({
+      name: MATERIAL_ACCEPTANCE_EXPORT_QUEUE,
+      defaultJobOptions: MATERIAL_ACCEPTANCE_EXPORT_QUEUE_OPTIONS,
+    }),
+    BullModule.registerQueue({
+      name: MATERIAL_NOTIFICATION_EMAIL_QUEUE,
+      defaultJobOptions: MATERIAL_NOTIFICATION_EMAIL_QUEUE_OPTIONS,
+    }),
+    BullModule.registerQueue({
+      name: REPORT_EXPORT_QUEUE,
+      defaultJobOptions: REPORT_EXPORT_QUEUE_OPTIONS,
     }),
   ],
   exports: [BullModule],

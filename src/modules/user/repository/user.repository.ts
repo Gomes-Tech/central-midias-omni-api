@@ -576,4 +576,105 @@ export class UserRepository {
       throw new BadRequestException('Erro ao deletar usuário');
     }
   }
+
+  async upsertPlatformLogin(
+    userId: string,
+    loginAt: Date = new Date(),
+  ): Promise<void> {
+    try {
+      await this.prisma.userPlatformLogin.upsert({
+        where: { userId },
+        create: {
+          id: generateId(),
+          userId,
+          lastLoginAt: loginAt,
+        },
+        update: {
+          lastLoginAt: loginAt,
+        },
+      });
+    } catch (error) {
+      void this.logger.error('UserRepository.upsertPlatformLogin falhou', {
+        error: String(error),
+        userId,
+      });
+    }
+  }
+
+  async registerPlatformLoginEvent(
+    userId: string,
+    loginAt: Date = new Date(),
+  ): Promise<void> {
+    try {
+      await this.prisma.userPlatformLoginEvent.create({
+        data: {
+          id: generateId(),
+          userId,
+          loginAt,
+        },
+      });
+    } catch (error) {
+      void this.logger.error(
+        'UserRepository.registerPlatformLoginEvent falhou',
+        {
+          error: String(error),
+          userId,
+        },
+      );
+    }
+  }
+
+  async updatePlatformLoginIfDifferentDay(
+    userId: string,
+    loginAt: Date = new Date(),
+  ): Promise<boolean> {
+    try {
+      const existing = await this.prisma.userPlatformLogin.findUnique({
+        where: { userId },
+        select: { lastLoginAt: true },
+      });
+
+      if (
+        existing &&
+        this.isSameCalendarDay(existing.lastLoginAt, loginAt)
+      ) {
+        return false;
+      }
+
+      await this.prisma.userPlatformLogin.upsert({
+        where: { userId },
+        create: {
+          id: generateId(),
+          userId,
+          lastLoginAt: loginAt,
+        },
+        update: {
+          lastLoginAt: loginAt,
+        },
+      });
+
+      return true;
+    } catch (error) {
+      void this.logger.error(
+        'UserRepository.updatePlatformLoginIfDifferentDay falhou',
+        {
+          error: String(error),
+          userId,
+        },
+      );
+
+      return false;
+    }
+  }
+
+  private isSameCalendarDay(first: Date, second: Date): boolean {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+
+    return formatter.format(first) === formatter.format(second);
+  }
 }

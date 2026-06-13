@@ -31,6 +31,7 @@ async function main() {
     { id: uuidv4(), name: 'social-highlights', label: 'Ta na Rede' },
     { id: uuidv4(), name: 'materials', label: 'Materiais' },
     { id: uuidv4(), name: 'tags', label: 'Tags' },
+    { id: uuidv4(), name: 'reports', label: 'Relatórios' },
   ];
 
   const roleId = uuidv4();

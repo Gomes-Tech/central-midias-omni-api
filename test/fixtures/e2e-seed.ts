@@ -25,6 +25,7 @@ const MODULE_DEFS = [
   { name: 'social-highlights', label: 'Ta na Rede' },
   { name: 'materials', label: 'Materiais' },
   { name: 'tags', label: 'Tags' },
+  { name: 'reports', label: 'Relatórios' },
 ] as const;
 
 const ALL_ACTIONS: Action[] = [

@@ -5,18 +5,15 @@ import {
   Controller,
   Delete,
   Get,
-  Header,
   HttpCode,
   HttpStatus,
   Param,
   Patch,
   Post,
   Query,
-  Res,
   UploadedFiles,
   UseGuards,
 } from '@nestjs/common';
-import { Response } from 'express';
 import { PaginatedResponse } from '../../types';
 import {
   AcceptMaterialDTO,
@@ -25,15 +22,18 @@ import {
   SearchMaterialsFiltersDTO,
   UpdateMaterialDTO,
 } from './dto';
-import { MaterialListItem } from './entities';
+import { MaterialListItem, MostAccessedMaterialItem } from './entities';
 import {
   AcceptMaterialUseCase,
   CreateMaterialUseCase,
   DeleteMaterialFileUseCase,
   DeleteMaterialUseCase,
-  ExportMaterialAcceptanceReportUseCase,
+  EnqueueMaterialAcceptanceExportUseCase,
   FindAllMaterialsUseCase,
   FindMaterialByIdUseCase,
+  ViewMaterialByIdUseCase,
+  DownloadMaterialUseCase,
+  FindMostAccessedMaterialsUseCase,
   FindMaterialFilesUseCase,
   SearchMaterialsUseCase,
   UpdateMaterialUseCase,
@@ -52,6 +52,9 @@ export class MaterialController {
     private readonly findAllMaterialsUseCase: FindAllMaterialsUseCase,
     private readonly searchMaterialsUseCase: SearchMaterialsUseCase,
     private readonly findMaterialByIdUseCase: FindMaterialByIdUseCase,
+    private readonly viewMaterialByIdUseCase: ViewMaterialByIdUseCase,
+    private readonly downloadMaterialUseCase: DownloadMaterialUseCase,
+    private readonly findMostAccessedMaterialsUseCase: FindMostAccessedMaterialsUseCase,
     private readonly createMaterialUseCase: CreateMaterialUseCase,
     private readonly updateMaterialUseCase: UpdateMaterialUseCase,
     private readonly deleteMaterialUseCase: DeleteMaterialUseCase,
@@ -59,7 +62,7 @@ export class MaterialController {
     private readonly findMaterialFilesUseCase: FindMaterialFilesUseCase,
     private readonly deleteMaterialFileUseCase: DeleteMaterialFileUseCase,
     private readonly acceptMaterialUseCase: AcceptMaterialUseCase,
-    private readonly exportMaterialAcceptanceReportUseCase: ExportMaterialAcceptanceReportUseCase,
+    private readonly enqueueMaterialAcceptanceExportUseCase: EnqueueMaterialAcceptanceExportUseCase,
   ) {}
 
   private getFiles(files: UploadedMaterialFiles): Express.Multer.File[] {
@@ -85,6 +88,17 @@ export class MaterialController {
     return await this.findAllMaterialsUseCase.execute(organizationId, filters);
   }
 
+  @Get('most-accessed')
+  async findMostAccessed(
+    @OrgId() organizationId: string,
+    @UserId() userId: string,
+  ): Promise<MostAccessedMaterialItem[]> {
+    return await this.findMostAccessedMaterialsUseCase.execute(
+      organizationId,
+      userId,
+    );
+  }
+
   @Get('search')
   async search(
     @OrgId() organizationId: string,
@@ -95,6 +109,32 @@ export class MaterialController {
       organizationId,
       userId,
       filters,
+    );
+  }
+
+  @Get(':id/download')
+  async downloadMaterial(
+    @Param('id') id: string,
+    @OrgId() organizationId: string,
+    @UserId() userId: string,
+  ) {
+    return await this.downloadMaterialUseCase.execute(
+      id,
+      organizationId,
+      userId,
+    );
+  }
+
+  @Get(':id/details')
+  async findDetailsById(
+    @Param('id') id: string,
+    @OrgId() organizationId: string,
+    @UserId() userId: string,
+  ) {
+    return await this.viewMaterialByIdUseCase.execute(
+      id,
+      organizationId,
+      userId,
     );
   }
 
@@ -114,23 +154,22 @@ export class MaterialController {
 
   @RequirePermission('materials', 'read')
   @Get(':id/acceptance/export')
-  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @HttpCode(HttpStatus.ACCEPTED)
   async exportAcceptanceReport(
     @Param('id') id: string,
     @OrgId() organizationId: string,
-    @Res() res: Response,
+    @UserId() userId: string,
   ) {
-    const { filename, content } =
-      await this.exportMaterialAcceptanceReportUseCase.execute(
-        id,
-        organizationId,
-      );
-
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${filename}"`,
+    await this.enqueueMaterialAcceptanceExportUseCase.execute(
+      id,
+      organizationId,
+      userId,
     );
-    res.send(content);
+
+    return {
+      message:
+        'Relatório enfileirado. Você receberá o CSV por e-mail em breve.',
+    };
   }
 
   @Post(':id/acceptance')

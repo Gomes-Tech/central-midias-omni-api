@@ -1,7 +1,12 @@
 import { generateId } from '@common/utils';
 import { JWT_SERVICE } from '@infrastructure/jwt';
 import { TokenBlacklistService } from '@infrastructure/security';
-import { FindUserByIdUseCase, User } from '@modules/user';
+import { FindUserBackofficeAccessUseCase } from '@modules/roles';
+import {
+  FindUserByIdUseCase,
+  RecordUserPlatformLoginUseCase,
+  User,
+} from '@modules/user';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
@@ -13,6 +18,8 @@ export class RefreshTokenUseCase {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly findUserByIdUseCase: FindUserByIdUseCase,
+    private readonly findUserBackofficeAccessUseCase: FindUserBackofficeAccessUseCase,
+    private readonly recordUserPlatformLoginUseCase: RecordUserPlatformLoginUseCase,
     private readonly tokenBlacklistService: TokenBlacklistService,
   ) {}
 
@@ -45,6 +52,15 @@ export class RefreshTokenUseCase {
       const accessToken = this.generateToken(user);
 
       const newRefreshToken = this.generateRefreshToken(user);
+
+      const { canAccessBackoffice } =
+        await this.findUserBackofficeAccessUseCase.execute(user.id);
+
+      if (!canAccessBackoffice) {
+        void this.recordUserPlatformLoginUseCase
+          .execute(user.id, 'refresh')
+          .catch(() => undefined);
+      }
 
       return {
         accessToken,

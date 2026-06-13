@@ -1,0 +1,9 @@
+doctype html
+html
+  head
+    title Relatório administrativo
+  body(style="font-family: Arial, sans-serif; padding: 20px;")
+    h1(style="color: #333;") #{reportLabel}
+    p Olá#{name ? ' ' + name : ''},
+    p Segue em anexo o relatório solicitado (#{filename}).
+    p Este arquivo contém os dados consolidados do relatório selecionado.

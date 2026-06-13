@@ -6,6 +6,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateMaterialDTO } from '../dto';
 import { MaterialRepository } from '../repository';
 import { EnqueueMaterialAcceptanceEmailsUseCase } from './enqueue-material-acceptance-emails.use-case';
+import { EnqueueMaterialNotificationEmailsUseCase } from './enqueue-material-notification-emails.use-case';
 import { ResolveMaterialTagsUseCase } from './resolve-material-tags.use-case';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class CreateMaterialUseCase {
     private readonly resolveMaterialTagsUseCase: ResolveMaterialTagsUseCase,
     private readonly storageService: StorageService,
     private readonly enqueueMaterialAcceptanceEmailsUseCase: EnqueueMaterialAcceptanceEmailsUseCase,
+    private readonly enqueueMaterialNotificationEmailsUseCase: EnqueueMaterialNotificationEmailsUseCase,
   ) {}
 
   async execute(
@@ -76,6 +78,12 @@ export class CreateMaterialUseCase {
 
       if (data.requiresAcceptance === true) {
         void this.enqueueMaterialAcceptanceEmailsUseCase
+          .execute(materialId, organizationId)
+          .catch(() => undefined);
+      }
+
+      if (data.notifyUsers === true) {
+        void this.enqueueMaterialNotificationEmailsUseCase
           .execute(materialId, organizationId)
           .catch(() => undefined);
       }

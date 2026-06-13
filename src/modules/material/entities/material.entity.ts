@@ -71,3 +71,11 @@ export interface MaterialAcceptanceReportRow {
   viewed: boolean;
   acceptedAt: Date | null;
 }
+
+export interface MostAccessedMaterialItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  mobileUrl: string | null;
+  desktopUrl: string | null;
+}
