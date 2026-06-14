@@ -1492,6 +1492,218 @@
       ]
     },
     {
+      "name": "Social Highlights",
+      "item": [
+        {
+          "name": "Get Social Highlights List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "b9326a44-fba1-4ce4-b79f-969cbd386e12",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/social-highlights",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "social-highlights"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Social Highlight By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "b9326a44-fba1-4ce4-b79f-969cbd386e12",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/social-highlights/{{socialHighlightId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "social-highlights",
+                "{{socialHighlightId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Social Highlight",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "b9326a44-fba1-4ce4-b79f-969cbd386e12",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Destaque Exemplo",
+                  "type": "text"
+                },
+                {
+                  "key": "order",
+                  "value": "0",
+                  "type": "text"
+                },
+                {
+                  "key": "link",
+                  "value": "https://example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "mobileImage",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "desktopImage",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/social-highlights",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "social-highlights"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Social Highlight",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "b9326a44-fba1-4ce4-b79f-969cbd386e12",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Destaque Atualizado",
+                  "type": "text"
+                },
+                {
+                  "key": "order",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "mobileImage",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "desktopImage",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/social-highlights/{{socialHighlightId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "social-highlights",
+                "{{socialHighlightId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Social Highlight",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "b9326a44-fba1-4ce4-b79f-969cbd386e12",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/social-highlights/{{socialHighlightId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "social-highlights",
+                "{{socialHighlightId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Social Highlights List Web",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "b9326a44-fba1-4ce4-b79f-969cbd386e12",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/social-highlights/list",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "social-highlights",
+                "list"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Modules",
       "item": [
         {
@@ -1878,6 +2090,31 @@
           "response": []
         },
         {
+          "name": "Get Most Accessed Materials",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/materials/most-accessed",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials",
+                "most-accessed"
+              ]
+            },
+            "description": "Lista os materiais mais acessados da organização."
+          },
+          "response": []
+        },
+        {
           "name": "Search Materials",
           "request": {
             "method": "GET",
@@ -1939,6 +2176,58 @@
                 "{{materialId}}"
               ]
             }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Material Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/materials/{{materialId}}/details",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials",
+                "{{materialId}}",
+                "details"
+              ]
+            },
+            "description": "Retorna detalhes do material e registra visualização."
+          },
+          "response": []
+        },
+        {
+          "name": "Download Material",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-organization-id",
+                "value": "28d990f0-ceee-4ccb-a6be-8fb04d779c22",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/materials/{{materialId}}/download",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials",
+                "{{materialId}}",
+                "download"
+              ]
+            },
+            "description": "Registra download e retorna URLs dos arquivos do material."
           },
           "response": []
         },
@@ -2766,6 +3055,27 @@
     {
       "name": "Health",
       "item": [
+        {
+          "name": "Get Root",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
+            },
+            "description": "Retorna mensagem de boas-vindas da API."
+          },
+          "response": []
+        },
         {
           "name": "Health Check",
           "request": {
