@@ -315,7 +315,12 @@ export class CategoryRepository {
   async findBySlugPath(
     slugPath: string,
     organizationId: string,
-  ): Promise<{ id: string; slug: string; slugPath: string } | null> {
+  ): Promise<{
+    id: string;
+    slug: string;
+    name: string;
+    slugPath: string;
+  } | null> {
     try {
       return await this.prisma.category.findFirst({
         where: {
@@ -326,6 +331,7 @@ export class CategoryRepository {
         select: {
           id: true,
           slug: true,
+          name: true,
           slugPath: true,
         },
       });

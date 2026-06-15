@@ -28,16 +28,16 @@ import {
   CreateMaterialUseCase,
   DeleteMaterialFileUseCase,
   DeleteMaterialUseCase,
+  DownloadMaterialUseCase,
   EnqueueMaterialAcceptanceExportUseCase,
   FindAllMaterialsUseCase,
   FindMaterialByIdUseCase,
-  ViewMaterialByIdUseCase,
-  DownloadMaterialUseCase,
-  FindMostAccessedMaterialsUseCase,
   FindMaterialFilesUseCase,
+  FindMostAccessedMaterialsUseCase,
   SearchMaterialsUseCase,
   UpdateMaterialUseCase,
   UploadMaterialFilesUseCase,
+  ViewMaterialByIdUseCase,
 } from './use-cases';
 
 type UploadedMaterialFiles =
@@ -104,7 +104,7 @@ export class MaterialController {
     @OrgId() organizationId: string,
     @UserId() userId: string,
     @Query() filters: SearchMaterialsFiltersDTO = {},
-  ): Promise<PaginatedResponse<MaterialListItem>> {
+  ): Promise<PaginatedResponse<MaterialListItem & { materialFile: string }>> {
     return await this.searchMaterialsUseCase.execute(
       organizationId,
       userId,

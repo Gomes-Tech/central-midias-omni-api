@@ -189,7 +189,7 @@ export class MaterialRepository {
     organizationId: string,
     userId: string,
     filters: SearchMaterialsFiltersDTO = {},
-  ): Promise<PaginatedResponse<MaterialListItem>> {
+  ): Promise<PaginatedResponse<MaterialListItem & { materialFile: string }>> {
     const { page = 1, limit = 25, term } = filters;
 
     if (!term?.trim()) {
@@ -235,7 +235,23 @@ export class MaterialRepository {
       const [materials, total] = await Promise.all([
         this.prisma.material.findMany({
           where,
-          select: materialListSelect,
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            category: {
+              select: {
+                name: true,
+              },
+            },
+            materialFiles: {
+              select: {
+                id: true,
+                imageKey: true,
+              },
+              take: 1,
+            },
+          },
           orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
           skip,
           take: limit,
@@ -250,6 +266,7 @@ export class MaterialRepository {
           description: material.description,
           category: material.category,
           materialFilesCount: material.materialFiles.length,
+          materialFile: material.materialFiles[0]?.imageKey,
         })),
         total,
         page,

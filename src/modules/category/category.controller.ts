@@ -65,9 +65,9 @@ export class CategoryController {
   }
 
   @UseGuards(CategoryPermissionGuard)
-  @Get('path')
+  @Get('/tree/:slug')
   async findByPath(
-    @Query('path') slugPath: string,
+    @Query('slug') slugPath: string,
     @OrgId() organizationId: string,
     @UserId() userId: string,
   ) {

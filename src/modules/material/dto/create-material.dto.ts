@@ -37,11 +37,27 @@ export class CreateMaterialDTO {
 
   @IsOptional()
   @Type(() => Boolean)
+  @Transform(
+    ({ value }) => {
+      if (value === 'true' || value === true) return true;
+      if (value === 'false' || value === false) return false;
+      return value;
+    },
+    { toClassOnly: true },
+  )
   @IsBoolean()
   requiresAcceptance?: boolean;
 
   @IsOptional()
   @Type(() => Boolean)
+  @Transform(
+    ({ value }) => {
+      if (value === 'true' || value === true) return true;
+      if (value === 'false' || value === false) return false;
+      return value;
+    },
+    { toClassOnly: true },
+  )
   @IsBoolean()
   notifyUsers?: boolean;
 }

@@ -48,7 +48,7 @@ export class S3StorageService {
       },
     });
 
-    this.expiresIn = Number(process.env.S3_PRESIGNED_EXPIRES_SECONDS ?? 60);
+    this.expiresIn = Number(process.env.S3_PRESIGNED_EXPIRES_SECONDS ?? 300);
   }
 
   private safeRelativeKey(folder: string, fileName: string): string {
