@@ -10,7 +10,7 @@ export class DeleteFaqUseCase {
   ) {}
 
   async execute(id: string, organizationId: string, userId: string) {
-    const exists = await this.faqRepository.existsById(id, organizationId);
+    const exists = await this.faqRepository.existsById(organizationId);
 
     if (!exists) {
       throw new NotFoundException('FAQ não encontrado');

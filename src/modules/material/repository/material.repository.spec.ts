@@ -1226,6 +1226,135 @@ describe('MaterialRepository', () => {
     });
   });
 
+  describe('findLatestImageMaterialsPerCategory', () => {
+    it('deve retornar no máximo um material por categoria com imagem e respeitar limite', async () => {
+      prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.material.findMany.mockResolvedValue([
+        {
+          id: 'material-1',
+          name: 'Mais recente A',
+          description: null,
+          categoryId: 'category-a',
+          materialFiles: [
+            {
+              id: 'file-1',
+              materialId: 'material-1',
+              imageKey: 'materials/material-1/a.png',
+              mimeType: 'image/png',
+              size: 1024,
+            },
+          ],
+        },
+        {
+          id: 'material-2',
+          name: 'Segundo da categoria A',
+          description: null,
+          categoryId: 'category-a',
+          materialFiles: [
+            {
+              id: 'file-2',
+              materialId: 'material-2',
+              imageKey: 'materials/material-2/a2.png',
+              mimeType: 'image/png',
+              size: 1024,
+            },
+          ],
+        },
+        {
+          id: 'material-3',
+          name: 'Mais recente B',
+          description: null,
+          categoryId: 'category-b',
+          materialFiles: [
+            {
+              id: 'file-3',
+              materialId: 'material-3',
+              imageKey: 'materials/material-3/b.png',
+              mimeType: 'image/jpeg',
+              size: 2048,
+            },
+          ],
+        },
+      ]);
+
+      await expect(
+        repository.findLatestImageMaterialsPerCategory('org-id', 'user-id', 2),
+      ).resolves.toEqual([
+        {
+          id: 'material-1',
+          name: 'Mais recente A',
+          description: null,
+          categoryId: 'category-a',
+          materialFiles: [
+            {
+              id: 'file-1',
+              materialId: 'material-1',
+              imageKey: 'materials/material-1/a.png',
+              mimeType: 'image/png',
+              size: 1024,
+            },
+          ],
+        },
+        {
+          id: 'material-3',
+          name: 'Mais recente B',
+          description: null,
+          categoryId: 'category-b',
+          materialFiles: [
+            {
+              id: 'file-3',
+              materialId: 'material-3',
+              imageKey: 'materials/material-3/b.png',
+              mimeType: 'image/jpeg',
+              size: 2048,
+            },
+          ],
+        },
+      ]);
+
+      expect(prisma.material.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            deletedAt: null,
+            materialFiles: {
+              some: {
+                mimeType: {
+                  startsWith: 'image/',
+                },
+              },
+            },
+            category: expect.objectContaining({
+              organizationId: 'org-id',
+              isDeleted: false,
+              OR: [
+                { categoryRoleAccesses: { none: {} } },
+                {
+                  categoryRoleAccesses: {
+                    some: { roleId: 'role-1', organizationId: 'org-id' },
+                  },
+                },
+              ],
+            }),
+          }),
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        }),
+      );
+    });
+
+    it('deve retornar lista vazia quando usuário não tiver acesso a categorias', async () => {
+      prisma.member.findFirst.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findLatestImageMaterialsPerCategory('org-id', 'user-id'),
+      ).resolves.toEqual([]);
+
+      expect(prisma.material.findMany).not.toHaveBeenCalled();
+    });
+  });
+
   describe('registerDownload', () => {
     it('deve criar registro de download com materialId, userId e downloadedAt', async () => {
       const downloadedAt = new Date('2024-06-12T12:00:00.000Z');

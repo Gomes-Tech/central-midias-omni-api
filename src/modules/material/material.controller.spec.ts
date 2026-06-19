@@ -13,6 +13,7 @@ import {
   ViewMaterialByIdUseCase,
   DownloadMaterialUseCase,
   FindMostAccessedMaterialsUseCase,
+  FindMaterialMosaicUseCase,
   SearchMaterialsUseCase,
   UploadMaterialFilesUseCase,
   UpdateMaterialUseCase,
@@ -39,6 +40,7 @@ describe('MaterialController', () => {
   let viewMaterialByIdUseCase: { execute: jest.Mock };
   let downloadMaterialUseCase: { execute: jest.Mock };
   let findMostAccessedMaterialsUseCase: { execute: jest.Mock };
+  let findMaterialMosaicUseCase: { execute: jest.Mock };
   let uploadMaterialFilesUseCase: { execute: jest.Mock };
   let updateMaterialUseCase: { execute: jest.Mock };
   let deleteMaterialFileUseCase: { execute: jest.Mock };
@@ -55,6 +57,7 @@ describe('MaterialController', () => {
     viewMaterialByIdUseCase = { execute: jest.fn() };
     downloadMaterialUseCase = { execute: jest.fn() };
     findMostAccessedMaterialsUseCase = { execute: jest.fn() };
+    findMaterialMosaicUseCase = { execute: jest.fn() };
     uploadMaterialFilesUseCase = { execute: jest.fn() };
     updateMaterialUseCase = { execute: jest.fn() };
     deleteMaterialFileUseCase = { execute: jest.fn() };
@@ -89,6 +92,10 @@ describe('MaterialController', () => {
         {
           provide: FindMostAccessedMaterialsUseCase,
           useValue: findMostAccessedMaterialsUseCase,
+        },
+        {
+          provide: FindMaterialMosaicUseCase,
+          useValue: findMaterialMosaicUseCase,
         },
         {
           provide: FindMaterialFilesUseCase,
@@ -167,6 +174,24 @@ describe('MaterialController', () => {
 
     expect(result).toBe(payload);
     expect(findMostAccessedMaterialsUseCase.execute).toHaveBeenCalledWith(
+      'org-id',
+      'user-id',
+    );
+  });
+
+  it('deve delegar findMosaic', async () => {
+    const payload = [
+      {
+        id: 'material-id',
+        imageUrl: 'https://cdn.test/image.png',
+      },
+    ];
+    findMaterialMosaicUseCase.execute.mockResolvedValue(payload);
+
+    const result = await controller.findMosaic('org-id', 'user-id');
+
+    expect(result).toBe(payload);
+    expect(findMaterialMosaicUseCase.execute).toHaveBeenCalledWith(
       'org-id',
       'user-id',
     );

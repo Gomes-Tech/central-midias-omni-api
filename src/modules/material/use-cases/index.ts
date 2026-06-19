@@ -12,6 +12,7 @@ export * from './find-material-by-id.use-case';
 export * from './view-material-by-id.use-case';
 export * from './download-material.use-case';
 export * from './find-most-accessed-materials.use-case';
+export * from './find-material-mosaic.use-case';
 export * from './resolve-material-tag-ids.use-case';
 export * from './resolve-material-tags.use-case';
 export * from './search-materials.use-case';

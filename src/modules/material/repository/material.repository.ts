@@ -459,6 +459,79 @@ export class MaterialRepository {
     }
   }
 
+  async findLatestImageMaterialsPerCategory(
+    organizationId: string,
+    userId: string,
+    limit = 6,
+  ): Promise<MaterialMostAccessedRow[]> {
+    try {
+      const categoryWhere = await this.buildAccessibleCategoryWhere(
+        organizationId,
+        userId,
+      );
+
+      if (!categoryWhere) {
+        return [];
+      }
+
+      const materials = await this.prisma.material.findMany({
+        where: {
+          deletedAt: null,
+          category: categoryWhere,
+          materialFiles: {
+            some: {
+              mimeType: {
+                startsWith: 'image/',
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        select: materialMostAccessedSelect,
+      });
+
+      const seenCategories = new Set<string>();
+      const selected: MaterialMostAccessedRow[] = [];
+
+      for (const material of materials) {
+        if (seenCategories.has(material.categoryId)) {
+          continue;
+        }
+
+        const hasImageFile = material.materialFiles.some((file) =>
+          file.mimeType.startsWith('image/'),
+        );
+
+        if (!hasImageFile) {
+          continue;
+        }
+
+        seenCategories.add(material.categoryId);
+        selected.push(material);
+
+        if (selected.length >= limit) {
+          break;
+        }
+      }
+
+      return selected;
+    } catch (error) {
+      void this.logger.error(
+        'MaterialRepository.findLatestImageMaterialsPerCategory falhou',
+        {
+          error: String(error),
+          organizationId,
+          userId,
+        },
+      );
+
+      throw new BadRequestException(
+        'Erro ao buscar materiais recentes com imagem por categoria',
+      );
+    }
+  }
+
   async findAllSelect(
     organizationId: string,
   ): Promise<{ id: string; name: string }[]> {

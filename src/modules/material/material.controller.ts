@@ -22,7 +22,7 @@ import {
   SearchMaterialsFiltersDTO,
   UpdateMaterialDTO,
 } from './dto';
-import { MaterialListItem, MostAccessedMaterialItem } from './entities';
+import { MaterialListItem, MaterialMosaicItem, MostAccessedMaterialItem } from './entities';
 import {
   AcceptMaterialUseCase,
   CreateMaterialUseCase,
@@ -34,6 +34,7 @@ import {
   FindMaterialByIdUseCase,
   FindMaterialFilesUseCase,
   FindMostAccessedMaterialsUseCase,
+  FindMaterialMosaicUseCase,
   SearchMaterialsUseCase,
   UpdateMaterialUseCase,
   UploadMaterialFilesUseCase,
@@ -55,6 +56,7 @@ export class MaterialController {
     private readonly viewMaterialByIdUseCase: ViewMaterialByIdUseCase,
     private readonly downloadMaterialUseCase: DownloadMaterialUseCase,
     private readonly findMostAccessedMaterialsUseCase: FindMostAccessedMaterialsUseCase,
+    private readonly findMaterialMosaicUseCase: FindMaterialMosaicUseCase,
     private readonly createMaterialUseCase: CreateMaterialUseCase,
     private readonly updateMaterialUseCase: UpdateMaterialUseCase,
     private readonly deleteMaterialUseCase: DeleteMaterialUseCase,
@@ -94,6 +96,17 @@ export class MaterialController {
     @UserId() userId: string,
   ): Promise<MostAccessedMaterialItem[]> {
     return await this.findMostAccessedMaterialsUseCase.execute(
+      organizationId,
+      userId,
+    );
+  }
+
+  @Get('mosaic')
+  async findMosaic(
+    @OrgId() organizationId: string,
+    @UserId() userId: string,
+  ): Promise<MaterialMosaicItem[]> {
+    return await this.findMaterialMosaicUseCase.execute(
       organizationId,
       userId,
     );

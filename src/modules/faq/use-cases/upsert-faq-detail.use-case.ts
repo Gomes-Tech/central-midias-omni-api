@@ -20,7 +20,7 @@ export class UpsertFaqDetailUseCase {
     userId: string,
     file?: Express.Multer.File,
   ): Promise<FaqDetailEntity> {
-    const exists = await this.faqRepository.existsById(faqId, organizationId);
+    const exists = await this.faqRepository.existsById(organizationId);
 
     if (!exists) {
       throw new NotFoundException('FAQ não encontrado');

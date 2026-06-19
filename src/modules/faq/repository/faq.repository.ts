@@ -179,13 +179,13 @@ export class FaqRepository {
     }
   }
 
-  async existsById(id: string, organizationId: string): Promise<boolean> {
+  async existsById(organizationId: string): Promise<{ id: string } | null> {
     const faq = await this.prisma.faq.findFirst({
-      where: { id, organizationId, isDeleted: false },
+      where: { organizationId, isDeleted: false },
       select: { id: true },
     });
 
-    return !!faq;
+    return faq ?? null;
   }
 
   async create(
@@ -449,11 +449,7 @@ export class FaqRepository {
     }
   }
 
-  async softDeleteItem(
-    itemId: string,
-    organizationId: string,
-    userId: string,
-  ) {
+  async softDeleteItem(itemId: string, organizationId: string, userId: string) {
     try {
       await this.prisma.faqItem.updateMany({
         where: {

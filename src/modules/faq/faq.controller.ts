@@ -78,6 +78,16 @@ export class FaqController {
     return await this.findAllFaqItemsUseCase.execute(organizationId, filters);
   }
 
+  @RequirePermission('faqs', 'create')
+  @Post('items')
+  async createItem(
+    @OrgId() organizationId: string,
+    @Body() dto: CreateFaqItemDTO,
+    @UserId() userId: string,
+  ) {
+    return await this.createFaqItemUseCase.execute(organizationId, dto, userId);
+  }
+
   @RequirePermission('faqs', 'read')
   @Get('items/:itemId')
   async getItemById(
@@ -148,22 +158,6 @@ export class FaqController {
     @UserId() userId: string,
   ) {
     await this.deleteFaqUseCase.execute(id, organizationId, userId);
-  }
-
-  @RequirePermission('faqs', 'create')
-  @Post(':id/items')
-  async createItem(
-    @Param('id') faqId: string,
-    @OrgId() organizationId: string,
-    @Body() dto: CreateFaqItemDTO,
-    @UserId() userId: string,
-  ) {
-    return await this.createFaqItemUseCase.execute(
-      faqId,
-      organizationId,
-      dto,
-      userId,
-    );
   }
 
   @MaxFileSize(undefined, 5)

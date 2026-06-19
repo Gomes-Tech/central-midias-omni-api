@@ -11,19 +11,18 @@ export class CreateFaqItemUseCase {
   ) {}
 
   async execute(
-    faqId: string,
     organizationId: string,
     data: CreateFaqItemDTO,
     userId: string,
   ) {
-    const exists = await this.faqRepository.existsById(faqId, organizationId);
+    const exists = await this.faqRepository.existsById(organizationId);
 
     if (!exists) {
       throw new NotFoundException('FAQ não encontrado');
     }
 
     return await this.faqRepository.createItem(
-      faqId,
+      exists.id,
       organizationId,
       data,
       userId,
