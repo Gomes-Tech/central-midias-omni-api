@@ -26,4 +26,13 @@ export class UpdateMaterialDTO {
   @Type(() => Boolean)
   @IsBoolean()
   requiresAcceptance?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  hasExternalLink?: boolean;
+
+  @IsOptional()
+  @IsString()
+  externalLink?: string;
 }

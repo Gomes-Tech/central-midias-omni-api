@@ -60,4 +60,21 @@ export class CreateMaterialDTO {
   )
   @IsBoolean()
   notifyUsers?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @Transform(
+    ({ value }) => {
+      if (value === 'true' || value === true) return true;
+      if (value === 'false' || value === false) return false;
+      return value;
+    },
+    { toClassOnly: true },
+  )
+  @IsBoolean()
+  hasExternalLink?: boolean;
+
+  @IsOptional()
+  @IsString()
+  externalLink?: string;
 }

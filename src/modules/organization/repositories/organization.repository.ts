@@ -239,6 +239,16 @@ export class OrganizationRepository {
           },
         });
 
+        await tx.faq.create({
+          data: {
+            id: generateId(),
+            organizationId: organization.id,
+            name: 'FAQ',
+            order: 0,
+            isActive: true,
+          },
+        });
+
         return organization;
       });
 

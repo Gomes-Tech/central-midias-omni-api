@@ -29,13 +29,13 @@ model User {
   globalRoleId String? @map("global_role_id")
   globalRole   Role?   @relation(fields: [globalRoleId], references: [id])
 
-  managedUsers UserHierarchy[] @relation("ManagerRelation")
-  managerOf    UserHierarchy[] @relation("SubordinateRelation")
-  members              Member[]
-  materialAcceptances  MaterialAcceptance[]
-  materialDownloads       MaterialDownload[]
-  platformLogin           UserPlatformLogin?
-  platformLoginEvents     UserPlatformLoginEvent[]
+  managedUsers        UserHierarchy[]          @relation("ManagerRelation")
+  managerOf           UserHierarchy[]          @relation("SubordinateRelation")
+  members             Member[]
+  materialAcceptances MaterialAcceptance[]
+  materialDownloads   MaterialDownload[]
+  platformLogin       UserPlatformLogin?
+  platformLoginEvents UserPlatformLoginEvent[]
 
   @@index([email])
   @@map("users")
@@ -188,6 +188,8 @@ model Organization {
   banners                Banner[]
   socialHighlights       SocialHighlight[]
   tags                   Tag[]
+  faqs                   Faq[]
+  faqItems               FaqItem[]
   category_role_accesses CategoryRoleAccess[]
   userHierarchies        UserHierarchy[]
 
@@ -296,6 +298,71 @@ model SocialHighlight {
   @@map("social_highlights")
 }
 
+// ============================================================
+// FAQ
+// ============================================================
+
+model Faq {
+  id             String  @id @default(uuid())
+  organizationId String  @map("organization_id")
+  name           String
+  order          Int
+  isActive       Boolean @default(true) @map("is_active")
+
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  items        FaqItem[]
+  detail       FaqDetail?
+
+  @@index([organizationId])
+  @@map("faqs")
+}
+
+model FaqItem {
+  id             String @id @default(uuid())
+  organizationId String @map("organization_id")
+  faqId          String @map("faq_id")
+  question       String
+  answer         String
+  order          Int
+
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  faq          Faq          @relation(fields: [faqId], references: [id])
+
+  @@index([organizationId])
+  @@index([faqId])
+  @@map("faq_items")
+}
+
+model FaqDetail {
+  id                       String  @id @default(uuid())
+  faqId                    String  @unique @map("faq_id")
+  imageKey                 String? @map("image_key")
+  description              String?
+  phonePrimary             String? @map("phone_primary")
+  phonePrimaryLabel        String? @map("phone_primary_label")
+  phonePrimaryIsWhatsapp   Boolean @default(false) @map("phone_primary_is_whatsapp")
+  phoneSecondary           String? @map("phone_secondary")
+  phoneSecondaryLabel      String? @map("phone_secondary_label")
+  phoneSecondaryIsWhatsapp Boolean @default(false) @map("phone_secondary_is_whatsapp")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  faq Faq @relation(fields: [faqId], references: [id])
+
+  @@map("faq_details")
+}
+
 // ATENÇÃO!
 // Material está fora do padrão de soft delete. Corrigir para deletedAt e isDeleted, e ajustar queries para considerar ambos os campos.
 model Material {
@@ -304,14 +371,16 @@ model Material {
   description String?
 
   requiresAcceptance Boolean @default(false) @map("requires_acceptance")
+  hasExternalLink    Boolean @default(false) @map("has_external_link")
+  externalLink       String? @map("external_link")
 
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-  deletedAt     DateTime?      @map("deleted_at")
-  materialFiles MaterialFile[]
-  categoryId    String         @map("category_id")
-  category      Category       @relation(fields: [categoryId], references: [id])
-  tags          Tag[]          @relation("MaterialTag")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  deletedAt           DateTime?            @map("deleted_at")
+  materialFiles       MaterialFile[]
+  categoryId          String               @map("category_id")
+  category            Category             @relation(fields: [categoryId], references: [id])
+  tags                Tag[]                @relation("MaterialTag")
   materialAcceptances MaterialAcceptance[]
   materialViews       MaterialView[]
   materialDownloads   MaterialDownload[]

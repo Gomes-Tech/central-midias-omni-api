@@ -32,6 +32,7 @@ async function main() {
     { id: randomUUID(), name: 'materials', label: 'Materiais' },
     { id: randomUUID(), name: 'tags', label: 'Tags' },
     { id: randomUUID(), name: 'reports', label: 'Relatórios' },
+    { id: randomUUID(), name: 'faqs', label: 'FAQ' },
   ];
 
   const roleId = randomUUID();

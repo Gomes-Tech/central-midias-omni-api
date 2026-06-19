@@ -73,6 +73,8 @@ export function makeMaterialDetails(
     description: 'Descricao',
     categoryId: 'category-id',
     requiresAcceptance: false,
+    hasExternalLink: false,
+    externalLink: null,
     createdAt: now,
     updatedAt: now,
     category: {

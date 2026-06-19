@@ -75,7 +75,10 @@ export class SocialHighlightController {
     @OrgId() organizationId: string,
     @Query() filters: FindAllSocialHighlightsFiltersDTO = {},
   ) {
-    return await this.findAllSocialHighlightsUseCase.execute(organizationId, filters);
+    return await this.findAllSocialHighlightsUseCase.execute(
+      organizationId,
+      filters,
+    );
   }
 
   @Get('/list')
@@ -109,10 +112,15 @@ export class SocialHighlightController {
     const desktop = this.getFile(files, ['desktopImage', 'desktop']);
     const mobile = this.getFile(files, ['mobileImage', 'mobile']);
 
-    await this.createSocialHighlightUseCase.execute(organizationId, dto, userId, {
-      desktop,
-      mobile,
-    });
+    await this.createSocialHighlightUseCase.execute(
+      organizationId,
+      dto,
+      userId,
+      {
+        desktop,
+        mobile,
+      },
+    );
   }
 
   @MaxFileSize(undefined, 5)

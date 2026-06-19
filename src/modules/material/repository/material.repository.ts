@@ -42,6 +42,8 @@ const buildMaterialDetailsSelect = (organizationId: string) =>
     description: true,
     categoryId: true,
     requiresAcceptance: true,
+    hasExternalLink: true,
+    externalLink: true,
     createdAt: true,
     updatedAt: true,
     deletedAt: true,
@@ -525,6 +527,8 @@ export class MaterialRepository {
             category: material.category,
             tags: material.tags.map((tag) => tag.id),
             materialFilesCount: material.materialFiles.length,
+            hasExternalLink: material.hasExternalLink,
+            externalLink: material.externalLink,
             deletedAt: material.deletedAt,
             currentUserAcceptedAt:
               userId && 'materialAcceptances' in material
@@ -585,6 +589,8 @@ export class MaterialRepository {
         description: data.description ?? null,
         categoryId: data.categoryId,
         requiresAcceptance: data.requiresAcceptance ?? false,
+        hasExternalLink: data.hasExternalLink ?? false,
+        externalLink: data.externalLink ?? null,
       };
 
       const tagsData = options.tags
@@ -657,23 +663,22 @@ export class MaterialRepository {
         return;
       }
 
-      const updateData: Prisma.MaterialUncheckedUpdateInput = {};
-
-      if (data.name !== undefined) {
-        updateData.name = data.name;
-      }
-
-      if (data.description !== undefined) {
-        updateData.description = data.description;
-      }
-
-      if (data.categoryId !== undefined) {
-        updateData.categoryId = data.categoryId;
-      }
-
-      if (data.requiresAcceptance !== undefined) {
-        updateData.requiresAcceptance = data.requiresAcceptance;
-      }
+      const updateData: Prisma.MaterialUncheckedUpdateInput = {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
+        ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
+        ...(data.requiresAcceptance !== undefined && {
+          requiresAcceptance: data.requiresAcceptance,
+        }),
+        ...(data.hasExternalLink !== undefined && {
+          hasExternalLink: data.hasExternalLink,
+        }),
+        ...(data.externalLink !== undefined && {
+          externalLink: data.externalLink,
+        }),
+      };
 
       if (options.tags !== undefined) {
         updateData.tags = this.buildUpdateTagsData(

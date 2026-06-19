@@ -56,6 +56,8 @@ export interface MaterialDetails {
   description?: string | null;
   categoryId: string;
   requiresAcceptance: boolean;
+  hasExternalLink: boolean;
+  externalLink?: string | null;
   createdAt: Date;
   updatedAt: Date;
   category: MaterialCategorySummary;

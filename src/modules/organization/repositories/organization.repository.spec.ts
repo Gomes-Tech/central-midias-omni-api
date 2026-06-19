@@ -319,6 +319,7 @@ describe('OrganizationRepository', () => {
       const txOrgCreate = jest.fn().mockResolvedValue({ id: 'new-org-id' });
       const txRoleFind = jest.fn().mockResolvedValue({ id: 'admin-role-id' });
       const txMemberCreate = jest.fn().mockResolvedValue({});
+      const txFaqCreate = jest.fn().mockResolvedValue({});
 
       prisma.$transaction.mockImplementation(
         async (fn: (tx: unknown) => Promise<unknown>) =>
@@ -326,6 +327,7 @@ describe('OrganizationRepository', () => {
             organization: { create: txOrgCreate },
             role: { findFirstOrThrow: txRoleFind },
             member: { create: txMemberCreate },
+            faq: { create: txFaqCreate },
           }),
       );
 
@@ -364,6 +366,16 @@ describe('OrganizationRepository', () => {
           }),
         }),
       );
+      expect(txFaqCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            organizationId: 'new-org-id',
+            name: 'FAQ',
+            order: 0,
+            isActive: true,
+          }),
+        }),
+      );
       expect(logger.info).toHaveBeenCalledWith(
         'Organização criada',
         expect.objectContaining({
@@ -377,6 +389,7 @@ describe('OrganizationRepository', () => {
       const txOrgCreate = jest.fn().mockResolvedValue({ id: 'o1' });
       const txRoleFind = jest.fn().mockResolvedValue({ id: 'r1' });
       const txMemberCreate = jest.fn().mockResolvedValue({});
+      const txFaqCreate = jest.fn().mockResolvedValue({});
 
       prisma.$transaction.mockImplementation(
         async (fn: (tx: unknown) => Promise<unknown>) =>
@@ -384,6 +397,7 @@ describe('OrganizationRepository', () => {
             organization: { create: txOrgCreate },
             role: { findFirstOrThrow: txRoleFind },
             member: { create: txMemberCreate },
+            faq: { create: txFaqCreate },
           }),
       );
 
