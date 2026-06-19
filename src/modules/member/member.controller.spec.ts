@@ -10,6 +10,7 @@ import {
   FindMemberByIdUseCase,
   FindMemberRoleDetailsUseCase,
   FindMemberRoleUseCase,
+  ListImportantDatesUseCase,
   UpdateMemberUseCase,
 } from './use-cases';
 
@@ -23,6 +24,7 @@ describe('MemberController', () => {
   let findMemberRoleUseCase: { execute: jest.Mock };
   let updateMemberUseCase: { execute: jest.Mock };
   let deleteMemberUseCase: { execute: jest.Mock };
+  let listImportantDatesUseCase: { execute: jest.Mock };
 
   beforeEach(async () => {
     addUserMemberUseCase = { execute: jest.fn() };
@@ -33,6 +35,7 @@ describe('MemberController', () => {
     findMemberRoleUseCase = { execute: jest.fn() };
     updateMemberUseCase = { execute: jest.fn() };
     deleteMemberUseCase = { execute: jest.fn() };
+    listImportantDatesUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MemberController],
@@ -54,6 +57,10 @@ describe('MemberController', () => {
         },
         { provide: UpdateMemberUseCase, useValue: updateMemberUseCase },
         { provide: DeleteMemberUseCase, useValue: deleteMemberUseCase },
+        {
+          provide: ListImportantDatesUseCase,
+          useValue: listImportantDatesUseCase,
+        },
       ],
     })
       .overrideGuard(PlatformPermissionGuard)
@@ -120,6 +127,27 @@ describe('MemberController', () => {
         'org-1',
         'user-1',
       );
+    });
+  });
+
+  describe('listImportantDates', () => {
+    it('deve delegar ao ListImportantDatesUseCase', async () => {
+      const items = [
+        {
+          avatarUrl: null,
+          name: 'Ana',
+          day: 15,
+          month: 6,
+          years: 36,
+          type: 'birthday',
+        },
+      ];
+      listImportantDatesUseCase.execute.mockResolvedValue(items);
+
+      const result = await controller.listImportantDates('org-1');
+
+      expect(result).toBe(items);
+      expect(listImportantDatesUseCase.execute).toHaveBeenCalledWith('org-1');
     });
   });
 

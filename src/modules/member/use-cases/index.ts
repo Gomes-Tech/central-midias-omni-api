@@ -5,4 +5,5 @@ export * from './find-all-members.use-case';
 export * from './find-member-by-id.use-case';
 export * from './find-member-role.use-case';
 export * from './find-member-role-details.use-case';
+export * from './list-important-dates.use-case';
 export * from './update-member.use-case';

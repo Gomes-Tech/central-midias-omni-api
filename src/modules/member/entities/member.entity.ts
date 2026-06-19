@@ -45,3 +45,20 @@ export const ACTION = {
   UPDATE: 'UPDATE',
   DELETE: 'DELETE',
 } as const;
+
+export const IMPORTANT_DATE_TYPE = {
+  BIRTHDAY: 'birthday',
+  COMPANY_ANNIVERSARY: 'company_anniversary',
+} as const;
+
+export type ImportantDateType =
+  (typeof IMPORTANT_DATE_TYPE)[keyof typeof IMPORTANT_DATE_TYPE];
+
+export interface ImportantDateItem {
+  avatarUrl: string | null;
+  name: string;
+  day: number;
+  month: number;
+  years: number;
+  type: ImportantDateType;
+}

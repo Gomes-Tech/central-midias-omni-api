@@ -517,6 +517,67 @@ export class MemberRepository {
     }
   }
 
+  async findPlatformMembersWithDates(organizationId: string): Promise<
+    Array<{
+      user: {
+        name: string;
+        avatarKey: string | null;
+        birthDate: Date | null;
+        admissionDate: Date | null;
+      };
+    }>
+  > {
+    try {
+      const members = await this.prisma.member.findMany({
+        where: {
+          organizationId,
+          role: { canAccessBackoffice: false },
+          user: {
+            isActive: true,
+            isDeleted: false,
+            AND: [
+              {
+                OR: [
+                  { globalRoleId: null },
+                  { globalRole: { canAccessBackoffice: false } },
+                ],
+              },
+              {
+                OR: [
+                  { birthDate: { not: null } },
+                  { admissionDate: { not: null } },
+                ],
+              },
+            ],
+          },
+        },
+        select: {
+          user: {
+            select: {
+              name: true,
+              avatarKey: true,
+              birthDate: true,
+              admissionDate: true,
+            },
+          },
+        },
+        orderBy: [{ user: { name: 'asc' } }],
+      });
+
+      return members;
+    } catch (error) {
+      void this.logger.error(
+        'MemberRepository.findPlatformMembersWithDates falhou',
+        {
+          error: String(error),
+          organizationId,
+        },
+      );
+
+      throw new BadRequestException('Erro ao buscar datas importantes');
+    }
+  }
+
   async delete(id: string, organizationId: string): Promise<void> {
     try {
       await this.prisma.member.deleteMany({

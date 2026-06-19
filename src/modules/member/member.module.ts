@@ -13,6 +13,7 @@ import {
   FindMemberByIdUseCase,
   FindMemberRoleDetailsUseCase,
   FindMemberRoleUseCase,
+  ListImportantDatesUseCase,
   UpdateMemberUseCase,
 } from './use-cases';
 
@@ -29,6 +30,7 @@ import {
     CreateMemberWithUserUseCase,
     UpdateMemberUseCase,
     DeleteMemberUseCase,
+    ListImportantDatesUseCase,
     MemberRepository,
     {
       provide: 'MemberRepository',
@@ -44,6 +46,7 @@ import {
     CreateMemberWithUserUseCase,
     UpdateMemberUseCase,
     DeleteMemberUseCase,
+    ListImportantDatesUseCase,
     MemberRepository,
     {
       provide: 'MemberRepository',

@@ -581,6 +581,69 @@ describe('MemberRepository', () => {
     });
   });
 
+  describe('findPlatformMembersWithDates', () => {
+    it('deve buscar membros de plataforma com datas', async () => {
+      const raw = [
+        {
+          user: {
+            name: 'Ana',
+            avatarKey: null,
+            birthDate: new Date('1990-06-15T00:00:00.000Z'),
+            admissionDate: new Date('2020-06-20T00:00:00.000Z'),
+          },
+        },
+      ];
+      prisma.member.findMany.mockResolvedValue(raw);
+
+      const result = await repository.findPlatformMembersWithDates('org-1');
+
+      expect(result).toEqual(raw);
+      expect(prisma.member.findMany).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          role: { canAccessBackoffice: false },
+          user: {
+            isActive: true,
+            isDeleted: false,
+            AND: [
+              {
+                OR: [
+                  { globalRoleId: null },
+                  { globalRole: { canAccessBackoffice: false } },
+                ],
+              },
+              {
+                OR: [
+                  { birthDate: { not: null } },
+                  { admissionDate: { not: null } },
+                ],
+              },
+            ],
+          },
+        },
+        select: {
+          user: {
+            select: {
+              name: true,
+              avatarKey: true,
+              birthDate: true,
+              admissionDate: true,
+            },
+          },
+        },
+        orderBy: [{ user: { name: 'asc' } }],
+      });
+    });
+
+    it('deve lançar BadRequest quando findMany falhar', async () => {
+      prisma.member.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findPlatformMembersWithDates('org-1'),
+      ).rejects.toThrow('Erro ao buscar datas importantes');
+    });
+  });
+
   describe('delete', () => {
     it('deve remover por id e organizationId', async () => {
       prisma.member.deleteMany.mockResolvedValue({ count: 1 });

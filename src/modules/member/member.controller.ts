@@ -18,7 +18,7 @@ import {
   FindAllMembersFiltersDTO,
   UpdateMemberDTO,
 } from './dto';
-import { Member, MemberList } from './entities';
+import { Member, MemberList, ImportantDateItem } from './entities';
 import {
   AddUserMemberUseCase,
   CreateMemberWithUserUseCase,
@@ -27,6 +27,7 @@ import {
   FindMemberByIdUseCase,
   FindMemberRoleDetailsUseCase,
   FindMemberRoleUseCase,
+  ListImportantDatesUseCase,
   UpdateMemberUseCase,
 } from './use-cases';
 
@@ -42,6 +43,7 @@ export class MemberController {
     private readonly findMemberRoleUseCase: FindMemberRoleUseCase,
     private readonly updateMemberUseCase: UpdateMemberUseCase,
     private readonly deleteMemberUseCase: DeleteMemberUseCase,
+    private readonly listImportantDatesUseCase: ListImportantDatesUseCase,
   ) {}
 
   @RequirePermission('members', 'read')
@@ -67,6 +69,13 @@ export class MemberController {
       organizationId,
       userId,
     );
+  }
+
+  @Get('important-dates')
+  async listImportantDates(
+    @OrgId() organizationId: string,
+  ): Promise<ImportantDateItem[]> {
+    return await this.listImportantDatesUseCase.execute(organizationId);
   }
 
   @RequirePermission('members', 'read')
