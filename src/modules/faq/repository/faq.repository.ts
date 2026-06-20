@@ -372,6 +372,38 @@ export class FaqRepository {
     }
   }
 
+  async findItemByOrder(
+    order: number,
+    organizationId: string,
+    faqId: string,
+    excludeId?: string,
+  ): Promise<{ id: string; order: number } | null> {
+    try {
+      return await this.prisma.faqItem.findFirst({
+        where: {
+          order,
+          organizationId,
+          faqId,
+          isDeleted: false,
+          ...(excludeId && { id: { not: excludeId } }),
+        },
+        select: {
+          id: true,
+          order: true,
+        },
+      });
+    } catch (error) {
+      void this.logger.error('FaqRepository.findItemByOrder falhou', {
+        error: String(error),
+        order,
+        organizationId,
+        faqId,
+      });
+
+      throw new BadRequestException('Erro ao buscar item do FAQ por ordem');
+    }
+  }
+
   async createItem(
     faqId: string,
     organizationId: string,

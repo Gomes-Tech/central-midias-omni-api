@@ -1,4 +1,4 @@
-import { NotFoundException } from '@common/filters';
+import { BadRequestException, NotFoundException } from '@common/filters';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateFaqItemDTO } from '../dto';
 import { FaqRepository } from '../repository/faq.repository';
@@ -19,6 +19,16 @@ export class CreateFaqItemUseCase {
 
     if (!exists) {
       throw new NotFoundException('FAQ não encontrado');
+    }
+
+    const existingOrder = await this.faqRepository.findItemByOrder(
+      data.order,
+      organizationId,
+      exists.id,
+    );
+
+    if (existingOrder) {
+      throw new BadRequestException('Já existe um FAQ com esta ordem');
     }
 
     return await this.faqRepository.createItem(
