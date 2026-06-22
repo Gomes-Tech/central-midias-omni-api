@@ -145,11 +145,10 @@ export class FaqRepository {
     }
   }
 
-  async findById(id: string, organizationId: string) {
+  async findByOrganizationId(organizationId: string) {
     try {
       return await this.prisma.faq.findFirst({
         where: {
-          id,
           organizationId,
           isDeleted: false,
         },
@@ -158,20 +157,14 @@ export class FaqRepository {
           name: true,
           order: true,
           isActive: true,
-          items: {
-            where: { isDeleted: false },
-            select: faqItemSelect,
-            orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
-          },
           detail: {
             select: faqDetailSelect,
           },
         },
       });
     } catch (error) {
-      void this.logger.error('FaqRepository.findById falhou', {
+      void this.logger.error('FaqRepository.findByOrganizationId falhou', {
         error: String(error),
-        id,
         organizationId,
       });
 

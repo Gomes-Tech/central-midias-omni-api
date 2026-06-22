@@ -34,6 +34,5 @@ export interface Faq {
   name: string;
   order: number;
   isActive: boolean;
-  items: FaqItemEntity[];
   detail: FaqDetailEntity | null;
 }

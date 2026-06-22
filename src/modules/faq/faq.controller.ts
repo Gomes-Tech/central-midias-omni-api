@@ -28,7 +28,7 @@ import {
   UpdateFaqItemDTO,
   UpsertFaqDetailDTO,
 } from './dto';
-import { FaqItemDetail, FaqItemEntity } from './entities';
+import { Faq, FaqItemDetail, FaqItemEntity } from './entities';
 import {
   CreateFaqItemUseCase,
   CreateFaqUseCase,
@@ -36,8 +36,8 @@ import {
   DeleteFaqUseCase,
   FindAllFaqItemsUseCase,
   FindAllFaqsUseCase,
-  GetFaqByIdUseCase,
   GetFaqItemByIdUseCase,
+  GetFaqUseCase,
   UpdateFaqItemUseCase,
   UpdateFaqUseCase,
   UpsertFaqDetailUseCase,
@@ -49,7 +49,7 @@ export class FaqController {
   constructor(
     private readonly findAllFaqsUseCase: FindAllFaqsUseCase,
     private readonly findAllFaqItemsUseCase: FindAllFaqItemsUseCase,
-    private readonly getFaqByIdUseCase: GetFaqByIdUseCase,
+    private readonly getFaqUseCase: GetFaqUseCase,
     private readonly getFaqItemByIdUseCase: GetFaqItemByIdUseCase,
     private readonly createFaqUseCase: CreateFaqUseCase,
     private readonly updateFaqUseCase: UpdateFaqUseCase,
@@ -61,12 +61,17 @@ export class FaqController {
   ) {}
 
   @RequirePermission('faqs', 'read')
-  @Get()
+  @Get('/list')
   async list(
     @OrgId() organizationId: string,
     @Query() filters: FindAllFaqsFiltersDTO = {},
   ) {
     return await this.findAllFaqsUseCase.execute(organizationId, filters);
+  }
+
+  @Get()
+  async get(@OrgId() organizationId: string): Promise<Faq> {
+    return await this.getFaqUseCase.execute(organizationId);
   }
 
   @RequirePermission('faqs', 'read')
@@ -121,12 +126,6 @@ export class FaqController {
     @UserId() userId: string,
   ) {
     await this.deleteFaqItemUseCase.execute(itemId, organizationId, userId);
-  }
-
-  @RequirePermission('faqs', 'read')
-  @Get(':id')
-  async getById(@Param('id') id: string, @OrgId() organizationId: string) {
-    return await this.getFaqByIdUseCase.execute(id, organizationId);
   }
 
   @RequirePermission('faqs', 'create')

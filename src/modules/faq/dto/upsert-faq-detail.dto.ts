@@ -1,6 +1,21 @@
 import { Sanitize } from '@common/decorators';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import { IsBoolean, IsOptional, IsString } from 'class-validator';
+
+function parseMultipartBoolean({
+  obj,
+  key,
+}: {
+  obj: Record<string, unknown>;
+  key: string;
+}) {
+  const value = obj[key];
+
+  if (value === 'true' || value === true) return true;
+  if (value === 'false' || value === false) return false;
+
+  return value;
+}
 
 export class UpsertFaqDetailDTO {
   @IsOptional()
@@ -19,15 +34,7 @@ export class UpsertFaqDetailDTO {
   phonePrimaryLabel?: string;
 
   @IsOptional()
-  @Transform(
-    ({ value }) => {
-      if (value === 'true' || value === true) return true;
-      if (value === 'false' || value === false) return false;
-      return value;
-    },
-    { toClassOnly: true },
-  )
-  @Type(() => Boolean)
+  @Transform(parseMultipartBoolean, { toClassOnly: true })
   @IsBoolean()
   phonePrimaryIsWhatsapp?: boolean;
 
@@ -42,15 +49,7 @@ export class UpsertFaqDetailDTO {
   phoneSecondaryLabel?: string;
 
   @IsOptional()
-  @Transform(
-    ({ value }) => {
-      if (value === 'true' || value === true) return true;
-      if (value === 'false' || value === false) return false;
-      return value;
-    },
-    { toClassOnly: true },
-  )
-  @Type(() => Boolean)
+  @Transform(parseMultipartBoolean, { toClassOnly: true })
   @IsBoolean()
   phoneSecondaryIsWhatsapp?: boolean;
 }

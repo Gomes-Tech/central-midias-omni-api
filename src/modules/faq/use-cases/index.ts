@@ -4,7 +4,7 @@ export * from './delete-faq.use-case';
 export * from './delete-faq-item.use-case';
 export * from './find-all-faq-items.use-case';
 export * from './find-all-faqs.use-case';
-export * from './get-faq-by-id.use-case';
+export * from './get-faq.use-case';
 export * from './get-faq-item-by-id.use-case';
 export * from './update-faq.use-case';
 export * from './update-faq-item.use-case';

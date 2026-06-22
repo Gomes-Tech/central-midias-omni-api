@@ -5,15 +5,15 @@ import { Faq, FaqDetailEntity } from '../entities';
 import { FaqRepository } from '../repository/faq.repository';
 
 @Injectable()
-export class GetFaqByIdUseCase {
+export class GetFaqUseCase {
   constructor(
     @Inject('FaqRepository')
     private readonly faqRepository: FaqRepository,
     private readonly storageService: StorageService,
   ) {}
 
-  async execute(id: string, organizationId: string): Promise<Faq> {
-    const faq = await this.faqRepository.findById(id, organizationId);
+  async execute(organizationId: string): Promise<Faq> {
+    const faq = await this.faqRepository.findByOrganizationId(organizationId);
 
     if (!faq) {
       throw new NotFoundException('FAQ não encontrado');
@@ -46,7 +46,6 @@ export class GetFaqByIdUseCase {
       name: faq.name,
       order: faq.order,
       isActive: faq.isActive,
-      items: faq.items,
       detail,
     };
   }
