@@ -372,22 +372,49 @@ model Material {
 
   requiresAcceptance Boolean @default(false) @map("requires_acceptance")
   hasExternalLink    Boolean @default(false) @map("has_external_link")
-  externalLink       String? @map("external_link")
+  isCustomizable     Boolean @default(false) @map("is_customizable")
 
-  createdAt           DateTime             @default(now()) @map("created_at")
-  updatedAt           DateTime             @updatedAt @map("updated_at")
-  deletedAt           DateTime?            @map("deleted_at")
-  materialFiles       MaterialFile[]
-  categoryId          String               @map("category_id")
-  category            Category             @relation(fields: [categoryId], references: [id])
-  tags                Tag[]                @relation("MaterialTag")
-  materialAcceptances MaterialAcceptance[]
-  materialViews       MaterialView[]
-  materialDownloads   MaterialDownload[]
+  externalLink String? @map("external_link")
+
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
+  deletedAt             DateTime?              @map("deleted_at")
+  materialFiles         MaterialFile[]
+  categoryId            String                 @map("category_id")
+  category              Category               @relation(fields: [categoryId], references: [id])
+  tags                  Tag[]                  @relation("MaterialTag")
+  materialAcceptances   MaterialAcceptance[]
+  materialViews         MaterialView[]
+  materialDownloads     MaterialDownload[]
+  materialCustomization MaterialCustomization?
 
   @@unique([categoryId, name])
   @@index([categoryId])
   @@map("materials")
+}
+
+model MaterialCustomization {
+  id         String @id @default(uuid())
+  materialId String @unique @map("material_id")
+
+  position CustomizationPosition @default(FOOTER)
+
+  hasPhonePrimary   Boolean @default(false) @map("has_phone_primary")
+  hasPhoneSecondary Boolean @default(false) @map("has_phone_secondary")
+  hasAddress        Boolean @default(false) @map("has_address")
+  hasCity           Boolean @default(false) @map("has_city")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@map("material_customizations")
+}
+
+enum CustomizationPosition {
+  TOP
+  FOOTER
 }
 
 model MaterialAcceptance {

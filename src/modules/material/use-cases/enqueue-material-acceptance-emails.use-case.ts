@@ -39,10 +39,13 @@ export class EnqueueMaterialAcceptanceEmailsUseCase {
       );
 
     if (!eligibleMembers.length) {
-      void this.logger.info('Nenhum membro elegível para notificação de material', {
-        materialId,
-        organizationId,
-      });
+      void this.logger.info(
+        'Nenhum membro elegível para notificação de material',
+        {
+          materialId,
+          organizationId,
+        },
+      );
       return { enqueued: 0 };
     }
 
