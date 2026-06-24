@@ -31,6 +31,14 @@ export interface MaterialFileWithUrl extends Omit<MaterialFileItem, 'fileKey'> {
   url: string;
 }
 
+export interface MaterialCustomizationDetails {
+  position: 'TOP' | 'FOOTER';
+  hasPhonePrimary: boolean;
+  hasPhoneSecondary: boolean;
+  hasAddress: boolean;
+  hasCity: boolean;
+}
+
 // Faz sentido manter o mapeamento. Retorno da query:
 
 // const materials: {
@@ -58,6 +66,8 @@ export interface MaterialDetails {
   requiresAcceptance: boolean;
   hasExternalLink: boolean;
   externalLink?: string | null;
+  isCustomizable: boolean;
+  customization: MaterialCustomizationDetails | null;
   createdAt: Date;
   updatedAt: Date;
   category: MaterialCategorySummary;

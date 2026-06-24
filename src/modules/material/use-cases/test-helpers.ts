@@ -75,6 +75,8 @@ export function makeMaterialDetails(
     requiresAcceptance: false,
     hasExternalLink: false,
     externalLink: null,
+    isCustomizable: false,
+    customization: null,
     createdAt: now,
     updatedAt: now,
     category: {

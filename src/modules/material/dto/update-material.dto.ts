@@ -1,6 +1,10 @@
 import { Sanitize } from '@common/decorators';
-import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
+import {
+  MaterialCustomizationDTO,
+  TransformBoolean,
+  TransformMaterialCustomization,
+} from './material-customization.dto';
 
 export class UpdateMaterialDTO {
   @IsOptional()
@@ -23,16 +27,25 @@ export class UpdateMaterialDTO {
   tags?: string[];
 
   @IsOptional()
-  @Type(() => Boolean)
+  @TransformBoolean()
   @IsBoolean()
   requiresAcceptance?: boolean;
 
   @IsOptional()
-  @Type(() => Boolean)
+  @TransformBoolean()
   @IsBoolean()
   hasExternalLink?: boolean;
 
   @IsOptional()
   @IsString()
   externalLink?: string;
+
+  @IsOptional()
+  @TransformBoolean()
+  @IsBoolean()
+  isCustomizable?: boolean;
+
+  @IsOptional()
+  @TransformMaterialCustomization()
+  customization?: MaterialCustomizationDTO;
 }

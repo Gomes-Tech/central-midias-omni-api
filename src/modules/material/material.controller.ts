@@ -22,7 +22,11 @@ import {
   SearchMaterialsFiltersDTO,
   UpdateMaterialDTO,
 } from './dto';
-import { MaterialListItem, MaterialMosaicItem, MostAccessedMaterialItem } from './entities';
+import {
+  MaterialListItem,
+  MaterialMosaicItem,
+  MostAccessedMaterialItem,
+} from './entities';
 import {
   AcceptMaterialUseCase,
   CreateMaterialUseCase,
@@ -33,8 +37,8 @@ import {
   FindAllMaterialsUseCase,
   FindMaterialByIdUseCase,
   FindMaterialFilesUseCase,
-  FindMostAccessedMaterialsUseCase,
   FindMaterialMosaicUseCase,
+  FindMostAccessedMaterialsUseCase,
   SearchMaterialsUseCase,
   UpdateMaterialUseCase,
   UploadMaterialFilesUseCase,
@@ -106,10 +110,7 @@ export class MaterialController {
     @OrgId() organizationId: string,
     @UserId() userId: string,
   ): Promise<MaterialMosaicItem[]> {
-    return await this.findMaterialMosaicUseCase.execute(
-      organizationId,
-      userId,
-    );
+    return await this.findMaterialMosaicUseCase.execute(organizationId, userId);
   }
 
   @Get('search')

@@ -44,6 +44,16 @@ const buildMaterialDetailsSelect = (organizationId: string) =>
     requiresAcceptance: true,
     hasExternalLink: true,
     externalLink: true,
+    isCustomizable: true,
+    materialCustomization: {
+      select: {
+        position: true,
+        hasPhonePrimary: true,
+        hasPhoneSecondary: true,
+        hasAddress: true,
+        hasCity: true,
+      },
+    },
     createdAt: true,
     updatedAt: true,
     deletedAt: true,
@@ -602,6 +612,19 @@ export class MaterialRepository {
             materialFilesCount: material.materialFiles.length,
             hasExternalLink: material.hasExternalLink,
             externalLink: material.externalLink,
+            isCustomizable: material.isCustomizable,
+            customization:
+              material.isCustomizable && material.materialCustomization
+                ? {
+                    position: material.materialCustomization.position,
+                    hasPhonePrimary:
+                      material.materialCustomization.hasPhonePrimary,
+                    hasPhoneSecondary:
+                      material.materialCustomization.hasPhoneSecondary,
+                    hasAddress: material.materialCustomization.hasAddress,
+                    hasCity: material.materialCustomization.hasCity,
+                  }
+                : null,
             deletedAt: material.deletedAt,
             currentUserAcceptedAt:
               userId && 'materialAcceptances' in material
@@ -664,6 +687,7 @@ export class MaterialRepository {
         requiresAcceptance: data.requiresAcceptance ?? false,
         hasExternalLink: data.hasExternalLink ?? false,
         externalLink: data.externalLink ?? null,
+        isCustomizable: data.isCustomizable ?? false,
       };
 
       const tagsData = options.tags
@@ -682,6 +706,12 @@ export class MaterialRepository {
             mimeType: file.mimeType,
             size: file.size,
           })),
+        };
+      }
+
+      if (data.isCustomizable === true) {
+        createData.materialCustomization = {
+          create: this.buildCustomizationCreateData(data.customization),
         };
       }
 
@@ -729,6 +759,11 @@ export class MaterialRepository {
         },
         select: {
           id: true,
+          materialCustomization: {
+            select: {
+              id: true,
+            },
+          },
         },
       });
 
@@ -751,7 +786,23 @@ export class MaterialRepository {
         ...(data.externalLink !== undefined && {
           externalLink: data.externalLink,
         }),
+        ...(data.isCustomizable !== undefined && {
+          isCustomizable: data.isCustomizable,
+        }),
       };
+
+      if (data.isCustomizable === false && material.materialCustomization) {
+        updateData.materialCustomization = { delete: true };
+      }
+
+      if (data.isCustomizable === true) {
+        updateData.materialCustomization = {
+          upsert: {
+            create: this.buildCustomizationCreateData(data.customization),
+            update: this.buildCustomizationUpdateData(data.customization),
+          },
+        };
+      }
 
       if (options.tags !== undefined) {
         updateData.tags = this.buildUpdateTagsData(
@@ -837,6 +888,51 @@ export class MaterialRepository {
             name,
           },
         })),
+      }),
+    };
+  }
+
+  private buildCustomizationCreateData(
+    customization?: CreateMaterialDTO['customization'],
+  ): Prisma.MaterialCustomizationUncheckedCreateWithoutMaterialInput {
+    return {
+      id: generateId(),
+      ...(customization?.position !== undefined && {
+        position: customization.position,
+      }),
+      ...(customization?.hasPhonePrimary !== undefined && {
+        hasPhonePrimary: customization.hasPhonePrimary,
+      }),
+      ...(customization?.hasPhoneSecondary !== undefined && {
+        hasPhoneSecondary: customization.hasPhoneSecondary,
+      }),
+      ...(customization?.hasAddress !== undefined && {
+        hasAddress: customization.hasAddress,
+      }),
+      ...(customization?.hasCity !== undefined && {
+        hasCity: customization.hasCity,
+      }),
+    };
+  }
+
+  private buildCustomizationUpdateData(
+    customization?: UpdateMaterialDTO['customization'],
+  ): Prisma.MaterialCustomizationUncheckedUpdateWithoutMaterialInput {
+    return {
+      ...(customization?.position !== undefined && {
+        position: customization.position,
+      }),
+      ...(customization?.hasPhonePrimary !== undefined && {
+        hasPhonePrimary: customization.hasPhonePrimary,
+      }),
+      ...(customization?.hasPhoneSecondary !== undefined && {
+        hasPhoneSecondary: customization.hasPhoneSecondary,
+      }),
+      ...(customization?.hasAddress !== undefined && {
+        hasAddress: customization.hasAddress,
+      }),
+      ...(customization?.hasCity !== undefined && {
+        hasCity: customization.hasCity,
       }),
     };
   }

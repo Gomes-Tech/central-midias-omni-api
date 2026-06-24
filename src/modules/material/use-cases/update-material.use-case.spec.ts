@@ -160,6 +160,51 @@ describe('UpdateMaterialUseCase', () => {
     );
   });
 
+  it('deve atualizar configuração quando material for personalizável', async () => {
+    const material = makeMaterialDetails();
+    const dto = makeUpdateMaterialDTO({
+      isCustomizable: true,
+      customization: {
+        hasCity: true,
+      },
+    });
+
+    findMaterialByIdUseCase.execute.mockResolvedValue(material);
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue(undefined);
+    materialRepository.update.mockResolvedValue(undefined);
+
+    await expect(
+      useCase.execute(material.id, 'org-id', dto, 'user-id'),
+    ).resolves.toBe(undefined);
+
+    expect(materialRepository.update).toHaveBeenCalledWith(
+      material.id,
+      'org-id',
+      dto,
+      'user-id',
+      {
+        tags: undefined,
+      },
+    );
+  });
+
+  it('deve impedir customização sem isCustomizable true', async () => {
+    const dto = makeUpdateMaterialDTO({
+      customization: {
+        hasAddress: true,
+      },
+    });
+
+    await expect(
+      useCase.execute('material-id', 'org-id', dto, 'user-id'),
+    ).rejects.toThrow(
+      'Customização só pode ser informada para materiais personalizáveis',
+    );
+
+    expect(findMaterialByIdUseCase.execute).not.toHaveBeenCalled();
+    expect(materialRepository.update).not.toHaveBeenCalled();
+  });
+
   it('deve disparar notificação ao ativar requiresAcceptance na atualização', async () => {
     const material = makeMaterialDetails({ requiresAcceptance: false });
     const dto = makeUpdateMaterialDTO({ requiresAcceptance: true });

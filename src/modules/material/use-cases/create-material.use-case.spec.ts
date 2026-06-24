@@ -95,6 +95,54 @@ describe('CreateMaterialUseCase', () => {
     expect(enqueueMaterialNotificationEmailsUseCase.execute).not.toHaveBeenCalled();
   });
 
+  it('deve criar material personalizável com configuração', async () => {
+    const dto = makeCreateMaterialDTO({
+      isCustomizable: true,
+      customization: {
+        position: 'TOP',
+        hasPhonePrimary: true,
+      },
+    });
+    findCategoryByIdUseCase.execute.mockResolvedValue({
+      id: dto.categoryId,
+      isActive: true,
+    });
+    materialRepository.findByName.mockResolvedValue(null);
+    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+      existingTagIds: [],
+      newTagNames: [],
+    });
+    materialRepository.create.mockResolvedValue(undefined);
+
+    await expect(useCase.execute('org-id', dto, 'user-id')).resolves.toBe(
+      undefined,
+    );
+
+    expect(materialRepository.create).toHaveBeenCalledWith(
+      'org-id',
+      dto,
+      'user-id',
+      expect.objectContaining({
+        id: 'mocked-uuid',
+      }),
+    );
+  });
+
+  it('deve impedir customização sem isCustomizable true', async () => {
+    const dto = makeCreateMaterialDTO({
+      customization: {
+        hasPhonePrimary: true,
+      },
+    });
+
+    await expect(useCase.execute('org-id', dto, 'user-id')).rejects.toThrow(
+      'Customização só pode ser informada para materiais personalizáveis',
+    );
+
+    expect(findCategoryByIdUseCase.execute).not.toHaveBeenCalled();
+    expect(materialRepository.create).not.toHaveBeenCalled();
+  });
+
   it('deve disparar notificação quando notifyUsers for true', async () => {
     const dto = makeCreateMaterialDTO({ notifyUsers: true });
     findCategoryByIdUseCase.execute.mockResolvedValue({

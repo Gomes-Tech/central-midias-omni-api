@@ -27,6 +27,12 @@ export class CreateMaterialUseCase {
     userId: string,
     files: Express.Multer.File[] = [],
   ): Promise<void> {
+    if (data.customization !== undefined && data.isCustomizable !== true) {
+      throw new BadRequestException(
+        'Customização só pode ser informada para materiais personalizáveis',
+      );
+    }
+
     const category = await this.findCategoryByIdUseCase.execute(
       data.categoryId,
       organizationId,

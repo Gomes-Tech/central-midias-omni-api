@@ -24,6 +24,12 @@ export class UpdateMaterialUseCase {
     data: UpdateMaterialDTO,
     userId: string,
   ): Promise<void> {
+    if (data.customization !== undefined && data.isCustomizable !== true) {
+      throw new BadRequestException(
+        'Customização só pode ser informada para materiais personalizáveis',
+      );
+    }
+
     const material = await this.findMaterialByIdUseCase.execute(
       id,
       organizationId,

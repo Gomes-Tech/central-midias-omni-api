@@ -1,5 +1,5 @@
 import { Sanitize } from '@common/decorators';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -7,6 +7,11 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
+import {
+  MaterialCustomizationDTO,
+  TransformBoolean,
+  TransformMaterialCustomization,
+} from './material-customization.dto';
 import {
   normalizeMaterialTags,
   readMaterialTagsField,
@@ -36,45 +41,30 @@ export class CreateMaterialDTO {
   tags?: string[];
 
   @IsOptional()
-  @Type(() => Boolean)
-  @Transform(
-    ({ value }) => {
-      if (value === 'true' || value === true) return true;
-      if (value === 'false' || value === false) return false;
-      return value;
-    },
-    { toClassOnly: true },
-  )
+  @TransformBoolean()
   @IsBoolean()
   requiresAcceptance?: boolean;
 
   @IsOptional()
-  @Type(() => Boolean)
-  @Transform(
-    ({ value }) => {
-      if (value === 'true' || value === true) return true;
-      if (value === 'false' || value === false) return false;
-      return value;
-    },
-    { toClassOnly: true },
-  )
+  @TransformBoolean()
   @IsBoolean()
   notifyUsers?: boolean;
 
   @IsOptional()
-  @Type(() => Boolean)
-  @Transform(
-    ({ value }) => {
-      if (value === 'true' || value === true) return true;
-      if (value === 'false' || value === false) return false;
-      return value;
-    },
-    { toClassOnly: true },
-  )
+  @TransformBoolean()
   @IsBoolean()
   hasExternalLink?: boolean;
 
   @IsOptional()
   @IsString()
   externalLink?: string;
+
+  @IsOptional()
+  @TransformBoolean()
+  @IsBoolean()
+  isCustomizable?: boolean;
+
+  @IsOptional()
+  @TransformMaterialCustomization()
+  customization?: MaterialCustomizationDTO;
 }
