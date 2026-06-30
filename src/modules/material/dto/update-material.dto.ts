@@ -1,8 +1,8 @@
 import { Sanitize } from '@common/decorators';
+import { TransformBoolean } from '@common/decorators/tansform-boolean.decorator';
 import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
 import {
   MaterialCustomizationDTO,
-  TransformBoolean,
   TransformMaterialCustomization,
 } from './material-customization.dto';
 

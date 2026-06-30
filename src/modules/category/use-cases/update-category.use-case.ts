@@ -27,9 +27,38 @@ export class UpdateCategoryUseCase {
     const effectiveParentId =
       data.parentId !== undefined ? data.parentId : category.parentId;
     const effectiveSlug = data.slug ?? category.slug;
+    const externalLink =
+      data.externalLink !== undefined
+        ? data.externalLink?.trim() || null
+        : category.externalLink?.trim() || null;
+    const effectiveHasExternalLink =
+      data.hasExternalLink !== undefined
+        ? data.hasExternalLink
+        : category.hasExternalLink || !!externalLink;
     const slugChanged = data.slug !== undefined && data.slug !== category.slug;
     const parentChanged =
       data.parentId !== undefined && data.parentId !== category.parentId;
+    let parentCategory: Awaited<
+      ReturnType<FindCategoryByIdUseCase['execute']>
+    > | null = null;
+
+    if (effectiveHasExternalLink && !externalLink) {
+      throw new BadRequestException(
+        'O link é obrigatório para uma categoria com link externo',
+      );
+    }
+
+    if (effectiveHasExternalLink && effectiveParentId) {
+      throw new BadRequestException(
+        'Uma categoria com link externo não pode ter categoria pai. Mantenha-a no nível raiz.',
+      );
+    }
+
+    if (effectiveHasExternalLink && category.children.length > 0) {
+      throw new BadRequestException(
+        'Uma categoria com link externo não pode ter subcategorias',
+      );
+    }
 
     if (slugChanged || parentChanged) {
       const existingSibling = await this.categoryRepository.findSiblingBySlug(
@@ -49,7 +78,10 @@ export class UpdateCategoryUseCase {
     const effectiveOrder =
       typeof data.order === 'number' ? data.order : category.order;
 
-    if (parentChanged || (typeof data.order === 'number' && data.order !== category.order)) {
+    if (
+      parentChanged ||
+      (typeof data.order === 'number' && data.order !== category.order)
+    ) {
       const existingOrder = await this.categoryRepository.findSiblingByOrder(
         effectiveOrder,
         organizationId,
@@ -72,10 +104,20 @@ export class UpdateCategoryUseCase {
       }
 
       if (data.parentId) {
-        await this.findCategoryByIdUseCase.execute(
+        parentCategory = await this.findCategoryByIdUseCase.execute(
           data.parentId,
           organizationId,
         );
+
+        if (!parentCategory.isActive) {
+          throw new BadRequestException('Categoria pai está inativa');
+        }
+
+        if (parentCategory.hasExternalLink) {
+          throw new BadRequestException(
+            'Não é possível mover uma categoria para dentro de uma categoria com link externo',
+          );
+        }
 
         const hierarchy =
           await this.categoryRepository.findHierarchyReferences(organizationId);
@@ -103,20 +145,28 @@ export class UpdateCategoryUseCase {
       let parentSlugPath: string | null = null;
 
       if (effectiveParentId) {
-        const parent = await this.findCategoryByIdUseCase.execute(
+        parentCategory ??= await this.findCategoryByIdUseCase.execute(
           effectiveParentId,
           organizationId,
         );
-        parentSlugPath = parent.slugPath;
+        parentSlugPath = parentCategory.slugPath;
       }
 
       slugPath = buildSlugPath(parentSlugPath, effectiveSlug);
     }
 
+    const linkData =
+      data.hasExternalLink !== undefined || data.externalLink !== undefined
+        ? {
+            hasExternalLink: effectiveHasExternalLink,
+            externalLink: effectiveHasExternalLink ? externalLink : null,
+          }
+        : {};
+
     await this.categoryRepository.update(
       id,
       organizationId,
-      { ...data, slugPath },
+      { ...data, ...linkData, slugPath },
       userId,
     );
   }

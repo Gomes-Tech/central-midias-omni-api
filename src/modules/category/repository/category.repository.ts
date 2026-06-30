@@ -61,6 +61,8 @@ export class CategoryRepository {
           slug: true,
           slugPath: true,
           isActive: true,
+          hasExternalLink: true,
+          externalLink: true,
           order: true,
           parentId: true,
           createdAt: true,
@@ -133,6 +135,8 @@ export class CategoryRepository {
           slug: true,
           slugPath: true,
           isActive: true,
+          hasExternalLink: true,
+          externalLink: true,
           order: true,
           parentId: true,
           categoryRoleAccesses: {
@@ -199,6 +203,8 @@ export class CategoryRepository {
           slug: category.slug,
           slugPath: category.slugPath,
           isActive: category.isActive,
+          hasExternalLink: category.hasExternalLink,
+          externalLink: category.externalLink,
           order: category.order,
           parentId: category.parentId,
           children: [],
@@ -273,6 +279,8 @@ export class CategoryRepository {
           slugPath: true,
           isActive: true,
           order: true,
+          hasExternalLink: true,
+          externalLink: true,
           parentId: true,
           createdAt: true,
           updatedAt: true,
@@ -442,7 +450,9 @@ export class CategoryRepository {
             'id', ut.id,
             'name', ut.name,
             'slug', ut.slug,
-            'slugPath', ut.slug_path
+            'slugPath', ut.slug_path,
+            'hasExternalLink', ut.has_external_link,
+            'externalLink', ut.external_link
           )
         ) as data
       FROM up_tree ut
@@ -457,6 +467,8 @@ export class CategoryRepository {
             'name', dt.name,
             'slug', dt.slug,
             'slugPath', dt.slug_path,
+            'hasExternalLink', dt.has_external_link,
+            'externalLink', dt.external_link,
             'parentId', dt."parentId"
           )
         ) as data
@@ -581,6 +593,8 @@ export class CategoryRepository {
           slug: data.slug,
           slugPath: data.slugPath,
           order: data.order,
+          hasExternalLink: data.hasExternalLink ?? false,
+          externalLink: data.hasExternalLink ? data.externalLink : null,
           isActive: data.isActive ?? true,
           ...(data.parentId && { parentId: data.parentId }),
         },
@@ -627,6 +641,12 @@ export class CategoryRepository {
             ...(updateData.order !== undefined && { order: updateData.order }),
             ...(updateData.isActive !== undefined && {
               isActive: updateData.isActive,
+            }),
+            ...(updateData.hasExternalLink !== undefined && {
+              hasExternalLink: updateData.hasExternalLink,
+            }),
+            ...(updateData.externalLink !== undefined && {
+              externalLink: updateData.externalLink,
             }),
             ...(updateData.parentId !== undefined && {
               parentId: updateData.parentId,
@@ -779,6 +799,8 @@ export class CategoryRepository {
         name: current.name,
         slug: current.slug,
         slugPath: current.slugPath,
+        hasExternalLink: current.hasExternalLink,
+        externalLink: current.externalLink,
       });
 
       current = map.get(current.parentId);

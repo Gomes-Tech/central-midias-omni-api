@@ -1,3 +1,5 @@
+import { transformBoolean } from '@common/decorators/tansform-boolean.decorator';
+import { CustomizationPosition } from '@prisma/client';
 import { plainToInstance, Transform } from 'class-transformer';
 import {
   IsBoolean,
@@ -6,13 +8,6 @@ import {
   IsOptional,
   ValidateNested,
 } from 'class-validator';
-import { CustomizationPosition } from '@prisma/client';
-
-function transformBoolean(value: unknown): unknown {
-  if (value === 'true' || value === true) return true;
-  if (value === 'false' || value === false) return false;
-  return value;
-}
 
 function parseCustomization(value: unknown): unknown {
   if (value === undefined || value === null || value === '') {
@@ -64,10 +59,4 @@ export function TransformMaterialCustomization() {
     IsObject()(target, propertyKey);
     ValidateNested()(target, propertyKey);
   };
-}
-
-export function TransformBoolean() {
-  return Transform(({ value }) => transformBoolean(value), {
-    toClassOnly: true,
-  });
 }

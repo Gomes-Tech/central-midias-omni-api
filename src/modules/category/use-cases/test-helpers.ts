@@ -31,6 +31,8 @@ export function makeCategoryDetails(
     slug: 'categoria',
     slugPath: 'categoria',
     isActive: true,
+    hasExternalLink: false,
+    externalLink: null,
     order: 0,
     parentId: null,
     createdAt: now,

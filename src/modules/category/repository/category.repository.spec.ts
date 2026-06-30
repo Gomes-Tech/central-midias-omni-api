@@ -91,6 +91,8 @@ describe('CategoryRepository', () => {
           slug: true,
           slugPath: true,
           isActive: true,
+          hasExternalLink: true,
+          externalLink: true,
           order: true,
           parentId: true,
           createdAt: true,
@@ -184,6 +186,8 @@ describe('CategoryRepository', () => {
           slug: true,
           slugPath: true,
           isActive: true,
+          hasExternalLink: true,
+          externalLink: true,
           order: true,
           parentId: true,
           categoryRoleAccesses: {
@@ -401,6 +405,8 @@ describe('CategoryRepository', () => {
         isActive: true,
         order: 0,
         parentId: null,
+        hasExternalLink: false,
+        externalLink: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         deletedAt: null,
@@ -409,9 +415,7 @@ describe('CategoryRepository', () => {
       };
       prisma.category.findFirst.mockResolvedValue(detail);
 
-      await expect(
-        repository.findById('c1', 'org-1'),
-      ).resolves.toEqual(detail);
+      await expect(repository.findById('c1', 'org-1')).resolves.toEqual(detail);
 
       expect(prisma.category.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -434,6 +438,7 @@ describe('CategoryRepository', () => {
     it('deve buscar por organizationId e slugPath', async () => {
       prisma.category.findFirst.mockResolvedValue({
         id: 'c1',
+        name: 'Redes Sociais',
         slug: 'redes-sociais',
         slugPath: 'marketing/redes-sociais',
       });
@@ -442,6 +447,7 @@ describe('CategoryRepository', () => {
         repository.findBySlugPath('marketing/redes-sociais', 'org-1'),
       ).resolves.toEqual({
         id: 'c1',
+        name: 'Redes Sociais',
         slug: 'redes-sociais',
         slugPath: 'marketing/redes-sociais',
       });
@@ -452,16 +458,16 @@ describe('CategoryRepository', () => {
           slugPath: 'marketing/redes-sociais',
           isDeleted: false,
         },
-        select: { id: true, slug: true, slugPath: true },
+        select: { id: true, slug: true, name: true, slugPath: true },
       });
     });
 
     it('deve lançar BadRequest quando findFirst falhar', async () => {
       prisma.category.findFirst.mockRejectedValue(new Error('db'));
 
-      await expect(
-        repository.findBySlugPath('s', 'org'),
-      ).rejects.toThrow('Erro ao buscar categoria');
+      await expect(repository.findBySlugPath('s', 'org')).rejects.toThrow(
+        'Erro ao buscar categoria',
+      );
     });
   });
 
@@ -536,13 +542,29 @@ describe('CategoryRepository', () => {
         {
           type: 'path',
           data: [
-            { id: 'root', name: 'Root', slug: 'root', parentId: null },
+            {
+              id: 'root',
+              name: 'Root',
+              slug: 'root',
+              slugPath: 'root',
+              hasExternalLink: true,
+              externalLink: 'https://example.com',
+              parentId: null,
+            },
           ],
         },
         {
           type: 'tree',
           data: [
-            { id: 'root', name: 'Root', slug: 'root', parentId: null },
+            {
+              id: 'root',
+              name: 'Root',
+              slug: 'root',
+              slugPath: 'root',
+              hasExternalLink: true,
+              externalLink: 'https://example.com',
+              parentId: null,
+            },
           ],
         },
       ]);
@@ -554,12 +576,21 @@ describe('CategoryRepository', () => {
       );
 
       expect(out.path).toEqual([
-        { id: 'root', name: 'Root', slug: 'root' },
+        {
+          id: 'root',
+          name: 'Root',
+          slug: 'root',
+          slugPath: 'root',
+          hasExternalLink: true,
+          externalLink: 'https://example.com',
+        },
       ]);
       expect(out.tree).toMatchObject({
         id: 'root',
         name: 'Root',
         slug: 'root',
+        hasExternalLink: true,
+        externalLink: 'https://example.com',
         children: [],
       });
       expect(prisma.$queryRawUnsafe).toHaveBeenCalled();
@@ -582,15 +613,47 @@ describe('CategoryRepository', () => {
         {
           type: 'path',
           data: [
-            { id: 'root', name: 'Root', slug: 'root', parentId: null },
-            { id: 'leaf', name: 'Leaf', slug: 'leaf', parentId: 'root' },
+            {
+              id: 'root',
+              name: 'Root',
+              slug: 'root',
+              slugPath: 'root',
+              hasExternalLink: false,
+              externalLink: null,
+              parentId: null,
+            },
+            {
+              id: 'leaf',
+              name: 'Leaf',
+              slug: 'leaf',
+              slugPath: 'root/leaf',
+              hasExternalLink: false,
+              externalLink: null,
+              parentId: 'root',
+            },
           ],
         },
         {
           type: 'tree',
           data: [
-            { id: 'root', name: 'Root', slug: 'root', parentId: null },
-            { id: 'leaf', name: 'Leaf', slug: 'leaf', parentId: 'root' },
+            {
+              id: 'root',
+              name: 'Root',
+              slug: 'root',
+              slugPath: 'root',
+              hasExternalLink: false,
+              externalLink: null,
+              parentId: null,
+            },
+            {
+              id: 'leaf',
+              name: 'Leaf',
+              slug: 'leaf',
+              slugPath: 'root/leaf',
+              hasExternalLink: false,
+              externalLink: null,
+              parentId: 'root',
+            },
           ],
         },
       ]);
@@ -678,9 +741,9 @@ describe('CategoryRepository', () => {
     it('deve lançar BadRequest quando falhar', async () => {
       prisma.category.findMany.mockRejectedValue(new Error('db'));
 
-      await expect(
-        repository.findHierarchyReferences('org-1'),
-      ).rejects.toThrow('Erro ao buscar hierarquia de categorias');
+      await expect(repository.findHierarchyReferences('org-1')).rejects.toThrow(
+        'Erro ao buscar hierarquia de categorias',
+      );
     });
   });
 
@@ -704,9 +767,9 @@ describe('CategoryRepository', () => {
     it('deve lançar BadRequest quando falhar', async () => {
       prisma.category.count.mockRejectedValue(new Error('db'));
 
-      await expect(
-        repository.countChildren('p', 'org'),
-      ).rejects.toThrow('Erro ao contar subcategorias');
+      await expect(repository.countChildren('p', 'org')).rejects.toThrow(
+        'Erro ao contar subcategorias',
+      );
     });
   });
 
@@ -735,6 +798,8 @@ describe('CategoryRepository', () => {
           slug: 'nome',
           slugPath: 'nome',
           order: 1,
+          hasExternalLink: false,
+          externalLink: null,
           isActive: true,
         },
       });
@@ -798,7 +863,7 @@ describe('CategoryRepository', () => {
       expect(logger.info).toHaveBeenCalled();
     });
 
-    it('deve incluir slug, order, parentId e slugPath quando informados', async () => {
+    it('deve incluir slug, order, parentId, link externo e slugPath quando informados', async () => {
       prisma.category.update.mockResolvedValue({} as never);
       prisma.category.findMany.mockResolvedValue([]);
 
@@ -809,6 +874,8 @@ describe('CategoryRepository', () => {
           slug: 'novo-slug',
           order: 5,
           parentId: 'pai-id',
+          hasExternalLink: false,
+          externalLink: null,
           slugPath: 'pai-id/novo-slug',
         },
         'user-1',
@@ -821,6 +888,8 @@ describe('CategoryRepository', () => {
           slug: 'novo-slug',
           order: 5,
           parentId: 'pai-id',
+          hasExternalLink: false,
+          externalLink: null,
           slugPath: 'pai-id/novo-slug',
         },
       });
@@ -888,15 +957,13 @@ describe('CategoryRepository', () => {
       prisma.category.findMany.mockResolvedValue([{ id: 'x', parentId: null }]);
       prisma.category.updateMany.mockRejectedValue(new Error('db'));
 
-      await expect(
-        repository.delete('x', 'org-1', 'user-1'),
-      ).rejects.toThrow('Erro ao remover categoria');
+      await expect(repository.delete('x', 'org-1', 'user-1')).rejects.toThrow(
+        'Erro ao remover categoria',
+      );
     });
 
     it('deve ignorar shift indefinido na fila quando id for string vazia', async () => {
-      prisma.category.findMany.mockResolvedValue([
-        { id: '', parentId: null },
-      ]);
+      prisma.category.findMany.mockResolvedValue([{ id: '', parentId: null }]);
       prisma.category.updateMany.mockResolvedValue({ count: 1 } as never);
 
       await repository.delete('', 'org-1', 'user-1');

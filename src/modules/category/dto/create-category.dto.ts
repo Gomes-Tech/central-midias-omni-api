@@ -1,4 +1,5 @@
 import { Sanitize } from '@common/decorators';
+import { TransformBoolean } from '@common/decorators/tansform-boolean.decorator';
 import {
   IsBoolean,
   IsInt,
@@ -23,6 +24,15 @@ export class CreateCategoryDTO {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @TransformBoolean()
+  @IsBoolean()
+  hasExternalLink?: boolean;
+
+  @IsOptional()
+  @IsString()
+  externalLink?: string | null;
 
   @IsOptional()
   @IsUUID('4', { message: 'Categoria pai inválida' })

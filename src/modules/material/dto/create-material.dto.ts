@@ -1,4 +1,5 @@
 import { Sanitize } from '@common/decorators';
+import { TransformBoolean } from '@common/decorators/tansform-boolean.decorator';
 import { Transform } from 'class-transformer';
 import {
   IsArray,
@@ -9,7 +10,6 @@ import {
 } from 'class-validator';
 import {
   MaterialCustomizationDTO,
-  TransformBoolean,
   TransformMaterialCustomization,
 } from './material-customization.dto';
 import {

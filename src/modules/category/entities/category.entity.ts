@@ -4,6 +4,8 @@ export interface CategoryListItem {
   slug: string;
   slugPath: string;
   isActive: boolean;
+  hasExternalLink: boolean;
+  externalLink?: string | null;
   order: number;
   parentId?: string | null;
   createdAt: Date;
@@ -16,6 +18,8 @@ export interface CategoryTreeItem {
   slug: string;
   slugPath: string;
   isActive: boolean;
+  hasExternalLink: boolean;
+  externalLink?: string | null;
   order: number;
   parentId?: string | null;
   children: CategoryTreeItem[];
@@ -30,6 +34,8 @@ export interface CategoryDetails {
   isActive: boolean;
   order: number;
   parentId?: string | null;
+  hasExternalLink: boolean;
+  externalLink?: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date | null;

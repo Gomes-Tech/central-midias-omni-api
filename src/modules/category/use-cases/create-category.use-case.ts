@@ -22,6 +22,20 @@ export class CreateCategoryUseCase {
   ): Promise<void> {
     const slug = toSlug(data.name);
     const parentId = data.parentId ?? null;
+    const externalLink = data.externalLink?.trim() || null;
+    const hasExternalLink = data.hasExternalLink === true || !!externalLink;
+
+    if (hasExternalLink && !externalLink) {
+      throw new BadRequestException(
+        'O link é obrigatório para uma categoria com link externo',
+      );
+    }
+
+    if (hasExternalLink && parentId) {
+      throw new BadRequestException(
+        'Uma categoria com link externo não pode ter categoria pai. Crie-a no nível raiz.',
+      );
+    }
 
     const existingSibling = await this.categoryRepository.findSiblingBySlug(
       slug,
@@ -59,6 +73,12 @@ export class CreateCategoryUseCase {
         throw new BadRequestException('Categoria pai está inativa');
       }
 
+      if (parentCategory.hasExternalLink) {
+        throw new BadRequestException(
+          'Não é possível criar uma subcategoria em uma categoria com link externo',
+        );
+      }
+
       parentSlugPath = parentCategory.slugPath;
     }
 
@@ -66,7 +86,13 @@ export class CreateCategoryUseCase {
 
     const category = await this.categoryRepository.create(
       organizationId,
-      { slug, slugPath, ...data },
+      {
+        ...data,
+        slug,
+        slugPath,
+        hasExternalLink,
+        externalLink: hasExternalLink ? externalLink : null,
+      },
       userId,
     );
 

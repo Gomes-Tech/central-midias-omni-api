@@ -7,9 +7,14 @@ import { makeCategoryDetails, makeCreateCategoryDTO } from './test-helpers';
 
 describe('CreateCategoryUseCase', () => {
   let categoryRepository: jest.Mocked<
-    Pick<CategoryRepository, 'findSiblingBySlug' | 'findSiblingByOrder' | 'create'>
+    Pick<
+      CategoryRepository,
+      'findSiblingBySlug' | 'findSiblingByOrder' | 'create'
+    >
   >;
-  let findCategoryByIdUseCase: jest.Mocked<Pick<FindCategoryByIdUseCase, 'execute'>>;
+  let findCategoryByIdUseCase: jest.Mocked<
+    Pick<FindCategoryByIdUseCase, 'execute'>
+  >;
   let syncCategoryGlobalRolesUseCase: jest.Mocked<
     Pick<SyncCategoryGlobalRolesUseCase, 'execute'>
   >;
@@ -49,7 +54,13 @@ describe('CreateCategoryUseCase', () => {
 
     expect(categoryRepository.create).toHaveBeenCalledWith(
       'org-id',
-      { slug: 'categoria', slugPath: 'categoria', ...dto },
+      {
+        ...dto,
+        slug: 'categoria',
+        slugPath: 'categoria',
+        hasExternalLink: false,
+        externalLink: null,
+      },
       'user-id',
     );
     expect(syncCategoryGlobalRolesUseCase.execute).toHaveBeenCalledWith(
@@ -171,6 +182,75 @@ describe('CreateCategoryUseCase', () => {
     );
   });
 
+  it('deve criar categoria com link externo apenas no nível raiz', async () => {
+    const dto = makeCreateCategoryDTO({
+      hasExternalLink: true,
+      externalLink: '  https://example.com  ',
+    });
+
+    categoryRepository.findSiblingBySlug.mockResolvedValue(null);
+    categoryRepository.findSiblingByOrder.mockResolvedValue(null);
+
+    await expect(
+      useCase.execute('org-id', dto, 'user-id'),
+    ).resolves.toBeUndefined();
+
+    expect(categoryRepository.create).toHaveBeenCalledWith(
+      'org-id',
+      expect.objectContaining({
+        hasExternalLink: true,
+        externalLink: 'https://example.com',
+      }),
+      'user-id',
+    );
+  });
+
+  it('deve lançar BadRequest quando link externo não tiver URL', async () => {
+    const dto = makeCreateCategoryDTO({
+      hasExternalLink: true,
+      externalLink: '   ',
+    });
+
+    await expect(useCase.execute('org-id', dto, 'user-id')).rejects.toThrow(
+      'O link é obrigatório para uma categoria com link externo',
+    );
+
+    expect(categoryRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('deve lançar BadRequest quando categoria com link externo tiver pai', async () => {
+    const dto = makeCreateCategoryDTO({
+      parentId: 'parent-id',
+      externalLink: 'https://example.com',
+    });
+
+    await expect(useCase.execute('org-id', dto, 'user-id')).rejects.toThrow(
+      'Uma categoria com link externo não pode ter categoria pai. Crie-a no nível raiz.',
+    );
+
+    expect(categoryRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('deve lançar BadRequest quando o pai for categoria com link externo', async () => {
+    const dto = makeCreateCategoryDTO({ parentId: 'parent-id' });
+
+    categoryRepository.findSiblingBySlug.mockResolvedValue(null);
+    categoryRepository.findSiblingByOrder.mockResolvedValue(null);
+    findCategoryByIdUseCase.execute.mockResolvedValue(
+      makeCategoryDetails({
+        id: 'parent-id',
+        hasExternalLink: true,
+        externalLink: 'https://example.com',
+      }),
+    );
+
+    await expect(useCase.execute('org-id', dto, 'user-id')).rejects.toThrow(
+      'Não é possível criar uma subcategoria em uma categoria com link externo',
+    );
+
+    expect(categoryRepository.create).not.toHaveBeenCalled();
+  });
+
   it('deve lançar BadRequest quando a categoria pai estiver inativa', async () => {
     const dto = makeCreateCategoryDTO({ parentId: 'parent-id' });
 
@@ -196,9 +276,9 @@ describe('CreateCategoryUseCase', () => {
       new NotFoundException('Categoria não encontrada'),
     );
 
-    await expect(useCase.execute('org-id', dto, 'user-id')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      useCase.execute('org-id', dto, 'user-id'),
+    ).rejects.toBeInstanceOf(NotFoundException);
 
     expect(categoryRepository.create).not.toHaveBeenCalled();
   });

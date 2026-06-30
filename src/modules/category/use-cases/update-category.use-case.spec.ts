@@ -164,9 +164,7 @@ describe('UpdateCategoryUseCase', () => {
 
     await expect(
       useCase.execute('cat-1', 'org-id', data, 'user-id'),
-    ).rejects.toThrow(
-      'Já existe uma categoria com esta ordem neste nível',
-    );
+    ).rejects.toThrow('Já existe uma categoria com esta ordem neste nível');
 
     expect(categoryRepository.update).not.toHaveBeenCalled();
   });
@@ -243,6 +241,164 @@ describe('UpdateCategoryUseCase', () => {
     expect(categoryRepository.update).toHaveBeenCalled();
   });
 
+  it('deve atualizar campos de link externo normalizados quando categoria for raiz e sem filhos', async () => {
+    const category = makeCategoryDetails({ id: 'cat-1', parentId: null });
+    const data = makeUpdateCategoryDTO({
+      hasExternalLink: true,
+      externalLink: '  https://example.com  ',
+    });
+
+    findCategoryByIdUseCase.execute.mockResolvedValue(category);
+    categoryRepository.update.mockResolvedValue();
+
+    await expect(
+      useCase.execute('cat-1', 'org-id', data, 'user-id'),
+    ).resolves.toBeUndefined();
+
+    expect(categoryRepository.update).toHaveBeenCalledWith(
+      'cat-1',
+      'org-id',
+      {
+        ...data,
+        hasExternalLink: true,
+        externalLink: 'https://example.com',
+      },
+      'user-id',
+    );
+  });
+
+  it('deve limpar externalLink quando hasExternalLink for desligado', async () => {
+    const category = makeCategoryDetails({
+      id: 'cat-1',
+      hasExternalLink: true,
+      externalLink: 'https://example.com',
+    });
+    const data = makeUpdateCategoryDTO({ hasExternalLink: false });
+
+    findCategoryByIdUseCase.execute.mockResolvedValue(category);
+    categoryRepository.update.mockResolvedValue();
+
+    await useCase.execute('cat-1', 'org-id', data, 'user-id');
+
+    expect(categoryRepository.update).toHaveBeenCalledWith(
+      'cat-1',
+      'org-id',
+      {
+        hasExternalLink: false,
+        externalLink: null,
+      },
+      'user-id',
+    );
+  });
+
+  it('deve lançar BadRequest ao ativar link externo sem URL', async () => {
+    const category = makeCategoryDetails({ id: 'cat-1' });
+    const data = makeUpdateCategoryDTO({ hasExternalLink: true });
+
+    findCategoryByIdUseCase.execute.mockResolvedValue(category);
+
+    await expect(
+      useCase.execute('cat-1', 'org-id', data, 'user-id'),
+    ).rejects.toThrow(
+      'O link é obrigatório para uma categoria com link externo',
+    );
+
+    expect(categoryRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('deve lançar BadRequest ao ativar link externo em categoria com pai', async () => {
+    const category = makeCategoryDetails({
+      id: 'cat-1',
+      parentId: 'parent-id',
+    });
+    const data = makeUpdateCategoryDTO({
+      hasExternalLink: true,
+      externalLink: 'https://example.com',
+    });
+
+    findCategoryByIdUseCase.execute.mockResolvedValue(category);
+
+    await expect(
+      useCase.execute('cat-1', 'org-id', data, 'user-id'),
+    ).rejects.toThrow(
+      'Uma categoria com link externo não pode ter categoria pai. Mantenha-a no nível raiz.',
+    );
+
+    expect(categoryRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('deve lançar BadRequest ao ativar link externo em categoria com filhos', async () => {
+    const category = makeCategoryDetails({
+      id: 'cat-1',
+      children: [
+        {
+          id: 'child',
+          name: 'Child',
+          slug: 'child',
+          slugPath: 'cat/child',
+          isActive: true,
+          order: 0,
+        },
+      ],
+    });
+    const data = makeUpdateCategoryDTO({
+      hasExternalLink: true,
+      externalLink: 'https://example.com',
+    });
+
+    findCategoryByIdUseCase.execute.mockResolvedValue(category);
+
+    await expect(
+      useCase.execute('cat-1', 'org-id', data, 'user-id'),
+    ).rejects.toThrow(
+      'Uma categoria com link externo não pode ter subcategorias',
+    );
+
+    expect(categoryRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('deve lançar BadRequest ao mover categoria com link externo para dentro de um pai', async () => {
+    const category = makeCategoryDetails({
+      id: 'cat-1',
+      hasExternalLink: true,
+      externalLink: 'https://example.com',
+    });
+    const data = makeUpdateCategoryDTO({ parentId: 'parent-id' });
+
+    findCategoryByIdUseCase.execute.mockResolvedValue(category);
+
+    await expect(
+      useCase.execute('cat-1', 'org-id', data, 'user-id'),
+    ).rejects.toThrow(
+      'Uma categoria com link externo não pode ter categoria pai. Mantenha-a no nível raiz.',
+    );
+
+    expect(categoryRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('deve lançar BadRequest ao mover para uma categoria pai com link externo', async () => {
+    const category = makeCategoryDetails({ id: 'child' });
+    const data = makeUpdateCategoryDTO({ parentId: 'parent-id' });
+
+    findCategoryByIdUseCase.execute
+      .mockResolvedValueOnce(category)
+      .mockResolvedValueOnce(
+        makeCategoryDetails({
+          id: 'parent-id',
+          hasExternalLink: true,
+          externalLink: 'https://example.com',
+        }),
+      );
+
+    await expect(
+      useCase.execute('child', 'org-id', data, 'user-id'),
+    ).rejects.toThrow(
+      'Não é possível mover uma categoria para dentro de uma categoria com link externo',
+    );
+
+    expect(categoryRepository.update).not.toHaveBeenCalled();
+  });
+
   it('deve validar ordem no novo nível quando o pai mudar', async () => {
     const category = makeCategoryDetails({
       id: 'child',
@@ -267,9 +423,7 @@ describe('UpdateCategoryUseCase', () => {
 
     await expect(
       useCase.execute('child', 'org-id', data, 'user-id'),
-    ).rejects.toThrow(
-      'Já existe uma categoria com esta ordem neste nível',
-    );
+    ).rejects.toThrow('Já existe uma categoria com esta ordem neste nível');
 
     expect(categoryRepository.findSiblingByOrder).toHaveBeenCalledWith(
       0,

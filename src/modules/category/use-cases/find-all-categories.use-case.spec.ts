@@ -21,6 +21,8 @@ describe('FindAllCategoriesUseCase', () => {
         slug: 'a',
         slugPath: 'a',
         isActive: true,
+        hasExternalLink: false,
+        externalLink: null,
         order: 0,
         parentId: null,
         createdAt: new Date(),
