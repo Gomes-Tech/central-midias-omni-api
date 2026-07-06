@@ -402,8 +402,8 @@ export class UserRepository {
             taxIdentifier: data.taxIdentifier,
             phone: data.phone,
             socialReason: data.socialReason,
-            birthDate: data.birthDate,
-            admissionDate: data.admissionDate,
+            birthDate: new Date(data.birthDate),
+            admissionDate: new Date(data.admissionDate),
           },
           select: {
             id: true,
@@ -634,10 +634,7 @@ export class UserRepository {
         select: { lastLoginAt: true },
       });
 
-      if (
-        existing &&
-        this.isSameCalendarDay(existing.lastLoginAt, loginAt)
-      ) {
+      if (existing && this.isSameCalendarDay(existing.lastLoginAt, loginAt)) {
         return false;
       }
 
