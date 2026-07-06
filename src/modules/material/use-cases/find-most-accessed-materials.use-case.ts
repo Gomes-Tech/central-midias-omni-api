@@ -16,40 +16,24 @@ export class FindMostAccessedMaterialsUseCase {
     organizationId: string,
     userId: string,
   ): Promise<MostAccessedMaterialItem[]> {
-    const topViewed = await this.materialRepository.findMostViewedMaterials(
+    const materials = await this.materialRepository.findMostViewedMaterials(
       organizationId,
       userId,
       3,
     );
 
-    const selected = [...topViewed];
-    const excludeIds = selected.map((material) => material.id);
-
-    if (selected.length < 3) {
-      const fallback =
-        await this.materialRepository.findLatestMaterialsPerCategory(
-          organizationId,
-          userId,
-          3 - selected.length,
-          excludeIds,
-        );
-
-      selected.push(...fallback);
-    }
-
     return await Promise.all(
-      selected.map(async (material) => {
+      materials.map(async (material) => {
         const previewFile = pickMaterialPreviewFile(material.materialFiles);
         const url = previewFile
-          ? await this.storageService.getPublicUrl(previewFile.imageKey)
+          ? await this.storageService.getPublicUrl(previewFile.imageKey, 900)
           : null;
 
         return {
           id: material.id,
           name: material.name,
           description: material.description,
-          mobileUrl: url,
-          desktopUrl: url,
+          imageUrl: url,
         };
       }),
     );

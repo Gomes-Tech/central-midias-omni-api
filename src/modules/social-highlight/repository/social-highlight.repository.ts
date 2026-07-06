@@ -101,17 +101,21 @@ export class SocialHighlightRepository {
     organizationId: string,
   ): Promise<Omit<SocialHighlight, 'mobileImageUrl' | 'desktopImageUrl'>[]> {
     try {
+      const now = new Date();
+
       const data = await this.prisma.socialHighlight.findMany({
         where: {
           isActive: true,
           isDeleted: false,
           organizationId,
-          initialDate: {
-            lte: new Date(),
-          },
-          finishDate: {
-            gte: new Date(),
-          },
+          AND: [
+            {
+              OR: [{ initialDate: null }, { initialDate: { lte: now } }],
+            },
+            {
+              OR: [{ finishDate: null }, { finishDate: { gte: now } }],
+            },
+          ],
         },
         orderBy: {
           order: 'asc',
@@ -172,7 +176,10 @@ export class SocialHighlightRepository {
 
   async create(
     organizationId: string,
-    data: CreateSocialHighlightDTO & { mobileImageKey: string; desktopImageKey: string },
+    data: CreateSocialHighlightDTO & {
+      mobileImageKey: string;
+      desktopImageKey: string;
+    },
     userId: string,
   ) {
     try {

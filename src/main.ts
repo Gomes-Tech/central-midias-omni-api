@@ -148,7 +148,10 @@ async function bootstrap() {
 
   app.getHttpAdapter().getInstance().disable('x-powered-by');
 
+  app.enableShutdownHooks();
+
   const port = process.env.PORT ?? 4000;
+
   await app.listen(port);
   if (process.env.NODE_ENV !== 'prod') {
     console.log(`[bootstrap] API rodando em http://localhost:${port}/api`);

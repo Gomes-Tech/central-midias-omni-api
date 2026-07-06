@@ -106,6 +106,26 @@ export type MaterialMostAccessedRow = Prisma.MaterialGetPayload<{
   select: typeof materialMostAccessedSelect;
 }>;
 
+const imageMaterialFilesFilter = {
+  some: {
+    mimeType: {
+      startsWith: 'image/',
+    },
+  },
+} satisfies Prisma.MaterialFileListRelationFilter;
+
+const buildImageMaterialWhere = (
+  categoryWhere: Prisma.CategoryWhereInput,
+  excludeIds: string[] = [],
+): Prisma.MaterialWhereInput => ({
+  deletedAt: null,
+  category: categoryWhere,
+  materialFiles: imageMaterialFilesFilter,
+  ...(excludeIds.length > 0 && {
+    id: { notIn: excludeIds },
+  }),
+});
+
 export interface CreateMaterialFileInput {
   fileKey: string;
   mimeType: string;
@@ -375,10 +395,11 @@ export class MaterialRepository {
         return [];
       }
 
-      return await this.prisma.material.findMany({
+      const imageMaterialWhere = buildImageMaterialWhere(categoryWhere);
+
+      const viewed = await this.prisma.material.findMany({
         where: {
-          deletedAt: null,
-          category: categoryWhere,
+          ...imageMaterialWhere,
           materialViews: { some: {} },
         },
         orderBy: {
@@ -389,6 +410,19 @@ export class MaterialRepository {
         take: limit,
         select: materialMostAccessedSelect,
       });
+
+      if (viewed.length >= limit) {
+        return viewed;
+      }
+
+      const fallback = await this.findLatestImageMaterialsPerCategory(
+        organizationId,
+        userId,
+        limit - viewed.length,
+        viewed.map((material) => material.id),
+      );
+
+      return [...viewed, ...fallback];
     } catch (error) {
       void this.logger.error(
         'MaterialRepository.findMostViewedMaterials falhou',
@@ -473,6 +507,7 @@ export class MaterialRepository {
     organizationId: string,
     userId: string,
     limit = 6,
+    excludeIds: string[] = [],
   ): Promise<MaterialMostAccessedRow[]> {
     try {
       const categoryWhere = await this.buildAccessibleCategoryWhere(
@@ -484,36 +519,51 @@ export class MaterialRepository {
         return [];
       }
 
-      const materials = await this.prisma.material.findMany({
-        where: {
-          deletedAt: null,
-          category: categoryWhere,
-          materialFiles: {
-            some: {
-              mimeType: {
-                startsWith: 'image/',
-              },
-            },
+      const imageMaterialWhere = buildImageMaterialWhere(
+        categoryWhere,
+        excludeIds,
+      );
+      const excludeSet = new Set(excludeIds);
+
+      const latestPerCategory = await this.prisma.material.groupBy({
+        by: ['categoryId'],
+        where: imageMaterialWhere,
+        _max: {
+          createdAt: true,
+        },
+        orderBy: {
+          _max: {
+            createdAt: 'desc',
           },
         },
-        orderBy: { createdAt: 'desc' },
-        take: 50,
+      });
+
+      const topCategories = latestPerCategory.slice(0, limit);
+
+      if (topCategories.length === 0) {
+        return [];
+      }
+
+      const materials = await this.prisma.material.findMany({
+        where: {
+          ...imageMaterialWhere,
+          OR: topCategories.map(({ categoryId, _max }) => ({
+            categoryId,
+            createdAt: _max.createdAt!,
+          })),
+        },
         select: materialMostAccessedSelect,
+        orderBy: { createdAt: 'desc' },
       });
 
       const seenCategories = new Set<string>();
       const selected: MaterialMostAccessedRow[] = [];
 
       for (const material of materials) {
-        if (seenCategories.has(material.categoryId)) {
-          continue;
-        }
-
-        const hasImageFile = material.materialFiles.some((file) =>
-          file.mimeType.startsWith('image/'),
-        );
-
-        if (!hasImageFile) {
+        if (
+          excludeSet.has(material.id) ||
+          seenCategories.has(material.categoryId)
+        ) {
           continue;
         }
 
@@ -525,7 +575,23 @@ export class MaterialRepository {
         }
       }
 
-      return selected;
+      if (selected.length >= limit) {
+        return selected;
+      }
+
+      const additionalMaterials = await this.prisma.material.findMany({
+        where: {
+          ...imageMaterialWhere,
+          id: {
+            notIn: [...excludeIds, ...selected.map((material) => material.id)],
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit - selected.length,
+        select: materialMostAccessedSelect,
+      });
+
+      return [...selected, ...additionalMaterials];
     } catch (error) {
       void this.logger.error(
         'MaterialRepository.findLatestImageMaterialsPerCategory falhou',

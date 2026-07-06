@@ -88,8 +88,7 @@ export interface MostAccessedMaterialItem {
   id: string;
   name: string;
   description?: string | null;
-  mobileUrl: string | null;
-  desktopUrl: string | null;
+  imageUrl: string | null;
 }
 
 export interface MaterialMosaicItem {

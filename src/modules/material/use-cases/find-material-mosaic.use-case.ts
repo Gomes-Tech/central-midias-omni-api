@@ -30,7 +30,7 @@ export class FindMaterialMosaicUseCase {
         return {
           id: material.id,
           imageUrl: imageFile
-            ? await this.storageService.getPublicUrl(imageFile.imageKey)
+            ? await this.storageService.getPublicUrl(imageFile.imageKey, 900)
             : null,
         };
       }),

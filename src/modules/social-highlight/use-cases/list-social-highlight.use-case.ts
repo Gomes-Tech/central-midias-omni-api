@@ -16,37 +16,40 @@ export class FindListSocialHighlightsUseCase {
   async execute(
     organizationId: string,
   ): Promise<Omit<SocialHighlight, 'mobileImageKey' | 'desktopImageKey'>[]> {
-    const cachedSocialHighlights = await this.cacheService.get<
-      Omit<SocialHighlight, 'mobileImageKey' | 'desktopImageKey'>[]
-    >(`social-highlights:${organizationId}`);
+    // const cachedSocialHighlights = await this.cacheService.get<
+    //   Omit<SocialHighlight, 'mobileImageKey' | 'desktopImageKey'>[]
+    // >(`social-highlights:${organizationId}`);
 
-    if (cachedSocialHighlights) {
-      return cachedSocialHighlights;
-    }
+    // if (cachedSocialHighlights?.length > 0) {
+    //   return cachedSocialHighlights;
+    // }
 
-    const banners = await this.socialHighlightRepository.findList(organizationId);
+    const banners =
+      await this.socialHighlightRepository.findList(organizationId);
+
+    console.log('BANNERS', banners.length);
 
     const socialHighlightsWithImages = await Promise.all(
       banners.map(async ({ mobileImageKey, desktopImageKey, ...banner }) => ({
         ...banner,
         mobileImageUrl: mobileImageKey
           ? await this.storageService
-              .getPublicUrl(mobileImageKey)
+              .getPublicUrl(mobileImageKey, 900)
               .catch(() => null)
           : null,
         desktopImageUrl: desktopImageKey
           ? await this.storageService
-              .getPublicUrl(desktopImageKey)
+              .getPublicUrl(desktopImageKey, 900)
               .catch(() => null)
           : null,
       })),
     );
 
-    await this.cacheService.set(
-      `social-highlights:${organizationId}`,
-      socialHighlightsWithImages,
-      60 * 15, // 5 minutes
-    );
+    // await this.cacheService.set(
+    //   `social-highlights:${organizationId}`,
+    //   socialHighlightsWithImages,
+    //   60 * 15, // 5 minutes
+    // );
 
     return socialHighlightsWithImages;
   }

@@ -7,6 +7,7 @@ function createPrismaMock() {
   return {
     material: {
       findMany: jest.fn(),
+      groupBy: jest.fn(),
       count: jest.fn(),
       findFirst: jest.fn(),
       create: jest.fn(),
@@ -1288,6 +1289,31 @@ describe('MaterialRepository', () => {
   });
 
   describe('findMostViewedMaterials', () => {
+    const categoryWhere = {
+      organizationId: 'org-id',
+      isDeleted: false,
+      OR: [
+        { categoryRoleAccesses: { none: {} } },
+        {
+          categoryRoleAccesses: {
+            some: { roleId: 'role-1', organizationId: 'org-id' },
+          },
+        },
+      ],
+    };
+
+    const imageMaterialWhere = {
+      deletedAt: null,
+      category: categoryWhere,
+      materialFiles: {
+        some: {
+          mimeType: {
+            startsWith: 'image/',
+          },
+        },
+      },
+    };
+
     it('deve retornar lista vazia quando usuário não tiver acesso', async () => {
       prisma.member.findFirst.mockResolvedValue(null);
       prisma.user.findFirst.mockResolvedValue(null);
@@ -1299,10 +1325,106 @@ describe('MaterialRepository', () => {
       expect(prisma.material.findMany).not.toHaveBeenCalled();
     });
 
-    it('deve buscar materiais mais visualizados com filtro de role', async () => {
+    it('deve buscar materiais mais visualizados com imagem e filtro de role', async () => {
       prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
       prisma.user.findFirst.mockResolvedValue(null);
       prisma.material.findMany.mockResolvedValue([
+        {
+          id: 'material-1',
+          name: 'Material popular 1',
+          description: 'Descricao',
+          categoryId: 'category-1',
+          materialFiles: [],
+        },
+        {
+          id: 'material-2',
+          name: 'Material popular 2',
+          description: 'Descricao',
+          categoryId: 'category-2',
+          materialFiles: [],
+        },
+        {
+          id: 'material-3',
+          name: 'Material popular 3',
+          description: 'Descricao',
+          categoryId: 'category-3',
+          materialFiles: [],
+        },
+      ]);
+
+      await expect(
+        repository.findMostViewedMaterials('org-id', 'user-id', 3),
+      ).resolves.toHaveLength(3);
+
+      expect(prisma.material.findMany).toHaveBeenCalledWith({
+        where: {
+          ...imageMaterialWhere,
+          materialViews: { some: {} },
+        },
+        orderBy: {
+          materialViews: {
+            _count: 'desc',
+          },
+        },
+        take: 3,
+        select: expect.any(Object),
+      });
+      expect(prisma.material.groupBy).not.toHaveBeenCalled();
+    });
+
+    it('deve buscar fallback com imagens quando não houver materiais visualizados', async () => {
+      prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.material.findMany.mockResolvedValueOnce([]);
+
+      const fallbackSpy = jest
+        .spyOn(repository, 'findLatestImageMaterialsPerCategory')
+        .mockResolvedValue([
+          {
+            id: 'fallback-1',
+            name: 'Imagem recente',
+            description: null,
+            categoryId: 'category-a',
+            materialFiles: [
+              {
+                id: 'file-1',
+                materialId: 'fallback-1',
+                imageKey: 'materials/fallback-1/a.png',
+                mimeType: 'image/png',
+                size: 1024,
+              },
+            ],
+          },
+        ]);
+
+      await expect(
+        repository.findMostViewedMaterials('org-id', 'user-id', 3),
+      ).resolves.toEqual([
+        {
+          id: 'fallback-1',
+          name: 'Imagem recente',
+          description: null,
+          categoryId: 'category-a',
+          materialFiles: [
+            {
+              id: 'file-1',
+              materialId: 'fallback-1',
+              imageKey: 'materials/fallback-1/a.png',
+              mimeType: 'image/png',
+              size: 1024,
+            },
+          ],
+        },
+      ]);
+
+      expect(fallbackSpy).toHaveBeenCalledWith('org-id', 'user-id', 3, []);
+      fallbackSpy.mockRestore();
+    });
+
+    it('deve completar com fallback de imagens quando houver menos materiais visualizados que o limite', async () => {
+      prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.material.findMany.mockResolvedValueOnce([
         {
           id: 'material-id',
           name: 'Material popular',
@@ -1311,6 +1433,26 @@ describe('MaterialRepository', () => {
           materialFiles: [],
         },
       ]);
+
+      const fallbackMaterial = {
+        id: 'fallback-1',
+        name: 'Imagem recente',
+        description: null,
+        categoryId: 'category-a',
+        materialFiles: [
+          {
+            id: 'file-1',
+            materialId: 'fallback-1',
+            imageKey: 'materials/fallback-1/a.png',
+            mimeType: 'image/png',
+            size: 1024,
+          },
+        ],
+      };
+
+      const fallbackSpy = jest
+        .spyOn(repository, 'findLatestImageMaterialsPerCategory')
+        .mockResolvedValue([fallbackMaterial]);
 
       await expect(
         repository.findMostViewedMaterials('org-id', 'user-id', 3),
@@ -1322,33 +1464,16 @@ describe('MaterialRepository', () => {
           categoryId: 'category-1',
           materialFiles: [],
         },
+        fallbackMaterial,
       ]);
 
-      expect(prisma.material.findMany).toHaveBeenCalledWith({
-        where: {
-          deletedAt: null,
-          category: {
-            organizationId: 'org-id',
-            isDeleted: false,
-            OR: [
-              { categoryRoleAccesses: { none: {} } },
-              {
-                categoryRoleAccesses: {
-                  some: { roleId: 'role-1', organizationId: 'org-id' },
-                },
-              },
-            ],
-          },
-          materialViews: { some: {} },
-        },
-        orderBy: {
-          materialViews: {
-            _count: 'desc',
-          },
-        },
-        take: 3,
-        select: expect.any(Object),
-      });
+      expect(fallbackSpy).toHaveBeenCalledWith(
+        'org-id',
+        'user-id',
+        2,
+        ['material-id'],
+      );
+      fallbackSpy.mockRestore();
     });
   });
 
@@ -1417,6 +1542,16 @@ describe('MaterialRepository', () => {
     it('deve retornar no máximo um material por categoria com imagem e respeitar limite', async () => {
       prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
       prisma.user.findFirst.mockResolvedValue(null);
+      prisma.material.groupBy.mockResolvedValue([
+        {
+          categoryId: 'category-a',
+          _max: { createdAt: new Date('2024-06-12T12:00:00.000Z') },
+        },
+        {
+          categoryId: 'category-b',
+          _max: { createdAt: new Date('2024-06-11T12:00:00.000Z') },
+        },
+      ]);
       prisma.material.findMany.mockResolvedValue([
         {
           id: 'material-1',
@@ -1428,21 +1563,6 @@ describe('MaterialRepository', () => {
               id: 'file-1',
               materialId: 'material-1',
               imageKey: 'materials/material-1/a.png',
-              mimeType: 'image/png',
-              size: 1024,
-            },
-          ],
-        },
-        {
-          id: 'material-2',
-          name: 'Segundo da categoria A',
-          description: null,
-          categoryId: 'category-a',
-          materialFiles: [
-            {
-              id: 'file-2',
-              materialId: 'material-2',
-              imageKey: 'materials/material-2/a2.png',
               mimeType: 'image/png',
               size: 1024,
             },
@@ -1500,8 +1620,9 @@ describe('MaterialRepository', () => {
         },
       ]);
 
-      expect(prisma.material.findMany).toHaveBeenCalledWith(
+      expect(prisma.material.groupBy).toHaveBeenCalledWith(
         expect.objectContaining({
+          by: ['categoryId'],
           where: expect.objectContaining({
             deletedAt: null,
             materialFiles: {
@@ -1524,8 +1645,211 @@ describe('MaterialRepository', () => {
               ],
             }),
           }),
+          orderBy: {
+            _max: {
+              createdAt: 'desc',
+            },
+          },
+        }),
+      );
+
+      expect(prisma.material.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            deletedAt: null,
+            materialFiles: {
+              some: {
+                mimeType: {
+                  startsWith: 'image/',
+                },
+              },
+            },
+            OR: [
+              {
+                categoryId: 'category-a',
+                createdAt: new Date('2024-06-12T12:00:00.000Z'),
+              },
+              {
+                categoryId: 'category-b',
+                createdAt: new Date('2024-06-11T12:00:00.000Z'),
+              },
+            ],
+          }),
           orderBy: { createdAt: 'desc' },
-          take: 50,
+        }),
+      );
+    });
+
+    it('deve retornar materiais de categorias distintas mesmo quando há muitos da mesma categoria', async () => {
+      prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.material.groupBy.mockResolvedValue([
+        {
+          categoryId: 'category-a',
+          _max: { createdAt: new Date('2024-06-12T12:00:00.000Z') },
+        },
+        {
+          categoryId: 'category-b',
+          _max: { createdAt: new Date('2024-06-11T12:00:00.000Z') },
+        },
+        {
+          categoryId: 'category-c',
+          _max: { createdAt: new Date('2024-06-10T12:00:00.000Z') },
+        },
+      ]);
+      prisma.material.findMany.mockResolvedValue([
+        {
+          id: 'material-a',
+          name: 'Categoria A',
+          description: null,
+          categoryId: 'category-a',
+          materialFiles: [
+            {
+              id: 'file-a',
+              materialId: 'material-a',
+              imageKey: 'materials/material-a/a.png',
+              mimeType: 'image/png',
+              size: 1024,
+            },
+          ],
+        },
+        {
+          id: 'material-b',
+          name: 'Categoria B',
+          description: null,
+          categoryId: 'category-b',
+          materialFiles: [
+            {
+              id: 'file-b',
+              materialId: 'material-b',
+              imageKey: 'materials/material-b/b.png',
+              mimeType: 'image/png',
+              size: 1024,
+            },
+          ],
+        },
+        {
+          id: 'material-c',
+          name: 'Categoria C',
+          description: null,
+          categoryId: 'category-c',
+          materialFiles: [
+            {
+              id: 'file-c',
+              materialId: 'material-c',
+              imageKey: 'materials/material-c/c.png',
+              mimeType: 'image/png',
+              size: 1024,
+            },
+          ],
+        },
+      ]);
+
+      await expect(
+        repository.findLatestImageMaterialsPerCategory('org-id', 'user-id', 3),
+      ).resolves.toHaveLength(3);
+
+      expect(prisma.material.groupBy).toHaveBeenCalled();
+      expect(prisma.material.findMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('deve completar com materiais recentes de qualquer categoria quando houver menos categorias que o limite', async () => {
+      prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.material.groupBy.mockResolvedValue([
+        {
+          categoryId: 'category-a',
+          _max: { createdAt: new Date('2024-06-12T12:00:00.000Z') },
+        },
+        {
+          categoryId: 'category-b',
+          _max: { createdAt: new Date('2024-06-11T12:00:00.000Z') },
+        },
+      ]);
+      prisma.material.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 'material-1',
+            name: 'Mais recente A',
+            description: null,
+            categoryId: 'category-a',
+            materialFiles: [
+              {
+                id: 'file-1',
+                materialId: 'material-1',
+                imageKey: 'materials/material-1/a.png',
+                mimeType: 'image/png',
+                size: 1024,
+              },
+            ],
+          },
+          {
+            id: 'material-3',
+            name: 'Mais recente B',
+            description: null,
+            categoryId: 'category-b',
+            materialFiles: [
+              {
+                id: 'file-3',
+                materialId: 'material-3',
+                imageKey: 'materials/material-3/b.png',
+                mimeType: 'image/jpeg',
+                size: 2048,
+              },
+            ],
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            id: 'material-2',
+            name: 'Segundo da categoria A',
+            description: null,
+            categoryId: 'category-a',
+            materialFiles: [
+              {
+                id: 'file-2',
+                materialId: 'material-2',
+                imageKey: 'materials/material-2/a2.png',
+                mimeType: 'image/png',
+                size: 1024,
+              },
+            ],
+          },
+          {
+            id: 'material-4',
+            name: 'Segundo da categoria B',
+            description: null,
+            categoryId: 'category-b',
+            materialFiles: [
+              {
+                id: 'file-4',
+                materialId: 'material-4',
+                imageKey: 'materials/material-4/b2.png',
+                mimeType: 'image/png',
+                size: 1024,
+              },
+            ],
+          },
+        ]);
+
+      await expect(
+        repository.findLatestImageMaterialsPerCategory('org-id', 'user-id', 4),
+      ).resolves.toEqual([
+        expect.objectContaining({ id: 'material-1' }),
+        expect.objectContaining({ id: 'material-3' }),
+        expect.objectContaining({ id: 'material-2' }),
+        expect.objectContaining({ id: 'material-4' }),
+      ]);
+
+      expect(prisma.material.findMany).toHaveBeenCalledTimes(2);
+      expect(prisma.material.findMany).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: { notIn: ['material-1', 'material-3'] },
+          }),
+          orderBy: { createdAt: 'desc' },
+          take: 2,
         }),
       );
     });

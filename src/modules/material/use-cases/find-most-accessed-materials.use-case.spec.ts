@@ -4,10 +4,7 @@ import { FindMostAccessedMaterialsUseCase } from './find-most-accessed-materials
 
 describe('FindMostAccessedMaterialsUseCase', () => {
   let materialRepository: jest.Mocked<
-    Pick<
-      MaterialRepository,
-      'findMostViewedMaterials' | 'findLatestMaterialsPerCategory'
-    >
+    Pick<MaterialRepository, 'findMostViewedMaterials'>
   >;
   let storageService: jest.Mocked<Pick<StorageService, 'getPublicUrl'>>;
   let useCase: FindMostAccessedMaterialsUseCase;
@@ -37,8 +34,8 @@ describe('FindMostAccessedMaterialsUseCase', () => {
       {
         id: 'file-2',
         materialId: 'material-2',
-        imageKey: 'materials/material-2/doc.pdf',
-        mimeType: 'application/pdf',
+        imageKey: 'materials/material-2/image.jpeg',
+        mimeType: 'image/jpeg',
         size: 2048,
       },
     ],
@@ -47,7 +44,6 @@ describe('FindMostAccessedMaterialsUseCase', () => {
   beforeEach(() => {
     materialRepository = {
       findMostViewedMaterials: jest.fn(),
-      findLatestMaterialsPerCategory: jest.fn(),
     };
     storageService = {
       getPublicUrl: jest.fn(),
@@ -59,15 +55,23 @@ describe('FindMostAccessedMaterialsUseCase', () => {
     );
   });
 
-  it('deve retornar top 3 por visualizações sem buscar fallback', async () => {
-    const materials = [viewedMaterial, { ...viewedMaterial, id: 'material-3' }, { ...viewedMaterial, id: 'material-4' }];
+  it('deve retornar top 3 por visualizações', async () => {
+    const materials = [
+      viewedMaterial,
+      { ...viewedMaterial, id: 'material-3' },
+      { ...viewedMaterial, id: 'material-4' },
+    ];
     materialRepository.findMostViewedMaterials.mockResolvedValue(materials);
     storageService.getPublicUrl.mockResolvedValue('https://cdn.test/preview.png');
 
     const result = await useCase.execute('org-id', 'user-id');
 
     expect(result).toHaveLength(3);
-    expect(materialRepository.findLatestMaterialsPerCategory).not.toHaveBeenCalled();
+    expect(materialRepository.findMostViewedMaterials).toHaveBeenCalledWith(
+      'org-id',
+      'user-id',
+      3,
+    );
     expect(result[0]).toEqual({
       id: 'material-1',
       name: 'Material mais visto',
@@ -77,36 +81,29 @@ describe('FindMostAccessedMaterialsUseCase', () => {
     });
   });
 
-  it('deve completar com fallback quando houver menos de 3 materiais visualizados', async () => {
-    materialRepository.findMostViewedMaterials.mockResolvedValue([viewedMaterial]);
-    materialRepository.findLatestMaterialsPerCategory.mockResolvedValue([
+  it('deve mapear materiais retornados pelo repositório incluindo fallback', async () => {
+    materialRepository.findMostViewedMaterials.mockResolvedValue([
+      viewedMaterial,
       fallbackMaterial,
     ]);
     storageService.getPublicUrl
       .mockResolvedValueOnce('https://cdn.test/preview.png')
-      .mockResolvedValueOnce('https://cdn.test/doc.pdf');
+      .mockResolvedValueOnce('https://cdn.test/image.jpeg');
 
     const result = await useCase.execute('org-id', 'user-id');
 
     expect(result).toHaveLength(2);
-    expect(materialRepository.findLatestMaterialsPerCategory).toHaveBeenCalledWith(
-      'org-id',
-      'user-id',
-      2,
-      ['material-1'],
-    );
     expect(result[1]).toEqual({
       id: 'material-2',
       name: 'Material recente',
       description: 'Descricao recente',
-      mobileUrl: 'https://cdn.test/doc.pdf',
-      desktopUrl: 'https://cdn.test/doc.pdf',
+      mobileUrl: 'https://cdn.test/image.jpeg',
+      desktopUrl: 'https://cdn.test/image.jpeg',
     });
   });
 
   it('deve retornar array vazio quando não houver materiais acessíveis', async () => {
     materialRepository.findMostViewedMaterials.mockResolvedValue([]);
-    materialRepository.findLatestMaterialsPerCategory.mockResolvedValue([]);
 
     await expect(useCase.execute('org-id', 'user-id')).resolves.toEqual([]);
   });
@@ -118,7 +115,6 @@ describe('FindMostAccessedMaterialsUseCase', () => {
         materialFiles: [],
       },
     ]);
-    materialRepository.findLatestMaterialsPerCategory.mockResolvedValue([]);
 
     await expect(useCase.execute('org-id', 'user-id')).resolves.toEqual([
       {

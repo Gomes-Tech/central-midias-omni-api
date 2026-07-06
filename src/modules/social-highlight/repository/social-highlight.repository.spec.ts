@@ -263,8 +263,14 @@ describe('SocialHighlightRepository', () => {
           isActive: true,
           isDeleted: false,
           organizationId: 'org-1',
-          initialDate: { lte: expect.any(Date) },
-          finishDate: { gte: expect.any(Date) },
+          AND: [
+            {
+              OR: [{ initialDate: null }, { initialDate: { lte: expect.any(Date) } }],
+            },
+            {
+              OR: [{ finishDate: null }, { finishDate: { gte: expect.any(Date) } }],
+            },
+          ],
         },
         orderBy: { order: 'asc' },
         select: {
@@ -279,6 +285,26 @@ describe('SocialHighlightRepository', () => {
           isActive: true,
         },
       });
+    });
+
+    it('deve incluir destaques sem data de início ou término', async () => {
+      const rows = [
+        {
+          id: 'social-highlight-1',
+          name: 'Destaque sem período',
+          link: null,
+          order: 1,
+          desktopImageKey: '/d.png',
+          mobileImageKey: '/m.png',
+          initialDate: null,
+          finishDate: null,
+          isActive: true,
+        },
+      ];
+
+      prisma.socialHighlight.findMany.mockResolvedValue(rows);
+
+      await expect(repository.findList('org-1')).resolves.toEqual(rows);
     });
 
     it('deve retornar lista vazia quando não houver banners vigentes', async () => {
