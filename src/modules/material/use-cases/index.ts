@@ -9,6 +9,7 @@ export * from './export-material-acceptance-report.use-case';
 export * from './find-all-materials.use-case';
 export * from './find-material-files.use-case';
 export * from './find-material-by-id.use-case';
+export * from './find-materials-by-category-slug.use-case';
 export * from './view-material-by-id.use-case';
 export * from './download-material.use-case';
 export * from './find-most-accessed-materials.use-case';

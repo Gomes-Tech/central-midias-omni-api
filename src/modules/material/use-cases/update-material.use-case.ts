@@ -1,5 +1,5 @@
 import { BadRequestException } from '@common/filters';
-import { FindCategoryByIdUseCase } from '@modules/category';
+import { FindCategoryByIdUseCase } from '@modules/category/use-cases';
 import { Inject, Injectable } from '@nestjs/common';
 import { UpdateMaterialDTO } from '../dto';
 import { MaterialRepository } from '../repository';

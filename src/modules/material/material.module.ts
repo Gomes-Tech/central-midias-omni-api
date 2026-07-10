@@ -1,8 +1,8 @@
 import { PlatformPermissionGuard } from '@common/guards';
-import { CategoryModule } from '@modules/category';
+import { CategoryModule } from '@modules/category/category.module';
 import { TagModule } from '@modules/tag';
 import { UserModule } from '@modules/user';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MaterialController } from './material.controller';
 import { MaterialAcceptanceEmailProcessor } from './queue/material-acceptance-email.processor';
 import { MaterialAcceptanceExportProcessor } from './queue/material-acceptance-export.processor';
@@ -13,35 +13,37 @@ import {
   CreateMaterialUseCase,
   DeleteMaterialFileUseCase,
   DeleteMaterialUseCase,
-  EnqueueMaterialAcceptanceExportUseCase,
+  DownloadMaterialUseCase,
   EnqueueMaterialAcceptanceEmailsUseCase,
+  EnqueueMaterialAcceptanceExportUseCase,
   EnqueueMaterialNotificationEmailsUseCase,
   ExportMaterialAcceptanceReportUseCase,
   FindAllMaterialsUseCase,
-  FindMaterialFilesUseCase,
   FindMaterialByIdUseCase,
-  ViewMaterialByIdUseCase,
-  DownloadMaterialUseCase,
-  FindMostAccessedMaterialsUseCase,
+  FindMaterialFilesUseCase,
   FindMaterialMosaicUseCase,
+  FindMaterialsByCategorySlugUseCase,
+  FindMostAccessedMaterialsUseCase,
   ResolveMaterialTagIdsUseCase,
   ResolveMaterialTagsUseCase,
   SearchMaterialsUseCase,
-  SendMaterialAcceptanceExportEmailUseCase,
   SendMaterialAcceptanceEmailUseCase,
+  SendMaterialAcceptanceExportEmailUseCase,
   SendMaterialNotificationEmailUseCase,
-  UploadMaterialFilesUseCase,
   UpdateMaterialUseCase,
+  UploadMaterialFilesUseCase,
+  ViewMaterialByIdUseCase,
 } from './use-cases';
 
 @Module({
-  imports: [CategoryModule, TagModule, UserModule],
+  imports: [forwardRef(() => CategoryModule), TagModule, UserModule],
   controllers: [MaterialController],
   providers: [
     PlatformPermissionGuard,
     MaterialRepository,
     FindAllMaterialsUseCase,
     FindMaterialByIdUseCase,
+    FindMaterialsByCategorySlugUseCase,
     ViewMaterialByIdUseCase,
     DownloadMaterialUseCase,
     FindMostAccessedMaterialsUseCase,
@@ -75,6 +77,7 @@ import {
     MaterialRepository,
     FindAllMaterialsUseCase,
     FindMaterialByIdUseCase,
+    FindMaterialsByCategorySlugUseCase,
     SearchMaterialsUseCase,
     ResolveMaterialTagsUseCase,
     CreateMaterialUseCase,

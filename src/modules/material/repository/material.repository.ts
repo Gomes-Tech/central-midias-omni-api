@@ -8,11 +8,13 @@ import { PaginatedResponse } from '../../../types';
 import {
   CreateMaterialDTO,
   FindAllMaterialsFiltersDTO,
+  FindMaterialsByCategorySlugFiltersDTO,
   SearchMaterialsFiltersDTO,
   UpdateMaterialDTO,
 } from '../dto';
 import {
   MaterialAcceptanceReportRow,
+  MaterialByCategorySlugRow,
   MaterialDetails,
   MaterialFileItem,
   MaterialListItem,
@@ -214,6 +216,97 @@ export class MaterialRepository {
       });
 
       throw new BadRequestException('Erro ao buscar materiais');
+    }
+  }
+
+  async findByCategorySlugPath(
+    organizationId: string,
+    slugPath: string,
+    filters: FindMaterialsByCategorySlugFiltersDTO = {},
+  ): Promise<PaginatedResponse<MaterialByCategorySlugRow>> {
+    const { page = 1, limit = 25, searchTerm } = filters;
+    const skip = (page - 1) * limit;
+
+    try {
+      const where: Prisma.MaterialWhereInput = {
+        deletedAt: null,
+        category: {
+          organizationId,
+          slugPath,
+          isDeleted: false,
+        },
+        ...(searchTerm && {
+          OR: [
+            {
+              name: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+            {
+              description: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+          ],
+        }),
+      };
+
+      const [materials, total] = await Promise.all([
+        this.prisma.material.findMany({
+          where,
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            externalLink: true,
+            materialFiles: {
+              select: {
+                imageKey: true,
+                mimeType: true,
+                size: true,
+              },
+              take: 1,
+            },
+          },
+          orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+          skip,
+          take: limit,
+        }),
+        this.prisma.material.count({ where }),
+      ]);
+
+      return {
+        data: materials.map((material) => {
+          const file = material.materialFiles[0];
+
+          return {
+            id: material.id,
+            name: material.name,
+            description: material.description,
+            externalLink: material.externalLink || null,
+            imageKey: file?.imageKey ?? null,
+            mimeType: file?.mimeType ?? null,
+            size: file?.size ?? null,
+          };
+        }),
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      void this.logger.error(
+        'MaterialRepository.findByCategorySlugPath falhou',
+        {
+          error: String(error),
+          organizationId,
+          slugPath,
+          searchTerm,
+        },
+      );
+
+      throw new BadRequestException('Erro ao buscar materiais dessa categoria');
     }
   }
 

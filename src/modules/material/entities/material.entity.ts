@@ -95,3 +95,23 @@ export interface MaterialMosaicItem {
   id: string;
   imageUrl: string | null;
 }
+
+export interface MaterialByCategorySlugItem {
+  id: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  mimeType: string | null;
+  size: number | null;
+  externalLink: string | null;
+}
+
+export interface MaterialByCategorySlugRow {
+  id: string;
+  name: string;
+  description: string | null;
+  externalLink: string | null;
+  imageKey: string | null;
+  mimeType: string | null;
+  size: number | null;
+}

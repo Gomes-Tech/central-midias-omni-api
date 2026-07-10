@@ -1,6 +1,7 @@
 import { PlatformPermissionGuard } from '@common/guards';
 import { CategoryRoleAccessModule } from '@modules/category-role-access/category-role-access.module';
-import { Module } from '@nestjs/common';
+import { MaterialModule } from '@modules/material/material.module';
+import { Module, forwardRef } from '@nestjs/common';
 import { CategoryController } from './category.controller';
 import { CategoryRepository } from './repository';
 import {
@@ -14,7 +15,7 @@ import {
 } from './use-cases';
 
 @Module({
-  imports: [CategoryRoleAccessModule],
+  imports: [CategoryRoleAccessModule, forwardRef(() => MaterialModule)],
   controllers: [CategoryController],
   providers: [
     PlatformPermissionGuard,

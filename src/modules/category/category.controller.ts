@@ -3,6 +3,8 @@ import {
   CategoryPermissionGuard,
   PlatformPermissionGuard,
 } from '@common/guards';
+import { FindMaterialsByCategorySlugFiltersDTO } from '@modules/material/dto';
+import { FindMaterialsByCategorySlugUseCase } from '@modules/material/use-cases';
 import {
   Body,
   Controller,
@@ -38,6 +40,7 @@ export class CategoryController {
     private readonly findCategoryByIdUseCase: FindCategoryByIdUseCase,
     private readonly findCategoryTreeBySlugPathUseCase: FindCategoryTreeBySlugPathUseCase,
     private readonly findCategoryTreeUseCase: FindCategoryTreeUseCase,
+    private readonly findMaterialsByCategorySlugUseCase: FindMaterialsByCategorySlugUseCase,
     private readonly updateCategoryUseCase: UpdateCategoryUseCase,
   ) {}
 
@@ -75,6 +78,24 @@ export class CategoryController {
       slugPath,
       organizationId,
       userId,
+    );
+  }
+
+  @UseGuards(PlatformPermissionGuard)
+  @Get('*slugPath/materials')
+  async findMaterialsBySlug(
+    @Param('slugPath') slugPath: string | string[],
+    @OrgId() organizationId: string,
+    @Query() filters: FindMaterialsByCategorySlugFiltersDTO = {},
+  ) {
+    const normalizedSlugPath = Array.isArray(slugPath)
+      ? slugPath.join('/')
+      : slugPath;
+
+    return await this.findMaterialsByCategorySlugUseCase.execute(
+      organizationId,
+      normalizedSlugPath,
+      filters,
     );
   }
 

@@ -1,7 +1,7 @@
 import { generateId } from '@common/utils';
 import { BadRequestException } from '@common/filters';
 import { StorageService } from '@infrastructure/providers';
-import { FindCategoryByIdUseCase } from '@modules/category';
+import { FindCategoryByIdUseCase } from '@modules/category/use-cases';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateMaterialDTO } from '../dto';
 import { MaterialRepository } from '../repository';
