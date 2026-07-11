@@ -224,7 +224,7 @@ export class MaterialRepository {
     slugPath: string,
     filters: FindMaterialsByCategorySlugFiltersDTO = {},
   ): Promise<PaginatedResponse<MaterialByCategorySlugRow>> {
-    const { page = 1, limit = 25, searchTerm } = filters;
+    const { page = 1, limit = 24, searchTerm } = filters;
     const skip = (page - 1) * limit;
 
     try {
