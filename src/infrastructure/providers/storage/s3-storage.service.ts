@@ -97,16 +97,15 @@ export class S3StorageService {
           ContentType: mimeType,
         }),
       );
+      return {
+        id,
+        path: key,
+        fullPath: `s3://${this.bucket}/${key}`,
+        publicUrl: `https://assets-editor.s3.us-east-1.amazonaws.com/${key}`,
+      };
     } catch {
-      throw new InternalServerErrorException('Erro ao fazer upload no S3');
+      throw new BadRequestException('Erro ao fazer upload no S3');
     }
-
-    return {
-      id,
-      path: key,
-      fullPath: `s3://${this.bucket}/${key}`,
-      publicUrl: '', // 🚨 NÃO gerar URL aqui
-    };
   }
 
   // ✅ GERAR URL (VIEW)
