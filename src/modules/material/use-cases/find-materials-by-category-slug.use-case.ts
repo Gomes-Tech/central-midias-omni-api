@@ -42,6 +42,7 @@ export class FindMaterialsByCategorySlugUseCase {
           mimeType: material.mimeType,
           size: material.size,
           externalLink: material.externalLink,
+          isCustomizable: material.isCustomizable,
         };
       }),
     );

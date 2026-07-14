@@ -261,6 +261,7 @@ export class MaterialRepository {
             name: true,
             description: true,
             externalLink: true,
+            isCustomizable: true,
             materialFiles: {
               select: {
                 imageKey: true,
@@ -286,6 +287,7 @@ export class MaterialRepository {
             name: material.name,
             description: material.description,
             externalLink: material.externalLink || null,
+            isCustomizable: material.isCustomizable,
             imageKey: file?.imageKey ?? null,
             mimeType: file?.mimeType ?? null,
             size: file?.size ?? null,
