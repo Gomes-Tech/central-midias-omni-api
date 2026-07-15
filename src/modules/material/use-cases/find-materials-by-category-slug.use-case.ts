@@ -30,7 +30,7 @@ export class FindMaterialsByCategorySlugUseCase {
         const imageUrl =
           isImage && material.imageKey
             ? await this.storageService
-                .getPublicUrl(material.imageKey, 420)
+                .getPublicUrl(material.imageKey, 840)
                 .catch(() => null)
             : null;
 

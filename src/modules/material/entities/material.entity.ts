@@ -39,25 +39,6 @@ export interface MaterialCustomizationDetails {
   hasCity: boolean;
 }
 
-// Faz sentido manter o mapeamento. Retorno da query:
-
-// const materials: {
-//   id: string;
-//   name: string;
-//   description: string;
-//   createdAt: Date;
-//   updatedAt: Date;
-//   categoryId: string;
-//   category: {
-//     id: string;
-//     name: string;
-//     slug: string;
-//   };
-//   _count: {
-//     materialFiles: number;
-//   };
-// }[];
-
 export interface MaterialDetails {
   id: string;
   name: string;

@@ -122,15 +122,20 @@ export class S3StorageService {
 
   // ✅ GERAR URL (DOWNLOAD)
   async getSignedDownloadUrl(key: string, filename: string): Promise<string> {
-    const command = new GetObjectCommand({
-      Bucket: this.bucket,
-      Key: key,
-      ResponseContentDisposition: `attachment; filename="${filename}"`,
-    });
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ResponseContentDisposition: `attachment; filename="${filename}"`,
+      });
 
-    return getSignedUrl(this.s3, command, {
-      expiresIn: this.expiresIn,
-    });
+      return getSignedUrl(this.s3, command, {
+        expiresIn: this.expiresIn,
+      });
+    } catch (err) {
+      console.log(JSON.stringify(err, null, 2));
+      throw new BadRequestException('Erro ao fazer upload no S3');
+    }
   }
 
   // ✅ DELETE
@@ -182,7 +187,7 @@ export class S3StorageService {
         }),
       );
     } catch {
-      throw new InternalServerErrorException('Erro ao fazer upload no S3');
+      throw new BadRequestException('Erro ao fazer upload no S3');
     }
 
     return {
