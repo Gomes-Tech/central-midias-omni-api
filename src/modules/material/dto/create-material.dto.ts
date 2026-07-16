@@ -62,6 +62,15 @@ export class CreateMaterialDTO {
   @IsOptional()
   @TransformBoolean()
   @IsBoolean()
+  hasTextCopy?: boolean;
+
+  @IsOptional()
+  @IsString()
+  textCopy?: string;
+
+  @IsOptional()
+  @TransformBoolean()
+  @IsBoolean()
   isCustomizable?: boolean;
 
   @IsOptional()

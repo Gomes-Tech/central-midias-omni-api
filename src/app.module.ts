@@ -18,22 +18,22 @@ import { JwtModule } from '@infrastructure/jwt';
 import { LogModule } from '@infrastructure/log';
 import { MetricsInterceptor, MetricsModule } from '@infrastructure/metrics';
 import { PrismaModule } from '@infrastructure/prisma';
-import { QueueModule } from '@infrastructure/queue';
 import { MailModule, StorageModule } from '@infrastructure/providers';
+import { QueueModule } from '@infrastructure/queue';
 import { SecurityModule } from '@infrastructure/security';
 import { ThrottlerConfigModule } from '@infrastructure/throttler';
 import { AuthModule } from '@modules/auth';
 import { BannerModule } from '@modules/banner';
-import { SocialHighlightModule } from '@modules/social-highlight';
-import { FaqModule } from '@modules/faq';
 import { CategoryModule } from '@modules/category';
 import { CategoryRoleAccessModule } from '@modules/category-role-access/category-role-access.module';
+import { FaqModule } from '@modules/faq';
 import { MaterialModule } from '@modules/material';
 import { MemberModule } from '@modules/member';
 import { ModuleModule } from '@modules/module';
 import { OrganizationModule } from '@modules/organization';
 import { ReportsModule } from '@modules/reports';
 import { RolesModule } from '@modules/roles';
+import { SocialHighlightModule } from '@modules/social-highlight';
 import { TagModule } from '@modules/tag';
 import { TokenPasswordModule } from '@modules/token-password';
 import { UserModule } from '@modules/user';
@@ -56,6 +56,7 @@ import { AppService } from './app.service';
     SecurityModule,
     ConfigModule,
     LogModule,
+
     CacheModule,
     CryptographyModule,
     CircuitBreakerModule,

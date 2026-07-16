@@ -4,6 +4,7 @@ import { MaterialRepository } from '../repository';
 import { UpdateMaterialUseCase } from './update-material.use-case';
 import { FindMaterialByIdUseCase } from './find-material-by-id.use-case';
 import { EnqueueMaterialAcceptanceEmailsUseCase } from './enqueue-material-acceptance-emails.use-case';
+import { EnqueueMaterialNotificationEmailsUseCase } from './enqueue-material-notification-emails.use-case';
 import { ResolveMaterialTagIdsUseCase } from './resolve-material-tag-ids.use-case';
 import { makeMaterialDetails, makeUpdateMaterialDTO } from './test-helpers';
 
@@ -13,6 +14,7 @@ describe('UpdateMaterialUseCase', () => {
   let findCategoryByIdUseCase: { execute: jest.Mock };
   let resolveMaterialTagIdsUseCase: { execute: jest.Mock };
   let enqueueMaterialAcceptanceEmailsUseCase: { execute: jest.Mock };
+  let enqueueMaterialNotificationEmailsUseCase: { execute: jest.Mock };
   let useCase: UpdateMaterialUseCase;
 
   beforeEach(() => {
@@ -27,6 +29,9 @@ describe('UpdateMaterialUseCase', () => {
     enqueueMaterialAcceptanceEmailsUseCase = {
       execute: jest.fn().mockResolvedValue({ enqueued: 1 }),
     };
+    enqueueMaterialNotificationEmailsUseCase = {
+      execute: jest.fn().mockResolvedValue({ enqueued: 1 }),
+    };
 
     useCase = new UpdateMaterialUseCase(
       materialRepository,
@@ -34,6 +39,7 @@ describe('UpdateMaterialUseCase', () => {
       findCategoryByIdUseCase as unknown as FindCategoryByIdUseCase,
       resolveMaterialTagIdsUseCase as unknown as ResolveMaterialTagIdsUseCase,
       enqueueMaterialAcceptanceEmailsUseCase as unknown as EnqueueMaterialAcceptanceEmailsUseCase,
+      enqueueMaterialNotificationEmailsUseCase as unknown as EnqueueMaterialNotificationEmailsUseCase,
     );
   });
 
@@ -219,5 +225,51 @@ describe('UpdateMaterialUseCase', () => {
       material.id,
       'org-id',
     );
+  });
+
+  it('deve notificar usuários quando notifyUsers for true', async () => {
+    const material = makeMaterialDetails();
+    const dto = makeUpdateMaterialDTO({ notifyUsers: true });
+
+    findMaterialByIdUseCase.execute.mockResolvedValue(material);
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue(undefined);
+    materialRepository.update.mockResolvedValue(undefined);
+
+    await useCase.execute(material.id, 'org-id', dto, 'user-id');
+
+    expect(
+      enqueueMaterialNotificationEmailsUseCase.execute,
+    ).toHaveBeenCalledWith(material.id, 'org-id');
+  });
+
+  it('não deve notificar usuários quando notifyUsers não for true', async () => {
+    const material = makeMaterialDetails();
+    const dto = makeUpdateMaterialDTO({ notifyUsers: false });
+
+    findMaterialByIdUseCase.execute.mockResolvedValue(material);
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue(undefined);
+    materialRepository.update.mockResolvedValue(undefined);
+
+    await useCase.execute(material.id, 'org-id', dto, 'user-id');
+
+    expect(
+      enqueueMaterialNotificationEmailsUseCase.execute,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('não deve impedir atualização quando enfileiramento da notificação falhar', async () => {
+    const material = makeMaterialDetails();
+    const dto = makeUpdateMaterialDTO({ notifyUsers: true });
+
+    findMaterialByIdUseCase.execute.mockResolvedValue(material);
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue(undefined);
+    materialRepository.update.mockResolvedValue(undefined);
+    enqueueMaterialNotificationEmailsUseCase.execute.mockRejectedValue(
+      new Error('queue'),
+    );
+
+    await expect(
+      useCase.execute(material.id, 'org-id', dto, 'user-id'),
+    ).resolves.toBeUndefined();
   });
 });

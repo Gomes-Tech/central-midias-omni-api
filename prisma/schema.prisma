@@ -375,9 +375,11 @@ model Material {
 
   requiresAcceptance Boolean @default(false) @map("requires_acceptance")
   hasExternalLink    Boolean @default(false) @map("has_external_link")
+  hasTextCopy        Boolean @default(false) @map("has_text_copy")
   isCustomizable     Boolean @default(false) @map("is_customizable")
 
   externalLink String? @map("external_link")
+  textCopy     String? @map("text_copy")
 
   createdAt             DateTime               @default(now()) @map("created_at")
   updatedAt             DateTime               @updatedAt @map("updated_at")

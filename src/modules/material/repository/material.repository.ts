@@ -46,6 +46,8 @@ const buildMaterialDetailsSelect = (organizationId: string) =>
     requiresAcceptance: true,
     hasExternalLink: true,
     externalLink: true,
+    hasTextCopy: true,
+    textCopy: true,
     isCustomizable: true,
     materialCustomization: {
       select: {
@@ -261,6 +263,8 @@ export class MaterialRepository {
             name: true,
             description: true,
             externalLink: true,
+            hasTextCopy: true,
+            textCopy: true,
             isCustomizable: true,
             materialFiles: {
               select: {
@@ -287,6 +291,8 @@ export class MaterialRepository {
             name: material.name,
             description: material.description,
             externalLink: material.externalLink || null,
+            hasTextCopy: material.hasTextCopy,
+            textCopy: material.textCopy,
             isCustomizable: material.isCustomizable,
             imageKey: file?.imageKey ?? null,
             mimeType: file?.mimeType ?? null,
@@ -773,6 +779,8 @@ export class MaterialRepository {
             materialFilesCount: material.materialFiles.length,
             hasExternalLink: material.hasExternalLink,
             externalLink: material.externalLink,
+            hasTextCopy: material.hasTextCopy,
+            textCopy: material.textCopy,
             isCustomizable: material.isCustomizable,
             customization:
               material.isCustomizable && material.materialCustomization
@@ -848,6 +856,8 @@ export class MaterialRepository {
         requiresAcceptance: data.requiresAcceptance ?? false,
         hasExternalLink: data.hasExternalLink ?? false,
         externalLink: data.externalLink ?? null,
+        hasTextCopy: data.hasTextCopy ?? false,
+        textCopy: data.textCopy ?? null,
         isCustomizable: data.isCustomizable ?? false,
       };
 
@@ -946,6 +956,12 @@ export class MaterialRepository {
         }),
         ...(data.externalLink !== undefined && {
           externalLink: data.externalLink,
+        }),
+        ...(data.hasTextCopy !== undefined && {
+          hasTextCopy: data.hasTextCopy,
+        }),
+        ...(data.textCopy !== undefined && {
+          textCopy: data.textCopy,
         }),
         ...(data.isCustomizable !== undefined && {
           isCustomizable: data.isCustomizable,

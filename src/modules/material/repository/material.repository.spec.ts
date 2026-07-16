@@ -376,6 +376,8 @@ describe('MaterialRepository', () => {
         requiresAcceptance: false,
         hasExternalLink: false,
         externalLink: null,
+        hasTextCopy: true,
+        textCopy: 'Texto livre para copiar',
         isCustomizable: false,
         materialCustomization: null,
         createdAt: new Date('2024-01-01T00:00:00.000Z'),
@@ -397,6 +399,8 @@ describe('MaterialRepository', () => {
           id: 'material-id',
           deletedAt: null,
           tags: ['tag-id'],
+          hasTextCopy: true,
+          textCopy: 'Texto livre para copiar',
           isCustomizable: false,
           customization: null,
         }),
@@ -515,6 +519,8 @@ describe('MaterialRepository', () => {
             name: 'Material institucional',
             description: 'Descricao',
             categoryId: 'category-id',
+            hasTextCopy: true,
+            textCopy: 'Texto livre para copiar',
           },
           'user-id',
           {
@@ -535,6 +541,8 @@ describe('MaterialRepository', () => {
           requiresAcceptance: false,
           hasExternalLink: false,
           externalLink: null,
+          hasTextCopy: true,
+          textCopy: 'Texto livre para copiar',
           isCustomizable: false,
           tags: {
             connectOrCreate: [
@@ -603,6 +611,8 @@ describe('MaterialRepository', () => {
           requiresAcceptance: false,
           hasExternalLink: false,
           externalLink: null,
+          hasTextCopy: false,
+          textCopy: null,
           isCustomizable: false,
         },
         select: { id: true },
@@ -636,6 +646,8 @@ describe('MaterialRepository', () => {
           requiresAcceptance: false,
           hasExternalLink: false,
           externalLink: null,
+          hasTextCopy: false,
+          textCopy: null,
           isCustomizable: false,
         },
         select: { id: true },
@@ -709,6 +721,8 @@ describe('MaterialRepository', () => {
           requiresAcceptance: false,
           hasExternalLink: false,
           externalLink: null,
+          hasTextCopy: false,
+          textCopy: null,
           isCustomizable: false,
           tags: {
             connectOrCreate: [
@@ -771,6 +785,8 @@ describe('MaterialRepository', () => {
           requiresAcceptance: false,
           hasExternalLink: false,
           externalLink: null,
+          hasTextCopy: false,
+          textCopy: null,
           isCustomizable: true,
           materialCustomization: {
             create: {
@@ -801,6 +817,8 @@ describe('MaterialRepository', () => {
           {
             name: 'Novo nome',
             categoryId: 'other-category',
+            hasTextCopy: true,
+            textCopy: 'Novo texto para copiar',
             tags: ['Campanha', 'Novo'],
           },
           'user-id',
@@ -838,6 +856,8 @@ describe('MaterialRepository', () => {
         data: {
           name: 'Novo nome',
           categoryId: 'other-category',
+          hasTextCopy: true,
+          textCopy: 'Novo texto para copiar',
           tags: {
             set: [],
             connect: [{ id: 'tag-id' }],

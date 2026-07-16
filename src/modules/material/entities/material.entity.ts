@@ -47,6 +47,8 @@ export interface MaterialDetails {
   requiresAcceptance: boolean;
   hasExternalLink: boolean;
   externalLink?: string | null;
+  hasTextCopy: boolean;
+  textCopy?: string | null;
   isCustomizable: boolean;
   customization: MaterialCustomizationDetails | null;
   createdAt: Date;
@@ -85,6 +87,8 @@ export interface MaterialByCategorySlugItem {
   mimeType: string | null;
   size: number | null;
   externalLink: string | null;
+  hasTextCopy: boolean;
+  textCopy: string | null;
   isCustomizable: boolean;
 }
 
@@ -93,6 +97,8 @@ export interface MaterialByCategorySlugRow {
   name: string;
   description: string | null;
   externalLink: string | null;
+  hasTextCopy: boolean;
+  textCopy: string | null;
   isCustomizable: boolean;
   imageKey: string | null;
   mimeType: string | null;
