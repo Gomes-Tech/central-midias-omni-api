@@ -1,5 +1,6 @@
 import { Sanitize } from '@common/decorators';
-import { IsEmail, IsOptional, IsString, IsUUID } from 'class-validator';
+import { UF } from '@prisma/client';
+import { IsEmail, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class UpdateMemberDTO {
   @IsOptional()
@@ -35,6 +36,16 @@ export class UpdateMemberDTO {
   @IsString()
   @Sanitize()
   admissionDate?: string;
+
+  @IsOptional()
+  @IsString()
+  @Sanitize()
+  city?: string;
+
+  @IsOptional()
+  @IsEnum(UF, { message: 'UF inválida' })
+  @Sanitize()
+  uf?: UF;
 
   @IsOptional()
   @IsUUID('4', { message: 'Permissão inválida' })

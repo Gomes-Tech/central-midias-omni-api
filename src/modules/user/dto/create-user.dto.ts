@@ -1,8 +1,10 @@
 import { Sanitize } from '@common/decorators';
+import { UF } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEmail,
+  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -35,6 +37,16 @@ export class CreateUserDTO {
   @IsString()
   @Sanitize()
   socialReason: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Sanitize()
+  city: string;
+
+  @IsNotEmpty()
+  @IsEnum(UF, { message: 'UF inválida' })
+  @Sanitize()
+  uf: UF;
 
   @IsNotEmpty()
   @IsString()

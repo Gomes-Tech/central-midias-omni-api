@@ -128,11 +128,15 @@ export class MemberRepository {
               admissionDate: true,
               birthDate: true,
               phone: true,
+              city: true,
+              uf: true,
               isActive: true,
             },
           },
         },
       });
+
+      console.log(member.user);
 
       if (!member) {
         return null;
@@ -149,6 +153,8 @@ export class MemberRepository {
         admissionDate: member.user.admissionDate,
         roleId: member.roleId,
         isActive: member.user.isActive,
+        city: member.user.city,
+        uf: member.user.uf,
       };
     } catch (error) {
       void this.logger.error('MemberRepository.findById falhou', {
@@ -464,6 +470,8 @@ export class MemberRepository {
         taxIdentifier: data.taxIdentifier,
       }),
       ...(data.phone !== undefined && { phone: data.phone }),
+      ...(data.city !== undefined && { city: data.city }),
+      ...(data.uf !== undefined && { uf: data.uf }),
       ...(data.socialReason !== undefined && {
         socialReason: data.socialReason,
       }),

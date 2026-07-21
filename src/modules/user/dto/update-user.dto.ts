@@ -1,15 +1,18 @@
 import { Sanitize } from '@common/decorators';
+import { UF } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
   IsEmail,
+  IsEnum,
   IsOptional,
   IsString,
   IsStrongPassword,
   IsUUID,
   ValidateNested,
 } from 'class-validator';
+
 import { UserManagerAssignmentDTO } from './user-manager-assignment.dto';
 
 export class UpdateUserDTO {
@@ -46,6 +49,16 @@ export class UpdateUserDTO {
   @IsString()
   @Sanitize()
   phone?: string;
+
+  @IsOptional()
+  @IsString()
+  @Sanitize()
+  city?: string;
+
+  @IsOptional()
+  @IsEnum(UF, { message: 'UF inválida' })
+  @Sanitize()
+  uf?: UF;
 
   @IsOptional()
   @IsString()

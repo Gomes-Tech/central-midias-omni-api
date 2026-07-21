@@ -56,6 +56,8 @@ export function makeCreateUserDTO(
     roleId: 'role-id',
     phone: '12345678901',
     socialReason: 'Social Reason',
+    city: 'City Name',
+    uf: 'RJ',
     birthDate: '2024-01-01',
     admissionDate: '2024-01-01',
     managerAssignments: [],

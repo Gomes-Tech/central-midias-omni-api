@@ -169,6 +169,8 @@ export class UserRepository {
           taxIdentifier: true,
           password: true,
           phone: true,
+          city: true,
+          uf: true,
           socialReason: true,
           avatarKey: true,
           isFirstAccess: true,
@@ -231,6 +233,8 @@ export class UserRepository {
           phone: true,
           socialReason: true,
           avatarKey: true,
+          city: true,
+          uf: true,
           isFirstAccess: true,
           isActive: true,
           globalRole: {
@@ -402,6 +406,8 @@ export class UserRepository {
             taxIdentifier: data.taxIdentifier,
             phone: data.phone,
             socialReason: data.socialReason,
+            city: data.city,
+            uf: data.uf,
             birthDate: new Date(data.birthDate),
             admissionDate: new Date(data.admissionDate),
           },
@@ -425,7 +431,7 @@ export class UserRepository {
         return user;
       });
 
-      void this.logger.info('Usu?rio criado', {
+      void this.logger.info('Usuário criado', {
         userId: user.id,
         createdBy: userId,
       });
@@ -507,6 +513,8 @@ export class UserRepository {
       ...(data.taxIdentifier !== undefined && {
         taxIdentifier: data.taxIdentifier,
       }),
+      ...(data.city !== undefined && { city: data.city }),
+      ...(data.uf !== undefined && { uf: data.uf }),
       ...(data.phone !== undefined && { phone: data.phone }),
       ...(data.socialReason !== undefined && {
         socialReason: data.socialReason,

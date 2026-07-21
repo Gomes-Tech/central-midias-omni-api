@@ -1,3 +1,5 @@
+import { UF } from '@prisma/client';
+
 export interface Member {
   id: string;
   name: string;
@@ -5,6 +7,8 @@ export interface Member {
   email: string;
   taxIdentifier: string;
   phone: string;
+  city: string;
+  uf: UF;
   birthDate: Date;
   admissionDate: Date;
   roleId: string;

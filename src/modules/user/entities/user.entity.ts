@@ -66,6 +66,9 @@ export interface UserById {
   password: string;
   phone: string | null;
   socialReason: string | null;
+  city: string | null;
+  uf: string | null;
+  avatarKey: string | null;
   isFirstAccess: boolean;
   isActive: boolean;
   isDeleted: boolean;

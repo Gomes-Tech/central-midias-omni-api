@@ -8,6 +8,36 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UF {
+  AC
+  AL
+  AP
+  AM
+  BA
+  CE
+  DF
+  ES
+  GO
+  MA
+  MT
+  MS
+  MG
+  PA
+  PB
+  PR
+  PE
+  PI
+  RJ
+  RN
+  RS
+  RO
+  RR
+  SC
+  SP
+  SE
+  TO
+}
+
 model User {
   id            String    @id @default(uuid())
   name          String
@@ -19,6 +49,8 @@ model User {
   avatarKey     String?   @map("avatar_key")
   birthDate     DateTime? @map("birth_date")
   admissionDate DateTime? @map("admission_date")
+  city          String?   @map("city")
+  uf            UF?       @map("uf")
   isFirstAccess Boolean   @default(true) @map("is_first_access")
   isActive      Boolean   @default(true) @map("is_active")
   isDeleted     Boolean   @default(false) @map("is_deleted")
