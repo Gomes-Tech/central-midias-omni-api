@@ -1,7 +1,7 @@
 import { BadRequestException } from '@common/filters';
 import { FindUserByIdUseCase } from '@modules/user/use-cases/find-user-by-id.use-case';
 import { UpdateUserUseCase } from '@modules/user/use-cases/update-user.use-case';
-import { makeUser } from '@modules/user/use-cases/test-helpers';
+import { makeUserById } from '@modules/user/use-cases/test-helpers';
 import { FirstAccessUserUseCase } from './first-access-user.use-case';
 
 describe('FirstAccessUserUseCase', () => {
@@ -22,7 +22,7 @@ describe('FirstAccessUserUseCase', () => {
   });
 
   it('deve definir senha e encerrar primeiro acesso quando isFirstAccess for true', async () => {
-    const user = makeUser({ id: 'user-1', isFirstAccess: true });
+    const user = makeUserById({ id: 'user-1', isFirstAccess: true });
     const newPassword = 'FirstAccessPass123';
 
     findUserByIdUseCase.execute.mockResolvedValue(user);
@@ -38,7 +38,7 @@ describe('FirstAccessUserUseCase', () => {
   });
 
   it('deve lançar BadRequestException quando o usuário já tiver completado o primeiro acesso', async () => {
-    const user = makeUser({ isFirstAccess: false });
+    const user = makeUserById({ isFirstAccess: false });
 
     findUserByIdUseCase.execute.mockResolvedValue(user);
 

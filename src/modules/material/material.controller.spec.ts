@@ -217,6 +217,25 @@ describe('MaterialController', () => {
     );
   });
 
+  it('deve delegar search com filtros vazios por padrão', async () => {
+    const payload = {
+      data: [],
+      total: 0,
+      page: 1,
+      totalPages: 0,
+    };
+    searchMaterialsUseCase.execute.mockResolvedValue(payload);
+
+    const result = await controller.search('org-id', 'user-id');
+
+    expect(result).toBe(payload);
+    expect(searchMaterialsUseCase.execute).toHaveBeenCalledWith(
+      'org-id',
+      'user-id',
+      {},
+    );
+  });
+
   it('deve delegar downloadMaterial', async () => {
     const files = [{ ...makeMaterialFile(), url: 'https://cdn.test/file.pdf' }];
     downloadMaterialUseCase.execute.mockResolvedValue(files);

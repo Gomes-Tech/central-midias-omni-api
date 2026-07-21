@@ -23,6 +23,9 @@ function createPrismaMock() {
       upsert: jest.fn(),
       findUnique: jest.fn(),
     },
+    userPlatformLoginEvent: {
+      create: jest.fn(),
+    },
     $transaction: jest.fn(),
   };
 }
@@ -298,6 +301,18 @@ describe('UserRepository', () => {
         },
       });
     });
+
+    it('deve lançar BadRequest quando findMany falhar', async () => {
+      prisma.user.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findGlobalUsersSelect('org-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(logger.error).toHaveBeenCalledWith(
+        'UserRepository.findGlobalUsersSelect falhou',
+        expect.objectContaining({ organizationId: 'org-1' }),
+      );
+    });
   });
 
   const findByIdSelectExpectation = {
@@ -305,11 +320,16 @@ describe('UserRepository', () => {
     name: true,
     email: true,
     taxIdentifier: true,
+    password: true,
     phone: true,
+    city: true,
+    uf: true,
     socialReason: true,
     avatarKey: true,
     isFirstAccess: true,
     isActive: true,
+    isDeleted: true,
+    globalRoleId: true,
     globalRole: {
       select: { canAccessBackoffice: true },
     },
@@ -329,6 +349,8 @@ describe('UserRepository', () => {
     phone: true,
     socialReason: true,
     avatarKey: true,
+    city: true,
+    uf: true,
     isFirstAccess: true,
     isActive: true,
     globalRole: {
@@ -347,14 +369,20 @@ describe('UserRepository', () => {
   describe('findById', () => {
     it('deve montar canAccessBackoffice e remover relations internas', async () => {
       const prismaRow = {
+        id: 'u1',
         name: 'X',
         email: 'x@y.com',
         taxIdentifier: '123',
+        password: 'hash',
         phone: null,
+        city: null,
+        uf: null,
         socialReason: null,
         avatarKey: null,
         isFirstAccess: true,
         isActive: true,
+        isDeleted: false,
+        globalRoleId: null,
         globalRole: null,
         members: [
           {
@@ -370,14 +398,20 @@ describe('UserRepository', () => {
       const result = await repository.findById('u1');
 
       expect(result).toEqual({
+        id: 'u1',
         name: 'X',
         email: 'x@y.com',
         taxIdentifier: '123',
+        password: 'hash',
         phone: null,
+        city: null,
+        uf: null,
         socialReason: null,
         avatarKey: null,
         isFirstAccess: true,
         isActive: true,
+        isDeleted: false,
+        globalRoleId: null,
         canAccessBackoffice: true,
       });
       expect(prisma.user.findFirstOrThrow).toHaveBeenCalledWith({
@@ -394,6 +428,12 @@ describe('UserRepository', () => {
       );
       expect(logger.error).toHaveBeenCalled();
     });
+
+    it('deve retornar null quando a consulta não retornar usuário', async () => {
+      prisma.user.findFirstOrThrow.mockResolvedValue(null);
+
+      await expect(repository.findById('missing')).resolves.toBeNull();
+    });
   });
 
   describe('getMe', () => {
@@ -405,6 +445,8 @@ describe('UserRepository', () => {
         phone: null,
         socialReason: null,
         avatarKey: 'k',
+        city: null,
+        uf: null,
         isFirstAccess: false,
         isActive: true,
         globalRole: { label: 'Admin Global', canAccessBackoffice: false },
@@ -421,6 +463,8 @@ describe('UserRepository', () => {
         phone: null,
         socialReason: null,
         avatarKey: 'k',
+        city: null,
+        uf: null,
         isFirstAccess: false,
         isActive: true,
         role: 'Admin Global',
@@ -440,6 +484,8 @@ describe('UserRepository', () => {
         phone: null,
         socialReason: null,
         avatarKey: 'k',
+        city: null,
+        uf: null,
         isFirstAccess: false,
         isActive: true,
         globalRole: { label: null, canAccessBackoffice: false },
@@ -464,6 +510,8 @@ describe('UserRepository', () => {
         phone: null,
         socialReason: null,
         avatarKey: 'k',
+        city: null,
+        uf: null,
         isFirstAccess: false,
         isActive: true,
         globalRole: null,
@@ -625,8 +673,10 @@ describe('UserRepository', () => {
             taxIdentifier: dto.taxIdentifier,
             phone: dto.phone,
             socialReason: dto.socialReason,
-            birthDate: dto.birthDate,
-            admissionDate: dto.admissionDate,
+            city: dto.city,
+            uf: dto.uf,
+            birthDate: new Date(dto.birthDate),
+            admissionDate: new Date(dto.admissionDate),
           }),
           select: { id: true },
         }),
@@ -711,13 +761,17 @@ describe('UserRepository', () => {
 
   describe('update', () => {
     it('deve persistir apenas campos definidos no DTO', async () => {
-      prisma.user.update.mockResolvedValue({});
+      const userUpdate = jest.fn().mockResolvedValue({});
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => unknown) =>
+          fn({ user: { update: userUpdate }, member: { update: jest.fn() } }),
+      );
 
       const dto = makeUpdateUserDTO();
 
       await repository.update('user-1', dto, 'editor-id');
 
-      expect(prisma.user.update).toHaveBeenCalledWith({
+      expect(userUpdate).toHaveBeenCalledWith({
         where: { id: 'user-1' },
         data: {
           name: dto.name,
@@ -730,7 +784,11 @@ describe('UserRepository', () => {
     });
 
     it('deve incluir taxIdentifier, phone, socialReason e isFirstAccess quando definidos', async () => {
-      prisma.user.update.mockResolvedValue({});
+      const userUpdate = jest.fn().mockResolvedValue({});
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => unknown) =>
+          fn({ user: { update: userUpdate }, member: { update: jest.fn() } }),
+      );
 
       await repository.update(
         'user-1',
@@ -743,7 +801,7 @@ describe('UserRepository', () => {
         'editor-id',
       );
 
-      expect(prisma.user.update).toHaveBeenCalledWith({
+      expect(userUpdate).toHaveBeenCalledWith({
         where: { id: 'user-1' },
         data: {
           taxIdentifier: '999',
@@ -754,12 +812,67 @@ describe('UserRepository', () => {
       });
     });
 
+    it('deve incluir city e uf quando definidos', async () => {
+      const userUpdate = jest.fn().mockResolvedValue({});
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => unknown) =>
+          fn({ user: { update: userUpdate }, member: { update: jest.fn() } }),
+      );
+
+      await repository.update(
+        'user-1',
+        {
+          city: 'São Paulo',
+          uf: 'SP',
+        },
+        'editor-id',
+      );
+
+      expect(userUpdate).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: {
+          city: 'São Paulo',
+          uf: 'SP',
+        },
+      });
+    });
+
     it('deve lançar BadRequest quando update falhar', async () => {
-      prisma.user.update.mockRejectedValue(new Error('db'));
+      prisma.$transaction.mockRejectedValue(new Error('db'));
 
       await expect(
         repository.update('u', makeUpdateUserDTO(), 'e'),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('deve atualizar member quando globalRoleId e organizationId forem informados', async () => {
+      const userUpdate = jest.fn().mockResolvedValue({});
+      const memberUpdate = jest.fn().mockResolvedValue({});
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => unknown) =>
+          fn({ user: { update: userUpdate }, member: { update: memberUpdate } }),
+      );
+
+      await repository.update(
+        'user-1',
+        { globalRoleId: 'global-role-1' },
+        'editor-id',
+        'org-1',
+      );
+
+      expect(userUpdate).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: { globalRoleId: 'global-role-1' },
+      });
+      expect(memberUpdate).toHaveBeenCalledWith({
+        where: {
+          organizationId_userId: {
+            organizationId: 'org-1',
+            userId: 'user-1',
+          },
+        },
+        data: { roleId: 'global-role-1' },
+      });
     });
   });
 
@@ -816,6 +929,31 @@ describe('UserRepository', () => {
     });
   });
 
+  describe('registerPlatformLoginEvent', () => {
+    it('deve registrar evento de login', async () => {
+      const loginAt = new Date('2026-06-12T15:00:00.000Z');
+      prisma.userPlatformLoginEvent.create.mockResolvedValue({});
+
+      await repository.registerPlatformLoginEvent('user-1', loginAt);
+
+      expect(prisma.userPlatformLoginEvent.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: 'user-1',
+          loginAt,
+        }),
+      });
+    });
+
+    it('não deve lançar erro quando create falhar', async () => {
+      prisma.userPlatformLoginEvent.create.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.registerPlatformLoginEvent('user-1'),
+      ).resolves.toBeUndefined();
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
   describe('updatePlatformLoginIfDifferentDay', () => {
     it('deve criar registro quando usuário ainda não possui login registrado', async () => {
       const loginAt = new Date('2026-06-12T15:00:00.000Z');
@@ -862,7 +1000,7 @@ describe('UserRepository', () => {
 
       await expect(
         repository.updatePlatformLoginIfDifferentDay('user-1'),
-      ).resolves.toBeUndefined();
+      ).resolves.toBe(false);
       expect(logger.error).toHaveBeenCalled();
     });
   });

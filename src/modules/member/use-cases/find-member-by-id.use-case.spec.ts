@@ -22,9 +22,12 @@ describe('FindMemberByIdUseCase', () => {
       email: 'ana@test.com',
       taxIdentifier: '12345678900',
       phone: '11999999999',
+      city: 'São Paulo',
+      uf: 'SP' as const,
       birthDate: new Date('1990-01-01'),
       admissionDate: new Date('2020-01-01'),
       roleId: 'role-id',
+      globalRoleId: null,
       isActive: true,
     };
 

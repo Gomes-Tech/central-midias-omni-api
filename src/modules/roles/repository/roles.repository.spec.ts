@@ -54,15 +54,12 @@ describe('RolesRepository', () => {
   describe('findAll', () => {
     it('deve usar filtros padrão quando filters não for informado', async () => {
       prisma.role.findMany.mockResolvedValue([]);
-      prisma.role.count.mockResolvedValue(0);
 
       await repository.findAll();
 
       expect(prisma.role.findMany).toHaveBeenCalledWith({
         where: { deletedAt: null },
         orderBy: [{ label: 'asc' }],
-        skip: 0,
-        take: 25,
       });
     });
 
@@ -72,24 +69,13 @@ describe('RolesRepository', () => {
         makeRole({ id: '2', label: 'B' }),
       ];
       prisma.role.findMany.mockResolvedValue(rows);
-      prisma.role.count.mockResolvedValue(rows.length);
 
       const result = await repository.findAll({});
 
-      expect(result).toEqual({
-        data: rows,
-        total: 2,
-        page: 1,
-        totalPages: 1,
-      });
+      expect(result).toEqual(rows);
       expect(prisma.role.findMany).toHaveBeenCalledWith({
         where: { deletedAt: null },
         orderBy: [{ label: 'asc' }],
-        skip: 0,
-        take: 25,
-      });
-      expect(prisma.role.count).toHaveBeenCalledWith({
-        where: { deletedAt: null },
       });
     });
 
@@ -159,20 +145,10 @@ describe('RolesRepository', () => {
               organizationId: 'org-1',
             },
           },
-          OR: [
-            {
-              label: {
-                contains: 'edit',
-                mode: 'insensitive',
-              },
-            },
-            {
-              name: {
-                contains: 'edit',
-                mode: 'insensitive',
-              },
-            },
-          ],
+          label: {
+            contains: 'edit',
+            mode: 'insensitive',
+          },
         },
         select: {
           id: true,
@@ -209,20 +185,10 @@ describe('RolesRepository', () => {
               organizationId: 'org-1',
             },
           },
-          OR: [
-            {
-              label: {
-                contains: 'edit',
-                mode: 'insensitive',
-              },
-            },
-            {
-              name: {
-                contains: 'edit',
-                mode: 'insensitive',
-              },
-            },
-          ],
+          label: {
+            contains: 'edit',
+            mode: 'insensitive',
+          },
         },
       });
     });
@@ -357,6 +323,18 @@ describe('RolesRepository', () => {
         select: { id: true, label: true },
       });
     });
+
+    it('deve lançar InternalServerError quando findMany falhar com erro genérico', async () => {
+      prisma.role.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(repository.findAllGlobalRolesSelect()).rejects.toBeInstanceOf(
+        InternalServerErrorException,
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'RolesRepository.findAllGlobalRolesSelect falhou',
+        expect.objectContaining({ error: 'Error: db' }),
+      );
+    });
   });
 
   describe('findGlobalRoleById', () => {
@@ -414,6 +392,18 @@ describe('RolesRepository', () => {
           },
         },
       });
+    });
+
+    it('deve lançar InternalServerError quando findFirst falhar com erro genérico', async () => {
+      prisma.role.findFirst.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findGlobalRoleById('r-global'),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+      expect(logger.error).toHaveBeenCalledWith(
+        'RolesRepository.findGlobalRoleById falhou',
+        expect.objectContaining({ id: 'r-global', error: 'Error: db' }),
+      );
     });
   });
 
@@ -922,6 +912,18 @@ describe('RolesRepository', () => {
         expect.objectContaining({
           data: { label: 'Novo global' },
         }),
+      );
+    });
+
+    it('deve lançar InternalServerError quando a transação falhar com erro genérico', async () => {
+      prisma.$transaction.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.updateGlobalRole('r-global', { label: 'X' }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+      expect(logger.error).toHaveBeenCalledWith(
+        'RolesRepository.updateGlobalRole falhou',
+        expect.objectContaining({ roleId: 'r-global', error: 'Error: db' }),
       );
     });
   });

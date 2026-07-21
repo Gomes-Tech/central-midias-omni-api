@@ -206,6 +206,27 @@ describe('CreateMaterialUseCase', () => {
     );
   });
 
+  it('não deve impedir criação quando enfileiramento de aceite falhar', async () => {
+    const dto = makeCreateMaterialDTO({ requiresAcceptance: true });
+    findCategoryByIdUseCase.execute.mockResolvedValue({
+      id: dto.categoryId,
+      isActive: true,
+    });
+    materialRepository.findByName.mockResolvedValue(null);
+    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+      existingTagIds: [],
+      newTagNames: [],
+    });
+    materialRepository.create.mockResolvedValue(undefined);
+    enqueueMaterialAcceptanceEmailsUseCase.execute.mockRejectedValue(
+      new Error('queue'),
+    );
+
+    await expect(useCase.execute('org-id', dto, 'user-id')).resolves.toBe(
+      undefined,
+    );
+  });
+
   it('deve usar mimeType e size padrão quando arquivo não informar metadados', async () => {
     const dto = makeCreateMaterialDTO();
     const file = makeUploadFile({

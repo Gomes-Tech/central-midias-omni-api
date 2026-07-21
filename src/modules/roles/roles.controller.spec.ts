@@ -125,6 +125,18 @@ describe('RolesController', () => {
     });
   });
 
+  describe('findAllGlobalRolesSelect', () => {
+    it('deve delegar ao FindAllGlobalRolesSelectUseCase', async () => {
+      findAllGlobalRolesSelectUseCase.execute.mockResolvedValue([
+        { id: 'r-global', label: 'Admin global' },
+      ]);
+
+      await controller.findAllGlobalRolesSelect();
+
+      expect(findAllGlobalRolesSelectUseCase.execute).toHaveBeenCalledWith();
+    });
+  });
+
   describe('findAllPermissions', () => {
     it('deve delegar ao FindAllRolePermissionsUseCase com organizationId e filtros', async () => {
       const filters = { page: 2, searchTerm: 'editor' };

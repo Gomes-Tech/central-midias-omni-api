@@ -71,7 +71,7 @@ describe('S3StorageService', () => {
     expect(getSignedUrl).toHaveBeenCalledWith(
       expect.anything(),
       expect.any(GetObjectCommand),
-      { expiresIn: 60 },
+      { expiresIn: 300 },
     );
   });
 
@@ -87,7 +87,9 @@ describe('S3StorageService', () => {
 
     const result = await service.uploadFile(file, 'organizations');
 
-    expect(result.publicUrl).toBe('');
+    expect(result.publicUrl).toMatch(
+      /^https:\/\/assets-editor\.s3\.us-east-1\.amazonaws\.com\/organizations\//,
+    );
     expect(result.path).toContain('organizations/');
     expect(send).toHaveBeenCalledWith(expect.any(PutObjectCommand));
   });
@@ -127,6 +129,21 @@ describe('S3StorageService', () => {
     ).resolves.toBe('https://signed.url/file');
   });
 
+  it('getSignedDownloadUrl deve lançar BadRequest quando getSignedUrl falhar', async () => {
+    jest.mocked(getSignedUrl).mockImplementation(() => {
+      throw new Error('s3');
+    });
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+    const service = new S3StorageService();
+
+    await expect(
+      service.getSignedDownloadUrl('organizations/file.pdf', 'file.pdf'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(consoleSpy).toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
   it('storePublicationAttachment deve enviar arquivo ao S3', async () => {
     send.mockResolvedValue({});
     const service = new S3StorageService();
@@ -158,10 +175,10 @@ describe('S3StorageService', () => {
 
     await expect(
       service.storePublicationAttachment({ publicationId: 'pub-1', file }),
-    ).rejects.toBeInstanceOf(InternalServerErrorException);
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('uploadFile deve lançar InternalServerError quando send falhar', async () => {
+  it('uploadFile deve lançar BadRequest quando send falhar', async () => {
     send.mockRejectedValue(new Error('s3'));
     const service = new S3StorageService();
     const file = {
@@ -172,7 +189,7 @@ describe('S3StorageService', () => {
     };
 
     await expect(service.uploadFile(file)).rejects.toBeInstanceOf(
-      InternalServerErrorException,
+      BadRequestException,
     );
   });
 

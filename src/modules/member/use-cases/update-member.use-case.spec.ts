@@ -125,4 +125,26 @@ describe('UpdateMemberUseCase', () => {
       'editor-id',
     );
   });
+
+  it('deve atualizar sem validar role quando roleId não for informado', async () => {
+    const data = makeUpdateMemberDTO({ roleId: undefined });
+
+    findMemberByIdUseCase.execute.mockResolvedValue({
+      id: 'member-id',
+      roleId: roleIdA,
+      globalRoleId: null,
+    } as never);
+
+    await expect(
+      useCase.execute('member-id', 'org-id', data, 'editor-id'),
+    ).resolves.toBeUndefined();
+
+    expect(findRoleByIdUseCase.execute).not.toHaveBeenCalled();
+    expect(memberRepository.update).toHaveBeenCalledWith(
+      'member-id',
+      'org-id',
+      data,
+      'editor-id',
+    );
+  });
 });

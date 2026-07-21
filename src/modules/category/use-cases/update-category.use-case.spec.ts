@@ -399,6 +399,26 @@ describe('UpdateCategoryUseCase', () => {
     expect(categoryRepository.update).not.toHaveBeenCalled();
   });
 
+  it('deve lançar BadRequest ao mover para uma categoria pai inativa', async () => {
+    const category = makeCategoryDetails({ id: 'child' });
+    const data = makeUpdateCategoryDTO({ parentId: 'parent-id' });
+
+    findCategoryByIdUseCase.execute
+      .mockResolvedValueOnce(category)
+      .mockResolvedValueOnce(
+        makeCategoryDetails({
+          id: 'parent-id',
+          isActive: false,
+        }),
+      );
+
+    await expect(
+      useCase.execute('child', 'org-id', data, 'user-id'),
+    ).rejects.toThrow('Categoria pai está inativa');
+
+    expect(categoryRepository.update).not.toHaveBeenCalled();
+  });
+
   it('deve validar ordem no novo nível quando o pai mudar', async () => {
     const category = makeCategoryDetails({
       id: 'child',

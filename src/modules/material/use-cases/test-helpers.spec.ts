@@ -5,6 +5,7 @@ import {
   makeMaterialFile,
   makeMaterialListItem,
   makeMaterialTagSummary,
+  makeSearchMaterialsFiltersDTO,
   makeUpdateMaterialDTO,
   makeUploadFile,
 } from './test-helpers';
@@ -20,6 +21,13 @@ describe('material use-cases test-helpers', () => {
       makeFindAllMaterialsFiltersDTO({ searchTerm: 'inst' }).searchTerm,
     ).toBe('inst');
     expect(makeFindAllMaterialsFiltersDTO()).toEqual({});
+  });
+
+  it('makeSearchMaterialsFiltersDTO aplica overrides', () => {
+    expect(makeSearchMaterialsFiltersDTO({ term: 'campanha' }).term).toBe(
+      'campanha',
+    );
+    expect(makeSearchMaterialsFiltersDTO()).toEqual({});
   });
 
   it('makeCreateMaterialDTO e demais helpers aplicam overrides', () => {

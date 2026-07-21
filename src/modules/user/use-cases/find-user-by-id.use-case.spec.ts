@@ -1,7 +1,7 @@
 import { NotFoundException } from '@common/filters';
 import { UserRepository } from '../repository';
 import { FindUserByIdUseCase } from './find-user-by-id.use-case';
-import { makeUser } from './test-helpers';
+import { makeUserById } from './test-helpers';
 
 describe('FindUserByIdUseCase', () => {
   let userRepository: jest.Mocked<UserRepository>;
@@ -16,7 +16,7 @@ describe('FindUserByIdUseCase', () => {
   });
 
   it('deve retornar usuário por id', async () => {
-    const user = makeUser();
+    const user = makeUserById();
 
     userRepository.findById.mockResolvedValue(user);
 

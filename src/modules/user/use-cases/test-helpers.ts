@@ -1,5 +1,5 @@
 import { CreateGlobalUserDTO, CreateUserDTO, UpdateUserDTO } from '../dto';
-import { User } from '../entities';
+import { User, UserById } from '../entities';
 
 export function makeUser(overrides: Partial<User> = {}): User {
   return {
@@ -29,6 +29,27 @@ export function makeUser(overrides: Partial<User> = {}): User {
     createdAt: new Date('2024-01-01T00:00:00.000Z'),
     updatedAt: new Date('2024-01-02T00:00:00.000Z'),
     deletedAt: null,
+    ...overrides,
+  };
+}
+
+export function makeUserById(overrides: Partial<UserById> = {}): UserById {
+  return {
+    id: 'user-id',
+    name: 'John Doe',
+    email: 'john@doe.com',
+    taxIdentifier: '12345678901',
+    password: 'hashed-password',
+    phone: null,
+    socialReason: null,
+    city: null,
+    uf: null,
+    avatarKey: null,
+    isFirstAccess: true,
+    isActive: true,
+    isDeleted: false,
+    canAccessBackoffice: false,
+    globalRoleId: null,
     ...overrides,
   };
 }

@@ -59,6 +59,7 @@ describe('FindMaterialMosaicUseCase', () => {
     ).toHaveBeenCalledWith('org-id', 'user-id', 6);
     expect(storageService.getPublicUrl).toHaveBeenCalledWith(
       'materials/material-1/preview.png',
+      900,
     );
     expect(result).toEqual([
       {

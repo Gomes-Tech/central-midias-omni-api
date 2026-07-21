@@ -2,6 +2,7 @@ import {
   CategoryPermissionGuard,
   PlatformPermissionGuard,
 } from '@common/guards';
+import { FindMaterialsByCategorySlugUseCase } from '@modules/material/use-cases';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CategoryController } from './category.controller';
 import {
@@ -26,6 +27,7 @@ describe('CategoryController', () => {
   let findCategoryByIdUseCase: { execute: jest.Mock };
   let findCategoryTreeBySlugPathUseCase: { execute: jest.Mock };
   let findCategoryTreeUseCase: { execute: jest.Mock };
+  let findMaterialsByCategorySlugUseCase: { execute: jest.Mock };
   let updateCategoryUseCase: { execute: jest.Mock };
 
   beforeEach(async () => {
@@ -35,6 +37,7 @@ describe('CategoryController', () => {
     findCategoryByIdUseCase = { execute: jest.fn() };
     findCategoryTreeBySlugPathUseCase = { execute: jest.fn() };
     findCategoryTreeUseCase = { execute: jest.fn() };
+    findMaterialsByCategorySlugUseCase = { execute: jest.fn() };
     updateCategoryUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -55,6 +58,10 @@ describe('CategoryController', () => {
           useValue: findCategoryTreeBySlugPathUseCase,
         },
         { provide: FindCategoryTreeUseCase, useValue: findCategoryTreeUseCase },
+        {
+          provide: FindMaterialsByCategorySlugUseCase,
+          useValue: findMaterialsByCategorySlugUseCase,
+        },
         { provide: UpdateCategoryUseCase, useValue: updateCategoryUseCase },
       ],
     })
@@ -186,6 +193,43 @@ describe('CategoryController', () => {
         'c1',
         'org-1',
         'user-1',
+      );
+    });
+  });
+
+  describe('findMaterialsBySlug', () => {
+    it('deve normalizar slugPath em array e delegar ao use case', async () => {
+      const payload = { data: [], total: 0, page: 1, totalPages: 0 };
+      findMaterialsByCategorySlugUseCase.execute.mockResolvedValue(payload);
+
+      const result = await controller.findMaterialsBySlug(
+        ['marketing', 'redes'],
+        'org-1',
+        { page: 1 },
+      );
+
+      expect(result).toBe(payload);
+      expect(findMaterialsByCategorySlugUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+        'marketing/redes',
+        { page: 1 },
+      );
+    });
+
+    it('deve usar slugPath string e filtros vazios por padrão', async () => {
+      findMaterialsByCategorySlugUseCase.execute.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 1,
+        totalPages: 0,
+      });
+
+      await controller.findMaterialsBySlug('marketing', 'org-1');
+
+      expect(findMaterialsByCategorySlugUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+        'marketing',
+        {},
       );
     });
   });

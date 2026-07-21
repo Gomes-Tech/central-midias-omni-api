@@ -17,7 +17,6 @@ describe('FindAllRolePermissionsUseCase', () => {
       data: [],
       total: 0,
       page: 2,
-      currentPage: 2,
       totalPages: 0,
     };
     repository.findAllPermissions.mockResolvedValue(result);
@@ -36,7 +35,6 @@ describe('FindAllRolePermissionsUseCase', () => {
       data: [],
       total: 0,
       page: 1,
-      currentPage: 1,
       totalPages: 0,
     });
 

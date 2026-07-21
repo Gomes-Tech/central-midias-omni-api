@@ -832,6 +832,30 @@ describe('CategoryRepository', () => {
       });
     });
 
+    it('deve persistir externalLink quando hasExternalLink for true', async () => {
+      prisma.category.create.mockResolvedValue({} as never);
+
+      await repository.create(
+        'org-1',
+        {
+          name: 'Link',
+          slug: 'link',
+          slugPath: 'link',
+          order: 1,
+          hasExternalLink: true,
+          externalLink: 'https://example.com',
+        },
+        'user-1',
+      );
+
+      expect(prisma.category.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          hasExternalLink: true,
+          externalLink: 'https://example.com',
+        }),
+      });
+    });
+
     it('deve lançar BadRequest quando create falhar', async () => {
       prisma.category.create.mockRejectedValue(new Error('db'));
 

@@ -227,6 +227,22 @@ describe('UpdateMaterialUseCase', () => {
     );
   });
 
+  it('não deve impedir atualização quando enfileiramento de aceite falhar', async () => {
+    const material = makeMaterialDetails({ requiresAcceptance: false });
+    const dto = makeUpdateMaterialDTO({ requiresAcceptance: true });
+
+    findMaterialByIdUseCase.execute.mockResolvedValue(material);
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue(undefined);
+    materialRepository.update.mockResolvedValue(undefined);
+    enqueueMaterialAcceptanceEmailsUseCase.execute.mockRejectedValue(
+      new Error('queue'),
+    );
+
+    await expect(
+      useCase.execute(material.id, 'org-id', dto, 'user-id'),
+    ).resolves.toBeUndefined();
+  });
+
   it('deve notificar usuários quando notifyUsers for true', async () => {
     const material = makeMaterialDetails();
     const dto = makeUpdateMaterialDTO({ notifyUsers: true });

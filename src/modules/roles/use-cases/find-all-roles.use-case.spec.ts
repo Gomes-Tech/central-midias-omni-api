@@ -14,27 +14,17 @@ describe('FindAllRolesUseCase', () => {
   });
 
   it('deve delegar ao repositório com filtros', async () => {
-    const response = {
-      data: [makeRole()],
-      total: 1,
-      page: 1,
-      totalPages: 1,
-    };
+    const response = [makeRole()];
     repository.findAll.mockResolvedValue(response);
 
-    const filters = { isSystem: true };
+    const filters = { label: 'Admin' };
 
     await expect(useCase.execute(filters)).resolves.toEqual(response);
     expect(repository.findAll).toHaveBeenCalledWith(filters);
   });
 
   it('deve usar filtros vazios por padrão', async () => {
-    const response = {
-      data: [],
-      total: 0,
-      page: 1,
-      totalPages: 0,
-    };
+    const response: ReturnType<typeof makeRole>[] = [];
     repository.findAll.mockResolvedValue(response);
 
     await expect(useCase.execute()).resolves.toEqual(response);

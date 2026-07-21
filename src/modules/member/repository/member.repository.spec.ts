@@ -37,9 +37,13 @@ function createPrismaMock() {
       findFirst: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
       updateMany: jest.fn(),
       findFirstOrThrow: jest.fn(),
       deleteMany: jest.fn(),
+    },
+    user: {
+      update: jest.fn(),
     },
     $transaction: jest.fn(),
   };
@@ -550,24 +554,64 @@ describe('MemberRepository', () => {
   });
 
   describe('update', () => {
-    it('deve executar transação com updateMany e findFirstOrThrow', async () => {
+    it('deve executar transação com update do membro', async () => {
+      const memberUpdate = jest.fn().mockResolvedValue({ userId: 'user-1' });
+      const userUpdate = jest.fn().mockResolvedValue({});
       prisma.$transaction.mockImplementation(
-        async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma),
+        async (fn: (tx: unknown) => Promise<unknown>) =>
+          fn({
+            member: { update: memberUpdate },
+            user: { update: userUpdate },
+          }),
       );
-      prisma.member.updateMany.mockResolvedValue({ count: 1 });
-      prisma.member.findFirstOrThrow.mockResolvedValue({});
 
       await repository.update('m1', 'org-1', { roleId: 'new-role' }, 'upd-1');
 
-      expect(prisma.member.updateMany).toHaveBeenCalledWith({
+      expect(memberUpdate).toHaveBeenCalledWith({
         where: { id: 'm1', organizationId: 'org-1' },
         data: { roleId: 'new-role' },
+        select: { userId: true },
       });
-      expect(prisma.member.findFirstOrThrow).toHaveBeenCalled();
+      expect(userUpdate).not.toHaveBeenCalled();
       expect(logger.info).toHaveBeenCalledWith(
         'Membro atualizado',
         expect.objectContaining({ memberId: 'm1' }),
       );
+    });
+
+    it('deve atualizar o usuário quando campos de usuário forem informados', async () => {
+      const memberUpdate = jest.fn().mockResolvedValue({ userId: 'user-1' });
+      const userUpdate = jest.fn().mockResolvedValue({});
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) =>
+          fn({
+            member: { update: memberUpdate },
+            user: { update: userUpdate },
+          }),
+      );
+
+      await repository.update(
+        'm1',
+        'org-1',
+        {
+          roleId: 'new-role',
+          name: 'Novo Nome',
+          email: 'novo@teste.com',
+          city: 'São Paulo',
+          uf: 'SP',
+        },
+        'upd-1',
+      );
+
+      expect(userUpdate).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: {
+          name: 'Novo Nome',
+          email: 'novo@teste.com',
+          city: 'São Paulo',
+          uf: 'SP',
+        },
+      });
     });
 
     it('deve lançar BadRequest quando a transação falhar', async () => {

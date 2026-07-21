@@ -6,15 +6,23 @@ function createPrismaMock() {
   return {
     category: {
       findFirst: jest.fn(),
+      findMany: jest.fn(),
     },
     role: {
       findFirst: jest.fn(),
+      findMany: jest.fn(),
+    },
+    organization: {
+      findMany: jest.fn(),
+    },
+    member: {
       findMany: jest.fn(),
     },
     categoryRoleAccess: {
       findFirst: jest.fn(),
       create: jest.fn(),
       findMany: jest.fn(),
+      createMany: jest.fn(),
       delete: jest.fn(),
     },
   };
@@ -276,6 +284,184 @@ describe('CategoryRoleAccessRepository', () => {
       await expect(repository.findRolesByIds(['r1'])).rejects.toThrow(
         'Erro ao buscar perfis',
       );
+    });
+  });
+
+  describe('findAllActiveGlobalRoleIds', () => {
+    it('deve retornar ids de perfis globais ativos', async () => {
+      prisma.role.findMany.mockResolvedValue([
+        { id: 'role-1' },
+        { id: 'role-2' },
+      ]);
+
+      await expect(repository.findAllActiveGlobalRoleIds()).resolves.toEqual([
+        'role-1',
+        'role-2',
+      ]);
+
+      expect(prisma.role.findMany).toHaveBeenCalledWith({
+        where: { deletedAt: null, canAccessBackoffice: true },
+        select: { id: true },
+        orderBy: [{ label: 'asc' }],
+      });
+    });
+
+    it('deve lançar quando findMany falhar', async () => {
+      prisma.role.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(repository.findAllActiveGlobalRoleIds()).rejects.toThrow(
+        'Erro ao buscar perfis globais',
+      );
+    });
+  });
+
+  describe('findAllActiveOrganizationIds', () => {
+    it('deve retornar ids de organizações ativas', async () => {
+      prisma.organization.findMany.mockResolvedValue([
+        { id: 'org-1' },
+        { id: 'org-2' },
+      ]);
+
+      await expect(
+        repository.findAllActiveOrganizationIds(),
+      ).resolves.toEqual(['org-1', 'org-2']);
+
+      expect(prisma.organization.findMany).toHaveBeenCalledWith({
+        where: { isActive: true, isDeleted: false },
+        select: { id: true },
+      });
+    });
+
+    it('deve lançar quando findMany falhar', async () => {
+      prisma.organization.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findAllActiveOrganizationIds(),
+      ).rejects.toThrow('Erro ao buscar organizações');
+    });
+  });
+
+  describe('syncGlobalRoleWithOrganizationCategories', () => {
+    it('deve retornar sem criar quando organização não tiver categorias', async () => {
+      prisma.category.findMany.mockResolvedValue([]);
+
+      await repository.syncGlobalRoleWithOrganizationCategories(
+        'role-1',
+        'org-1',
+      );
+
+      expect(prisma.categoryRoleAccess.findMany).not.toHaveBeenCalled();
+      expect(prisma.categoryRoleAccess.createMany).not.toHaveBeenCalled();
+    });
+
+    it('deve criar apenas os acessos que ainda não existem', async () => {
+      prisma.category.findMany.mockResolvedValue([
+        { id: 'cat-1' },
+        { id: 'cat-2' },
+      ]);
+      prisma.categoryRoleAccess.findMany.mockResolvedValue([
+        { categoryId: 'cat-1' },
+      ]);
+
+      await repository.syncGlobalRoleWithOrganizationCategories(
+        'role-1',
+        'org-1',
+      );
+
+      expect(prisma.categoryRoleAccess.createMany).toHaveBeenCalledWith({
+        data: [
+          {
+            id: 'mocked-uuid',
+            categoryId: 'cat-2',
+            roleId: 'role-1',
+            organizationId: 'org-1',
+          },
+        ],
+        skipDuplicates: true,
+      });
+    });
+
+    it('deve retornar sem criar quando todos os acessos já existirem', async () => {
+      prisma.category.findMany.mockResolvedValue([{ id: 'cat-1' }]);
+      prisma.categoryRoleAccess.findMany.mockResolvedValue([
+        { categoryId: 'cat-1' },
+      ]);
+
+      await repository.syncGlobalRoleWithOrganizationCategories(
+        'role-1',
+        'org-1',
+      );
+
+      expect(prisma.categoryRoleAccess.createMany).not.toHaveBeenCalled();
+    });
+
+    it('deve lançar quando falhar', async () => {
+      prisma.category.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.syncGlobalRoleWithOrganizationCategories('role-1', 'org-1'),
+      ).rejects.toThrow('Erro ao sincronizar categorias do perfil global');
+    });
+  });
+
+  describe('syncCategoryWithGlobalRolesInOrganization', () => {
+    it('deve retornar sem criar quando não houver perfis globais', async () => {
+      prisma.categoryRoleAccess.findMany.mockResolvedValue([]);
+      prisma.member.findMany.mockResolvedValue([]);
+
+      await repository.syncCategoryWithGlobalRolesInOrganization(
+        'cat-1',
+        'org-1',
+      );
+
+      expect(prisma.categoryRoleAccess.createMany).not.toHaveBeenCalled();
+    });
+
+    it('deve unificar perfis de acessos e membros e criar os que faltam', async () => {
+      prisma.categoryRoleAccess.findMany
+        .mockResolvedValueOnce([{ roleId: 'role-1' }])
+        .mockResolvedValueOnce([{ roleId: 'role-1' }]);
+      prisma.member.findMany.mockResolvedValue([{ roleId: 'role-2' }]);
+
+      await repository.syncCategoryWithGlobalRolesInOrganization(
+        'cat-1',
+        'org-1',
+      );
+
+      expect(prisma.categoryRoleAccess.createMany).toHaveBeenCalledWith({
+        data: [
+          {
+            id: 'mocked-uuid',
+            categoryId: 'cat-1',
+            roleId: 'role-2',
+            organizationId: 'org-1',
+          },
+        ],
+        skipDuplicates: true,
+      });
+    });
+
+    it('deve retornar sem criar quando todos os perfis já existirem na categoria', async () => {
+      prisma.categoryRoleAccess.findMany
+        .mockResolvedValueOnce([{ roleId: 'role-1' }])
+        .mockResolvedValueOnce([{ roleId: 'role-1' }]);
+      prisma.member.findMany.mockResolvedValue([]);
+
+      await repository.syncCategoryWithGlobalRolesInOrganization(
+        'cat-1',
+        'org-1',
+      );
+
+      expect(prisma.categoryRoleAccess.createMany).not.toHaveBeenCalled();
+    });
+
+    it('deve lançar quando falhar', async () => {
+      prisma.categoryRoleAccess.findMany.mockRejectedValue(new Error('db'));
+      prisma.member.findMany.mockResolvedValue([]);
+
+      await expect(
+        repository.syncCategoryWithGlobalRolesInOrganization('cat-1', 'org-1'),
+      ).rejects.toThrow('Erro ao sincronizar perfis globais com a categoria');
     });
   });
 });

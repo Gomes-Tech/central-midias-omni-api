@@ -27,8 +27,6 @@ export class FindListSocialHighlightsUseCase {
     const banners =
       await this.socialHighlightRepository.findList(organizationId);
 
-    console.log('BANNERS', banners.length);
-
     const socialHighlightsWithImages = await Promise.all(
       banners.map(async ({ mobileImageKey, desktopImageKey, ...banner }) => ({
         ...banner,

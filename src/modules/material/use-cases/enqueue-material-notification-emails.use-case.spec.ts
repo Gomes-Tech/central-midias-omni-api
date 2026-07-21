@@ -31,6 +31,9 @@ describe('EnqueueMaterialNotificationEmailsUseCase', () => {
 
   it('deve enfileirar um job por membro da plataforma elegível', async () => {
     const material = makeMaterialDetails();
+    const previousFrontendUrl = process.env.FRONTEND_URL;
+    process.env.FRONTEND_URL = 'https://app.exemplo.com/';
+
     materialRepository.findById.mockResolvedValue(material);
     materialRepository.findPlatformMembersForCategory.mockResolvedValue([
       {
@@ -57,9 +60,12 @@ describe('EnqueueMaterialNotificationEmailsUseCase', () => {
         organizationId: 'org-id',
         userId: 'user-1',
         email: 'joao@teste.com',
+        materialLink: `https://app.exemplo.com/materials/${material.id}`,
       }),
       { jobId: `${material.id}:user-1:notification` },
     );
+
+    process.env.FRONTEND_URL = previousFrontendUrl;
   });
 
   it('não deve enfileirar quando material não existir', async () => {
@@ -82,5 +88,34 @@ describe('EnqueueMaterialNotificationEmailsUseCase', () => {
 
     expect(materialNotificationEmailQueue.add).not.toHaveBeenCalled();
     expect(logger.info).toHaveBeenCalled();
+  });
+
+  it('deve enfileirar sem materialLink quando FRONTEND_URL não estiver definido', async () => {
+    const material = makeMaterialDetails();
+    const previousFrontendUrl = process.env.FRONTEND_URL;
+    delete process.env.FRONTEND_URL;
+
+    materialRepository.findById.mockResolvedValue(material);
+    materialRepository.findPlatformMembersForCategory.mockResolvedValue([
+      {
+        userId: 'user-1',
+        name: 'João',
+        email: 'joao@teste.com',
+      },
+    ]);
+
+    await expect(
+      useCase.execute(material.id, 'org-id'),
+    ).resolves.toEqual({ enqueued: 1 });
+
+    expect(materialNotificationEmailQueue.add).toHaveBeenCalledWith(
+      MATERIAL_NOTIFICATION_EMAIL_JOB,
+      expect.objectContaining({
+        materialLink: undefined,
+      }),
+      expect.any(Object),
+    );
+
+    process.env.FRONTEND_URL = previousFrontendUrl;
   });
 });

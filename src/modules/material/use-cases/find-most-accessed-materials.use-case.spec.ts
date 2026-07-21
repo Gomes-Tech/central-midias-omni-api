@@ -76,8 +76,7 @@ describe('FindMostAccessedMaterialsUseCase', () => {
       id: 'material-1',
       name: 'Material mais visto',
       description: 'Descricao',
-      mobileUrl: 'https://cdn.test/preview.png',
-      desktopUrl: 'https://cdn.test/preview.png',
+      imageUrl: 'https://cdn.test/preview.png',
     });
   });
 
@@ -97,8 +96,7 @@ describe('FindMostAccessedMaterialsUseCase', () => {
       id: 'material-2',
       name: 'Material recente',
       description: 'Descricao recente',
-      mobileUrl: 'https://cdn.test/image.jpeg',
-      desktopUrl: 'https://cdn.test/image.jpeg',
+      imageUrl: 'https://cdn.test/image.jpeg',
     });
   });
 
@@ -121,8 +119,7 @@ describe('FindMostAccessedMaterialsUseCase', () => {
         id: 'material-1',
         name: 'Material mais visto',
         description: 'Descricao',
-        mobileUrl: null,
-        desktopUrl: null,
+        imageUrl: null,
       },
     ]);
 

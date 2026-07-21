@@ -24,27 +24,7 @@ describe('FindListSocialHighlightsUseCase', () => {
     );
   });
 
-  it('deve retornar banners do cache quando existirem', async () => {
-    const cached = [
-      {
-        id: 'social-highlight-id',
-        name: 'Destaque social principal',
-        mobileImageUrl: 'https://cdn.test/mobile.png',
-        desktopImageUrl: 'https://cdn.test/desktop.png',
-      },
-    ];
-
-    cacheService.get.mockResolvedValue(cached);
-
-    await expect(useCase.execute(organizationId)).resolves.toEqual(cached);
-
-    expect(cacheService.get).toHaveBeenCalledWith(`social-highlights:${organizationId}`);
-    expect(socialHighlightRepository.findList).not.toHaveBeenCalled();
-    expect(storageService.getPublicUrl).not.toHaveBeenCalled();
-    expect(cacheService.set).not.toHaveBeenCalled();
-  });
-
-  it('deve buscar banners, resolver URLs e salvar no cache quando não houver cache', async () => {
+  it('deve buscar banners e resolver URLs', async () => {
     const banner = makeSocialHighlight();
     const expected = {
       id: banner.id,
@@ -63,7 +43,6 @@ describe('FindListSocialHighlightsUseCase', () => {
       desktopImageUrl: 'https://cdn.test/social-highlight-desktop.png',
     };
 
-    cacheService.get.mockResolvedValue(null);
     socialHighlightRepository.findList.mockResolvedValue([banner]);
     storageService.getPublicUrl
       .mockResolvedValueOnce(expected.mobileImageUrl)
@@ -74,15 +53,14 @@ describe('FindListSocialHighlightsUseCase', () => {
     expect(socialHighlightRepository.findList).toHaveBeenCalledWith(organizationId);
     expect(storageService.getPublicUrl).toHaveBeenCalledWith(
       banner.mobileImageKey,
+      900,
     );
     expect(storageService.getPublicUrl).toHaveBeenCalledWith(
       banner.desktopImageKey,
+      900,
     );
-    expect(cacheService.set).toHaveBeenCalledWith(
-      `social-highlights:${organizationId}`,
-      [expected],
-      60 * 15,
-    );
+    expect(cacheService.get).not.toHaveBeenCalled();
+    expect(cacheService.set).not.toHaveBeenCalled();
   });
 
   it('deve retornar URLs nulas quando não houver chaves de imagem', async () => {
@@ -91,7 +69,6 @@ describe('FindListSocialHighlightsUseCase', () => {
       desktopImageKey: null as unknown as string,
     });
 
-    cacheService.get.mockResolvedValue(null);
     socialHighlightRepository.findList.mockResolvedValue([banner]);
 
     const [result] = await useCase.execute(organizationId);
@@ -104,7 +81,6 @@ describe('FindListSocialHighlightsUseCase', () => {
   it('deve retornar URL nula quando storage falhar ao gerar URL pública', async () => {
     const banner = makeSocialHighlight();
 
-    cacheService.get.mockResolvedValue(null);
     socialHighlightRepository.findList.mockResolvedValue([banner]);
     storageService.getPublicUrl.mockRejectedValue(new Error('storage down'));
 
@@ -117,7 +93,6 @@ describe('FindListSocialHighlightsUseCase', () => {
   it('deve propagar erro quando socialHighlightRepository.findList falhar', async () => {
     const error = new Error('Erro ao listar banners');
 
-    cacheService.get.mockResolvedValue(null);
     socialHighlightRepository.findList.mockRejectedValue(error);
 
     await expect(useCase.execute(organizationId)).rejects.toBe(error);

@@ -47,4 +47,15 @@ describe('EnqueueReportExportUseCase', () => {
       },
     );
   });
+
+  it('deve lançar BadRequest quando o tipo de relatório for inválido', async () => {
+    await expect(
+      useCase.execute('invalid-type' as ReportType, 'org-1', 'user-1'),
+    ).rejects.toMatchObject({
+      message: 'Tipo de relatório inválido',
+    });
+
+    expect(findUserByIdUseCase.execute).not.toHaveBeenCalled();
+    expect(reportExportQueue.add).not.toHaveBeenCalled();
+  });
 });
