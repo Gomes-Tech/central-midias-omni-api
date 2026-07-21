@@ -100,6 +100,7 @@ describe('MemberRepository', () => {
         where: {
           organizationId: 'org-1',
           role: { canAccessBackoffice: false },
+          user: { globalRoleId: null },
         },
         select: memberSelect,
         orderBy: [{ user: { name: 'asc' } }],
@@ -120,6 +121,7 @@ describe('MemberRepository', () => {
           where: {
             organizationId: 'org-1',
             role: { canAccessBackoffice: false },
+            user: { globalRoleId: null },
             roleId: 'role-x',
             OR: [
               {
@@ -164,6 +166,7 @@ describe('MemberRepository', () => {
           phone: '11999999999',
           birthDate: new Date('1990-01-01'),
           admissionDate: new Date('2020-01-01'),
+          globalRoleId: null,
           isActive: true,
         },
       };
@@ -179,6 +182,7 @@ describe('MemberRepository', () => {
         birthDate: new Date('1990-01-01'),
         admissionDate: new Date('2020-01-01'),
         roleId: 'role-1',
+        globalRoleId: null,
         isActive: true,
       });
 
@@ -196,7 +200,10 @@ describe('MemberRepository', () => {
               admissionDate: true,
               birthDate: true,
               phone: true,
+              city: true,
+              uf: true,
               isActive: true,
+              globalRoleId: true,
             },
           },
         },
@@ -537,11 +544,7 @@ describe('MemberRepository', () => {
       prisma.member.create.mockRejectedValue(new Error('db'));
 
       await expect(
-        repository.create(
-          'org-1',
-          { userId: 'u', roleId: 'r' },
-          'c',
-        ),
+        repository.create('org-1', { userId: 'u', roleId: 'r' }, 'c'),
       ).rejects.toThrow('Erro ao criar membro');
     });
   });
@@ -554,12 +557,7 @@ describe('MemberRepository', () => {
       prisma.member.updateMany.mockResolvedValue({ count: 1 });
       prisma.member.findFirstOrThrow.mockResolvedValue({});
 
-      await repository.update(
-        'm1',
-        'org-1',
-        { roleId: 'new-role' },
-        'upd-1',
-      );
+      await repository.update('m1', 'org-1', { roleId: 'new-role' }, 'upd-1');
 
       expect(prisma.member.updateMany).toHaveBeenCalledWith({
         where: { id: 'm1', organizationId: 'org-1' },

@@ -116,9 +116,12 @@ describe('RolesController', () => {
     it('deve delegar ao FindAllSelectRolesUseCase', async () => {
       findAllSelectRolesUseCase.execute.mockResolvedValue([]);
 
-      await controller.findAllSelect();
+      await controller.findAllSelect('org-1');
 
-      expect(findAllSelectRolesUseCase.execute).toHaveBeenCalledWith(false);
+      expect(findAllSelectRolesUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+        false,
+      );
     });
   });
 

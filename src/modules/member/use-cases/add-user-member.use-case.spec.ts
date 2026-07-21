@@ -2,11 +2,32 @@ import { BadRequestException, NotFoundException } from '@common/filters';
 import { SyncGlobalRoleCategoryAccessesUseCase } from '@modules/category-role-access/use-cases/sync-global-role-category-accesses.use-case';
 import { FindGlobalRoleByIdUseCase } from '@modules/roles/use-cases/find-global-role-by-id.use-case';
 import { FindRoleByIdUseCase } from '@modules/roles/use-cases/find-role-by-id.use-case';
+import { UserById } from '@modules/user/entities';
 import { FindUserByIdUseCase } from '@modules/user/use-cases/find-user-by-id.use-case';
-import { makeUser } from '@modules/user/use-cases/test-helpers';
 import { MemberRepository } from '../repository';
 import { AddUserMemberUseCase } from './add-user-member.use-case';
 import { makeCreateMemberDTO } from './test-helpers';
+
+function makeMemberUser(overrides: Partial<UserById> = {}): UserById {
+  return {
+    id: 'user-id',
+    name: 'Usuário',
+    email: 'user@example.com',
+    taxIdentifier: '12345678901',
+    password: 'hashed-password',
+    phone: null,
+    socialReason: null,
+    city: null,
+    uf: null,
+    avatarKey: null,
+    isFirstAccess: false,
+    isActive: true,
+    isDeleted: false,
+    canAccessBackoffice: false,
+    globalRoleId: null,
+    ...overrides,
+  };
+}
 
 describe('AddUserMemberUseCase', () => {
   let memberRepository: jest.Mocked<MemberRepository>;
@@ -49,7 +70,7 @@ describe('AddUserMemberUseCase', () => {
 
   it('deve criar vínculo quando usuário estiver ativo e sem duplicidade', async () => {
     const dto = makeCreateMemberDTO();
-    const user = makeUser({
+    const user = makeMemberUser({
       id: dto.userId,
       isActive: true,
       isDeleted: false,
@@ -57,7 +78,9 @@ describe('AddUserMemberUseCase', () => {
 
     memberRepository.findByOrganizationAndUser.mockResolvedValue(null);
     findUserByIdUseCase.execute.mockResolvedValue(user);
-    findRoleByIdUseCase.execute.mockResolvedValue({} as never);
+    findRoleByIdUseCase.execute.mockResolvedValue({
+      canAccessBackoffice: false,
+    } as never);
     memberRepository.create.mockResolvedValue(undefined);
 
     await expect(
@@ -97,7 +120,7 @@ describe('AddUserMemberUseCase', () => {
 
   it('deve lançar erro quando usuário estiver inativo', async () => {
     const dto = makeCreateMemberDTO();
-    const user = makeUser({
+    const user = makeMemberUser({
       id: dto.userId,
       isActive: false,
       isDeleted: false,
@@ -116,10 +139,12 @@ describe('AddUserMemberUseCase', () => {
 
   it('deve aceitar perfil global quando não houver vínculo de categoria na organização', async () => {
     const dto = makeCreateMemberDTO();
-    const user = makeUser({
+    const user = makeMemberUser({
       id: dto.userId,
       isActive: true,
       isDeleted: false,
+      canAccessBackoffice: true,
+      globalRoleId: 'global-role-id',
     });
 
     memberRepository.findByOrganizationAndUser.mockResolvedValue(null);
@@ -127,7 +152,9 @@ describe('AddUserMemberUseCase', () => {
     findRoleByIdUseCase.execute.mockRejectedValue(
       new NotFoundException('Perfil não encontrado'),
     );
-    findGlobalRoleByIdUseCase.execute.mockResolvedValue({} as never);
+    findGlobalRoleByIdUseCase.execute.mockResolvedValue({
+      canAccessBackoffice: true,
+    } as never);
     memberRepository.create.mockResolvedValue(undefined);
 
     await expect(
@@ -148,7 +175,7 @@ describe('AddUserMemberUseCase', () => {
 
   it('deve lançar erro quando usuário estiver removido (soft delete)', async () => {
     const dto = makeCreateMemberDTO();
-    const user = makeUser({
+    const user = makeMemberUser({
       id: dto.userId,
       isActive: true,
       isDeleted: true,
@@ -160,6 +187,48 @@ describe('AddUserMemberUseCase', () => {
     await expect(
       useCase.execute('org-id', dto, 'requester-id'),
     ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(memberRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('deve rejeitar usuário global com perfil comum', async () => {
+    const dto = makeCreateMemberDTO();
+    const user = makeMemberUser({
+      id: dto.userId,
+      canAccessBackoffice: true,
+      globalRoleId: 'global-role-id',
+    });
+
+    memberRepository.findByOrganizationAndUser.mockResolvedValue(null);
+    findUserByIdUseCase.execute.mockResolvedValue(user);
+    findRoleByIdUseCase.execute.mockResolvedValue({
+      canAccessBackoffice: false,
+    } as never);
+
+    await expect(
+      useCase.execute('org-id', dto, 'requester-id'),
+    ).rejects.toMatchObject({
+      message: 'O tipo do usuário é incompatível com o perfil selecionado',
+    });
+
+    expect(memberRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('deve rejeitar usuário comum com perfil global', async () => {
+    const dto = makeCreateMemberDTO();
+    const user = makeMemberUser({ id: dto.userId });
+
+    memberRepository.findByOrganizationAndUser.mockResolvedValue(null);
+    findUserByIdUseCase.execute.mockResolvedValue(user);
+    findRoleByIdUseCase.execute.mockResolvedValue({
+      canAccessBackoffice: true,
+    } as never);
+
+    await expect(
+      useCase.execute('org-id', dto, 'requester-id'),
+    ).rejects.toMatchObject({
+      message: 'O tipo do usuário é incompatível com o perfil selecionado',
+    });
 
     expect(memberRepository.create).not.toHaveBeenCalled();
   });

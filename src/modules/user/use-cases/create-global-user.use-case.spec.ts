@@ -2,6 +2,7 @@ import { BadRequestException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
 import { MailService } from '@infrastructure/providers';
 import { SyncGlobalRoleCategoryAccessesUseCase } from '@modules/category-role-access/use-cases/sync-global-role-category-accesses.use-case';
+import { FindGlobalRoleByIdUseCase } from '@modules/roles';
 import { UserRepository } from '../repository';
 import { CreateGlobalUserUseCase } from './create-global-user.use-case';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
@@ -18,6 +19,7 @@ describe('CreateGlobalUserUseCase', () => {
   let syncGlobalRoleCategoryAccessesUseCase: jest.Mocked<
     Pick<SyncGlobalRoleCategoryAccessesUseCase, 'execute'>
   >;
+  let findGlobalRoleByIdUseCase: jest.Mocked<FindGlobalRoleByIdUseCase>;
 
   beforeEach(() => {
     userRepository = {
@@ -41,12 +43,19 @@ describe('CreateGlobalUserUseCase', () => {
       execute: jest.fn().mockResolvedValue(undefined),
     };
 
+    findGlobalRoleByIdUseCase = {
+      execute: jest.fn().mockResolvedValue({
+        canAccessBackoffice: true,
+      } as never),
+    } as unknown as jest.Mocked<FindGlobalRoleByIdUseCase>;
+
     useCase = new CreateGlobalUserUseCase(
       userRepository as unknown as UserRepository,
       findByEmailUseCase,
       cryptographyService,
       mailService,
       syncGlobalRoleCategoryAccessesUseCase as unknown as SyncGlobalRoleCategoryAccessesUseCase,
+      findGlobalRoleByIdUseCase,
     );
   });
 
@@ -63,10 +72,12 @@ describe('CreateGlobalUserUseCase', () => {
       await useCase.execute(dto, 'requester-id');
 
       expect(cryptographyService.hash).toHaveBeenCalledWith(dto.taxIdentifier);
-      expect(syncGlobalRoleCategoryAccessesUseCase.execute).toHaveBeenCalledWith(
+      expect(findGlobalRoleByIdUseCase.execute).toHaveBeenCalledWith(
         dto.globalRoleId,
-        dto.organizationIds[0],
       );
+      expect(
+        syncGlobalRoleCategoryAccessesUseCase.execute,
+      ).toHaveBeenCalledWith(dto.globalRoleId, dto.organizationIds[0]);
       expect(userRepository.createGlobalUser).toHaveBeenCalledWith(
         {
           ...dto,
@@ -132,6 +143,21 @@ describe('CreateGlobalUserUseCase', () => {
       message:
         'Ocorreu um erro ao criar o usuário! Tente novamente mais tarde!',
     });
+  });
+
+  it('deve rejeitar um perfil que não seja global', async () => {
+    const dto = makeCreateGlobalUserDTO();
+    findByEmailUseCase.execute.mockRejectedValue(new Error('not found'));
+    findGlobalRoleByIdUseCase.execute.mockRejectedValue(
+      new BadRequestException('Perfil global não encontrado'),
+    );
+
+    await expect(useCase.execute(dto, 'requester-id')).rejects.toMatchObject({
+      message: 'Perfil global não encontrado',
+    });
+
+    expect(cryptographyService.hash).not.toHaveBeenCalled();
+    expect(userRepository.createGlobalUser).not.toHaveBeenCalled();
   });
 
   it('deve enviar email de boas-vindas quando NODE_ENV for prod', async () => {

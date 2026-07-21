@@ -24,7 +24,9 @@ describe('UpdateMemberUseCase', () => {
     } as unknown as jest.Mocked<FindMemberByIdUseCase>;
 
     findRoleByIdUseCase = {
-      execute: jest.fn().mockResolvedValue({} as never),
+      execute: jest.fn().mockResolvedValue({
+        canAccessBackoffice: false,
+      } as never),
     } as unknown as jest.Mocked<FindRoleByIdUseCase>;
 
     useCase = new UpdateMemberUseCase(
@@ -40,6 +42,7 @@ describe('UpdateMemberUseCase', () => {
     findMemberByIdUseCase.execute.mockResolvedValue({
       id: 'member-id',
       roleId: roleIdA,
+      globalRoleId: null,
     } as never);
 
     memberRepository.update.mockResolvedValue(undefined);
@@ -52,10 +55,7 @@ describe('UpdateMemberUseCase', () => {
       'member-id',
       'org-id',
     );
-    expect(findRoleByIdUseCase.execute).toHaveBeenCalledWith(
-      roleIdB,
-      'org-id',
-    );
+    expect(findRoleByIdUseCase.execute).toHaveBeenCalledWith(roleIdB, 'org-id');
     expect(memberRepository.update).toHaveBeenCalledWith(
       'member-id',
       'org-id',
@@ -70,6 +70,7 @@ describe('UpdateMemberUseCase', () => {
     findMemberByIdUseCase.execute.mockResolvedValue({
       id: 'member-id',
       roleId: roleIdA,
+      globalRoleId: null,
     } as never);
 
     await expect(
@@ -78,5 +79,50 @@ describe('UpdateMemberUseCase', () => {
 
     expect(findRoleByIdUseCase.execute).not.toHaveBeenCalled();
     expect(memberRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('deve rejeitar perfil global para membro comum', async () => {
+    const data = makeUpdateMemberDTO({ roleId: roleIdB });
+
+    findMemberByIdUseCase.execute.mockResolvedValue({
+      id: 'member-id',
+      roleId: roleIdA,
+      globalRoleId: null,
+    } as never);
+    findRoleByIdUseCase.execute.mockResolvedValue({
+      canAccessBackoffice: true,
+    } as never);
+
+    await expect(
+      useCase.execute('member-id', 'org-id', data, 'editor-id'),
+    ).rejects.toMatchObject({
+      message: 'O tipo do usuário é incompatível com o perfil selecionado',
+    });
+
+    expect(memberRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('deve aceitar perfil global para usuário global', async () => {
+    const data = makeUpdateMemberDTO({ roleId: roleIdB });
+
+    findMemberByIdUseCase.execute.mockResolvedValue({
+      id: 'member-id',
+      roleId: roleIdA,
+      globalRoleId: 'global-role-id',
+    } as never);
+    findRoleByIdUseCase.execute.mockResolvedValue({
+      canAccessBackoffice: true,
+    } as never);
+
+    await expect(
+      useCase.execute('member-id', 'org-id', data, 'editor-id'),
+    ).resolves.toBeUndefined();
+
+    expect(memberRepository.update).toHaveBeenCalledWith(
+      'member-id',
+      'org-id',
+      data,
+      'editor-id',
+    );
   });
 });

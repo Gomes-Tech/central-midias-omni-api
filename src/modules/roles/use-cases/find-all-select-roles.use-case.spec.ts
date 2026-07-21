@@ -19,21 +19,23 @@ describe('FindAllSelectRolesUseCase', () => {
     ];
     repository.findAllSelect.mockResolvedValue(list);
 
-    await expect(useCase.execute()).resolves.toEqual(list);
+    await expect(useCase.execute('org-1')).resolves.toEqual(list);
+    expect(repository.findAllSelect).toHaveBeenCalledWith('org-1', false);
   });
 
   it('deve chamar repository.findAllSelect exatamente 1 vez', async () => {
     repository.findAllSelect.mockResolvedValue([]);
 
-    await expect(useCase.execute()).resolves.toEqual([]);
+    await expect(useCase.execute('org-1')).resolves.toEqual([]);
 
     expect(repository.findAllSelect).toHaveBeenCalledTimes(1);
+    expect(repository.findAllSelect).toHaveBeenCalledWith('org-1', false);
   });
 
   it('deve propagar erro quando repository.findAllSelect falhar', async () => {
     const error = new Error('Erro ao buscar perfis');
     repository.findAllSelect.mockRejectedValue(error);
 
-    await expect(useCase.execute()).rejects.toBe(error);
+    await expect(useCase.execute('org-1')).rejects.toBe(error);
   });
 });

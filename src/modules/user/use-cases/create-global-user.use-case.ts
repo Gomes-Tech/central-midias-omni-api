@@ -2,6 +2,7 @@ import { BadRequestException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
 import { MailService } from '@infrastructure/providers';
 import { SyncGlobalRoleCategoryAccessesUseCase } from '@modules/category-role-access/use-cases/sync-global-role-category-accesses.use-case';
+import { FindGlobalRoleByIdUseCase } from '@modules/roles';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateGlobalUserDTO } from '../dto';
 import { UserRepository } from '../repository';
@@ -16,6 +17,7 @@ export class CreateGlobalUserUseCase {
     private readonly cryptographyService: CryptographyService,
     private readonly mailService: MailService,
     private readonly syncGlobalRoleCategoryAccessesUseCase: SyncGlobalRoleCategoryAccessesUseCase,
+    private readonly findGlobalRoleByIdUseCase: FindGlobalRoleByIdUseCase,
   ) {}
 
   async execute(data: CreateGlobalUserDTO, userId: string) {
@@ -34,6 +36,8 @@ export class CreateGlobalUserUseCase {
         'Já existe um usuário com este documento. Tente outro.',
       );
     }
+
+    await this.findGlobalRoleByIdUseCase.execute(data.globalRoleId);
 
     const hashedPassword = await this.cryptographyService.hash(
       data.taxIdentifier,

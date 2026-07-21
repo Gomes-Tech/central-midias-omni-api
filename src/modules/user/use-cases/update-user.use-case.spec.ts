@@ -1,10 +1,33 @@
 import { BadRequestException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
+import { FindGlobalRoleByIdUseCase } from '@modules/roles';
+import { UserById } from '../entities';
 import { UserRepository } from '../repository';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
 import { FindUserByIdUseCase } from './find-user-by-id.use-case';
 import { makeUpdateUserDTO, makeUser } from './test-helpers';
 import { UpdateUserUseCase } from './update-user.use-case';
+
+function makeUserById(overrides: Partial<UserById> = {}): UserById {
+  return {
+    id: 'user-id',
+    name: 'John Doe',
+    email: 'john@doe.com',
+    password: 'hashed-password',
+    taxIdentifier: '12345678901',
+    phone: null,
+    socialReason: null,
+    city: null,
+    uf: null,
+    avatarKey: null,
+    isFirstAccess: true,
+    isActive: true,
+    isDeleted: false,
+    canAccessBackoffice: false,
+    globalRoleId: null,
+    ...overrides,
+  };
+}
 
 describe('UpdateUserUseCase', () => {
   let useCase: UpdateUserUseCase;
@@ -12,6 +35,7 @@ describe('UpdateUserUseCase', () => {
   let findUserByIdUseCase: jest.Mocked<FindUserByIdUseCase>;
   let findUserByEmailUseCase: jest.Mocked<FindUserByEmailUseCase>;
   let cryptographyService: jest.Mocked<CryptographyService>;
+  let findGlobalRoleByIdUseCase: jest.Mocked<FindGlobalRoleByIdUseCase>;
 
   beforeEach(() => {
     userRepository = {
@@ -31,17 +55,22 @@ describe('UpdateUserUseCase', () => {
       hash: jest.fn(),
     } as unknown as jest.Mocked<CryptographyService>;
 
+    findGlobalRoleByIdUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<FindGlobalRoleByIdUseCase>;
+
     useCase = new UpdateUserUseCase(
       userRepository,
       findUserByIdUseCase,
       findUserByEmailUseCase,
       cryptographyService,
+      findGlobalRoleByIdUseCase,
     );
   });
 
   it('deve impedir atualização com email duplicado', async () => {
     findUserByIdUseCase.execute.mockResolvedValue(
-      makeUser({ id: 'target-id' }),
+      makeUserById({ id: 'target-id' }),
     );
     findUserByEmailUseCase.execute.mockResolvedValue(
       makeUser({ id: 'another-user', email: 'jane@doe.com' }),
@@ -58,7 +87,7 @@ describe('UpdateUserUseCase', () => {
 
   it('deve seguir quando busca por novo email falhar (email disponível)', async () => {
     findUserByIdUseCase.execute.mockResolvedValue(
-      makeUser({ id: 'target-id', email: 'old@test.com' }),
+      makeUserById({ id: 'target-id', email: 'old@test.com' }),
     );
     findUserByEmailUseCase.execute.mockRejectedValue(new Error('not found'));
 
@@ -78,7 +107,7 @@ describe('UpdateUserUseCase', () => {
 
   it('deve impedir reutilização da senha anterior', async () => {
     findUserByIdUseCase.execute.mockResolvedValue(
-      makeUser({ id: 'target-id' }),
+      makeUserById({ id: 'target-id' }),
     );
     cryptographyService.compare.mockResolvedValue(true);
 
@@ -101,7 +130,7 @@ describe('UpdateUserUseCase', () => {
     const plainPassword = dto.password;
 
     findUserByIdUseCase.execute.mockResolvedValue(
-      makeUser({ id: 'target-id' }),
+      makeUserById({ id: 'target-id' }),
     );
     findUserByEmailUseCase.execute.mockResolvedValue(null as never);
     cryptographyService.compare.mockResolvedValue(false);
@@ -121,6 +150,7 @@ describe('UpdateUserUseCase', () => {
         password: 'hashed-new-password',
       },
       'admin-id',
+      undefined,
     );
     expect(result).toBeUndefined();
   });
@@ -132,7 +162,7 @@ describe('UpdateUserUseCase', () => {
     });
 
     findUserByIdUseCase.execute.mockResolvedValue(
-      makeUser({ id: 'target-id', email: 'john@doe.com' }),
+      makeUserById({ id: 'target-id', email: 'john@doe.com' }),
     );
 
     await expect(
@@ -144,6 +174,7 @@ describe('UpdateUserUseCase', () => {
       'target-id',
       dto,
       'admin-id',
+      undefined,
     );
   });
 
@@ -155,7 +186,7 @@ describe('UpdateUserUseCase', () => {
     });
 
     findUserByIdUseCase.execute.mockResolvedValue(
-      makeUser({ id: 'target-id', taxIdentifier: '12345678901' }),
+      makeUserById({ id: 'target-id', taxIdentifier: '12345678901' }),
     );
 
     await expect(
@@ -167,7 +198,7 @@ describe('UpdateUserUseCase', () => {
 
   it('deve lançar BadRequest quando outro usuário usar o mesmo documento', async () => {
     findUserByIdUseCase.execute.mockResolvedValue(
-      makeUser({ id: 'target-id', taxIdentifier: '111' }),
+      makeUserById({ id: 'target-id', taxIdentifier: '111' }),
     );
     userRepository.findByTaxIdentifier.mockResolvedValue({
       id: 'other-id',
@@ -187,5 +218,24 @@ describe('UpdateUserUseCase', () => {
     ).rejects.toMatchObject({
       message: 'Já existe um usuário com este documento',
     });
+  });
+
+  it('deve validar globalRoleId antes de atualizar', async () => {
+    const dto = makeUpdateUserDTO({
+      email: undefined,
+      password: undefined,
+      globalRoleId: 'global-role-id',
+    });
+    findUserByIdUseCase.execute.mockResolvedValue(
+      makeUserById({ id: 'target-id' }),
+    );
+    findGlobalRoleByIdUseCase.execute.mockResolvedValue({} as never);
+
+    await useCase.execute('target-id', dto, 'admin-id');
+
+    expect(findGlobalRoleByIdUseCase.execute).toHaveBeenCalledWith(
+      'global-role-id',
+    );
+    expect(userRepository.update).toHaveBeenCalled();
   });
 });

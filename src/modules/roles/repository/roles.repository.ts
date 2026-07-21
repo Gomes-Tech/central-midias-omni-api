@@ -115,11 +115,20 @@ export class RolesRepository {
   }
 
   async findAllSelect(
+    organizationId: string,
     isMember: boolean = false,
   ): Promise<{ id: string; label: string }[]> {
     try {
       const roles = await this.prisma.role.findMany({
-        where: { deletedAt: null, canAccessBackoffice: isMember },
+        where: {
+          deletedAt: null,
+          canAccessBackoffice: isMember,
+          categoryRoleAccesses: {
+            some: {
+              organizationId,
+            },
+          },
+        },
         select: {
           id: true,
           label: true,

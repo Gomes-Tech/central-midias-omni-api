@@ -12,6 +12,7 @@ export interface Member {
   birthDate: Date;
   admissionDate: Date;
   roleId: string;
+  globalRoleId: string | null;
   isActive: boolean;
 }
 

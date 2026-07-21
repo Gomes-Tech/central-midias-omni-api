@@ -131,7 +131,42 @@ export class UserRepository {
     }
   }
 
-  async findGlobalUsersSelect(): Promise<{ id: string; name: string }[]> {
+  async findUsersSelect(
+    organizationId: string,
+  ): Promise<{ id: string; name: string }[]> {
+    try {
+      return await this.prisma.user.findMany({
+        where: {
+          isDeleted: false,
+          isActive: true,
+          globalRoleId: null,
+          members: {
+            none: {
+              organizationId,
+            },
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+    } catch (error) {
+      void this.logger.error('UserRepository.findUsersSelect falhou', {
+        error: String(error),
+        organizationId,
+      });
+
+      throw new BadRequestException('Erro ao buscar usuários');
+    }
+  }
+
+  async findGlobalUsersSelect(
+    organizationId: string,
+  ): Promise<{ id: string; name: string }[]> {
     try {
       return await this.prisma.user.findMany({
         where: {
@@ -140,15 +175,29 @@ export class UserRepository {
           globalRoleId: {
             not: null,
           },
+          globalRole: {
+            name: {
+              not: 'ADMIN',
+            },
+          },
+          members: {
+            none: {
+              organizationId,
+            },
+          },
         },
         select: {
           id: true,
           name: true,
         },
+        orderBy: {
+          name: 'asc',
+        },
       });
     } catch (error) {
       void this.logger.error('UserRepository.findGlobalUsersSelect falhou', {
         error: String(error),
+        organizationId,
       });
 
       throw new BadRequestException('Erro ao buscar usuários');

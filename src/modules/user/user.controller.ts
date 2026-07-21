@@ -24,6 +24,7 @@ import {
   DeleteUserUseCase,
   FindAllUsersUseCase,
   FindGlobalUsersSelectUseCase,
+  FindUsersSelectUseCase,
   FindUserByIdUseCase,
   GetMeUseCase,
   UpdateUserUseCase,
@@ -37,6 +38,7 @@ export class UserController {
     private readonly createGlobalUserUseCase: CreateGlobalUserUseCase,
     private readonly findAllUsersUseCase: FindAllUsersUseCase,
     private readonly findGlobalUsersSelectUseCase: FindGlobalUsersSelectUseCase,
+    private readonly findUsersSelectUseCase: FindUsersSelectUseCase,
     private readonly findUserByIdUseCase: FindUserByIdUseCase,
     private readonly getMeUseCase: GetMeUseCase,
     private readonly updateUserUseCase: UpdateUserUseCase,
@@ -59,8 +61,14 @@ export class UserController {
 
   @RequirePermission('users', 'read')
   @Get('/global/select')
-  async findGlobalUsersSelect() {
-    return await this.findGlobalUsersSelectUseCase.execute();
+  async findGlobalUsersSelect(@OrgId() organizationId: string) {
+    return await this.findGlobalUsersSelectUseCase.execute(organizationId);
+  }
+
+  @RequirePermission('members', 'create')
+  @Get('/select')
+  async findUsersSelect(@OrgId() organizationId: string) {
+    return await this.findUsersSelectUseCase.execute(organizationId);
   }
 
   @RequirePermission('users', 'read')

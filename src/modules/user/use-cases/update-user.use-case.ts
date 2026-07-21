@@ -1,5 +1,6 @@
 import { BadRequestException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
+import { FindGlobalRoleByIdUseCase } from '@modules/roles';
 import { Inject, Injectable } from '@nestjs/common';
 import { UpdateUserDTO } from '../dto';
 import { UserRepository } from '../repository';
@@ -14,6 +15,7 @@ export class UpdateUserUseCase {
     private readonly findUserByIdUseCase: FindUserByIdUseCase,
     private readonly findUserByEmailUseCase: FindUserByEmailUseCase,
     private readonly cryptographyService: CryptographyService,
+    private readonly findGlobalRoleByIdUseCase: FindGlobalRoleByIdUseCase,
   ) {}
 
   async execute(
@@ -62,6 +64,10 @@ export class UpdateUserUseCase {
       }
 
       data.password = await this.cryptographyService.hash(data.password);
+    }
+
+    if (data.globalRoleId) {
+      await this.findGlobalRoleByIdUseCase.execute(data.globalRoleId);
     }
 
     // if (!ADMIN_ROLE_NAMES.has(requesterRole)) {

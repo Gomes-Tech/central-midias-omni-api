@@ -302,11 +302,19 @@ describe('RolesRepository', () => {
       ];
       prisma.role.findMany.mockResolvedValue(rows);
 
-      const result = await repository.findAllSelect();
+      const result = await repository.findAllSelect('org-1');
 
       expect(result).toEqual(rows);
       expect(prisma.role.findMany).toHaveBeenCalledWith({
-        where: { deletedAt: null, canAccessBackoffice: false },
+        where: {
+          deletedAt: null,
+          canAccessBackoffice: false,
+          categoryRoleAccesses: {
+            some: {
+              organizationId: 'org-1',
+            },
+          },
+        },
         select: {
           id: true,
           label: true,
@@ -318,7 +326,7 @@ describe('RolesRepository', () => {
     it('deve propagar HttpException sem envolver', async () => {
       prisma.role.findMany.mockRejectedValue(new NotFoundException('x'));
 
-      await expect(repository.findAllSelect()).rejects.toBeInstanceOf(
+      await expect(repository.findAllSelect('org-1')).rejects.toBeInstanceOf(
         NotFoundException,
       );
     });
@@ -326,7 +334,7 @@ describe('RolesRepository', () => {
     it('deve lançar InternalServerError quando findMany falhar com erro genérico', async () => {
       prisma.role.findMany.mockRejectedValue(new Error('db'));
 
-      await expect(repository.findAllSelect()).rejects.toBeInstanceOf(
+      await expect(repository.findAllSelect('org-1')).rejects.toBeInstanceOf(
         InternalServerErrorException,
       );
       expect(logger.error).toHaveBeenCalledWith(

@@ -40,7 +40,16 @@ export class CreateUserUseCase {
       );
     }
 
-    await this.findRoleByIdUseCase.execute(data.roleId, organizationId);
+    const role = await this.findRoleByIdUseCase.execute(
+      data.roleId,
+      organizationId,
+    );
+
+    if (role.canAccessBackoffice) {
+      throw new BadRequestException(
+        'Não é possível criar um membro comum com um perfil global',
+      );
+    }
 
     const hashedPassword = await this.cryptographyService.hash(
       data.taxIdentifier,

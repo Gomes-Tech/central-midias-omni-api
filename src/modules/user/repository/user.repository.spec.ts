@@ -221,6 +221,85 @@ describe('UserRepository', () => {
     });
   });
 
+  describe('findUsersSelect', () => {
+    it('deve listar usuários ativos ainda não vinculados à organização', async () => {
+      const users = [{ id: 'user-1', name: 'Ana' }];
+      prisma.user.findMany.mockResolvedValue(users);
+
+      const result = await repository.findUsersSelect('org-1');
+
+      expect(result).toEqual(users);
+      expect(prisma.user.findMany).toHaveBeenCalledWith({
+        where: {
+          isDeleted: false,
+          isActive: true,
+          globalRoleId: null,
+          members: {
+            none: {
+              organizationId: 'org-1',
+            },
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+    });
+
+    it('deve encapsular erro ao buscar candidatos a membro', async () => {
+      prisma.user.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(repository.findUsersSelect('org-1')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'UserRepository.findUsersSelect falhou',
+        expect.objectContaining({ organizationId: 'org-1' }),
+      );
+    });
+  });
+
+  describe('findGlobalUsersSelect', () => {
+    it('deve listar apenas usuários globais disponíveis na organização', async () => {
+      const users = [{ id: 'global-1', name: 'Global' }];
+      prisma.user.findMany.mockResolvedValue(users);
+
+      const result = await repository.findGlobalUsersSelect('org-1');
+
+      expect(result).toEqual(users);
+      expect(prisma.user.findMany).toHaveBeenCalledWith({
+        where: {
+          isDeleted: false,
+          isActive: true,
+          globalRoleId: {
+            not: null,
+          },
+          globalRole: {
+            name: {
+              not: 'ADMIN',
+            },
+          },
+          members: {
+            none: {
+              organizationId: 'org-1',
+            },
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+    });
+  });
+
   const findByIdSelectExpectation = {
     id: true,
     name: true,

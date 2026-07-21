@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { UserRepository } from '../repository';
 
 @Injectable()
-export class FindGlobalUsersSelectUseCase {
+export class FindUsersSelectUseCase {
   constructor(
     @Inject('UserRepository')
     private readonly userRepository: UserRepository,
@@ -11,6 +11,6 @@ export class FindGlobalUsersSelectUseCase {
   async execute(
     organizationId: string,
   ): Promise<{ id: string; name: string }[]> {
-    return await this.userRepository.findGlobalUsersSelect(organizationId);
+    return await this.userRepository.findUsersSelect(organizationId);
   }
 }

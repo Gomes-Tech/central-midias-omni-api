@@ -55,6 +55,9 @@ export class MemberRepository {
         ...(canAccessBackoffice !== undefined && {
           role: { canAccessBackoffice },
         }),
+        ...(canAccessBackoffice === false && {
+          user: { globalRoleId: null },
+        }),
         ...(searchTerm && {
           OR: [
             {
@@ -131,12 +134,11 @@ export class MemberRepository {
               city: true,
               uf: true,
               isActive: true,
+              globalRoleId: true,
             },
           },
         },
       });
-
-      console.log(member.user);
 
       if (!member) {
         return null;
@@ -152,6 +154,7 @@ export class MemberRepository {
         birthDate: member.user.birthDate,
         admissionDate: member.user.admissionDate,
         roleId: member.roleId,
+        globalRoleId: member.user.globalRoleId,
         isActive: member.user.isActive,
         city: member.user.city,
         uf: member.user.uf,

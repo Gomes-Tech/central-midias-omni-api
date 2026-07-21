@@ -6,6 +6,8 @@ import {
   CreateUserUseCase,
   DeleteUserUseCase,
   FindAllUsersUseCase,
+  FindGlobalUsersSelectUseCase,
+  FindUsersSelectUseCase,
   FindUserByIdUseCase,
   GetMeUseCase,
   UpdateUserUseCase,
@@ -19,6 +21,8 @@ import {
 describe('UserController', () => {
   let controller: UserController;
   let findAllUsersUseCase: { execute: jest.Mock };
+  let findGlobalUsersSelectUseCase: { execute: jest.Mock };
+  let findUsersSelectUseCase: { execute: jest.Mock };
   let findUserByIdUseCase: { execute: jest.Mock };
   let getMeUseCase: { execute: jest.Mock };
   let createUserUseCase: { execute: jest.Mock };
@@ -28,6 +32,8 @@ describe('UserController', () => {
 
   beforeEach(async () => {
     findAllUsersUseCase = { execute: jest.fn() };
+    findGlobalUsersSelectUseCase = { execute: jest.fn() };
+    findUsersSelectUseCase = { execute: jest.fn() };
     findUserByIdUseCase = { execute: jest.fn() };
     getMeUseCase = { execute: jest.fn() };
     createUserUseCase = { execute: jest.fn() };
@@ -41,6 +47,11 @@ describe('UserController', () => {
         { provide: CreateUserUseCase, useValue: createUserUseCase },
         { provide: CreateGlobalUserUseCase, useValue: createGlobalUserUseCase },
         { provide: FindAllUsersUseCase, useValue: findAllUsersUseCase },
+        {
+          provide: FindGlobalUsersSelectUseCase,
+          useValue: findGlobalUsersSelectUseCase,
+        },
+        { provide: FindUsersSelectUseCase, useValue: findUsersSelectUseCase },
         { provide: FindUserByIdUseCase, useValue: findUserByIdUseCase },
         { provide: GetMeUseCase, useValue: getMeUseCase },
         { provide: UpdateUserUseCase, useValue: updateUserUseCase },
@@ -52,6 +63,32 @@ describe('UserController', () => {
       .compile();
 
     controller = module.get<UserController>(UserController);
+  });
+
+  describe('findUsersSelect', () => {
+    it('deve buscar candidatos disponíveis para a organização', async () => {
+      const payload = [{ id: 'user-1', name: 'Usuário' }];
+      findUsersSelectUseCase.execute.mockResolvedValue(payload);
+
+      const result = await controller.findUsersSelect('org-1');
+
+      expect(result).toBe(payload);
+      expect(findUsersSelectUseCase.execute).toHaveBeenCalledWith('org-1');
+    });
+  });
+
+  describe('findGlobalUsersSelect', () => {
+    it('deve buscar candidatos globais disponíveis para a organização', async () => {
+      const payload = [{ id: 'global-1', name: 'Usuário global' }];
+      findGlobalUsersSelectUseCase.execute.mockResolvedValue(payload);
+
+      const result = await controller.findGlobalUsersSelect('org-1');
+
+      expect(result).toBe(payload);
+      expect(findGlobalUsersSelectUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+      );
+    });
   });
 
   describe('getList', () => {
@@ -152,12 +189,13 @@ describe('UserController', () => {
       const dto = makeUpdateUserDTO();
       updateUserUseCase.execute.mockResolvedValue(undefined);
 
-      await controller.update('user-1', dto, 'editor');
+      await controller.update('user-1', dto, 'editor', 'org-1');
 
       expect(updateUserUseCase.execute).toHaveBeenCalledWith(
         'user-1',
         dto,
         'editor',
+        'org-1',
       );
     });
   });

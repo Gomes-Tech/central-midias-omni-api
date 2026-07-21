@@ -39,7 +39,11 @@ export class AddUserMemberUseCase {
       );
     }
 
-    await this.validateAndSyncRole(data.roleId, organizationId);
+    await this.validateAndSyncRole(
+      data.roleId,
+      organizationId,
+      memberUser.globalRoleId !== null,
+    );
 
     return this.memberRepository.create(organizationId, data, userId);
   }
@@ -47,9 +51,17 @@ export class AddUserMemberUseCase {
   private async validateAndSyncRole(
     roleId: string,
     organizationId: string,
+    isGlobalUser: boolean,
   ): Promise<void> {
     try {
-      await this.findRoleByIdUseCase.execute(roleId, organizationId);
+      const role = await this.findRoleByIdUseCase.execute(
+        roleId,
+        organizationId,
+      );
+      this.validateUserRoleCompatibility(
+        isGlobalUser,
+        role.canAccessBackoffice,
+      );
       return;
     } catch (error) {
       if (!(error instanceof NotFoundException)) {
@@ -57,10 +69,25 @@ export class AddUserMemberUseCase {
       }
     }
 
-    await this.findGlobalRoleByIdUseCase.execute(roleId);
+    const globalRole = await this.findGlobalRoleByIdUseCase.execute(roleId);
+    this.validateUserRoleCompatibility(
+      isGlobalUser,
+      globalRole.canAccessBackoffice,
+    );
     await this.syncGlobalRoleCategoryAccessesUseCase.execute(
       roleId,
       organizationId,
     );
+  }
+
+  private validateUserRoleCompatibility(
+    isGlobalUser: boolean,
+    canAccessBackoffice: boolean,
+  ): void {
+    if (isGlobalUser !== canAccessBackoffice) {
+      throw new BadRequestException(
+        'O tipo do usuário é incompatível com o perfil selecionado',
+      );
+    }
   }
 }

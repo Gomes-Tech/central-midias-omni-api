@@ -33,7 +33,9 @@ describe('CreateUserUseCase', () => {
     } as unknown as jest.Mocked<MailService>;
 
     findRoleByIdUseCase = {
-      execute: jest.fn(),
+      execute: jest.fn().mockResolvedValue({
+        canAccessBackoffice: false,
+      } as never),
     } as unknown as jest.Mocked<FindRoleByIdUseCase>;
 
     useCase = new CreateUserUseCase(
@@ -74,11 +76,15 @@ describe('CreateUserUseCase', () => {
 
   it('deve lançar BadRequest quando o email já existir', async () => {
     const dto = makeCreateUserDTO();
-    findByEmailUseCase.execute.mockResolvedValue(makeUser({ email: dto.email }));
+    findByEmailUseCase.execute.mockResolvedValue(
+      makeUser({ email: dto.email }),
+    );
 
     await expect(
       useCase.execute(dto, 'requester-id', 'organization-id'),
-    ).rejects.toMatchObject({ message: 'Usuário já existe! Tente outro email.' });
+    ).rejects.toMatchObject({
+      message: 'Usuário já existe! Tente outro email.',
+    });
 
     expect(userRepository.create).not.toHaveBeenCalled();
   });
@@ -114,6 +120,23 @@ describe('CreateUserUseCase', () => {
     });
 
     expect(mailService.sendMail).not.toHaveBeenCalled();
+  });
+
+  it('deve rejeitar perfil global ao criar membro comum', async () => {
+    const dto = makeCreateUserDTO();
+    findByEmailUseCase.execute.mockRejectedValue(new Error('not found'));
+    findRoleByIdUseCase.execute.mockResolvedValue({
+      canAccessBackoffice: true,
+    } as never);
+
+    await expect(
+      useCase.execute(dto, 'requester-id', 'organization-id'),
+    ).rejects.toMatchObject({
+      message: 'Não é possível criar um membro comum com um perfil global',
+    });
+
+    expect(cryptographyService.hash).not.toHaveBeenCalled();
+    expect(userRepository.create).not.toHaveBeenCalled();
   });
 
   it('deve enviar email de boas-vindas em produção', async () => {
