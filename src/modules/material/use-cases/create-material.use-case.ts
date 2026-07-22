@@ -7,7 +7,7 @@ import { CreateMaterialDTO } from '../dto';
 import { MaterialRepository } from '../repository';
 import { EnqueueMaterialAcceptanceEmailsUseCase } from './enqueue-material-acceptance-emails.use-case';
 import { EnqueueMaterialNotificationEmailsUseCase } from './enqueue-material-notification-emails.use-case';
-import { ResolveMaterialTagsUseCase } from './resolve-material-tags.use-case';
+import { ResolveMaterialTagIdsUseCase } from './resolve-material-tag-ids.use-case';
 
 @Injectable()
 export class CreateMaterialUseCase {
@@ -15,7 +15,7 @@ export class CreateMaterialUseCase {
     @Inject('MaterialRepository')
     private readonly materialRepository: MaterialRepository,
     private readonly findCategoryByIdUseCase: FindCategoryByIdUseCase,
-    private readonly resolveMaterialTagsUseCase: ResolveMaterialTagsUseCase,
+    private readonly resolveMaterialTagIdsUseCase: ResolveMaterialTagIdsUseCase,
     private readonly storageService: StorageService,
     private readonly enqueueMaterialAcceptanceEmailsUseCase: EnqueueMaterialAcceptanceEmailsUseCase,
     private readonly enqueueMaterialNotificationEmailsUseCase: EnqueueMaterialNotificationEmailsUseCase,
@@ -55,7 +55,7 @@ export class CreateMaterialUseCase {
 
     const materialId = generateId();
     const folder = `materials/${materialId}`;
-    const resolvedTags = await this.resolveMaterialTagsUseCase.execute(
+    const resolvedTags = await this.resolveMaterialTagIdsUseCase.execute(
       organizationId,
       data.tags,
     );

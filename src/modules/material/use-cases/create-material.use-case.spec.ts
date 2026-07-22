@@ -5,13 +5,13 @@ import { MaterialRepository } from '../repository';
 import { CreateMaterialUseCase } from './create-material.use-case';
 import { EnqueueMaterialAcceptanceEmailsUseCase } from './enqueue-material-acceptance-emails.use-case';
 import { EnqueueMaterialNotificationEmailsUseCase } from './enqueue-material-notification-emails.use-case';
-import { ResolveMaterialTagsUseCase } from './resolve-material-tags.use-case';
+import { ResolveMaterialTagIdsUseCase } from './resolve-material-tag-ids.use-case';
 import { makeCreateMaterialDTO, makeUploadFile } from './test-helpers';
 
 describe('CreateMaterialUseCase', () => {
   let materialRepository: jest.Mocked<MaterialRepository>;
   let findCategoryByIdUseCase: { execute: jest.Mock };
-  let resolveMaterialTagsUseCase: { execute: jest.Mock };
+  let resolveMaterialTagIdsUseCase: { execute: jest.Mock };
   let storageService: jest.Mocked<
     Pick<StorageService, 'uploadFile' | 'deleteFile'>
   >;
@@ -26,7 +26,7 @@ describe('CreateMaterialUseCase', () => {
     } as unknown as jest.Mocked<MaterialRepository>;
 
     findCategoryByIdUseCase = { execute: jest.fn() };
-    resolveMaterialTagsUseCase = { execute: jest.fn() };
+    resolveMaterialTagIdsUseCase = { execute: jest.fn() };
     storageService = {
       uploadFile: jest.fn(),
       deleteFile: jest.fn(),
@@ -41,7 +41,7 @@ describe('CreateMaterialUseCase', () => {
     useCase = new CreateMaterialUseCase(
       materialRepository,
       findCategoryByIdUseCase as unknown as FindCategoryByIdUseCase,
-      resolveMaterialTagsUseCase as unknown as ResolveMaterialTagsUseCase,
+      resolveMaterialTagIdsUseCase as unknown as ResolveMaterialTagIdsUseCase,
       storageService as unknown as StorageService,
       enqueueMaterialAcceptanceEmailsUseCase as unknown as EnqueueMaterialAcceptanceEmailsUseCase,
       enqueueMaterialNotificationEmailsUseCase as unknown as EnqueueMaterialNotificationEmailsUseCase,
@@ -55,7 +55,7 @@ describe('CreateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
-    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue({
       existingTagIds: ['tag-id'],
       newTagNames: [],
     });
@@ -73,7 +73,7 @@ describe('CreateMaterialUseCase', () => {
       dto.name,
       dto.categoryId,
     );
-    expect(resolveMaterialTagsUseCase.execute).toHaveBeenCalledWith(
+    expect(resolveMaterialTagIdsUseCase.execute).toHaveBeenCalledWith(
       'org-id',
       dto.tags,
     );
@@ -108,7 +108,7 @@ describe('CreateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
-    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue({
       existingTagIds: [],
       newTagNames: [],
     });
@@ -150,7 +150,7 @@ describe('CreateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
-    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue({
       existingTagIds: [],
       newTagNames: [],
     });
@@ -171,7 +171,7 @@ describe('CreateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
-    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue({
       existingTagIds: [],
       newTagNames: [],
     });
@@ -192,7 +192,7 @@ describe('CreateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
-    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue({
       existingTagIds: [],
       newTagNames: [],
     });
@@ -238,7 +238,7 @@ describe('CreateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
-    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue({
       existingTagIds: [],
       newTagNames: [],
     });
@@ -273,7 +273,7 @@ describe('CreateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
-    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue({
       existingTagIds: ['tag-id'],
       newTagNames: ['Lancamento'],
     });
@@ -320,7 +320,7 @@ describe('CreateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
-    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue({
       existingTagIds: ['tag-id'],
       newTagNames: [],
     });
@@ -348,7 +348,7 @@ describe('CreateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
-    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue({
       existingTagIds: ['tag-id'],
       newTagNames: [],
     });
