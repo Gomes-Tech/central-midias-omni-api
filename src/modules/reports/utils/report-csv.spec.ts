@@ -2,6 +2,7 @@ import {
   buildReportExportFilename,
   buildTopMaterialsByDownloadsCsv,
   buildTopMaterialsByViewsCsv,
+  buildTopSearchesCsv,
   buildTopUsersByMaterialDownloadsCsv,
   buildTopUsersByPlatformLoginsCsv,
 } from './report-csv';
@@ -64,6 +65,34 @@ describe('report-csv', () => {
     expect(csv).toBe(
       'material,categoria,total_downloads\nManual,Treinamento,7',
     );
+  });
+
+  it('deve montar CSV de buscas agregadas', () => {
+    const csv = buildTopSearchesCsv([
+      {
+        term: 'bola',
+        search: 'bola',
+        tag: 'bola',
+        quantity: 51,
+      },
+    ]);
+
+    expect(csv).toBe('term,search,tag,quantity\nbola,bola,bola,51');
+  });
+
+  it('deve escapar valores com vírgula no CSV de buscas', () => {
+    const csv = buildTopSearchesCsv([
+      {
+        term: 'bola, basquete',
+        search: 'bola, basquete',
+        tag: 'esporte',
+        quantity: 3,
+      },
+    ]);
+
+    expect(csv).toContain('"bola, basquete"');
+    expect(csv).toContain('esporte');
+    expect(csv).toContain('3');
   });
 
   it('deve montar filename padronizado', () => {

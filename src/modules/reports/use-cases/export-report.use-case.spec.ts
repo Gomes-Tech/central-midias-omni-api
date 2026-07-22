@@ -7,6 +7,7 @@ describe('ExportReportUseCase', () => {
     findAllTopUsersByMaterialDownloads: jest.Mock;
     findAllTopMaterialsByViews: jest.Mock;
     findAllTopMaterialsByDownloads: jest.Mock;
+    findAllTopSearches: jest.Mock;
   };
   let useCase: ExportReportUseCase;
 
@@ -24,6 +25,7 @@ describe('ExportReportUseCase', () => {
       findAllTopUsersByMaterialDownloads: jest.fn().mockResolvedValue([]),
       findAllTopMaterialsByViews: jest.fn().mockResolvedValue([]),
       findAllTopMaterialsByDownloads: jest.fn().mockResolvedValue([]),
+      findAllTopSearches: jest.fn().mockResolvedValue([]),
     };
 
     useCase = new ExportReportUseCase(reportRepository as never);
@@ -106,6 +108,25 @@ describe('ExportReportUseCase', () => {
     expect(
       reportRepository.findAllTopMaterialsByDownloads,
     ).toHaveBeenCalledWith('org-1');
+  });
+
+  it('deve exportar CSV de buscas agregadas', async () => {
+    reportRepository.findAllTopSearches.mockResolvedValue([
+      {
+        term: 'bola',
+        search: 'bola',
+        tag: 'bola',
+        quantity: 51,
+      },
+    ]);
+
+    const result = await useCase.execute(ReportType.SEARCHES_TOP, 'org-1');
+
+    expect(result.filename).toBe('relatorio-buscas.csv');
+    expect(result.content).toBe(
+      'term,search,tag,quantity\nbola,bola,bola,51',
+    );
+    expect(reportRepository.findAllTopSearches).toHaveBeenCalledWith('org-1');
   });
 
   it('deve lançar BadRequestException para tipo de relatório inválido', async () => {

@@ -6,6 +6,7 @@ import {
   EnqueueReportExportUseCase,
   FindTopMaterialsByDownloadsUseCase,
   FindTopMaterialsByViewsUseCase,
+  FindTopSearchesUseCase,
   FindTopUsersByMaterialDownloadsUseCase,
   FindTopUsersByPlatformLoginsUseCase,
 } from './use-cases';
@@ -16,6 +17,7 @@ describe('ReportsController', () => {
   let findTopUsersByMaterialDownloadsUseCase: { execute: jest.Mock };
   let findTopMaterialsByViewsUseCase: { execute: jest.Mock };
   let findTopMaterialsByDownloadsUseCase: { execute: jest.Mock };
+  let findTopSearchesUseCase: { execute: jest.Mock };
   let enqueueReportExportUseCase: { execute: jest.Mock };
 
   beforeEach(async () => {
@@ -23,6 +25,7 @@ describe('ReportsController', () => {
     findTopUsersByMaterialDownloadsUseCase = { execute: jest.fn() };
     findTopMaterialsByViewsUseCase = { execute: jest.fn() };
     findTopMaterialsByDownloadsUseCase = { execute: jest.fn() };
+    findTopSearchesUseCase = { execute: jest.fn() };
     enqueueReportExportUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -43,6 +46,10 @@ describe('ReportsController', () => {
         {
           provide: FindTopMaterialsByDownloadsUseCase,
           useValue: findTopMaterialsByDownloadsUseCase,
+        },
+        {
+          provide: FindTopSearchesUseCase,
+          useValue: findTopSearchesUseCase,
         },
         {
           provide: EnqueueReportExportUseCase,
@@ -138,6 +145,41 @@ describe('ReportsController', () => {
     );
   });
 
+  it('deve delegar listagem de buscas agregadas', async () => {
+    const paginated = {
+      data: [
+        {
+          term: 'bola',
+          search: 'bola',
+          tag: 'bola',
+          quantity: 51,
+        },
+      ],
+      total: 1,
+      totalPages: 1,
+      page: 1,
+    };
+    findTopSearchesUseCase.execute.mockResolvedValue(paginated);
+
+    const result = await controller.findTopSearches('org-1', {
+      page: 1,
+      limit: 10,
+    });
+
+    expect(result).toEqual(paginated);
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]).toEqual({
+      term: 'bola',
+      search: 'bola',
+      tag: 'bola',
+      quantity: 51,
+    });
+    expect(findTopSearchesUseCase.execute).toHaveBeenCalledWith('org-1', {
+      page: 1,
+      limit: 10,
+    });
+  });
+
   it('deve enfileirar exportação de usuários por login', async () => {
     enqueueReportExportUseCase.execute.mockResolvedValue({ enqueued: true });
 
@@ -186,6 +228,19 @@ describe('ReportsController', () => {
     expect(result.message).toContain('Relatório enfileirado');
   });
 
+  it('deve enfileirar exportação de buscas agregadas', async () => {
+    enqueueReportExportUseCase.execute.mockResolvedValue({ enqueued: true });
+
+    const result = await controller.exportTopSearches('org-1', 'user-1');
+
+    expect(enqueueReportExportUseCase.execute).toHaveBeenCalledWith(
+      ReportType.SEARCHES_TOP,
+      'org-1',
+      'user-1',
+    );
+    expect(result.message).toContain('Relatório enfileirado');
+  });
+
   it('deve usar filtros vazios por padrão quando não informados', async () => {
     findTopUsersByPlatformLoginsUseCase.execute.mockResolvedValue({
       data: [],
@@ -211,11 +266,18 @@ describe('ReportsController', () => {
       totalPages: 0,
       page: 1,
     });
+    findTopSearchesUseCase.execute.mockResolvedValue({
+      data: [],
+      total: 0,
+      totalPages: 0,
+      page: 1,
+    });
 
     await controller.findTopUsersByPlatformLogins('org-1');
     await controller.findTopUsersByMaterialDownloads('org-1');
     await controller.findTopMaterialsByViews('org-1');
     await controller.findTopMaterialsByDownloads('org-1');
+    await controller.findTopSearches('org-1');
 
     expect(findTopUsersByPlatformLoginsUseCase.execute).toHaveBeenCalledWith(
       'org-1',
@@ -232,5 +294,6 @@ describe('ReportsController', () => {
       'org-1',
       {},
     );
+    expect(findTopSearchesUseCase.execute).toHaveBeenCalledWith('org-1', {});
   });
 });

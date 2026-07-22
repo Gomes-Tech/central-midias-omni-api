@@ -340,4 +340,119 @@ describe('ReportRepository', () => {
       );
     });
   });
+
+  describe('findTopSearches', () => {
+    it('deve retornar buscas agregadas paginadas', async () => {
+      prisma.$queryRawUnsafe
+        .mockResolvedValueOnce([
+          {
+            term: 'bola',
+            search: 'bola',
+            tag: 'bola',
+            quantity: BigInt(51),
+          },
+        ])
+        .mockResolvedValueOnce([{ total: BigInt(1) }]);
+
+      const result = await repository.findTopSearches('org-1');
+
+      expect(result).toEqual({
+        data: [
+          {
+            term: 'bola',
+            search: 'bola',
+            tag: 'bola',
+            quantity: 51,
+          },
+        ],
+        total: 1,
+        totalPages: 1,
+        page: 1,
+      });
+      expect(prisma.$queryRawUnsafe).toHaveBeenCalledWith(
+        expect.stringContaining("INTERVAL '30 days'"),
+        'org-1',
+        25,
+        0,
+      );
+      expect(prisma.$queryRawUnsafe.mock.calls[0][0]).toContain(
+        'GROUP BY ts.term, ts.search, t.name',
+      );
+      expect(prisma.$queryRawUnsafe.mock.calls[0][0]).toContain(
+        'FROM tag_searches ts',
+      );
+    });
+
+    it('deve aplicar offset de paginação', async () => {
+      prisma.$queryRawUnsafe
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ total: BigInt(30) }]);
+
+      const result = await repository.findTopSearches('org-1', {
+        page: 2,
+        limit: 10,
+      });
+
+      expect(result).toEqual({
+        data: [],
+        total: 30,
+        totalPages: 3,
+        page: 2,
+      });
+      expect(prisma.$queryRawUnsafe).toHaveBeenCalledWith(
+        expect.any(String),
+        'org-1',
+        10,
+        10,
+      );
+    });
+
+    it('deve retornar totalPages zero quando não houver registros', async () => {
+      prisma.$queryRawUnsafe
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+
+      const result = await repository.findTopSearches('org-1');
+
+      expect(result).toEqual({ data: [], total: 0, totalPages: 0, page: 1 });
+    });
+
+    it('deve lançar BadRequestException quando query falhar', async () => {
+      prisma.$queryRawUnsafe.mockRejectedValue(new Error('db down'));
+
+      await expect(repository.findTopSearches('org-1')).rejects.toThrow(
+        'Erro ao buscar relatório de termos de busca',
+      );
+    });
+  });
+
+  describe('findAllTopSearches', () => {
+    it('deve buscar todos os registros sem paginação', async () => {
+      prisma.$queryRawUnsafe
+        .mockResolvedValueOnce([
+          {
+            term: 'bola',
+            search: 'bola',
+            tag: 'bola',
+            quantity: BigInt(51),
+          },
+        ])
+        .mockResolvedValueOnce([{ total: BigInt(1) }]);
+
+      await expect(repository.findAllTopSearches('org-1')).resolves.toEqual([
+        {
+          term: 'bola',
+          search: 'bola',
+          tag: 'bola',
+          quantity: 51,
+        },
+      ]);
+      expect(prisma.$queryRawUnsafe).toHaveBeenCalledWith(
+        expect.any(String),
+        'org-1',
+        Number.MAX_SAFE_INTEGER,
+        0,
+      );
+    });
+  });
 });

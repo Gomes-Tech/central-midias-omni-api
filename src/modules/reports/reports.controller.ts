@@ -14,6 +14,7 @@ import {
   EnqueueReportExportUseCase,
   FindTopMaterialsByDownloadsUseCase,
   FindTopMaterialsByViewsUseCase,
+  FindTopSearchesUseCase,
   FindTopUsersByMaterialDownloadsUseCase,
   FindTopUsersByPlatformLoginsUseCase,
 } from './use-cases';
@@ -26,6 +27,7 @@ export class ReportsController {
     private readonly findTopUsersByMaterialDownloadsUseCase: FindTopUsersByMaterialDownloadsUseCase,
     private readonly findTopMaterialsByViewsUseCase: FindTopMaterialsByViewsUseCase,
     private readonly findTopMaterialsByDownloadsUseCase: FindTopMaterialsByDownloadsUseCase,
+    private readonly findTopSearchesUseCase: FindTopSearchesUseCase,
     private readonly enqueueReportExportUseCase: EnqueueReportExportUseCase,
   ) {}
 
@@ -143,6 +145,34 @@ export class ReportsController {
   ) {
     await this.enqueueReportExportUseCase.execute(
       ReportType.MATERIALS_TOP_DOWNLOADS,
+      organizationId,
+      userId,
+    );
+
+    return {
+      message:
+        'Relatório enfileirado. Você receberá o CSV por e-mail em breve.',
+    };
+  }
+
+  @RequirePermission('reports', 'read')
+  @Get('searches/top')
+  async findTopSearches(
+    @OrgId() organizationId: string,
+    @Query() filters: FindReportFiltersDTO = {},
+  ) {
+    return await this.findTopSearchesUseCase.execute(organizationId, filters);
+  }
+
+  @RequirePermission('reports', 'read')
+  @Get('searches/top/export')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async exportTopSearches(
+    @OrgId() organizationId: string,
+    @UserId() userId: string,
+  ) {
+    await this.enqueueReportExportUseCase.execute(
+      ReportType.SEARCHES_TOP,
       organizationId,
       userId,
     );

@@ -7,6 +7,7 @@ import { FindReportFiltersDTO } from '../dto';
 import {
   TopMaterialByDownloadRow,
   TopMaterialByViewRow,
+  TopSearchRow,
   TopUserByMaterialDownloadRow,
   TopUserByPlatformLoginRow,
 } from '../entities';
@@ -389,6 +390,90 @@ export class ReportRepository {
     organizationId: string,
   ): Promise<TopMaterialByDownloadRow[]> {
     const result = await this.findTopMaterialsByDownloads(organizationId, {
+      page: 1,
+      limit: Number.MAX_SAFE_INTEGER,
+    });
+
+    return result.data;
+  }
+
+  async findTopSearches(
+    organizationId: string,
+    filters: FindReportFiltersDTO = {},
+  ): Promise<PaginatedResponse<TopSearchRow>> {
+    const { page, limit, offset } = this.resolvePagination(filters);
+
+    try {
+      const [rows, countResult] = await Promise.all([
+        this.prisma.$queryRawUnsafe<
+          {
+            term: string;
+            search: string;
+            tag: string;
+            quantity: bigint;
+          }[]
+        >(
+          `
+          SELECT
+            ts.term,
+            ts.search,
+            t.name AS tag,
+            COUNT(ts.id)::bigint AS quantity
+          FROM tag_searches ts
+          JOIN tags t ON t.id = ts.tag_id
+          WHERE t.organization_id = $1
+            AND ts.created_at >= NOW() - INTERVAL '30 days'
+          GROUP BY ts.term, ts.search, t.name
+          ORDER BY quantity DESC, ts.term ASC
+          LIMIT $2 OFFSET $3
+          `,
+          organizationId,
+          limit,
+          offset,
+        ),
+        this.prisma.$queryRawUnsafe<{ total: bigint }[]>(
+          `
+          SELECT COUNT(*)::bigint AS total
+          FROM (
+            SELECT ts.term, ts.search, t.name
+            FROM tag_searches ts
+            JOIN tags t ON t.id = ts.tag_id
+            WHERE t.organization_id = $1
+              AND ts.created_at >= NOW() - INTERVAL '30 days'
+            GROUP BY ts.term, ts.search, t.name
+          ) grouped_searches
+          `,
+          organizationId,
+        ),
+      ]);
+
+      const total = Number(countResult[0]?.total ?? 0);
+
+      return {
+        data: rows.map((row) => ({
+          term: row.term,
+          search: row.search,
+          tag: row.tag,
+          quantity: Number(row.quantity),
+        })),
+        total,
+        totalPages: Math.ceil(total / limit) || 0,
+        page,
+      };
+    } catch (error) {
+      void this.logger.error('ReportRepository.findTopSearches falhou', {
+        error: String(error),
+        organizationId,
+      });
+
+      throw new BadRequestException(
+        'Erro ao buscar relatório de termos de busca',
+      );
+    }
+  }
+
+  async findAllTopSearches(organizationId: string): Promise<TopSearchRow[]> {
+    const result = await this.findTopSearches(organizationId, {
       page: 1,
       limit: Number.MAX_SAFE_INTEGER,
     });

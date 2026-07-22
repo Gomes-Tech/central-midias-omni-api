@@ -1,6 +1,7 @@
 import {
   TopMaterialByDownloadRow,
   TopMaterialByViewRow,
+  TopSearchRow,
   TopUserByMaterialDownloadRow,
   TopUserByPlatformLoginRow,
 } from '../entities';
@@ -71,6 +72,20 @@ export const buildTopMaterialsByDownloadsCsv = (
       escapeCsvValue(row.name),
       escapeCsvValue(row.categoryName),
       String(row.downloadCount),
+    ].join(','),
+  );
+
+  return [header, ...lines].join('\n');
+};
+
+export const buildTopSearchesCsv = (rows: TopSearchRow[]): string => {
+  const header = 'term,search,tag,quantity';
+  const lines = rows.map((row) =>
+    [
+      escapeCsvValue(row.term),
+      escapeCsvValue(row.search),
+      escapeCsvValue(row.tag),
+      String(row.quantity),
     ].join(','),
   );
 

@@ -6,6 +6,7 @@ import {
   buildReportExportFilename,
   buildTopMaterialsByDownloadsCsv,
   buildTopMaterialsByViewsCsv,
+  buildTopSearchesCsv,
   buildTopUsersByMaterialDownloadsCsv,
   buildTopUsersByPlatformLoginsCsv,
 } from '../utils/report-csv';
@@ -64,6 +65,15 @@ export class ExportReportUseCase {
         return {
           filename: buildReportExportFilename('materiais-downloads'),
           content: buildTopMaterialsByDownloadsCsv(rows),
+        };
+      }
+      case ReportType.SEARCHES_TOP: {
+        const rows =
+          await this.reportRepository.findAllTopSearches(organizationId);
+
+        return {
+          filename: buildReportExportFilename('buscas'),
+          content: buildTopSearchesCsv(rows),
         };
       }
       default:

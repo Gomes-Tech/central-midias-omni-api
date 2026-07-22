@@ -27,11 +27,19 @@ export interface TopMaterialByDownloadRow {
   downloadCount: number;
 }
 
+export interface TopSearchRow {
+  term: string;
+  search: string;
+  tag: string;
+  quantity: number;
+}
+
 export enum ReportType {
   USERS_TOP_LOGINS = 'users-top-logins',
   USERS_TOP_DOWNLOADS = 'users-top-downloads',
   MATERIALS_TOP_VIEWS = 'materials-top-views',
   MATERIALS_TOP_DOWNLOADS = 'materials-top-downloads',
+  SEARCHES_TOP = 'searches-top',
 }
 
 export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
@@ -39,4 +47,5 @@ export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   [ReportType.USERS_TOP_DOWNLOADS]: 'Usuários que mais baixam materiais',
   [ReportType.MATERIALS_TOP_VIEWS]: 'Materiais mais acessados',
   [ReportType.MATERIALS_TOP_DOWNLOADS]: 'Materiais com mais downloads',
+  [ReportType.SEARCHES_TOP]: 'Termos de busca mais encontrados',
 };
