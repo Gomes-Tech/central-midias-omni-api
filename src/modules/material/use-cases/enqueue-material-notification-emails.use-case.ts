@@ -22,6 +22,7 @@ export class EnqueueMaterialNotificationEmailsUseCase {
   async execute(
     materialId: string,
     organizationId: string,
+    roleId?: string,
   ): Promise<{ enqueued: number }> {
     const material = await this.materialRepository.findById(
       materialId,
@@ -36,6 +37,7 @@ export class EnqueueMaterialNotificationEmailsUseCase {
       await this.materialRepository.findPlatformMembersForCategory(
         organizationId,
         material.categoryId,
+        roleId,
       );
 
     if (!platformMembers.length) {
@@ -44,6 +46,7 @@ export class EnqueueMaterialNotificationEmailsUseCase {
         {
           materialId,
           organizationId,
+          roleId,
         },
       );
       return { enqueued: 0 };

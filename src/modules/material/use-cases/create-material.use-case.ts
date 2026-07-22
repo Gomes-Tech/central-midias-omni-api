@@ -1,5 +1,5 @@
-import { generateId } from '@common/utils';
 import { BadRequestException } from '@common/filters';
+import { generateId } from '@common/utils';
 import { StorageService } from '@infrastructure/providers';
 import { FindCategoryByIdUseCase } from '@modules/category/use-cases';
 import { Inject, Injectable } from '@nestjs/common';
@@ -90,7 +90,7 @@ export class CreateMaterialUseCase {
 
       if (data.notifyUsers === true) {
         void this.enqueueMaterialNotificationEmailsUseCase
-          .execute(materialId, organizationId)
+          .execute(materialId, organizationId, data.roleId)
           .catch(() => undefined);
       }
     } catch (error) {

@@ -69,4 +69,8 @@ export class UpdateMaterialDTO {
   @IsOptional()
   @TransformMaterialCustomization()
   customization?: MaterialCustomizationDTO;
+
+  @IsOptional()
+  @IsString()
+  roleId?: string;
 }

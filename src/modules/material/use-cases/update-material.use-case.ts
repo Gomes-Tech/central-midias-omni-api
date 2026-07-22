@@ -89,7 +89,7 @@ export class UpdateMaterialUseCase {
 
     if (data.notifyUsers === true) {
       void this.enqueueMaterialNotificationEmailsUseCase
-        .execute(id, organizationId)
+        .execute(id, organizationId, data.roleId)
         .catch(() => undefined);
     }
   }

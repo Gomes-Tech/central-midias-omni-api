@@ -1402,9 +1402,16 @@ export class MaterialRepository {
   async findRoleIdsByCategoryAndOrganization(
     categoryId: string,
     organizationId: string,
+    roleId?: string,
   ): Promise<string[]> {
+    const where: Prisma.CategoryRoleAccessWhereInput = {
+      categoryId,
+      organizationId,
+      ...(roleId && { roleId }),
+    };
+
     const rows = await this.prisma.categoryRoleAccess.findMany({
-      where: { categoryId, organizationId },
+      where,
       select: { roleId: true },
     });
 
@@ -1468,11 +1475,13 @@ export class MaterialRepository {
   async findPlatformMembersForCategory(
     organizationId: string,
     categoryId: string,
+    roleId?: string,
   ): Promise<Array<{ userId: string; name: string; email: string }>> {
     try {
       const roleIds = await this.findRoleIdsByCategoryAndOrganization(
         categoryId,
         organizationId,
+        roleId,
       );
 
       const members = await this.prisma.member.findMany({
