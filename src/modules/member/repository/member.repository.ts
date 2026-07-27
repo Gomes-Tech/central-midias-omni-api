@@ -174,6 +174,7 @@ export class MemberRepository {
     organizationId: string,
     userId: string,
   ): Promise<{
+    roleId: string;
     name: string;
     label: string;
     canAccessBackoffice: boolean;
@@ -192,6 +193,7 @@ export class MemberRepository {
       const member = await this.prisma.member.findFirst({
         where: { organizationId, userId, role: { deletedAt: null } },
         select: {
+          roleId: true,
           role: {
             select: {
               label: true,
@@ -260,6 +262,7 @@ export class MemberRepository {
       }
 
       return {
+        roleId: member.roleId,
         name: member.role.name,
         label: member.role.label,
         permissions: Array.from(permissionsByModule.values()).map(

@@ -52,6 +52,34 @@ function matchScalar(
     if ('not' in condition) {
       return !matchScalar(fieldValue, condition.not, store);
     }
+    if ('lte' in condition || 'gte' in condition || 'lt' in condition || 'gt' in condition) {
+      const numericValue =
+        fieldValue instanceof Date
+          ? fieldValue.getTime()
+          : typeof fieldValue === 'string' || typeof fieldValue === 'number'
+            ? new Date(fieldValue).getTime()
+            : Number(fieldValue);
+      if (Number.isNaN(numericValue)) {
+        return false;
+      }
+      if ('lte' in condition) {
+        const bound = condition.lte instanceof Date ? condition.lte.getTime() : new Date(String(condition.lte)).getTime();
+        if (!(numericValue <= bound)) return false;
+      }
+      if ('gte' in condition) {
+        const bound = condition.gte instanceof Date ? condition.gte.getTime() : new Date(String(condition.gte)).getTime();
+        if (!(numericValue >= bound)) return false;
+      }
+      if ('lt' in condition) {
+        const bound = condition.lt instanceof Date ? condition.lt.getTime() : new Date(String(condition.lt)).getTime();
+        if (!(numericValue < bound)) return false;
+      }
+      if ('gt' in condition) {
+        const bound = condition.gt instanceof Date ? condition.gt.getTime() : new Date(String(condition.gt)).getTime();
+        if (!(numericValue > bound)) return false;
+      }
+      return true;
+    }
     return matchWhere(recordFromValue(fieldValue), condition as Record<string, unknown>, store);
   }
   return fieldValue === condition;
@@ -87,6 +115,18 @@ function matchRelation(
   if ('every' in filter && Array.isArray(related)) {
     return related.every((item) =>
       matchWhere(item as Record<string, unknown>, filter.every as Record<string, unknown>, store),
+    );
+  }
+  if ('none' in filter) {
+    const noneFilter = filter.none as Record<string, unknown>;
+    if (!Array.isArray(related) || related.length === 0) {
+      return true;
+    }
+    if (Object.keys(noneFilter).length === 0) {
+      return false;
+    }
+    return !related.some((item) =>
+      matchWhere(item as Record<string, unknown>, noneFilter, store),
     );
   }
   if (isPlainObject(related)) {
@@ -128,20 +168,37 @@ function resolveRelation(
   if (relationKey === 'category' && record.categoryId) {
     return store.categories.find((c) => c.id === record.categoryId) ?? null;
   }
+  if (relationKey === 'eventType' && record.eventTypeId) {
+    return (
+      store.calendarEventTypes.find((t) => t.id === record.eventTypeId) ?? null
+    );
+  }
+  if (relationKey === 'createdBy' && record.createdByUserId) {
+    return store.users.find((u) => u.id === record.createdByUserId) ?? null;
+  }
   if (relationKey === 'material' && record.materialId) {
     return store.materials.find((m) => m.id === record.materialId) ?? null;
+  }
+  if (relationKey === 'materials' && record.id) {
+    return store.calendarEventMaterials
+      .filter((link) => link.eventId === record.id)
+      .map((link) => ({
+        eventId: link.eventId,
+        materialId: link.materialId,
+        material: store.materials.find((m) => m.id === link.materialId) ?? null,
+      }));
   }
   if (relationKey === 'user' && record.userId) {
     return store.users.find((u) => u.id === record.userId) ?? null;
   }
+  if (relationKey === 'categoryRoleAccesses' && record.slugPath !== undefined) {
+    return store.categoryRoleAccesses.filter(
+      (access) => access.categoryId === record.id,
+    );
+  }
   if (relationKey === 'categoryRoleAccesses' && record.id) {
     return store.categoryRoleAccesses.filter(
       (access) => access.roleId === record.id,
-    );
-  }
-  if (relationKey === 'categoryRoleAccesses' && record.categoryId) {
-    return store.categoryRoleAccesses.filter(
-      (access) => access.categoryId === record.categoryId,
     );
   }
   if (relationKey === 'tags' && record.id) {
@@ -170,18 +227,30 @@ export function matchWhere(
     return true;
   }
 
-  if (Array.isArray(where.AND)) {
-    return where.AND.every((clause) =>
-      matchWhere(record, clause as Record<string, unknown>, store),
-    );
-  }
-  if (Array.isArray(where.OR)) {
-    return where.OR.some((clause) =>
-      matchWhere(record, clause as Record<string, unknown>, store),
-    );
-  }
   if (where.NOT) {
-    return !matchWhere(record, where.NOT as Record<string, unknown>, store);
+    if (matchWhere(record, where.NOT as Record<string, unknown>, store)) {
+      return false;
+    }
+  }
+
+  if (Array.isArray(where.OR)) {
+    if (
+      !where.OR.some((clause) =>
+        matchWhere(record, clause as Record<string, unknown>, store),
+      )
+    ) {
+      return false;
+    }
+  }
+
+  if (Array.isArray(where.AND)) {
+    if (
+      !where.AND.every((clause) =>
+        matchWhere(record, clause as Record<string, unknown>, store),
+      )
+    ) {
+      return false;
+    }
   }
 
   return Object.entries(where).every(([key, value]) => {
@@ -197,8 +266,11 @@ export function matchWhere(
       'module',
       'permissions',
       'category',
+      'eventType',
+      'createdBy',
       'categoryRoleAccesses',
       'material',
+      'materials',
       'tags',
       'materialFiles',
       '_count',

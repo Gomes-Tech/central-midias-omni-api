@@ -1,4 +1,5 @@
 export * from './bad-request.exception';
+export * from './conflict.exception';
 export * from './forbidden.exception';
 export * from './http-exception.filter';
 export * from './login.exception';

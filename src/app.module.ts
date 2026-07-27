@@ -24,6 +24,7 @@ import { SecurityModule } from '@infrastructure/security';
 import { ThrottlerConfigModule } from '@infrastructure/throttler';
 import { AuthModule } from '@modules/auth';
 import { BannerModule } from '@modules/banner';
+import { CalendarModule } from '@modules/calendar';
 import { CategoryModule } from '@modules/category';
 import { CategoryRoleAccessModule } from '@modules/category-role-access/category-role-access.module';
 import { FaqModule } from '@modules/faq';
@@ -66,6 +67,7 @@ import { AppService } from './app.service';
     HealthModule,
     ThrottlerConfigModule,
     CategoryModule,
+    CalendarModule,
     MaterialModule,
     MemberModule,
     ModuleModule,

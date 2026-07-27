@@ -124,6 +124,9 @@ export class E2ePrismaService {
   material = createDelegate('materials');
   materialFile = createDelegate('materialFiles');
   categoryRoleAccess = createDelegate('categoryRoleAccesses');
+  calendarEventType = createDelegate('calendarEventTypes');
+  calendarEvent = createDelegate('calendarEvents');
+  calendarEventMaterial = createDelegate('calendarEventMaterials');
   passwordResetToken = createDelegate('passwordResetTokens');
   log = createDelegate('logs');
   tagSearch = createDelegate('tagSearches');

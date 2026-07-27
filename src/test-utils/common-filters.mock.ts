@@ -6,6 +6,12 @@ export class BadRequestException extends HttpException {
   }
 }
 
+export class ConflictException extends HttpException {
+  constructor(message = 'Conflict') {
+    super(message, HttpStatus.CONFLICT);
+  }
+}
+
 export class ForbiddenException extends HttpException {
   constructor(message = 'Forbidden') {
     super(message, HttpStatus.FORBIDDEN);

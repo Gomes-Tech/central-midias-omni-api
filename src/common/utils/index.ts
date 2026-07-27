@@ -5,4 +5,5 @@ export * from './format-filename';
 export * from './format-slug';
 export * from './generate-id';
 export * from './generate-token';
+export * from './normalize-hex-color';
 export * from './sanitize';
