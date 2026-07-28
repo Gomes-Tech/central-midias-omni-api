@@ -3,6 +3,12 @@ import { createParamDecorator, SetMetadata } from '@nestjs/common';
 export const OrgId = createParamDecorator(() => 'test-organization-id');
 
 export const MAX_FILE_SIZE_KEY = 'maxFileSize';
+export const ALLOWED_FILE_TYPES_KEY = 'allowed_file_types';
+
+export const AllowedFileTypes = (policy: unknown): MethodDecorator => {
+  void policy;
+  return noopMethodDecorator;
+};
 
 export const MaxFileSize = (maxSizeInBytes?: number, maxSizeInMB?: number) => {
   let sizeInBytes = 5 * 1024 * 1024;

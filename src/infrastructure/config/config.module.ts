@@ -52,6 +52,14 @@ import * as Joi from 'joi';
             port: Number(process.env.REDIS_PORT ?? '6379'),
             password: process.env.REDIS_PASSWORD,
           },
+          storage: {
+            provider: process.env.STORAGE_PROVIDER ?? 'supabase',
+            assetsBucket:
+              (process.env.STORAGE_PROVIDER ?? 'supabase') === 's3'
+                ? process.env.S3_ASSETS_BUCKET
+                : (process.env.SUPABASE_ASSETS_BUCKET ??
+                  process.env.SUPABASE_BUCKET),
+          },
         }),
       ],
       validationSchema: Joi.object({
@@ -106,6 +114,34 @@ import * as Joi from 'joi';
         REDIS_HOST: Joi.string().optional(),
         REDIS_PORT: Joi.number().default(6379).optional(),
         REDIS_PASSWORD: Joi.string().optional(),
+
+        STORAGE_PROVIDER: Joi.string()
+          .valid('s3', 'supabase')
+          .default('supabase'),
+        S3_ASSETS_BUCKET: Joi.string().when('STORAGE_PROVIDER', {
+          is: 's3',
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+        SUPABASE_URL: Joi.string().uri().when('STORAGE_PROVIDER', {
+          is: 'supabase',
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+        SUPABASE_KEY: Joi.string().when('STORAGE_PROVIDER', {
+          is: 'supabase',
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+        SUPABASE_BUCKET: Joi.string().when('STORAGE_PROVIDER', {
+          is: 'supabase',
+          then: Joi.required(),
+          otherwise: Joi.optional(),
+        }),
+        SUPABASE_ASSETS_BUCKET: Joi.string().optional(),
+        SUPABASE_SIGNED_URL_EXPIRES_SECONDS: Joi.number()
+          .default(300)
+          .optional(),
       }),
     }),
   ],

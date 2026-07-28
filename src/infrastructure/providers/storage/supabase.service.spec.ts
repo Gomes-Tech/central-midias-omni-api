@@ -11,6 +11,8 @@ jest.mock('@supabase/supabase-js');
 describe('SupabaseService', () => {
   const upload = jest.fn();
   const createSignedUrl = jest.fn();
+  const remove = jest.fn();
+  const getPublicUrl = jest.fn();
   const from = jest.fn();
   const originalEnv = process.env;
 
@@ -28,9 +30,15 @@ describe('SupabaseService', () => {
       data: { signedUrl: 'https://signed.example/file' },
       error: null,
     });
+    remove.mockResolvedValue({ data: [], error: null });
+    getPublicUrl.mockReturnValue({
+      data: { publicUrl: 'https://public.example/file' },
+    });
     from.mockReturnValue({
       upload,
       createSignedUrl,
+      remove,
+      getPublicUrl,
     });
     jest.mocked(createClient).mockReturnValue({
       storage: { from },
@@ -42,7 +50,10 @@ describe('SupabaseService', () => {
     jest.restoreAllMocks();
   });
 
-  function extensionDot(service: SupabaseService, originalName: string): string {
+  function extensionDot(
+    service: SupabaseService,
+    originalName: string,
+  ): string {
     return (
       service as unknown as { extensionDot: (name: string) => string }
     ).extensionDot(originalName);
@@ -70,10 +81,7 @@ describe('SupabaseService', () => {
 
     await service.getSignedUrl('organizations/file.pdf');
 
-    expect(createSignedUrl).toHaveBeenCalledWith(
-      'organizations/file.pdf',
-      60,
-    );
+    expect(createSignedUrl).toHaveBeenCalledWith('organizations/file.pdf', 300);
   });
 
   it('uploadFile deve enviar buffer ao bucket', async () => {
@@ -88,6 +96,9 @@ describe('SupabaseService', () => {
     const result = await service.uploadFile(file, 'organizations');
 
     expect(result.path).toContain('organizations/');
+    expect(result.id).toBeTruthy();
+    expect(result.fullPath).toContain('supabase://uploads/organizations/');
+    expect(result.publicUrl).toBe('https://public.example/file');
     expect(upload).toHaveBeenCalled();
   });
 
@@ -111,10 +122,38 @@ describe('SupabaseService', () => {
     await expect(service.getSignedUrl('organizations/file.pdf')).resolves.toBe(
       'https://signed.example/file',
     );
-    expect(createSignedUrl).toHaveBeenCalledWith(
-      'organizations/file.pdf',
-      90,
-    );
+    expect(createSignedUrl).toHaveBeenCalledWith('organizations/file.pdf', 90);
+  });
+
+  it('getSignedUrl deve respeitar expiração informada', async () => {
+    const service = new SupabaseService();
+
+    await service.getSignedUrl('organizations/file.pdf', 45);
+
+    expect(createSignedUrl).toHaveBeenCalledWith('organizations/file.pdf', 45);
+  });
+
+  it('getSignedDownloadUrl deve informar o nome para download', async () => {
+    const service = new SupabaseService();
+
+    await expect(
+      service.getSignedDownloadUrl('organizations/file.pdf', 'documento.pdf'),
+    ).resolves.toBe('https://signed.example/file');
+    expect(createSignedUrl).toHaveBeenCalledWith('organizations/file.pdf', 90, {
+      download: 'documento.pdf',
+    });
+  });
+
+  it('getSignedDownloadUrl deve lançar BadRequest quando falhar', async () => {
+    createSignedUrl.mockResolvedValue({
+      data: null,
+      error: { message: 'fail' },
+    });
+    const service = new SupabaseService();
+
+    await expect(
+      service.getSignedDownloadUrl('file.pdf', 'file.pdf'),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('getSignedUrl deve lançar quando Supabase retornar erro', async () => {
@@ -138,9 +177,9 @@ describe('SupabaseService', () => {
       buffer: Buffer.from('pdf'),
     };
 
-    await expect(
-      service.uploadFile(file, '../escape'),
-    ).rejects.toBeInstanceOf(InternalServerErrorException);
+    await expect(service.uploadFile(file, '../escape')).rejects.toBeInstanceOf(
+      InternalServerErrorException,
+    );
   });
 
   it('getSignedUrl deve lançar quando resposta não tiver signedUrl', async () => {
@@ -184,7 +223,7 @@ describe('SupabaseService', () => {
     };
 
     await expect(service.uploadFile(file)).rejects.toBeInstanceOf(
-      InternalServerErrorException,
+      BadRequestException,
     );
   });
 
@@ -208,7 +247,9 @@ describe('SupabaseService', () => {
     const service = new SupabaseService();
 
     expect(extensionDot(service, '   ')).toBe('.png');
-    expect(allowedUpload.getUploadFileExtension).toHaveBeenCalledWith('arquivo');
+    expect(allowedUpload.getUploadFileExtension).toHaveBeenCalledWith(
+      'arquivo',
+    );
   });
 
   it('extensionDot deve retornar string vazia quando não houver extensão', () => {
@@ -234,5 +275,87 @@ describe('SupabaseService', () => {
 
     expect(result.path).toMatch(/organizations\/[^/]+\.pdf$/);
     expect(upload).toHaveBeenCalled();
+  });
+
+  it('deleteFile deve remover todos os caminhos em uma operação', async () => {
+    const service = new SupabaseService();
+
+    await service.deleteFile(['a/file.pdf', 'b/file.png']);
+
+    expect(remove).toHaveBeenCalledWith(['a/file.pdf', 'b/file.png']);
+  });
+
+  it('deleteFile não deve chamar o Supabase para uma lista vazia', async () => {
+    const service = new SupabaseService();
+
+    await service.deleteFile([]);
+
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it('deleteFile deve lançar BadRequest quando a remoção falhar', async () => {
+    remove.mockResolvedValue({ data: null, error: { message: 'denied' } });
+    const service = new SupabaseService();
+
+    await expect(service.deleteFile(['file.pdf'])).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('storePublicationAttachment deve preservar metadados do arquivo', async () => {
+    const service = new SupabaseService();
+    const file = {
+      originalname: 'cover.png',
+      mimetype: 'image/png',
+      size: 4,
+      buffer: Buffer.from('png'),
+    };
+
+    const stored = await service.storePublicationAttachment({
+      publicationId: 'pub-1',
+      file,
+    });
+
+    expect(stored).toEqual({
+      relativePath: expect.stringMatching(/^publications\/pub-1\/.+\.png$/),
+      originalName: 'cover.png',
+      mimeType: 'image/png',
+      sizeBytes: 4,
+    });
+  });
+
+  it('deve enviar, publicar e remover assets', async () => {
+    const service = new SupabaseService();
+    const fileKey = 'organizations/org 1/assets/a/file.png';
+
+    await service.uploadAsset({
+      fileKey,
+      buffer: Buffer.from('png'),
+      mimeType: 'image/png',
+    });
+    expect(upload).toHaveBeenCalledWith(fileKey, expect.any(Buffer), {
+      contentType: 'image/png',
+      cacheControl: '31536000',
+      upsert: false,
+    });
+    expect(service.getAssetPublicUrl(fileKey)).toBe(
+      'https://public.example/file',
+    );
+
+    await service.deleteAsset(fileKey);
+    expect(remove).toHaveBeenCalledWith([fileKey]);
+  });
+
+  it('deve usar bucket separado para assets quando configurado', async () => {
+    process.env.SUPABASE_ASSETS_BUCKET = 'editor-assets';
+    const service = new SupabaseService();
+
+    await service.uploadAsset({
+      fileKey: 'asset.png',
+      buffer: Buffer.from('png'),
+      mimeType: 'image/png',
+    });
+
+    expect(from).toHaveBeenCalledWith('editor-assets');
   });
 });

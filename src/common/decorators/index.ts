@@ -1,3 +1,4 @@
+export * from './allowed-file-types.decorator';
 export * from './auth.decorator';
 export * from './check-ownership.decorator';
 export * from './circuit-breaker.decorator';

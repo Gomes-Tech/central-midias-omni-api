@@ -23,6 +23,7 @@ import { QueueModule } from '@infrastructure/queue';
 import { SecurityModule } from '@infrastructure/security';
 import { ThrottlerConfigModule } from '@infrastructure/throttler';
 import { AuthModule } from '@modules/auth';
+import { AssetModule } from '@modules/asset';
 import { BannerModule } from '@modules/banner';
 import { CalendarModule } from '@modules/calendar';
 import { CategoryModule } from '@modules/category';
@@ -67,6 +68,7 @@ import { AppService } from './app.service';
     HealthModule,
     ThrottlerConfigModule,
     CategoryModule,
+    AssetModule,
     CalendarModule,
     MaterialModule,
     MemberModule,

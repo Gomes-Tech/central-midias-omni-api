@@ -25,6 +25,7 @@ describe('S3StorageService', () => {
       ...originalEnv,
       AWS_REGION: 'us-east-1',
       S3_BUCKET: 'test-bucket',
+      S3_ASSETS_BUCKET: 'assets-editor',
       AWS_ACCESS_KEY_ID: 'key',
       AWS_SECRET_ACCESS_KEY: 'secret',
       S3_PRESIGNED_EXPIRES_SECONDS: '120',
@@ -43,7 +44,10 @@ describe('S3StorageService', () => {
     jest.restoreAllMocks();
   });
 
-  function extensionDot(service: S3StorageService, originalName: string): string {
+  function extensionDot(
+    service: S3StorageService,
+    originalName: string,
+  ): string {
     return (
       service as unknown as { extensionDot: (name: string) => string }
     ).extensionDot(originalName);
@@ -88,7 +92,7 @@ describe('S3StorageService', () => {
     const result = await service.uploadFile(file, 'organizations');
 
     expect(result.publicUrl).toMatch(
-      /^https:\/\/assets-editor\.s3\.us-east-1\.amazonaws\.com\/organizations\//,
+      /^https:\/\/test-bucket\.s3\.us-east-1\.amazonaws\.com\/organizations\//,
     );
     expect(result.path).toContain('organizations/');
     expect(send).toHaveBeenCalledWith(expect.any(PutObjectCommand));
@@ -111,9 +115,9 @@ describe('S3StorageService', () => {
   it('getSignedUrl deve gerar URL assinada', async () => {
     const service = new S3StorageService();
 
-    await expect(
-      service.getSignedUrl('organizations/file.pdf'),
-    ).resolves.toBe('https://signed.url/file');
+    await expect(service.getSignedUrl('organizations/file.pdf')).resolves.toBe(
+      'https://signed.url/file',
+    );
     expect(getSignedUrl).toHaveBeenCalledWith(
       expect.objectContaining({ send: expect.any(Function) }),
       expect.any(GetObjectCommand),
@@ -243,7 +247,9 @@ describe('S3StorageService', () => {
     const service = new S3StorageService();
 
     expect(extensionDot(service, '   ')).toBe('.png');
-    expect(allowedUpload.getUploadFileExtension).toHaveBeenCalledWith('arquivo');
+    expect(allowedUpload.getUploadFileExtension).toHaveBeenCalledWith(
+      'arquivo',
+    );
   });
 
   it('extensionDot deve retornar string vazia quando não houver extensão', () => {
@@ -286,8 +292,27 @@ describe('S3StorageService', () => {
       buffer: Buffer.from('pdf'),
     };
 
-    await expect(
-      service.uploadFile(file, '../escape'),
-    ).rejects.toBeInstanceOf(InternalServerErrorException);
+    await expect(service.uploadFile(file, '../escape')).rejects.toBeInstanceOf(
+      InternalServerErrorException,
+    );
+  });
+
+  it('deve enviar, publicar e remover assets no bucket específico', async () => {
+    send.mockResolvedValue({});
+    const service = new S3StorageService();
+    const fileKey = 'organizations/org 1/assets/a/file.png';
+
+    await service.uploadAsset({
+      fileKey,
+      buffer: Buffer.from('png'),
+      mimeType: 'image/png',
+    });
+    expect(send).toHaveBeenCalledWith(expect.any(PutObjectCommand));
+    expect(service.getAssetPublicUrl(fileKey)).toBe(
+      'https://assets-editor.s3.us-east-1.amazonaws.com/organizations/org%201/assets/a/file.png',
+    );
+
+    await service.deleteAsset(fileKey);
+    expect(send).toHaveBeenCalledWith(expect.any(DeleteObjectCommand));
   });
 });

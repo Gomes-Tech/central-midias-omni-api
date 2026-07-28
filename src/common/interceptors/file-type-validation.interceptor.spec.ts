@@ -1,4 +1,5 @@
 import { BadRequestException, ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { lastValueFrom, of } from 'rxjs';
 import { FileTypeValidationInterceptor } from './file-type-validation.interceptor';
 
@@ -22,6 +23,8 @@ function multerFile(
 
 function createContext(request: Record<string, unknown>): ExecutionContext {
   return {
+    getHandler: () => undefined,
+    getClass: () => undefined,
     switchToHttp: () => ({
       getRequest: () => request,
     }),
@@ -44,9 +47,7 @@ describe('FileTypeValidationInterceptor', () => {
     const file = multerFile('rel.pdf', 'application/pdf');
 
     await expect(
-      lastValueFrom(
-        interceptor.intercept(createContext({ file }), next),
-      ),
+      lastValueFrom(interceptor.intercept(createContext({ file }), next)),
     ).resolves.toBe(1);
   });
 
@@ -54,9 +55,9 @@ describe('FileTypeValidationInterceptor', () => {
     const next = { handle: () => of(1) };
     const file = multerFile('x.exe', 'application/octet-stream');
 
-    expect(() =>
-      interceptor.intercept(createContext({ file }), next),
-    ).toThrow(BadRequestException);
+    expect(() => interceptor.intercept(createContext({ file }), next)).toThrow(
+      BadRequestException,
+    );
   });
 
   it('deve validar cada item de request.files em array', () => {
@@ -66,9 +67,9 @@ describe('FileTypeValidationInterceptor', () => {
       multerFile('bad.exe', 'application/octet-stream'),
     ];
 
-    expect(() =>
-      interceptor.intercept(createContext({ files }), next),
-    ).toThrow(BadRequestException);
+    expect(() => interceptor.intercept(createContext({ files }), next)).toThrow(
+      BadRequestException,
+    );
   });
 
   it('deve validar request.files como objeto com arrays por campo', async () => {
@@ -109,5 +110,33 @@ describe('FileTypeValidationInterceptor', () => {
     await expect(
       lastValueFrom(interceptor.intercept(createContext({ files }), next)),
     ).resolves.toBe(1);
+  });
+
+  it('deve aplicar política de tipos específica da rota', async () => {
+    const reflector = {
+      getAllAndOverride: jest.fn().mockReturnValue({
+        extensions: ['svg'],
+        mimeTypes: ['image/svg+xml'],
+        description: 'SVG',
+      }),
+    } as unknown as Reflector;
+    const routeInterceptor = new FileTypeValidationInterceptor(reflector);
+    const next = { handle: () => of('ok') };
+
+    await expect(
+      lastValueFrom(
+        routeInterceptor.intercept(
+          createContext({ file: multerFile('icon.svg', 'image/svg+xml') }),
+          next,
+        ),
+      ),
+    ).resolves.toBe('ok');
+
+    expect(() =>
+      routeInterceptor.intercept(
+        createContext({ file: multerFile('doc.pdf', 'application/pdf') }),
+        next,
+      ),
+    ).toThrow(BadRequestException);
   });
 });

@@ -112,8 +112,7 @@
       "^@infrastructure/(.*)$": "<rootDir>/infrastructure/$1",
       "^@modules/(.*)$": "<rootDir>/modules/$1",
       "^types/(.*)$": "<rootDir>/types/$1",
-      "^uuid$": "<rootDir>/test-utils/uuid.mock.ts",
-      "^sanitize-html$": "<rootDir>/test-utils/sanitize-html.mock.ts"
+      "^uuid$": "<rootDir>/test-utils/uuid.mock.ts"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

@@ -227,8 +227,26 @@ model Organization {
   userHierarchies        UserHierarchy[]
   calendarEventTypes     CalendarEventType[]
   calendarEvents         CalendarEvent[]
+  assets                 Asset[]
 
   @@map("organizations")
+}
+
+model Asset {
+  id             String @id @default(uuid())
+  organizationId String @map("organization_id")
+  name           String
+  fileKey        String @map("file_key")
+  mimeType       String @map("mime_type")
+  size           Int
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, name])
+  @@map("assets")
 }
 
 // ============================================================

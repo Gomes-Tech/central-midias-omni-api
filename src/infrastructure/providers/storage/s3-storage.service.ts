@@ -23,22 +23,28 @@ import type {
   MulterFile,
   StoredFile,
 } from './local-storage.service';
+import type { AssetUpload, StorageProvider } from './storage-provider';
 
 @Injectable()
-export class S3StorageService {
+export class S3StorageService implements StorageProvider {
   private readonly s3: S3Client;
   private readonly bucket: string;
+  private readonly assetsBucket: string;
+  private readonly region: string;
   private readonly expiresIn: number;
 
   constructor() {
     const region = process.env.AWS_REGION;
     this.bucket = process.env.S3_BUCKET ?? '';
+    this.assetsBucket = process.env.S3_ASSETS_BUCKET ?? this.bucket;
 
     if (!region || !this.bucket) {
       throw new InternalServerErrorException(
         'S3: configure AWS_REGION e S3_BUCKET',
       );
     }
+
+    this.region = region;
 
     this.s3 = new S3Client({
       region,
@@ -101,7 +107,7 @@ export class S3StorageService {
         id,
         path: key,
         fullPath: `s3://${this.bucket}/${key}`,
-        publicUrl: `https://assets-editor.s3.us-east-1.amazonaws.com/${key}`,
+        publicUrl: `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`,
       };
     } catch {
       throw new BadRequestException('Erro ao fazer upload no S3');
@@ -196,5 +202,35 @@ export class S3StorageService {
       mimeType,
       sizeBytes,
     };
+  }
+
+  async uploadAsset(params: AssetUpload): Promise<void> {
+    await this.s3.send(
+      new PutObjectCommand({
+        Bucket: this.assetsBucket,
+        Key: params.fileKey,
+        Body: params.buffer,
+        ContentType: params.mimeType,
+        CacheControl: 'public, max-age=31536000, immutable',
+      }),
+    );
+  }
+
+  async deleteAsset(fileKey: string): Promise<void> {
+    await this.s3.send(
+      new DeleteObjectCommand({
+        Bucket: this.assetsBucket,
+        Key: fileKey,
+      }),
+    );
+  }
+
+  getAssetPublicUrl(fileKey: string): string {
+    const encodedKey = fileKey
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/');
+
+    return `https://${this.assetsBucket}.s3.${this.region}.amazonaws.com/${encodedKey}`;
   }
 }

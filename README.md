@@ -51,7 +51,7 @@ Centraliza a gestão de mídias por organização com RBAC, storage de arquivos,
 | Auth | `@nestjs/jwt`, bcrypt |
 | Validação | `class-validator`, `class-transformer`, Joi (envs) |
 | Upload | `multer` (memory storage) |
-| Storage | AWS S3 (`@aws-sdk/client-s3` + presigner) — Supabase/local existem no código mas **não** estão ativos na facade |
+| Storage | Provider configurável: Supabase Storage (padrão atual) ou AWS S3 (`STORAGE_PROVIDER`) |
 | Filas | BullMQ + Redis (`ioredis` via Bull) |
 | Cache de app | `@nestjs/cache-manager` **em memória** (não Redis) |
 | E-mail | `@nestjs-modules/mailer` + templates Pug |
@@ -139,7 +139,7 @@ src/
     prisma/
     providers/
       mail/                       # Mailer + templates Pug
-      storage/                    # S3 (ativo), Supabase/local (não usados pela facade)
+      storage/                    # Facade global + providers Supabase, S3 e local
     queue/                        # BullMQ (4 filas)
     security/                     # blacklist + security logger
     throttler/
@@ -637,12 +637,12 @@ Opções padrão: 5 attempts, backoff exponencial 5s, `removeOnComplete: true`, 
 
 ### Storage
 
-- Facade `StorageService` usa **somente** `S3StorageService`.
-- `uploadFile` / `getPublicUrl` (signed) / `getDownloadUrl` → S3 real.
-- **`deleteFile` da facade apenas faz `console.log`** — não apaga objetos no S3.
-- `SupabaseService` e `LocalStorageService` existem, mas estão comentados/inativos na facade.
+- A facade global `StorageService` usa o provider definido por `STORAGE_PROVIDER` (`supabase` por padrão; `s3` para retornar à AWS).
+- Upload, URL assinada, download, exclusão e anexos de publicações são delegados ao mesmo provider.
+- Assets do editor também usam o provider ativo. No Supabase, `SUPABASE_ASSETS_BUCKET` é opcional e recua para `SUPABASE_BUCKET`; esse bucket precisa ser público para as URLs de assets.
+- O provider S3 permanece disponível, preservando `S3_BUCKET` para arquivos gerais e `S3_ASSETS_BUCKET` para assets públicos.
 
-Variáveis S3 usadas em runtime (não validadas pelo Joi): `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET`, `S3_PRESIGNED_EXPIRES_SECONDS`.
+Variáveis S3 usadas em runtime: `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET`, `S3_ASSETS_BUCKET` e `S3_PRESIGNED_EXPIRES_SECONDS`. `S3_ASSETS_BUCKET` é validada na inicialização e aponta para o bucket público da biblioteca do editor.
 
 ---
 
@@ -652,11 +652,11 @@ Variáveis S3 usadas em runtime (não validadas pelo Joi): `AWS_REGION`, `AWS_AC
 |---|---|
 | PostgreSQL | Persistência via Prisma (`DATABASE_URL`) |
 | Redis | BullMQ only |
-| AWS S3 | Upload e URLs assinadas |
+| AWS S3 | Provider alternativo de upload, URLs e assets (`STORAGE_PROVIDER=s3`) |
 | SMTP | E-mails (obrigatório em `prod` via Joi; envio efetivo nos use cases tipicamente só em prod) |
 | Prometheus | `/api/metrics` |
 | Grafana | Dashboard em `docker/observability` (compose dev) |
-| Supabase Storage | Código presente, **não ativo** |
+| Supabase Storage | Provider padrão de homologação (`STORAGE_PROVIDER=supabase`) |
 | Sentry | Citado em security logger, **sem integração efetiva** no código analisado |
 
 Templates de e-mail (Pug): `welcome`, `reset-password`, `material-acceptance`, `material-notification`, `material-acceptance-export`, `report-export`.
@@ -723,8 +723,14 @@ AWS_REGION
 AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY
 S3_BUCKET
+S3_ASSETS_BUCKET                 # bucket público dos assets do editor
 S3_PRESIGNED_EXPIRES_SECONDS
-SUPABASE_URL / SUPABASE_KEY / SUPABASE_BUCKET / ...  # legado, provider inativo
+STORAGE_PROVIDER                 # supabase (padrão) | s3
+SUPABASE_URL
+SUPABASE_KEY
+SUPABASE_BUCKET
+SUPABASE_ASSETS_BUCKET           # opcional; recua para SUPABASE_BUCKET e deve ser público
+SUPABASE_SIGNED_URL_EXPIRES_SECONDS
 ```
 
 > Não há `.env.example` versionado de forma completa no repositório (há `.env` local). **Não commitar segredos.** Existe também chave `.pem` no root — tratar como risco.
@@ -875,16 +881,16 @@ npm run test:cov
 
 Documentados a partir do código real (não inventados):
 
-1. **`StorageService.deleteFile` é no-op** (só log) — objetos S3 não são removidos nas exclusões.
+1. **Assets exigem bucket público** — `S3_ASSETS_BUCKET` ou `SUPABASE_ASSETS_BUCKET` precisa permitir leitura pública.
 2. **Cache/blacklist em memória** enquanto Redis só alimenta BullMQ — logout não escala horizontalmente e some no restart.
 3. **Soft delete de `Material` incompleto** (comentário ATENÇÃO no schema: falta alinhar `isDeleted` + queries).
 4. **Seed sem Organization/Member** — admin global pode não passar em rotas que exigem membership.
-5. **Variáveis AWS/S3 fora do Joi** — app sobe sem elas, mas upload falha no construtor/uso do S3.
+5. **Credenciais do provider** — a aplicação valida as variáveis do Supabase quando ele está ativo e `S3_ASSETS_BUCKET` ao selecionar S3; as demais credenciais AWS continuam sendo validadas pelo SDK/serviço.
 6. **`POST /auth/first-access` exige org middleware** (não está nas exclusões), apesar de ser fluxo de senha.
 7. **Possível e-mail `welcome` duplicado** em `CreateMemberWithUser` (chama create user + envia welcome de novo).
 8. **Healthcheck Docker** testa `:4000` enquanto Dockerfile `EXPOSE 4100` — risco de mismatch conforme `PORT`.
 9. **Segredos no repositório**: `.env`, `.pem` — risco alto; rotacionar e remover do versionamento.
-10. **Sentry não efetivo**; Supabase storage morto na facade.
+10. **Sentry não efetivo**; integração permanece desabilitada.
 11. **`UserHierarchy` / `managerAssignments`**: schema existe; persistência completa deve ser validada antes de assumir suporte total.
 12. Entrypoint `.docker/entrypoint.dev.sh` pode referenciar scripts inexistentes no `package.json` (validar antes de usar).
 13. Strict TypeScript desligado (`strictNullChecks: false`, etc.).

@@ -11,84 +11,102 @@ const ALL_ACTIONS: Action[] = [
   Action.DELETE,
 ];
 
+const MODULES = [
+  { name: 'organizations', label: 'Organizações' },
+  { name: 'roles', label: 'Perfis' },
+  { name: 'users', label: 'Usuários' },
+  { name: 'members', label: 'Membros' },
+  { name: 'categories', label: 'Categorias' },
+  { name: 'banners', label: 'Banners' },
+  { name: 'social-highlights', label: 'Ta na Rede' },
+  { name: 'materials', label: 'Materiais' },
+  { name: 'tags', label: 'Tags' },
+  { name: 'reports', label: 'Relatórios' },
+  { name: 'faqs', label: 'FAQ' },
+  { name: 'calendar', label: 'Calendário' },
+  { name: 'assets', label: 'Assets' },
+];
+
 async function main() {
   const alreadySeeded = await prisma.seedStatus.findUnique({
     where: { id: 'main-seed' },
   });
 
-  if (alreadySeeded) {
-    console.log('Banco de dados já foi seedado. Abortando seed.');
-    return;
-  }
+  const hashedPassword = alreadySeeded
+    ? null
+    : await bcrypt.hash('V9!rK#4pT@7zL$2qX8mF', 14);
 
-  const moduleRows = [
-    { id: uuidv4(), name: 'organizations', label: 'Organizações' },
-    { id: uuidv4(), name: 'roles', label: 'Perfis' },
-    { id: uuidv4(), name: 'users', label: 'Usuários' },
-    { id: uuidv4(), name: 'members', label: 'Membros' },
-    { id: uuidv4(), name: 'categories', label: 'Categorias' },
-    { id: uuidv4(), name: 'banners', label: 'Banners' },
-    { id: uuidv4(), name: 'social-highlights', label: 'Ta na Rede' },
-    { id: uuidv4(), name: 'materials', label: 'Materiais' },
-    { id: uuidv4(), name: 'tags', label: 'Tags' },
-    { id: uuidv4(), name: 'reports', label: 'Relatórios' },
-    { id: uuidv4(), name: 'faqs', label: 'FAQ' },
-    { id: uuidv4(), name: 'calendar', label: 'Calendário' },
-  ];
+  const permissionsCreated = await prisma.$transaction(
+    async (tx) => {
+      await tx.module.createMany({
+        data: MODULES.map((module) => ({ id: uuidv4(), ...module })),
+        skipDuplicates: true,
+      });
 
-  const roleId = uuidv4();
+      const modules = await tx.module.findMany({
+        where: { name: { in: MODULES.map((module) => module.name) } },
+      });
 
-  const rolePermissions = moduleRows.flatMap((mod) =>
-    ALL_ACTIONS.map((action) => ({
-      id: uuidv4(),
-      roleId,
-      moduleId: mod.id,
-      action,
-    })),
+      const adminRole = await tx.role.upsert({
+        where: { name: 'ADMIN' },
+        update: {},
+        create: {
+          id: uuidv4(),
+          name: 'ADMIN',
+          label: 'Administrador',
+          isSystem: true,
+          canAccessBackoffice: true,
+          canHaveSubordinates: false,
+        },
+      });
+
+      const result = await tx.rolePermission.createMany({
+        data: modules.flatMap((module) =>
+          ALL_ACTIONS.map((action) => ({
+            id: uuidv4(),
+            roleId: adminRole.id,
+            moduleId: module.id,
+            action,
+          })),
+        ),
+        skipDuplicates: true,
+      });
+
+      if (!alreadySeeded && hashedPassword) {
+        await tx.user.upsert({
+          where: { email: 'admin@admin.com' },
+          update: {},
+          create: {
+            id: uuidv4(),
+            name: 'Admin',
+            email: 'admin@admin.com',
+            password: hashedPassword,
+            taxIdentifier: '93978425017',
+            isActive: true,
+            isFirstAccess: false,
+            globalRole: {
+              connect: {
+                id: adminRole.id,
+              },
+            },
+          },
+        });
+
+        await tx.seedStatus.create({
+          data: { id: 'main-seed', executedAt: new Date() },
+        });
+      }
+
+      return result.count;
+    },
+    { timeout: 30_000 },
   );
 
-  const hashedPassword = await bcrypt.hash('V9!rK#4pT@7zL$2qX8mF', 14);
-  const userId = uuidv4();
-
-  await prisma.$transaction(async (tx) => {
-    await tx.module.createMany({ data: moduleRows });
-
-    await tx.role.create({
-      data: {
-        id: roleId,
-        name: 'ADMIN',
-        label: 'Administrador',
-        isSystem: true,
-        canAccessBackoffice: true,
-        canHaveSubordinates: false,
-      },
-    });
-
-    await tx.rolePermission.createMany({ data: rolePermissions });
-
-    await tx.user.create({
-      data: {
-        id: userId,
-        name: 'Admin',
-        email: 'admin@admin.com',
-        password: hashedPassword,
-        taxIdentifier: '93978425017',
-        isActive: true,
-        isFirstAccess: false,
-        globalRole: {
-          connect: {
-            id: roleId,
-          },
-        },
-      },
-    });
-
-    await tx.seedStatus.create({
-      data: { id: 'main-seed', executedAt: new Date() },
-    });
-  });
-
-  console.log('Seed concluído com sucesso!');
+  console.log(
+    alreadySeeded
+      ? `Seed já executado. Sincronização concluída: ${permissionsCreated} permissão(ões) adicionada(s) ao ADMIN.`
+      : 'Seed concluído com sucesso!',
+  );
   console.log(
     'Nota: rotas do backoffice exigem um Member (usuário + organização + role). Sem organização seedada, o admin ainda não passa no PlatformPermissionGuard.',
   );

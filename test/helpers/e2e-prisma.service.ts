@@ -1,5 +1,4 @@
 import { Global, Injectable, Module } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import {
   findFirst,
   findUnique,
@@ -36,21 +35,34 @@ function createDelegate(collectionKey: keyof ReturnType<typeof getE2eStore>) {
       return findUnique(collection, args, store);
     },
     findFirstOrThrow: async (args: QueryArgs = {}) => {
-      return throwIfNotFound(await createDelegate(collectionKey).findFirst(args));
+      return throwIfNotFound(
+        await createDelegate(collectionKey).findFirst(args),
+      );
     },
     findUniqueOrThrow: async (args: QueryArgs = {}) => {
-      return throwIfNotFound(await createDelegate(collectionKey).findUnique(args));
+      return throwIfNotFound(
+        await createDelegate(collectionKey).findUnique(args),
+      );
     },
     count: async (args: QueryArgs = {}) => {
       const rows = await createDelegate(collectionKey).findMany(args);
       return rows.length;
     },
-    create: async (args: { data: Record<string, unknown>; select?: Record<string, unknown> }) => {
+    create: async (args: {
+      data: Record<string, unknown>;
+      select?: Record<string, unknown>;
+    }) => {
       const store = getE2eStore();
       const collection = store[collectionKey] as Record<string, unknown>[];
       const row = mergeCreateData(args.data, store);
       collection.push(row);
-      return findFirst(collection, { where: { id: row.id }, select: args.select }, store) ?? row;
+      return (
+        findFirst(
+          collection,
+          { where: { id: row.id }, select: args.select },
+          store,
+        ) ?? row
+      );
     },
     createMany: async (args: { data: Record<string, unknown>[] }) => {
       const store = getE2eStore();
@@ -60,7 +72,10 @@ function createDelegate(collectionKey: keyof ReturnType<typeof getE2eStore>) {
       }
       return { count: args.data.length };
     },
-    update: async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+    update: async (args: {
+      where: Record<string, unknown>;
+      data: Record<string, unknown>;
+    }) => {
       const store = getE2eStore();
       const collection = store[collectionKey] as Record<string, unknown>[];
       const row = findUnique(collection, { where: args.where }, store);
@@ -70,12 +85,18 @@ function createDelegate(collectionKey: keyof ReturnType<typeof getE2eStore>) {
       Object.assign(row, args.data, { updatedAt: new Date() });
       return row;
     },
-    updateMany: async (args: { where?: Record<string, unknown>; data: Record<string, unknown> }) => {
+    updateMany: async (args: {
+      where?: Record<string, unknown>;
+      data: Record<string, unknown>;
+    }) => {
       const store = getE2eStore();
       const collection = store[collectionKey] as Record<string, unknown>[];
       let count = 0;
       for (const row of collection) {
-        if (args.where && !queryCollection([row], { where: args.where }, store).length) {
+        if (
+          args.where &&
+          !queryCollection([row], { where: args.where }, store).length
+        ) {
           continue;
         }
         Object.assign(row, args.data, { updatedAt: new Date() });
@@ -86,8 +107,9 @@ function createDelegate(collectionKey: keyof ReturnType<typeof getE2eStore>) {
     delete: async (args: { where: Record<string, unknown> }) => {
       const store = getE2eStore();
       const collection = store[collectionKey] as Record<string, unknown>[];
-      const index = collection.findIndex((row) =>
-        queryCollection([row], { where: args.where }, store).length > 0,
+      const index = collection.findIndex(
+        (row) =>
+          queryCollection([row], { where: args.where }, store).length > 0,
       );
       if (index < 0) {
         throw new Error(`${String(collectionKey)} not found`);
@@ -130,6 +152,7 @@ export class E2ePrismaService {
   passwordResetToken = createDelegate('passwordResetTokens');
   log = createDelegate('logs');
   tagSearch = createDelegate('tagSearches');
+  asset = createDelegate('assets');
 
   async $queryRaw() {
     return [{ '?column?': 1 }];

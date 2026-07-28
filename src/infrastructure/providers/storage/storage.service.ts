@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { MulterFile } from './local-storage.service';
-import { S3StorageService } from './s3-storage.service';
+import { Inject, Injectable } from '@nestjs/common';
+import type { MulterFile, StoredFile } from './local-storage.service';
+import { STORAGE_PROVIDER, StorageProvider } from './storage-provider';
 
 export interface StorageFile {
   id: string;
@@ -12,27 +12,33 @@ export interface StorageFile {
 @Injectable()
 export class StorageService {
   constructor(
-    // private readonly localStorageService: LocalStorageService,
-    // private readonly supabaseService: SupabaseService,
-    private readonly s3StorageService: S3StorageService,
+    @Inject(STORAGE_PROVIDER)
+    private readonly storageProvider: StorageProvider,
   ) {}
 
   async uploadFile(
     file: MulterFile,
     folder?: string,
   ): Promise<{ path: string }> {
-    return await this.s3StorageService.uploadFile(file, folder);
+    return this.storageProvider.uploadFile(file, folder);
   }
 
-  async getPublicUrl(path: string, expieresIn?: number): Promise<string> {
-    return await this.s3StorageService.getSignedUrl(path, expieresIn);
+  async getPublicUrl(path: string, expiresIn?: number): Promise<string> {
+    return this.storageProvider.getSignedUrl(path, expiresIn);
   }
 
   async getDownloadUrl(path: string, filename: string): Promise<string> {
-    return await this.s3StorageService.getSignedDownloadUrl(path, filename);
+    return this.storageProvider.getSignedDownloadUrl(path, filename);
   }
 
   async deleteFile(paths: string[]): Promise<void> {
-    console.log('deleteFile', paths);
+    return this.storageProvider.deleteFile(paths);
+  }
+
+  async storePublicationAttachment(params: {
+    publicationId: string;
+    file: MulterFile;
+  }): Promise<StoredFile> {
+    return this.storageProvider.storePublicationAttachment(params);
   }
 }

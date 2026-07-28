@@ -1,8 +1,8 @@
 import { multipartMiddleware, requestIdMiddleware } from '@common/middlewares';
 import { MailService } from '@infrastructure/providers/mail/mail.service';
+import { STORAGE_PROVIDER } from '@infrastructure/providers/storage/storage-provider';
 import { StorageService } from '@infrastructure/providers/storage/storage.service';
-import { S3StorageService } from '@infrastructure/providers/storage/s3-storage.service';
-import { SupabaseService } from '@infrastructure/providers/storage/supabase.service';
+import { AssetStorageService } from '@modules/asset';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
@@ -14,6 +14,23 @@ const e2eStorageMock = {
   uploadFile: jest.fn().mockResolvedValue({ path: 'e2e/uploads/file.png' }),
   getSignedUrl: jest.fn().mockResolvedValue('https://e2e.test/signed-url'),
   deleteObject: jest.fn().mockResolvedValue(undefined),
+};
+
+export const e2eAssetStorageMock = {
+  upload: jest.fn(
+    async (
+      _organizationId: string,
+      assetId: string,
+      file: { extension: string; buffer: Buffer },
+    ) => ({
+      fileKey: `e2e/assets/${assetId}.${file.extension}`,
+    }),
+  ),
+  getPublicUrl: jest.fn(
+    (fileKey: string) => `https://e2e-assets.test/${fileKey}`,
+  ),
+  deleteFile: jest.fn().mockResolvedValue(undefined),
+  deleteFiles: jest.fn().mockResolvedValue(undefined),
 };
 
 const e2eMailMock = {
@@ -33,10 +50,10 @@ export async function createE2eApp(): Promise<INestApplication> {
       getPublicUrl: e2eStorageMock.getSignedUrl,
       deleteFile: jest.fn().mockResolvedValue(undefined),
     })
-    .overrideProvider(S3StorageService)
+    .overrideProvider(STORAGE_PROVIDER)
     .useValue(e2eStorageMock)
-    .overrideProvider(SupabaseService)
-    .useValue(e2eStorageMock)
+    .overrideProvider(AssetStorageService)
+    .useValue(e2eAssetStorageMock)
     .overrideProvider(MailService)
     .useValue(e2eMailMock)
     .compile();

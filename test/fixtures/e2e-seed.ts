@@ -9,6 +9,7 @@ export const E2E_IDS = {
   roleId: '22222222-2222-4222-8222-222222222222',
   editorRoleId: '99999999-9999-4999-8999-999999999999',
   orgId: '33333333-3333-4333-8333-333333333333',
+  otherOrgId: '34343434-3434-4434-8434-343434343434',
   memberId: '44444444-4444-4444-8444-444444444444',
   portalMemberId: '45454545-4545-4454-8454-454545454545',
   tagId: '55555555-5555-4555-8555-555555555555',
@@ -24,6 +25,7 @@ export const E2E_IDS = {
   eventCategoryAId: 'e2e2e2e2-e2e2-4e2e-8e2e-e2e2e2e2e2e2',
   eventCategoryCId: 'e3e3e3e3-e3e3-4e3e-8e3e-e3e3e3e3e3e3',
   eventDeletedId: 'e4e4e4e4-e4e4-4e4e-8e4e-e4e4e4e4e4e4',
+  assetId: 'f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1',
 } as const;
 
 const MODULE_DEFS = [
@@ -39,6 +41,7 @@ const MODULE_DEFS = [
   { name: 'reports', label: 'Relatórios' },
   { name: 'faqs', label: 'FAQ' },
   { name: 'calendar', label: 'Calendário' },
+  { name: 'assets', label: 'Assets' },
 ] as const;
 
 const ALL_ACTIONS: Action[] = [
@@ -68,6 +71,7 @@ export type E2eStore = {
   passwordResetTokens: Record<string, unknown>[];
   logs: Record<string, unknown>[];
   tagSearches: Record<string, unknown>[];
+  assets: Record<string, unknown>[];
 };
 
 export function createE2eSeed(): E2eStore {
@@ -174,6 +178,13 @@ export function createE2eSeed(): E2eStore {
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
+  };
+
+  const otherOrganization = {
+    ...organization,
+    id: E2E_IDS.otherOrgId,
+    name: 'Outra Organização E2E',
+    slug: 'outra-org-e2e',
   };
 
   const member = {
@@ -290,6 +301,17 @@ export function createE2eSeed(): E2eStore {
     createdAt: now,
     updatedAt: now,
     _count: { material: 0, tagSearches: 0 },
+  };
+
+  const asset = {
+    id: E2E_IDS.assetId,
+    organizationId: E2E_IDS.orgId,
+    name: 'Logo E2E',
+    fileKey: `organizations/${E2E_IDS.orgId}/assets/${E2E_IDS.assetId}/logo.png`,
+    mimeType: 'image/png',
+    size: 8,
+    createdAt: now,
+    updatedAt: now,
   };
 
   const banner = {
@@ -451,7 +473,7 @@ export function createE2eSeed(): E2eStore {
     roles: [role, memberRole],
     modules,
     rolePermissions,
-    organizations: [organization],
+    organizations: [organization, otherOrganization],
     members: [member, portalMember],
     tags: [tag],
     categories: [category, categoryB, categoryC],
@@ -476,5 +498,6 @@ export function createE2eSeed(): E2eStore {
     passwordResetTokens: [],
     logs: [],
     tagSearches: [],
+    assets: [asset],
   };
 }
