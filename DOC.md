@@ -19,6 +19,7 @@ A aplicação concentra a gestão de conteúdos de mídia por organização. Ela
 
 ## Últimas Atualizações
 
+- Legendas do calendário (`CalendarEventType`) passaram a armazenar `color` como string hexadecimal (`#RRGGBB`) em vez do enum fixo de 6 cores.
 - Tags passaram a ser escopadas por organização no banco e nas rotas, deixando de ser globais.
 - Materiais agora podem receber tags na criação e na edição, com retorno das tags associadas nas listagens e no detalhe.
 - O fluxo de tags em materiais faz normalização, remove duplicidades case-insensitive e reaproveita tags já existentes na organização.
