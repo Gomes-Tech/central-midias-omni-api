@@ -29,9 +29,9 @@ export class UpdateEventUseCase {
     const startDate = data.startDate ?? existing.startDate;
     const endDate = data.endDate ?? existing.endDate;
 
-    if (endDate < startDate) {
+    if (endDate <= startDate) {
       throw new BadRequestException(
-        'A data de término deve ser maior ou igual à data de início',
+        'O término deve ser depois do início. No mesmo dia, o horário de fim deve ser maior que o de início',
       );
     }
 

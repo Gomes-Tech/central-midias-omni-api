@@ -4,6 +4,17 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateEventDTO } from '../dto';
 import { EventRepository } from '../repository';
 
+const BRAZIL_TIME_ZONE = 'America/Sao_Paulo';
+
+function toCalendarDateKey(date: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: BRAZIL_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
 @Injectable()
 export class CreateEventUseCase {
   constructor(
@@ -17,9 +28,15 @@ export class CreateEventUseCase {
     data: CreateEventDTO,
     userId: string,
   ) {
-    if (data.endDate < data.startDate) {
+    if (toCalendarDateKey(data.startDate) < toCalendarDateKey(new Date())) {
       throw new BadRequestException(
-        'A data de término deve ser maior ou igual à data de início',
+        'Não é possível criar eventos em dias anteriores à data atual',
+      );
+    }
+
+    if (data.endDate <= data.startDate) {
+      throw new BadRequestException(
+        'O término deve ser depois do início. No mesmo dia, o horário de fim deve ser maior que o de início',
       );
     }
 

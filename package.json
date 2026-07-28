@@ -11,7 +11,7 @@
     "start": "nest start",
     "dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/src/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -23,6 +23,7 @@
     "db:deploy": "prisma migrate deploy && prisma db seed",
     "db:seed": "node prisma/seed.js",
     "db:sync-faqs": "node prisma/sync-organization-faqs.js",
+    "db:sync-holidays": "node prisma/sync-organization-holidays.js",
     "db:sync-global-roles": "node prisma/sync-global-role-categories.js",
     "prepare": "husky"
   },

@@ -41,10 +41,10 @@ describe('CreateEventUseCase', () => {
     );
   });
 
-  it('deve lançar BadRequest quando endDate < startDate', async () => {
+  it('deve lançar BadRequest quando startDate for em dia anterior a hoje', async () => {
     const dto = makeCreateEventDTO({
-      startDate: new Date('2026-05-10T00:00:00.000Z'),
-      endDate: new Date('2026-05-01T00:00:00.000Z'),
+      startDate: new Date('2020-01-01T12:00:00.000Z'),
+      endDate: new Date('2020-01-01T13:00:00.000Z'),
     });
 
     await expect(
@@ -52,6 +52,48 @@ describe('CreateEventUseCase', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
 
     expect(eventRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('deve lançar BadRequest quando endDate < startDate', async () => {
+    const dto = makeCreateEventDTO({
+      startDate: new Date('2026-08-10T00:00:00.000Z'),
+      endDate: new Date('2026-08-01T00:00:00.000Z'),
+    });
+
+    await expect(
+      useCase.execute('org-1', dto, 'user-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(eventRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('deve lançar BadRequest quando endDate for igual a startDate', async () => {
+    const sameInstant = new Date('2026-08-10T10:00:00.000Z');
+    const dto = makeCreateEventDTO({
+      startDate: sameInstant,
+      endDate: sameInstant,
+    });
+
+    await expect(
+      useCase.execute('org-1', dto, 'user-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(eventRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('deve criar evento no mesmo dia com horário de fim maior', async () => {
+    const dto = makeCreateEventDTO({
+      startDate: new Date('2026-08-10T10:00:00.000Z'),
+      endDate: new Date('2026-08-10T11:00:00.000Z'),
+    });
+
+    await useCase.execute('org-1', dto, 'user-1');
+
+    expect(eventRepository.create).toHaveBeenCalledWith(
+      'org-1',
+      dto,
+      'user-1',
+    );
   });
 
   it('deve lançar BadRequest quando materialId for inválido', async () => {

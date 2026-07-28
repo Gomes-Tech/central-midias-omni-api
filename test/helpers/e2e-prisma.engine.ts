@@ -35,6 +35,14 @@ function matchScalar(
   }
   if (isPlainObject(condition)) {
     if ('equals' in condition) {
+      if (
+        condition.mode === 'insensitive' &&
+        typeof fieldValue === 'string'
+      ) {
+        return (
+          fieldValue.toLowerCase() === String(condition.equals).toLowerCase()
+        );
+      }
       return fieldValue === condition.equals;
     }
     if ('in' in condition && Array.isArray(condition.in)) {
