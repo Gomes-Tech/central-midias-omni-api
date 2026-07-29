@@ -7,8 +7,8 @@ export function makeCreateEventDTO(
   return {
     title: 'Campanha Dia das Mães',
     description: 'Materiais disponíveis',
-    startDate: new Date('2026-05-01T00:00:00.000Z'),
-    endDate: new Date('2026-05-10T23:59:59.000Z'),
+    startDate: new Date('2026-08-01T00:00:00.000Z'),
+    endDate: new Date('2026-08-10T23:59:59.000Z'),
     eventTypeId: 'event-type-1',
     ...overrides,
   };
@@ -22,8 +22,8 @@ export function makeEventEntity(
     organizationId: 'org-1',
     title: 'Campanha Dia das Mães',
     description: 'Materiais disponíveis',
-    startDate: new Date('2026-05-01T00:00:00.000Z'),
-    endDate: new Date('2026-05-10T23:59:59.000Z'),
+    startDate: new Date('2026-08-01T00:00:00.000Z'),
+    endDate: new Date('2026-08-10T23:59:59.000Z'),
     externalUrl: null,
     eventTypeId: 'event-type-1',
     eventType: {

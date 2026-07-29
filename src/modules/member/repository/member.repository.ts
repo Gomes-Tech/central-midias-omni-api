@@ -2,6 +2,7 @@ import { BadRequestException } from '@common/filters';
 import { generateId } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
+import { syncManagerAssignments } from '@modules/user/helpers/sync-manager-assignments';
 import { Injectable } from '@nestjs/common';
 import { Action, Prisma } from '@prisma/client';
 import { PaginatedResponse } from '../../../types';
@@ -10,7 +11,7 @@ import {
   FindAllMembersFiltersDTO,
   UpdateMemberDTO,
 } from '../dto';
-import { Member, MemberList } from '../entities';
+import { Member, MemberList, MemberManagerSelect } from '../entities';
 
 @Injectable()
 export class MemberRepository {
@@ -122,6 +123,7 @@ export class MemberRepository {
         select: {
           id: true,
           roleId: true,
+          userId: true,
           user: {
             select: {
               name: true,
@@ -135,6 +137,11 @@ export class MemberRepository {
               uf: true,
               isActive: true,
               globalRoleId: true,
+              managerOf: {
+                where: { organizationId },
+                select: { managerId: true },
+                take: 1,
+              },
             },
           },
         },
@@ -146,6 +153,7 @@ export class MemberRepository {
 
       return {
         id: member.id,
+        userId: member.userId,
         name: member.user.name,
         socialReason: member.user.socialReason,
         email: member.user.email,
@@ -158,6 +166,7 @@ export class MemberRepository {
         isActive: member.user.isActive,
         city: member.user.city,
         uf: member.user.uf,
+        managerId: member.user.managerOf[0]?.managerId ?? null,
       };
     } catch (error) {
       void this.logger.error('MemberRepository.findById falhou', {
@@ -167,6 +176,49 @@ export class MemberRepository {
       });
 
       throw new BadRequestException('Erro ao buscar membro');
+    }
+  }
+
+  async findManagersSelect(
+    organizationId: string,
+    excludeUserId?: string,
+  ): Promise<MemberManagerSelect[]> {
+    try {
+      const members = await this.prisma.member.findMany({
+        where: {
+          organizationId,
+          ...(excludeUserId && { userId: { not: excludeUserId } }),
+          user: {
+            isDeleted: false,
+            isActive: true,
+          },
+          role: {
+            canHaveSubordinates: true,
+            deletedAt: null,
+          },
+        },
+        select: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: [{ user: { name: 'asc' } }],
+      });
+
+      return members.map((member) => ({
+        id: member.user.id,
+        name: member.user.name,
+      }));
+    } catch (error) {
+      void this.logger.error('MemberRepository.findManagersSelect falhou', {
+        error: String(error),
+        organizationId,
+      });
+
+      throw new BadRequestException('Erro ao buscar gestores');
     }
   }
 
@@ -495,7 +547,7 @@ export class MemberRepository {
             organizationId,
           },
           data: {
-            roleId: data.roleId,
+            ...(data.roleId !== undefined && { roleId: data.roleId }),
           },
           select: {
             userId: true,
@@ -510,6 +562,13 @@ export class MemberRepository {
             data: updateUser,
           });
         }
+
+        await syncManagerAssignments(
+          tx,
+          member.userId,
+          organizationId,
+          data.managerAssignments,
+        );
       });
 
       void this.logger.info('Membro atualizado', {

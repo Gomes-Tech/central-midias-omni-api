@@ -1,5 +1,6 @@
 import { BadRequestException } from '@common/filters';
 import { FindRoleByIdUseCase } from '@modules/roles/use-cases/find-role-by-id.use-case';
+import { UserRepository } from '@modules/user/repository';
 import { MemberRepository } from '../repository';
 import { FindMemberByIdUseCase } from './find-member-by-id.use-case';
 import { UpdateMemberUseCase } from './update-member.use-case';
@@ -9,6 +10,9 @@ describe('UpdateMemberUseCase', () => {
   let memberRepository: jest.Mocked<MemberRepository>;
   let findMemberByIdUseCase: jest.Mocked<FindMemberByIdUseCase>;
   let findRoleByIdUseCase: jest.Mocked<FindRoleByIdUseCase>;
+  let userRepository: jest.Mocked<
+    Pick<UserRepository, 'assertValidManagerAssignments'>
+  >;
   let useCase: UpdateMemberUseCase;
 
   const roleIdA = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -29,10 +33,15 @@ describe('UpdateMemberUseCase', () => {
       } as never),
     } as unknown as jest.Mocked<FindRoleByIdUseCase>;
 
+    userRepository = {
+      assertValidManagerAssignments: jest.fn().mockResolvedValue(undefined),
+    };
+
     useCase = new UpdateMemberUseCase(
       memberRepository,
       findMemberByIdUseCase,
       findRoleByIdUseCase,
+      userRepository as unknown as UserRepository,
     );
   });
 
@@ -41,6 +50,7 @@ describe('UpdateMemberUseCase', () => {
 
     findMemberByIdUseCase.execute.mockResolvedValue({
       id: 'member-id',
+      userId: 'user-id',
       roleId: roleIdA,
       globalRoleId: null,
     } as never);
@@ -64,21 +74,27 @@ describe('UpdateMemberUseCase', () => {
     );
   });
 
-  it('deve lançar erro quando o membro já estiver no perfil informado', async () => {
+  it('deve atualizar quando o perfil informado for o mesmo', async () => {
     const data = makeUpdateMemberDTO({ roleId: roleIdA });
 
     findMemberByIdUseCase.execute.mockResolvedValue({
       id: 'member-id',
+      userId: 'user-id',
       roleId: roleIdA,
       globalRoleId: null,
     } as never);
 
     await expect(
       useCase.execute('member-id', 'org-id', data, 'editor-id'),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).resolves.toBeUndefined();
 
     expect(findRoleByIdUseCase.execute).not.toHaveBeenCalled();
-    expect(memberRepository.update).not.toHaveBeenCalled();
+    expect(memberRepository.update).toHaveBeenCalledWith(
+      'member-id',
+      'org-id',
+      data,
+      'editor-id',
+    );
   });
 
   it('deve rejeitar perfil global para membro comum', async () => {
@@ -86,6 +102,7 @@ describe('UpdateMemberUseCase', () => {
 
     findMemberByIdUseCase.execute.mockResolvedValue({
       id: 'member-id',
+      userId: 'user-id',
       roleId: roleIdA,
       globalRoleId: null,
     } as never);
@@ -107,6 +124,7 @@ describe('UpdateMemberUseCase', () => {
 
     findMemberByIdUseCase.execute.mockResolvedValue({
       id: 'member-id',
+      userId: 'user-id',
       roleId: roleIdA,
       globalRoleId: 'global-role-id',
     } as never);
@@ -131,6 +149,7 @@ describe('UpdateMemberUseCase', () => {
 
     findMemberByIdUseCase.execute.mockResolvedValue({
       id: 'member-id',
+      userId: 'user-id',
       roleId: roleIdA,
       globalRoleId: null,
     } as never);
@@ -146,5 +165,50 @@ describe('UpdateMemberUseCase', () => {
       data,
       'editor-id',
     );
+  });
+
+  it('deve validar gestores quando managerAssignments for informado', async () => {
+    const data = makeUpdateMemberDTO({
+      roleId: roleIdA,
+      managerAssignments: [{ managerId: 'manager-1' }],
+    });
+
+    findMemberByIdUseCase.execute.mockResolvedValue({
+      id: 'member-id',
+      userId: 'user-id',
+      roleId: roleIdA,
+      globalRoleId: null,
+    } as never);
+
+    await useCase.execute('member-id', 'org-id', data, 'editor-id');
+
+    expect(userRepository.assertValidManagerAssignments).toHaveBeenCalledWith(
+      'org-id',
+      data.managerAssignments,
+      'user-id',
+    );
+  });
+
+  it('deve propagar erro quando gestor for inválido', async () => {
+    const data = makeUpdateMemberDTO({
+      roleId: roleIdA,
+      managerAssignments: [{ managerId: 'manager-1' }],
+    });
+
+    findMemberByIdUseCase.execute.mockResolvedValue({
+      id: 'member-id',
+      userId: 'user-id',
+      roleId: roleIdA,
+      globalRoleId: null,
+    } as never);
+    userRepository.assertValidManagerAssignments.mockRejectedValue(
+      new BadRequestException('Gestor inválido'),
+    );
+
+    await expect(
+      useCase.execute('member-id', 'org-id', data, 'editor-id'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(memberRepository.update).not.toHaveBeenCalled();
   });
 });

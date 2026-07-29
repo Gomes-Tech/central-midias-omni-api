@@ -8,6 +8,11 @@ import { FindAllFilters, PaginatedResponse } from '../../../types';
 import { CreateOrganizationDTO, UpdateOrganizationDTO } from '../dto';
 import { OrganizationEntity } from '../entities';
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { seedHolidaysForOrganization } = require(
+  require('path').join(process.cwd(), 'prisma/lib/brazilian-holidays'),
+);
+
 @Injectable()
 export class OrganizationRepository {
   constructor(
@@ -248,6 +253,8 @@ export class OrganizationRepository {
             isActive: true,
           },
         });
+
+        await seedHolidaysForOrganization(tx, organization.id, userId);
 
         return organization;
       });
