@@ -22,7 +22,7 @@ describe('Materials (e2e)', () => {
       .set(e2eAuthHeaders(accessToken))
       .expect(200);
 
-    expect(response.body.length).toBeGreaterThan(0);
+    expect(response.body.data.length).toBeGreaterThan(0);
   });
 
   it('GET /api/materials/:id deve retornar material', async () => {

@@ -266,6 +266,7 @@ describe('MemberRepository', () => {
 
     it('deve retornar o papel quando o membro existir', async () => {
       prisma.member.findFirst.mockResolvedValue({
+        roleId: 'role-id',
         role: {
           name: 'editor',
           label: 'Editor',
@@ -278,6 +279,7 @@ describe('MemberRepository', () => {
       await expect(
         repository.findMemberRole('org-1', 'user-1'),
       ).resolves.toEqual({
+        roleId: 'role-id',
         name: 'editor',
         label: 'Editor',
         canAccessBackoffice: false,
@@ -292,6 +294,7 @@ describe('MemberRepository', () => {
           role: { deletedAt: null },
         },
         select: {
+          roleId: true,
           role: {
             select: roleSelectExpectation,
           },
@@ -349,6 +352,7 @@ describe('MemberRepository', () => {
           role: { deletedAt: null },
         },
         select: {
+          roleId: true,
           role: {
             select: roleSelectExpectation,
           },

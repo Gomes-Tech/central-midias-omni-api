@@ -9,6 +9,18 @@ import { ResolveMaterialTagIdsUseCase } from './resolve-material-tag-ids.use-cas
 import { makeCreateMaterialDTO, makeUploadFile } from './test-helpers';
 
 describe('CreateMaterialUseCase', () => {
+  const makePngFile = () => {
+    const buffer = Buffer.alloc(24);
+    Buffer.from('89504e470d0a1a0a', 'hex').copy(buffer);
+    buffer.writeUInt32BE(1080, 16);
+    buffer.writeUInt32BE(1080, 20);
+    return makeUploadFile({
+      originalname: 'base.png',
+      mimetype: 'image/png',
+      size: buffer.length,
+      buffer,
+    });
+  };
   let materialRepository: jest.Mocked<MaterialRepository>;
   let findCategoryByIdUseCase: { execute: jest.Mock };
   let resolveMaterialTagIdsUseCase: { execute: jest.Mock };
@@ -59,11 +71,11 @@ describe('CreateMaterialUseCase', () => {
       existingTagIds: ['tag-id'],
       newTagNames: [],
     });
-    materialRepository.create.mockResolvedValue(undefined);
+    materialRepository.create.mockResolvedValue('mocked-uuid');
 
-    await expect(useCase.execute('org-id', dto, 'user-id')).resolves.toBe(
-      undefined,
-    );
+    await expect(useCase.execute('org-id', dto, 'user-id')).resolves.toEqual({
+      id: 'mocked-uuid',
+    });
 
     expect(findCategoryByIdUseCase.execute).toHaveBeenCalledWith(
       dto.categoryId,
@@ -91,18 +103,19 @@ describe('CreateMaterialUseCase', () => {
       },
     );
     expect(storageService.uploadFile).not.toHaveBeenCalled();
-    expect(enqueueMaterialAcceptanceEmailsUseCase.execute).not.toHaveBeenCalled();
-    expect(enqueueMaterialNotificationEmailsUseCase.execute).not.toHaveBeenCalled();
+    expect(
+      enqueueMaterialAcceptanceEmailsUseCase.execute,
+    ).not.toHaveBeenCalled();
+    expect(
+      enqueueMaterialNotificationEmailsUseCase.execute,
+    ).not.toHaveBeenCalled();
   });
 
-  it('deve criar material personalizável com configuração', async () => {
+  it('deve criar material personalizável com uma imagem base válida', async () => {
     const dto = makeCreateMaterialDTO({
       isCustomizable: true,
-      customization: {
-        position: 'TOP',
-        hasPhonePrimary: true,
-      },
     });
+    const file = makePngFile();
     findCategoryByIdUseCase.execute.mockResolvedValue({
       id: dto.categoryId,
       isActive: true,
@@ -112,11 +125,14 @@ describe('CreateMaterialUseCase', () => {
       existingTagIds: [],
       newTagNames: [],
     });
-    materialRepository.create.mockResolvedValue(undefined);
+    storageService.uploadFile.mockResolvedValue({
+      path: 'materials/mocked-uuid/base.png',
+    });
+    materialRepository.create.mockResolvedValue('mocked-uuid');
 
-    await expect(useCase.execute('org-id', dto, 'user-id')).resolves.toBe(
-      undefined,
-    );
+    await expect(
+      useCase.execute('org-id', dto, 'user-id', [file]),
+    ).resolves.toEqual({ id: 'mocked-uuid' });
 
     expect(materialRepository.create).toHaveBeenCalledWith(
       'org-id',
@@ -124,19 +140,21 @@ describe('CreateMaterialUseCase', () => {
       'user-id',
       expect.objectContaining({
         id: 'mocked-uuid',
+        files: [
+          expect.objectContaining({
+            id: 'mocked-uuid',
+            mimeType: 'image/png',
+          }),
+        ],
       }),
     );
   });
 
-  it('deve impedir customização sem isCustomizable true', async () => {
-    const dto = makeCreateMaterialDTO({
-      customization: {
-        hasPhonePrimary: true,
-      },
-    });
+  it('deve exigir exatamente uma imagem base para material personalizável', async () => {
+    const dto = makeCreateMaterialDTO({ isCustomizable: true });
 
     await expect(useCase.execute('org-id', dto, 'user-id')).rejects.toThrow(
-      'Customização só pode ser informada para materiais personalizáveis',
+      'Material customizável deve possuir exatamente uma imagem base',
     );
 
     expect(findCategoryByIdUseCase.execute).not.toHaveBeenCalled();
@@ -154,14 +172,13 @@ describe('CreateMaterialUseCase', () => {
       existingTagIds: [],
       newTagNames: [],
     });
-    materialRepository.create.mockResolvedValue(undefined);
+    materialRepository.create.mockResolvedValue('mocked-uuid');
 
     await useCase.execute('org-id', dto, 'user-id');
 
-    expect(enqueueMaterialNotificationEmailsUseCase.execute).toHaveBeenCalledWith(
-      'mocked-uuid',
-      'org-id',
-    );
+    expect(
+      enqueueMaterialNotificationEmailsUseCase.execute,
+    ).toHaveBeenCalledWith('mocked-uuid', 'org-id', undefined);
   });
 
   it('não deve impedir criação quando enfileiramento de notificação falhar', async () => {
@@ -175,14 +192,14 @@ describe('CreateMaterialUseCase', () => {
       existingTagIds: [],
       newTagNames: [],
     });
-    materialRepository.create.mockResolvedValue(undefined);
+    materialRepository.create.mockResolvedValue('mocked-uuid');
     enqueueMaterialNotificationEmailsUseCase.execute.mockRejectedValue(
       new Error('queue'),
     );
 
-    await expect(useCase.execute('org-id', dto, 'user-id')).resolves.toBe(
-      undefined,
-    );
+    await expect(useCase.execute('org-id', dto, 'user-id')).resolves.toEqual({
+      id: 'mocked-uuid',
+    });
   });
 
   it('deve disparar notificação quando requiresAcceptance for true', async () => {
@@ -196,7 +213,7 @@ describe('CreateMaterialUseCase', () => {
       existingTagIds: [],
       newTagNames: [],
     });
-    materialRepository.create.mockResolvedValue(undefined);
+    materialRepository.create.mockResolvedValue('mocked-uuid');
 
     await useCase.execute('org-id', dto, 'user-id');
 
@@ -213,18 +230,18 @@ describe('CreateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
-    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue({
       existingTagIds: [],
       newTagNames: [],
     });
-    materialRepository.create.mockResolvedValue(undefined);
+    materialRepository.create.mockResolvedValue('mocked-uuid');
     enqueueMaterialAcceptanceEmailsUseCase.execute.mockRejectedValue(
       new Error('queue'),
     );
 
-    await expect(useCase.execute('org-id', dto, 'user-id')).resolves.toBe(
-      undefined,
-    );
+    await expect(useCase.execute('org-id', dto, 'user-id')).resolves.toEqual({
+      id: 'mocked-uuid',
+    });
   });
 
   it('deve usar mimeType e size padrão quando arquivo não informar metadados', async () => {
@@ -245,7 +262,7 @@ describe('CreateMaterialUseCase', () => {
     storageService.uploadFile.mockResolvedValue({
       path: 'materials/mocked-uuid/arquivo.bin',
     });
-    materialRepository.create.mockResolvedValue(undefined);
+    materialRepository.create.mockResolvedValue('mocked-uuid');
 
     await useCase.execute('org-id', dto, 'user-id', [file]);
 
@@ -280,11 +297,11 @@ describe('CreateMaterialUseCase', () => {
     storageService.uploadFile.mockResolvedValue({
       path: 'materials/mocked-uuid/arquivo.pdf',
     });
-    materialRepository.create.mockResolvedValue(undefined);
+    materialRepository.create.mockResolvedValue('mocked-uuid');
 
     await expect(
       useCase.execute('org-id', dto, 'user-id', [file]),
-    ).resolves.toBe(undefined);
+    ).resolves.toEqual({ id: 'mocked-uuid' });
 
     expect(storageService.uploadFile).toHaveBeenCalledWith(
       file,

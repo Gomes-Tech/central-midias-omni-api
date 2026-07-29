@@ -17,6 +17,8 @@ export interface MaterialListItem {
     name: string;
   };
   materialFilesCount: number;
+  isCustomizable: boolean;
+  templateStatus: 'DRAFT' | 'PUBLISHED' | null;
 }
 
 export interface MaterialFileItem {
@@ -31,14 +33,6 @@ export interface MaterialFileWithUrl extends Omit<MaterialFileItem, 'fileKey'> {
   url: string;
 }
 
-export interface MaterialCustomizationDetails {
-  position: 'TOP' | 'FOOTER';
-  hasPhonePrimary: boolean;
-  hasPhoneSecondary: boolean;
-  hasAddress: boolean;
-  hasCity: boolean;
-}
-
 export interface MaterialDetails {
   id: string;
   name: string;
@@ -50,7 +44,7 @@ export interface MaterialDetails {
   hasTextCopy: boolean;
   textCopy?: string | null;
   isCustomizable: boolean;
-  customization: MaterialCustomizationDetails | null;
+  templateStatus: 'DRAFT' | 'PUBLISHED' | null;
   createdAt: Date;
   updatedAt: Date;
   category: MaterialCategorySummary;
@@ -90,6 +84,7 @@ export interface MaterialByCategorySlugItem {
   hasTextCopy: boolean;
   textCopy: string | null;
   isCustomizable: boolean;
+  canCustomize: boolean;
 }
 
 export interface MaterialByCategorySlugRow {
@@ -100,6 +95,7 @@ export interface MaterialByCategorySlugRow {
   hasTextCopy: boolean;
   textCopy: string | null;
   isCustomizable: boolean;
+  canCustomize: boolean;
   imageKey: string | null;
   mimeType: string | null;
   size: number | null;

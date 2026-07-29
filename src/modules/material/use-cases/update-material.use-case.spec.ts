@@ -1,4 +1,5 @@
 import { BadRequestException } from '@common/filters';
+import { StorageService } from '@infrastructure/providers';
 import { FindCategoryByIdUseCase } from '@modules/category';
 import { MaterialRepository } from '../repository';
 import { UpdateMaterialUseCase } from './update-material.use-case';
@@ -15,11 +16,13 @@ describe('UpdateMaterialUseCase', () => {
   let resolveMaterialTagIdsUseCase: { execute: jest.Mock };
   let enqueueMaterialAcceptanceEmailsUseCase: { execute: jest.Mock };
   let enqueueMaterialNotificationEmailsUseCase: { execute: jest.Mock };
+  let storageService: { readFile: jest.Mock };
   let useCase: UpdateMaterialUseCase;
 
   beforeEach(() => {
     materialRepository = {
       findByName: jest.fn(),
+      findFilesByMaterialId: jest.fn(),
       update: jest.fn(),
     } as unknown as jest.Mocked<MaterialRepository>;
 
@@ -32,12 +35,18 @@ describe('UpdateMaterialUseCase', () => {
     enqueueMaterialNotificationEmailsUseCase = {
       execute: jest.fn().mockResolvedValue({ enqueued: 1 }),
     };
+    const png = Buffer.alloc(24);
+    Buffer.from('89504e470d0a1a0a', 'hex').copy(png);
+    png.writeUInt32BE(1080, 16);
+    png.writeUInt32BE(1080, 20);
+    storageService = { readFile: jest.fn().mockResolvedValue(png) };
 
     useCase = new UpdateMaterialUseCase(
       materialRepository,
       findMaterialByIdUseCase as unknown as FindMaterialByIdUseCase,
       findCategoryByIdUseCase as unknown as FindCategoryByIdUseCase,
       resolveMaterialTagIdsUseCase as unknown as ResolveMaterialTagIdsUseCase,
+      storageService as unknown as StorageService,
       enqueueMaterialAcceptanceEmailsUseCase as unknown as EnqueueMaterialAcceptanceEmailsUseCase,
       enqueueMaterialNotificationEmailsUseCase as unknown as EnqueueMaterialNotificationEmailsUseCase,
     );
@@ -166,16 +175,20 @@ describe('UpdateMaterialUseCase', () => {
     );
   });
 
-  it('deve atualizar configuração quando material for personalizável', async () => {
+  it('deve criar ou recuperar o template ao ativar a personalização', async () => {
     const material = makeMaterialDetails();
-    const dto = makeUpdateMaterialDTO({
-      isCustomizable: true,
-      customization: {
-        hasCity: true,
-      },
-    });
+    const dto = makeUpdateMaterialDTO({ isCustomizable: true });
 
     findMaterialByIdUseCase.execute.mockResolvedValue(material);
+    materialRepository.findFilesByMaterialId.mockResolvedValue([
+      {
+        id: 'base-file-id',
+        materialId: material.id,
+        fileKey: 'materials/material-id/base.png',
+        mimeType: 'image/png',
+        size: 1024,
+      },
+    ]);
     resolveMaterialTagIdsUseCase.execute.mockResolvedValue(undefined);
     materialRepository.update.mockResolvedValue(undefined);
 
@@ -190,24 +203,26 @@ describe('UpdateMaterialUseCase', () => {
       'user-id',
       {
         tags: undefined,
+        activateTemplate: { baseMaterialFileId: 'base-file-id' },
       },
+    );
+    expect(storageService.readFile).toHaveBeenCalledWith(
+      'materials/material-id/base.png',
     );
   });
 
-  it('deve impedir customização sem isCustomizable true', async () => {
-    const dto = makeUpdateMaterialDTO({
-      customization: {
-        hasAddress: true,
-      },
-    });
+  it('deve impedir ativação sem exatamente uma imagem PNG ou JPEG', async () => {
+    const material = makeMaterialDetails();
+    const dto = makeUpdateMaterialDTO({ isCustomizable: true });
+    findMaterialByIdUseCase.execute.mockResolvedValue(material);
+    materialRepository.findFilesByMaterialId.mockResolvedValue([]);
 
     await expect(
       useCase.execute('material-id', 'org-id', dto, 'user-id'),
     ).rejects.toThrow(
-      'Customização só pode ser informada para materiais personalizáveis',
+      'Material customizável deve possuir exatamente uma imagem PNG ou JPEG',
     );
 
-    expect(findMaterialByIdUseCase.execute).not.toHaveBeenCalled();
     expect(materialRepository.update).not.toHaveBeenCalled();
   });
 
@@ -255,7 +270,7 @@ describe('UpdateMaterialUseCase', () => {
 
     expect(
       enqueueMaterialNotificationEmailsUseCase.execute,
-    ).toHaveBeenCalledWith(material.id, 'org-id');
+    ).toHaveBeenCalledWith(material.id, 'org-id', undefined);
   });
 
   it('não deve notificar usuários quando notifyUsers não for true', async () => {

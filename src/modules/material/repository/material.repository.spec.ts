@@ -88,6 +88,8 @@ describe('MaterialRepository', () => {
           category: {
             name: 'Categoria',
           },
+          isCustomizable: false,
+          materialTemplate: null,
           materialFiles: [{ id: 'file-1' }, { id: 'file-2' }],
         },
       ]);
@@ -111,6 +113,8 @@ describe('MaterialRepository', () => {
               name: 'Categoria',
             },
             materialFilesCount: 2,
+            isCustomizable: false,
+            templateStatus: null,
           },
         ],
         total: 1,
@@ -219,6 +223,8 @@ describe('MaterialRepository', () => {
           name: 'Material campanha',
           description: 'Descricao',
           category: { name: 'Categoria' },
+          isCustomizable: false,
+          materialTemplate: null,
           materialFiles: [{ id: 'file-1' }],
         },
       ]);
@@ -238,6 +244,9 @@ describe('MaterialRepository', () => {
             description: 'Descricao',
             category: { name: 'Categoria' },
             materialFilesCount: 1,
+            materialFile: undefined,
+            isCustomizable: false,
+            templateStatus: null,
           },
         ],
         total: 1,
@@ -379,7 +388,7 @@ describe('MaterialRepository', () => {
         hasTextCopy: true,
         textCopy: 'Texto livre para copiar',
         isCustomizable: false,
-        materialCustomization: null,
+        materialTemplate: null,
         createdAt: new Date('2024-01-01T00:00:00.000Z'),
         updatedAt: new Date('2024-01-02T00:00:00.000Z'),
         deletedAt: null,
@@ -402,12 +411,12 @@ describe('MaterialRepository', () => {
           hasTextCopy: true,
           textCopy: 'Texto livre para copiar',
           isCustomizable: false,
-          customization: null,
+          templateStatus: null,
         }),
       );
     });
 
-    it('deve retornar os dados de customização quando material for personalizável', async () => {
+    it('deve retornar o status do template quando material for personalizável', async () => {
       prisma.material.findFirst.mockResolvedValue({
         id: 'material-id',
         name: 'Material institucional',
@@ -417,13 +426,7 @@ describe('MaterialRepository', () => {
         hasExternalLink: false,
         externalLink: null,
         isCustomizable: true,
-        materialCustomization: {
-          position: 'TOP',
-          hasPhonePrimary: true,
-          hasPhoneSecondary: false,
-          hasAddress: true,
-          hasCity: false,
-        },
+        materialTemplate: { status: 'PUBLISHED' },
         createdAt: new Date('2024-01-01T00:00:00.000Z'),
         updatedAt: new Date('2024-01-02T00:00:00.000Z'),
         deletedAt: null,
@@ -441,13 +444,7 @@ describe('MaterialRepository', () => {
       ).resolves.toEqual(
         expect.objectContaining({
           isCustomizable: true,
-          customization: {
-            position: 'TOP',
-            hasPhonePrimary: true,
-            hasPhoneSecondary: false,
-            hasAddress: true,
-            hasCity: false,
-          },
+          templateStatus: 'PUBLISHED',
         }),
       );
     });
@@ -530,7 +527,7 @@ describe('MaterialRepository', () => {
             },
           },
         ),
-      ).resolves.toBe(undefined);
+      ).resolves.toBe('material-id');
 
       expect(prisma.material.create).toHaveBeenCalledWith({
         data: {
@@ -710,7 +707,7 @@ describe('MaterialRepository', () => {
             },
           },
         ),
-      ).resolves.toBe(undefined);
+      ).resolves.toBe('material-id');
 
       expect(prisma.material.create).toHaveBeenCalledWith({
         data: {
@@ -758,7 +755,7 @@ describe('MaterialRepository', () => {
       });
     });
 
-    it('deve criar customização quando material for personalizável', async () => {
+    it('deve criar template rascunho junto com material personalizável', async () => {
       prisma.material.create.mockResolvedValue({ id: 'material-id' });
 
       await repository.create(
@@ -767,13 +764,18 @@ describe('MaterialRepository', () => {
           name: 'Material',
           categoryId: 'category-id',
           isCustomizable: true,
-          customization: {
-            position: 'TOP',
-            hasPhonePrimary: true,
-            hasAddress: true,
-          },
         },
         'user-id',
+        {
+          files: [
+            {
+              id: 'base-file-id',
+              fileKey: 'materials/material-id/base.png',
+              mimeType: 'image/png',
+              size: 1024,
+            },
+          ],
+        },
       );
 
       expect(prisma.material.create).toHaveBeenCalledWith({
@@ -788,12 +790,22 @@ describe('MaterialRepository', () => {
           hasTextCopy: false,
           textCopy: null,
           isCustomizable: true,
-          materialCustomization: {
+          materialFiles: {
+            create: [
+              {
+                id: 'base-file-id',
+                imageKey: 'materials/material-id/base.png',
+                mimeType: 'image/png',
+                size: 1024,
+              },
+            ],
+          },
+          materialTemplate: {
             create: {
               id: 'mocked-uuid',
-              position: 'TOP',
-              hasPhonePrimary: true,
-              hasAddress: true,
+              organizationId: 'org-id',
+              baseMaterialFileId: 'base-file-id',
+              status: 'DRAFT',
             },
           },
         },
@@ -806,7 +818,7 @@ describe('MaterialRepository', () => {
     it('deve atualizar campos informados no escopo da organização', async () => {
       prisma.material.findFirst.mockResolvedValue({
         id: 'material-id',
-        materialCustomization: null,
+        materialTemplate: null,
       });
       prisma.material.update.mockResolvedValue({ id: 'material-id' });
 
@@ -842,7 +854,7 @@ describe('MaterialRepository', () => {
         },
         select: {
           id: true,
-          materialCustomization: {
+          materialTemplate: {
             select: {
               id: true,
             },
@@ -884,7 +896,7 @@ describe('MaterialRepository', () => {
     it('deve limpar tags quando o payload vier vazio', async () => {
       prisma.material.findFirst.mockResolvedValue({
         id: 'material-id',
-        materialCustomization: null,
+        materialTemplate: null,
       });
       prisma.material.update.mockResolvedValue({ id: 'material-id' });
 
@@ -921,12 +933,7 @@ describe('MaterialRepository', () => {
       prisma.material.findFirst.mockResolvedValue(null);
 
       await expect(
-        repository.update(
-          'material-id',
-          'org-id',
-          { name: 'Novo' },
-          'user-id',
-        ),
+        repository.update('material-id', 'org-id', { name: 'Novo' }, 'user-id'),
       ).resolves.toBeUndefined();
       expect(prisma.material.update).not.toHaveBeenCalled();
     });
@@ -934,7 +941,7 @@ describe('MaterialRepository', () => {
     it('deve atualizar apenas description quando informada', async () => {
       prisma.material.findFirst.mockResolvedValue({
         id: 'material-id',
-        materialCustomization: null,
+        materialTemplate: null,
       });
       prisma.material.update.mockResolvedValue({ id: 'material-id' });
 
@@ -951,10 +958,10 @@ describe('MaterialRepository', () => {
       });
     });
 
-    it('deve criar ou atualizar customização quando material for personalizável', async () => {
+    it('deve criar ou recuperar template ao ativar personalização', async () => {
       prisma.material.findFirst.mockResolvedValue({
         id: 'material-id',
-        materialCustomization: null,
+        materialTemplate: null,
       });
       prisma.material.update.mockResolvedValue({ id: 'material-id' });
 
@@ -963,28 +970,30 @@ describe('MaterialRepository', () => {
         'org-id',
         {
           isCustomizable: true,
-          customization: {
-            position: 'TOP',
-            hasPhonePrimary: true,
-          },
         },
         'user-id',
+        {
+          activateTemplate: { baseMaterialFileId: 'base-file-id' },
+        },
       );
 
       expect(prisma.material.update).toHaveBeenCalledWith({
         where: { id: 'material-id' },
         data: {
           isCustomizable: true,
-          materialCustomization: {
+          materialTemplate: {
             upsert: {
               create: {
                 id: 'mocked-uuid',
-                position: 'TOP',
-                hasPhonePrimary: true,
+                organizationId: 'org-id',
+                baseMaterialFileId: 'base-file-id',
+                status: 'DRAFT',
               },
               update: {
-                position: 'TOP',
-                hasPhonePrimary: true,
+                baseMaterialFileId: 'base-file-id',
+                status: 'DRAFT',
+                publishedAt: null,
+                revision: { increment: 1 },
               },
             },
           },
@@ -992,10 +1001,10 @@ describe('MaterialRepository', () => {
       });
     });
 
-    it('deve remover customização ao desativar personalização', async () => {
+    it('deve preservar o template em rascunho ao desativar personalização', async () => {
       prisma.material.findFirst.mockResolvedValue({
         id: 'material-id',
-        materialCustomization: { id: 'customization-id' },
+        materialTemplate: { id: 'template-id' },
       });
       prisma.material.update.mockResolvedValue({ id: 'material-id' });
 
@@ -1010,8 +1019,12 @@ describe('MaterialRepository', () => {
         where: { id: 'material-id' },
         data: {
           isCustomizable: false,
-          materialCustomization: {
-            delete: true,
+          materialTemplate: {
+            update: {
+              status: 'DRAFT',
+              publishedAt: null,
+              revision: { increment: 1 },
+            },
           },
         },
       });
@@ -1020,17 +1033,12 @@ describe('MaterialRepository', () => {
     it('deve lançar BadRequest quando update falhar', async () => {
       prisma.material.findFirst.mockResolvedValue({
         id: 'material-id',
-        materialCustomization: null,
+        materialTemplate: null,
       });
       prisma.material.update.mockRejectedValue(new Error('db'));
 
       await expect(
-        repository.update(
-          'material-id',
-          'org-id',
-          { name: 'Novo' },
-          'user-id',
-        ),
+        repository.update('material-id', 'org-id', { name: 'Novo' }, 'user-id'),
       ).rejects.toThrow('Erro ao atualizar material');
     });
   });
@@ -1487,12 +1495,9 @@ describe('MaterialRepository', () => {
         fallbackMaterial,
       ]);
 
-      expect(fallbackSpy).toHaveBeenCalledWith(
-        'org-id',
-        'user-id',
-        2,
-        ['material-id'],
-      );
+      expect(fallbackSpy).toHaveBeenCalledWith('org-id', 'user-id', 2, [
+        'material-id',
+      ]);
       fallbackSpy.mockRestore();
     });
   });
@@ -2148,6 +2153,7 @@ describe('MaterialRepository', () => {
             hasTextCopy: true,
             textCopy: 'texto',
             isCustomizable: false,
+            canCustomize: false,
             imageKey: 'materials/m1.png',
             mimeType: 'image/png',
             size: 100,
@@ -2189,10 +2195,7 @@ describe('MaterialRepository', () => {
       ]);
       prisma.material.count.mockResolvedValue(1);
 
-      const result = await repository.findByCategorySlugPath(
-        'org-id',
-        'cat',
-      );
+      const result = await repository.findByCategorySlugPath('org-id', 'cat');
 
       expect(result.data[0]).toEqual(
         expect.objectContaining({

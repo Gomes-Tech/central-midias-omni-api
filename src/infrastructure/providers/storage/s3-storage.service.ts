@@ -114,6 +114,20 @@ export class S3StorageService implements StorageProvider {
     }
   }
 
+  async readFile(key: string): Promise<Buffer> {
+    try {
+      const response = await this.s3.send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
+      if (!response.Body) {
+        throw new Error('Arquivo sem conteúdo');
+      }
+      return Buffer.from(await response.Body.transformToByteArray());
+    } catch {
+      throw new BadRequestException('Erro ao ler arquivo no S3');
+    }
+  }
+
   // ✅ GERAR URL (VIEW)
   async getSignedUrl(key: string, expieresIn?: number): Promise<string> {
     const command = new GetObjectCommand({

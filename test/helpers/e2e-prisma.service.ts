@@ -17,6 +17,24 @@ type QueryArgs = {
   take?: number;
 };
 
+function applyUpdateData(
+  row: Record<string, unknown>,
+  data: Record<string, unknown>,
+) {
+  for (const [key, value] of Object.entries(data)) {
+    if (value && typeof value === 'object' && 'increment' in value) {
+      row[key] = Number(row[key] ?? 0) + Number(value.increment);
+      continue;
+    }
+    if (value && typeof value === 'object' && 'set' in value) {
+      row[key] = value.set;
+      continue;
+    }
+    row[key] = value;
+  }
+  row.updatedAt = new Date();
+}
+
 function createDelegate(collectionKey: keyof ReturnType<typeof getE2eStore>) {
   return {
     findMany: async (args: QueryArgs = {}) => {
@@ -54,7 +72,7 @@ function createDelegate(collectionKey: keyof ReturnType<typeof getE2eStore>) {
     }) => {
       const store = getE2eStore();
       const collection = store[collectionKey] as Record<string, unknown>[];
-      const row = mergeCreateData(args.data, store);
+      const row = mergeCreateData(args.data);
       collection.push(row);
       return (
         findFirst(
@@ -68,7 +86,7 @@ function createDelegate(collectionKey: keyof ReturnType<typeof getE2eStore>) {
       const store = getE2eStore();
       const collection = store[collectionKey] as Record<string, unknown>[];
       for (const item of args.data) {
-        collection.push(mergeCreateData(item, store));
+        collection.push(mergeCreateData(item));
       }
       return { count: args.data.length };
     },
@@ -82,7 +100,7 @@ function createDelegate(collectionKey: keyof ReturnType<typeof getE2eStore>) {
       if (!row) {
         throw new Error(`${String(collectionKey)} not found`);
       }
-      Object.assign(row, args.data, { updatedAt: new Date() });
+      applyUpdateData(row, args.data);
       return row;
     },
     updateMany: async (args: {
@@ -99,7 +117,7 @@ function createDelegate(collectionKey: keyof ReturnType<typeof getE2eStore>) {
         ) {
           continue;
         }
-        Object.assign(row, args.data, { updatedAt: new Date() });
+        applyUpdateData(row, args.data);
         count += 1;
       }
       return { count };
@@ -145,6 +163,8 @@ export class E2ePrismaService {
   socialHighlight = createDelegate('socialHighlights');
   material = createDelegate('materials');
   materialFile = createDelegate('materialFiles');
+  materialTemplate = createDelegate('materialTemplates');
+  materialTemplateAsset = createDelegate('materialTemplateAssets');
   categoryRoleAccess = createDelegate('categoryRoleAccesses');
   calendarEventType = createDelegate('calendarEventTypes');
   calendarEvent = createDelegate('calendarEvents');

@@ -14,6 +14,7 @@ export interface AssetUpload {
 
 export interface StorageProvider {
   uploadFile(file: MulterFile, folder?: string): Promise<LocalStorageFile>;
+  readFile(path: string): Promise<Buffer>;
   getSignedUrl(path: string, expiresIn?: number): Promise<string>;
   getSignedDownloadUrl(path: string, filename: string): Promise<string>;
   deleteFile(paths: string[]): Promise<void>;

@@ -17,6 +17,7 @@ describe('FindMaterialsByCategorySlugUseCase', () => {
     hasTextCopy: false,
     textCopy: null,
     isCustomizable: false,
+    canCustomize: false,
     imageKey: 'materials/material-1/preview.png',
     mimeType: 'image/png',
     size: 2048,
@@ -74,6 +75,7 @@ describe('FindMaterialsByCategorySlugUseCase', () => {
           hasTextCopy: false,
           textCopy: null,
           isCustomizable: false,
+          canCustomize: false,
         },
       ],
       total: 1,
@@ -90,9 +92,12 @@ describe('FindMaterialsByCategorySlugUseCase', () => {
       totalPages: 0,
     });
 
-    await expect(
-      useCase.execute('org-id', 'categoria/slug'),
-    ).resolves.toEqual({ data: [], total: 0, page: 1, totalPages: 0 });
+    await expect(useCase.execute('org-id', 'categoria/slug')).resolves.toEqual({
+      data: [],
+      total: 0,
+      page: 1,
+      totalPages: 0,
+    });
     expect(materialRepository.findByCategorySlugPath).toHaveBeenCalledWith(
       'org-id',
       'categoria/slug',
@@ -164,9 +169,12 @@ describe('FindMaterialsByCategorySlugUseCase', () => {
       totalPages: 0,
     });
 
-    await expect(
-      useCase.execute('org-id', 'categoria/slug'),
-    ).resolves.toEqual({ data: [], total: 0, page: 1, totalPages: 0 });
+    await expect(useCase.execute('org-id', 'categoria/slug')).resolves.toEqual({
+      data: [],
+      total: 0,
+      page: 1,
+      totalPages: 0,
+    });
     expect(storageService.getPublicUrl).not.toHaveBeenCalled();
   });
 });

@@ -175,7 +175,26 @@ export class AssetRepository {
     userId: string,
   ): Promise<void> {
     try {
-      await this.prisma.asset.deleteMany({ where: { id, organizationId } });
+      await this.prisma.$transaction(async (tx) => {
+        const dependencies = await tx.materialTemplateAsset.findMany({
+          where: { assetId: id, template: { organizationId } },
+          select: { templateId: true },
+        });
+        if (dependencies.length) {
+          await tx.materialTemplate.updateMany({
+            where: {
+              id: { in: dependencies.map(({ templateId }) => templateId) },
+              organizationId,
+            },
+            data: {
+              status: 'DRAFT',
+              publishedAt: null,
+              revision: { increment: 1 },
+            },
+          });
+        }
+        await tx.asset.deleteMany({ where: { id, organizationId } });
+      });
       void this.logger.info('Asset removido', {
         assetId: id,
         organizationId,

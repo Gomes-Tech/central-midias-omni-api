@@ -216,7 +216,7 @@ export class MaterialController {
     @UserId() userId: string,
     @UploadedFiles() files: UploadedMaterialFiles,
   ) {
-    await this.createMaterialUseCase.execute(
+    return await this.createMaterialUseCase.execute(
       organizationId,
       dto,
       userId,

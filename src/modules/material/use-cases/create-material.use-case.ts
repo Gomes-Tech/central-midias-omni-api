@@ -2,6 +2,7 @@ import { BadRequestException } from '@common/filters';
 import { generateId } from '@common/utils';
 import { StorageService } from '@infrastructure/providers';
 import { FindCategoryByIdUseCase } from '@modules/category/use-cases';
+import { validateMaterialTemplateImage } from '@modules/material-template/services/material-template-image.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateMaterialDTO } from '../dto';
 import { MaterialRepository } from '../repository';
@@ -26,11 +27,17 @@ export class CreateMaterialUseCase {
     data: CreateMaterialDTO,
     userId: string,
     files: Express.Multer.File[] = [],
-  ): Promise<void> {
-    if (data.customization !== undefined && data.isCustomizable !== true) {
-      throw new BadRequestException(
-        'Customização só pode ser informada para materiais personalizáveis',
-      );
+  ): Promise<{ id: string }> {
+    let customizableImage:
+      | ReturnType<typeof validateMaterialTemplateImage>
+      | undefined;
+    if (data.isCustomizable === true) {
+      if (files.length !== 1) {
+        throw new BadRequestException(
+          'Material customizável deve possuir exatamente uma imagem base',
+        );
+      }
+      customizableImage = validateMaterialTemplateImage(files[0]);
     }
 
     const category = await this.findCategoryByIdUseCase.execute(
@@ -72,11 +79,16 @@ export class CreateMaterialUseCase {
         });
       }
 
+      const materialFileId = customizableImage ? generateId() : undefined;
       await this.materialRepository.create(organizationId, data, userId, {
         id: materialId,
         files: uploadedFiles.map(({ file, upload }) => ({
+          ...(materialFileId && { id: materialFileId }),
           fileKey: upload.path,
-          mimeType: file.mimetype || 'application/octet-stream',
+          mimeType:
+            customizableImage?.mimeType ||
+            file.mimetype ||
+            'application/octet-stream',
           size: Number.isFinite(file.size) ? file.size : 0,
         })),
         tags: resolvedTags,
@@ -93,6 +105,7 @@ export class CreateMaterialUseCase {
           .execute(materialId, organizationId, data.roleId)
           .catch(() => undefined);
       }
+      return { id: materialId };
     } catch (error) {
       if (uploadedFiles.length) {
         await this.storageService.deleteFile(

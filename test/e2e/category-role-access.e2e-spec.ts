@@ -39,6 +39,11 @@ describe('CategoryRoleAccess (e2e)', () => {
           name: 'ADMIN',
           label: 'Administrador',
         },
+        {
+          id: E2E_IDS.editorRoleId,
+          name: 'EDITOR',
+          label: 'Editor',
+        },
       ],
     });
   });

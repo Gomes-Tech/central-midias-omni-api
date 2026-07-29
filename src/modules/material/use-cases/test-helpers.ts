@@ -58,6 +58,8 @@ export function makeMaterialListItem(
       name: 'Categoria',
     },
     materialFilesCount: 0,
+    isCustomizable: false,
+    templateStatus: null,
     ...overrides,
   };
 }
@@ -78,7 +80,7 @@ export function makeMaterialDetails(
     hasTextCopy: false,
     textCopy: null,
     isCustomizable: false,
-    customization: null,
+    templateStatus: null,
     createdAt: now,
     updatedAt: now,
     category: {

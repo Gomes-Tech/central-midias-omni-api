@@ -228,6 +228,7 @@ model Organization {
   calendarEventTypes     CalendarEventType[]
   calendarEvents         CalendarEvent[]
   assets                 Asset[]
+  materialTemplates      MaterialTemplate[]
 
   @@map("organizations")
 }
@@ -243,7 +244,8 @@ model Asset {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  organization Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization            @relation(fields: [organizationId], references: [id])
+  templateAssets MaterialTemplateAsset[]
 
   @@index([organizationId, name])
   @@map("assets")
@@ -359,14 +361,14 @@ model SocialHighlight {
 // ============================================================
 
 model CalendarEventType {
-  id             String             @id @default(uuid())
-  organizationId String             @map("organization_id")
+  id             String  @id @default(uuid())
+  organizationId String  @map("organization_id")
   name           String
   slug           String
-  color          String             @db.VarChar(7)
+  color          String  @db.VarChar(7)
   description    String?
-  order          Int                @default(0)
-  isActive       Boolean            @default(true) @map("is_active")
+  order          Int     @default(0)
+  isActive       Boolean @default(true) @map("is_active")
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -501,17 +503,17 @@ model Material {
   externalLink String? @map("external_link")
   textCopy     String? @map("text_copy")
 
-  createdAt             DateTime               @default(now()) @map("created_at")
-  updatedAt             DateTime               @updatedAt @map("updated_at")
-  deletedAt             DateTime?              @map("deleted_at")
-  materialFiles         MaterialFile[]
-  categoryId            String                 @map("category_id")
-  category              Category               @relation(fields: [categoryId], references: [id])
-  tags                  Tag[]                  @relation("MaterialTag")
-  materialAcceptances   MaterialAcceptance[]
-  materialViews         MaterialView[]
-  materialDownloads     MaterialDownload[]
-  materialCustomization MaterialCustomization?
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
+  deletedAt           DateTime?               @map("deleted_at")
+  materialFiles       MaterialFile[]
+  categoryId          String                  @map("category_id")
+  category            Category                @relation(fields: [categoryId], references: [id])
+  tags                Tag[]                   @relation("MaterialTag")
+  materialAcceptances MaterialAcceptance[]
+  materialViews       MaterialView[]
+  materialDownloads   MaterialDownload[]
+  materialTemplate    MaterialTemplate?
   calendarEvents      CalendarEventMaterial[]
 
   @@unique([categoryId, name])
@@ -519,28 +521,44 @@ model Material {
   @@map("materials")
 }
 
-model MaterialCustomization {
-  id         String @id @default(uuid())
-  materialId String @unique @map("material_id")
-
-  position CustomizationPosition @default(FOOTER)
-
-  hasPhonePrimary   Boolean @default(false) @map("has_phone_primary")
-  hasPhoneSecondary Boolean @default(false) @map("has_phone_secondary")
-  hasAddress        Boolean @default(false) @map("has_address")
-  hasCity           Boolean @default(false) @map("has_city")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
-
-  @@map("material_customizations")
+enum MaterialTemplateStatus {
+  DRAFT
+  PUBLISHED
 }
 
-enum CustomizationPosition {
-  TOP
-  FOOTER
+model MaterialTemplate {
+  id                 String                 @id @default(uuid())
+  organizationId     String                 @map("organization_id")
+  materialId         String                 @unique @map("material_id")
+  baseMaterialFileId String?                @unique @map("base_material_file_id")
+  status             MaterialTemplateStatus @default(DRAFT)
+  schemaVersion      Int                    @default(1) @map("schema_version")
+  document           Json?
+  legacyImport       Json?                  @map("legacy_import")
+  revision           Int                    @default(0)
+  publishedAt        DateTime?              @map("published_at")
+  createdAt          DateTime               @default(now()) @map("created_at")
+  updatedAt          DateTime               @updatedAt @map("updated_at")
+
+  organization Organization            @relation(fields: [organizationId], references: [id])
+  material     Material                @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  baseFile     MaterialFile?           @relation(fields: [baseMaterialFileId], references: [id], onDelete: Restrict)
+  assets       MaterialTemplateAsset[]
+
+  @@index([organizationId, status])
+  @@map("material_templates")
+}
+
+model MaterialTemplateAsset {
+  templateId String @map("template_id")
+  assetId    String @map("asset_id")
+
+  template MaterialTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  asset    Asset            @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([templateId, assetId])
+  @@index([assetId])
+  @@map("material_template_assets")
 }
 
 model MaterialAcceptance {
@@ -594,7 +612,8 @@ model MaterialFile {
   mimeType   String @map("mime_type")
   size       Int    @map("size")
 
-  material Material @relation(fields: [materialId], references: [id])
+  material Material          @relation(fields: [materialId], references: [id])
+  template MaterialTemplate?
 
   @@map("material_files")
 }

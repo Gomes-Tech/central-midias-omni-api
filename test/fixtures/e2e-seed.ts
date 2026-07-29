@@ -20,6 +20,9 @@ export const E2E_IDS = {
   socialHighlightId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
   materialId: '88888888-8888-4888-8888-888888888888',
   materialCategoryCId: '89898989-8989-4898-8989-898989898989',
+  customizableMaterialId: '8a8a8a8a-8a8a-4a8a-8a8a-8a8a8a8a8a8a',
+  materialTemplateId: '8b8b8b8b-8b8b-4b8b-8b8b-8b8b8b8b8b8b',
+  materialBaseFileId: '8c8c8c8c-8c8c-4c8c-8c8c-8c8c8c8c8c8c',
   eventTypeId: 'a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1',
   eventNoCategoryId: 'e1e1e1e1-e1e1-4e1e-8e1e-e1e1e1e1e1e1',
   eventCategoryAId: 'e2e2e2e2-e2e2-4e2e-8e2e-e2e2e2e2e2e2',
@@ -64,6 +67,8 @@ export type E2eStore = {
   socialHighlights: Record<string, unknown>[];
   materials: Record<string, unknown>[];
   materialFiles: Record<string, unknown>[];
+  materialTemplates: Record<string, unknown>[];
+  materialTemplateAssets: Record<string, unknown>[];
   categoryRoleAccesses: Record<string, unknown>[];
   calendarEventTypes: Record<string, unknown>[];
   calendarEvents: Record<string, unknown>[];
@@ -374,6 +379,83 @@ export function createE2eSeed(): E2eStore {
     category: categoryC,
   };
 
+  const materialBaseFile = {
+    id: E2E_IDS.materialBaseFileId,
+    materialId: E2E_IDS.customizableMaterialId,
+    imageKey: 'materials/customizable/base.png',
+    mimeType: 'image/png',
+    size: 1024,
+  };
+
+  const customizableMaterial = {
+    id: E2E_IDS.customizableMaterialId,
+    name: 'Material Customizável E2E',
+    description: 'Descrição',
+    categoryId: E2E_IDS.categoryId,
+    requiresAcceptance: false,
+    hasExternalLink: false,
+    externalLink: null,
+    hasTextCopy: false,
+    textCopy: null,
+    isCustomizable: true,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    tags: [] as Record<string, unknown>[],
+    category,
+  };
+
+  const templateDocument = {
+    version: 1,
+    canvas: { width: 1080, height: 1080 },
+    layerOrder: ['template-asset', 'template-text'],
+    layers: [
+      {
+        id: 'template-asset',
+        type: 'asset',
+        name: 'Logo',
+        assetId: E2E_IDS.assetId,
+        x: 20,
+        y: 20,
+        width: 100,
+        height: 100,
+        rotation: 0,
+        isVisible: true,
+        editableProperties: [],
+      },
+      {
+        id: 'template-text',
+        type: 'text',
+        name: 'Nome',
+        value: 'Nome do agente',
+        x: 100,
+        y: 900,
+        rotation: 0,
+        fontSize: 40,
+        fontFamily: 'Arial',
+        fill: '#111111',
+        isVisible: true,
+        editableProperties: ['value'],
+        profileBinding: 'NAME',
+      },
+    ],
+  };
+
+  const materialTemplate = {
+    id: E2E_IDS.materialTemplateId,
+    organizationId: E2E_IDS.orgId,
+    materialId: E2E_IDS.customizableMaterialId,
+    baseMaterialFileId: E2E_IDS.materialBaseFileId,
+    status: 'PUBLISHED',
+    schemaVersion: 1,
+    document: templateDocument,
+    legacyImport: null,
+    revision: 0,
+    publishedAt: now,
+    createdAt: now,
+    updatedAt: now,
+  };
+
   const eventType = {
     id: E2E_IDS.eventTypeId,
     organizationId: E2E_IDS.orgId,
@@ -479,8 +561,12 @@ export function createE2eSeed(): E2eStore {
     categories: [category, categoryB, categoryC],
     banners: [banner],
     socialHighlights: [socialHighlight],
-    materials: [material, materialCategoryC],
-    materialFiles: [],
+    materials: [material, materialCategoryC, customizableMaterial],
+    materialFiles: [materialBaseFile],
+    materialTemplates: [materialTemplate],
+    materialTemplateAssets: [
+      { templateId: E2E_IDS.materialTemplateId, assetId: E2E_IDS.assetId },
+    ],
     categoryRoleAccesses: [
       categoryRoleAccess,
       editorAccessA,

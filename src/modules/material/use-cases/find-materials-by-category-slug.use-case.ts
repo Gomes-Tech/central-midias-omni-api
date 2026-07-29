@@ -45,6 +45,7 @@ export class FindMaterialsByCategorySlugUseCase {
           hasTextCopy: material.hasTextCopy,
           textCopy: material.textCopy,
           isCustomizable: material.isCustomizable,
+          canCustomize: material.canCustomize,
         };
       }),
     );

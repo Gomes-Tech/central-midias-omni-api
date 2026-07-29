@@ -30,6 +30,7 @@ import { CategoryModule } from '@modules/category';
 import { CategoryRoleAccessModule } from '@modules/category-role-access/category-role-access.module';
 import { FaqModule } from '@modules/faq';
 import { MaterialModule } from '@modules/material';
+import { MaterialTemplateModule } from '@modules/material-template';
 import { MemberModule } from '@modules/member';
 import { ModuleModule } from '@modules/module';
 import { OrganizationModule } from '@modules/organization';
@@ -71,6 +72,7 @@ import { AppService } from './app.service';
     AssetModule,
     CalendarModule,
     MaterialModule,
+    MaterialTemplateModule,
     MemberModule,
     ModuleModule,
     OrganizationModule,

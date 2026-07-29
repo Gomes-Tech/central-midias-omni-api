@@ -9,10 +9,6 @@ import {
   IsString,
 } from 'class-validator';
 import {
-  MaterialCustomizationDTO,
-  TransformMaterialCustomization,
-} from './material-customization.dto';
-import {
   normalizeMaterialTags,
   readMaterialTagsField,
 } from './material-tags.transform';
@@ -72,10 +68,6 @@ export class CreateMaterialDTO {
   @TransformBoolean()
   @IsBoolean()
   isCustomizable?: boolean;
-
-  @IsOptional()
-  @TransformMaterialCustomization()
-  customization?: MaterialCustomizationDTO;
 
   @IsOptional()
   @IsString()

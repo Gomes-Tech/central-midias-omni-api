@@ -10,8 +10,14 @@ import { json } from 'express';
 import { AppModule } from '../../src/app.module';
 import { E2ePrismaService } from './e2e-prisma.service';
 
+const e2ePng = Buffer.alloc(24);
+Buffer.from('89504e470d0a1a0a', 'hex').copy(e2ePng);
+e2ePng.writeUInt32BE(1080, 16);
+e2ePng.writeUInt32BE(1080, 20);
+
 const e2eStorageMock = {
   uploadFile: jest.fn().mockResolvedValue({ path: 'e2e/uploads/file.png' }),
+  readFile: jest.fn().mockResolvedValue(e2ePng),
   getSignedUrl: jest.fn().mockResolvedValue('https://e2e.test/signed-url'),
   deleteObject: jest.fn().mockResolvedValue(undefined),
 };
@@ -47,6 +53,7 @@ export async function createE2eApp(): Promise<INestApplication> {
     .overrideProvider(StorageService)
     .useValue({
       uploadFile: e2eStorageMock.uploadFile,
+      readFile: e2eStorageMock.readFile,
       getPublicUrl: e2eStorageMock.getSignedUrl,
       deleteFile: jest.fn().mockResolvedValue(undefined),
     })

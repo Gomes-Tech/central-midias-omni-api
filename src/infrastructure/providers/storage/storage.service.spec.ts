@@ -4,6 +4,7 @@ import { StorageService } from './storage.service';
 describe('StorageService', () => {
   const storageProvider = {
     uploadFile: jest.fn(),
+    readFile: jest.fn(),
     getSignedUrl: jest.fn(),
     getSignedDownloadUrl: jest.fn(),
     deleteFile: jest.fn(),
@@ -29,6 +30,7 @@ describe('StorageService', () => {
       publicUrl: 'https://public.test/documents/id.pdf',
     };
     storageProvider.uploadFile.mockResolvedValue(uploaded);
+    storageProvider.readFile.mockResolvedValue(Buffer.from('stored'));
     storageProvider.getSignedUrl.mockResolvedValue('https://signed.test/view');
     storageProvider.getSignedDownloadUrl.mockResolvedValue(
       'https://signed.test/download',
@@ -44,6 +46,9 @@ describe('StorageService', () => {
     await expect(service.uploadFile(file, 'documents')).resolves.toEqual(
       uploaded,
     );
+    await expect(service.readFile(uploaded.path)).resolves.toEqual(
+      Buffer.from('stored'),
+    );
     await expect(service.getPublicUrl(uploaded.path, 30)).resolves.toBe(
       'https://signed.test/view',
     );
@@ -56,6 +61,7 @@ describe('StorageService', () => {
     ).resolves.toEqual(expect.objectContaining({ originalName: 'file.pdf' }));
 
     expect(storageProvider.uploadFile).toHaveBeenCalledWith(file, 'documents');
+    expect(storageProvider.readFile).toHaveBeenCalledWith(uploaded.path);
     expect(storageProvider.getSignedUrl).toHaveBeenCalledWith(
       uploaded.path,
       30,

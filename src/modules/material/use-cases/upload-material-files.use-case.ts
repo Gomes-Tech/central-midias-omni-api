@@ -19,7 +19,16 @@ export class UploadMaterialFilesUseCase {
     files: Express.Multer.File[],
     userId: string,
   ): Promise<MaterialFileWithUrl[]> {
-    await this.findMaterialByIdUseCase.execute(materialId, organizationId);
+    const material = await this.findMaterialByIdUseCase.execute(
+      materialId,
+      organizationId,
+    );
+
+    if (material.isCustomizable) {
+      throw new BadRequestException(
+        'Use a substituição de imagem base para materiais customizáveis',
+      );
+    }
 
     if (!files?.length) {
       throw new BadRequestException(

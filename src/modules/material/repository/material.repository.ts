@@ -3,7 +3,7 @@ import { generateId } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { MaterialTemplateStatus, Prisma } from '@prisma/client';
 import { PaginatedResponse } from '../../../types';
 import {
   CreateMaterialDTO,
@@ -35,6 +35,8 @@ const materialListSelect = {
       id: true,
     },
   },
+  isCustomizable: true,
+  materialTemplate: { select: { status: true } },
 } satisfies Prisma.MaterialSelect;
 
 const buildMaterialDetailsSelect = (organizationId: string) =>
@@ -49,15 +51,7 @@ const buildMaterialDetailsSelect = (organizationId: string) =>
     hasTextCopy: true,
     textCopy: true,
     isCustomizable: true,
-    materialCustomization: {
-      select: {
-        position: true,
-        hasPhonePrimary: true,
-        hasPhoneSecondary: true,
-        hasAddress: true,
-        hasCity: true,
-      },
-    },
+    materialTemplate: { select: { status: true } },
     createdAt: true,
     updatedAt: true,
     deletedAt: true,
@@ -131,6 +125,7 @@ const buildImageMaterialWhere = (
 });
 
 export interface CreateMaterialFileInput {
+  id?: string;
   fileKey: string;
   mimeType: string;
   size: number;
@@ -144,6 +139,7 @@ export interface CreateMaterialOptions {
 
 export interface UpdateMaterialOptions {
   tags?: ResolvedMaterialTags;
+  activateTemplate?: { baseMaterialFileId: string };
 }
 
 @Injectable()
@@ -204,6 +200,8 @@ export class MaterialRepository {
           description: material.description,
           category: material.category,
           materialFilesCount: material.materialFiles.length,
+          isCustomizable: material.isCustomizable,
+          templateStatus: material.materialTemplate?.status ?? null,
         })),
         total,
         page,
@@ -266,6 +264,7 @@ export class MaterialRepository {
             hasTextCopy: true,
             textCopy: true,
             isCustomizable: true,
+            materialTemplate: { select: { status: true } },
             materialFiles: {
               select: {
                 imageKey: true,
@@ -294,6 +293,10 @@ export class MaterialRepository {
             hasTextCopy: material.hasTextCopy,
             textCopy: material.textCopy,
             isCustomizable: material.isCustomizable,
+            canCustomize:
+              material.isCustomizable &&
+              material.materialTemplate?.status ===
+                MaterialTemplateStatus.PUBLISHED,
             imageKey: file?.imageKey ?? null,
             mimeType: file?.mimeType ?? null,
             size: file?.size ?? null,
@@ -384,6 +387,8 @@ export class MaterialRepository {
               },
               take: 1,
             },
+            isCustomizable: true,
+            materialTemplate: { select: { status: true } },
           },
           orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
           skip,
@@ -400,6 +405,8 @@ export class MaterialRepository {
           category: material.category,
           materialFilesCount: material.materialFiles.length,
           materialFile: material.materialFiles[0]?.imageKey,
+          isCustomizable: material.isCustomizable,
+          templateStatus: material.materialTemplate?.status ?? null,
         })),
         total,
         page,
@@ -782,18 +789,7 @@ export class MaterialRepository {
             hasTextCopy: material.hasTextCopy,
             textCopy: material.textCopy,
             isCustomizable: material.isCustomizable,
-            customization:
-              material.isCustomizable && material.materialCustomization
-                ? {
-                    position: material.materialCustomization.position,
-                    hasPhonePrimary:
-                      material.materialCustomization.hasPhonePrimary,
-                    hasPhoneSecondary:
-                      material.materialCustomization.hasPhoneSecondary,
-                    hasAddress: material.materialCustomization.hasAddress,
-                    hasCity: material.materialCustomization.hasCity,
-                  }
-                : null,
+            templateStatus: material.materialTemplate?.status ?? null,
             deletedAt: material.deletedAt,
             currentUserAcceptedAt:
               userId && 'materialAcceptances' in material
@@ -846,7 +842,7 @@ export class MaterialRepository {
     data: CreateMaterialDTO,
     userId: string,
     options: CreateMaterialOptions = {},
-  ): Promise<void> {
+  ): Promise<string> {
     try {
       const createData: Prisma.MaterialUncheckedCreateInput = {
         id: options.id ?? generateId(),
@@ -872,7 +868,7 @@ export class MaterialRepository {
       if (options.files?.length) {
         createData.materialFiles = {
           create: options.files.map((file) => ({
-            id: generateId(),
+            id: file.id ?? generateId(),
             imageKey: file.fileKey,
             mimeType: file.mimeType,
             size: file.size,
@@ -881,8 +877,19 @@ export class MaterialRepository {
       }
 
       if (data.isCustomizable === true) {
-        createData.materialCustomization = {
-          create: this.buildCustomizationCreateData(data.customization),
+        const baseFileId = options.files?.[0]?.id;
+        if (!baseFileId) {
+          throw new BadRequestException(
+            'Material customizável precisa de uma imagem base',
+          );
+        }
+        createData.materialTemplate = {
+          create: {
+            id: generateId(),
+            organizationId,
+            baseMaterialFileId: baseFileId,
+            status: MaterialTemplateStatus.DRAFT,
+          },
         };
       }
 
@@ -899,6 +906,7 @@ export class MaterialRepository {
         categoryId: data.categoryId,
         userId,
       });
+      return material.id;
     } catch (error) {
       void this.logger.error('MaterialRepository.create falhou', {
         error: String(error),
@@ -930,7 +938,7 @@ export class MaterialRepository {
         },
         select: {
           id: true,
-          materialCustomization: {
+          materialTemplate: {
             select: {
               id: true,
             },
@@ -968,15 +976,31 @@ export class MaterialRepository {
         }),
       };
 
-      if (data.isCustomizable === false && material.materialCustomization) {
-        updateData.materialCustomization = { delete: true };
+      if (data.isCustomizable === false && material.materialTemplate) {
+        updateData.materialTemplate = {
+          update: {
+            status: MaterialTemplateStatus.DRAFT,
+            publishedAt: null,
+            revision: { increment: 1 },
+          },
+        };
       }
 
-      if (data.isCustomizable === true) {
-        updateData.materialCustomization = {
+      if (options.activateTemplate) {
+        updateData.materialTemplate = {
           upsert: {
-            create: this.buildCustomizationCreateData(data.customization),
-            update: this.buildCustomizationUpdateData(data.customization),
+            create: {
+              id: generateId(),
+              organizationId,
+              baseMaterialFileId: options.activateTemplate.baseMaterialFileId,
+              status: MaterialTemplateStatus.DRAFT,
+            },
+            update: {
+              baseMaterialFileId: options.activateTemplate.baseMaterialFileId,
+              status: MaterialTemplateStatus.DRAFT,
+              publishedAt: null,
+              revision: { increment: 1 },
+            },
           },
         };
       }
@@ -1065,51 +1089,6 @@ export class MaterialRepository {
             name,
           },
         })),
-      }),
-    };
-  }
-
-  private buildCustomizationCreateData(
-    customization?: CreateMaterialDTO['customization'],
-  ): Prisma.MaterialCustomizationUncheckedCreateWithoutMaterialInput {
-    return {
-      id: generateId(),
-      ...(customization?.position !== undefined && {
-        position: customization.position,
-      }),
-      ...(customization?.hasPhonePrimary !== undefined && {
-        hasPhonePrimary: customization.hasPhonePrimary,
-      }),
-      ...(customization?.hasPhoneSecondary !== undefined && {
-        hasPhoneSecondary: customization.hasPhoneSecondary,
-      }),
-      ...(customization?.hasAddress !== undefined && {
-        hasAddress: customization.hasAddress,
-      }),
-      ...(customization?.hasCity !== undefined && {
-        hasCity: customization.hasCity,
-      }),
-    };
-  }
-
-  private buildCustomizationUpdateData(
-    customization?: UpdateMaterialDTO['customization'],
-  ): Prisma.MaterialCustomizationUncheckedUpdateWithoutMaterialInput {
-    return {
-      ...(customization?.position !== undefined && {
-        position: customization.position,
-      }),
-      ...(customization?.hasPhonePrimary !== undefined && {
-        hasPhonePrimary: customization.hasPhonePrimary,
-      }),
-      ...(customization?.hasPhoneSecondary !== undefined && {
-        hasPhoneSecondary: customization.hasPhoneSecondary,
-      }),
-      ...(customization?.hasAddress !== undefined && {
-        hasAddress: customization.hasAddress,
-      }),
-      ...(customization?.hasCity !== undefined && {
-        hasCity: customization.hasCity,
       }),
     };
   }

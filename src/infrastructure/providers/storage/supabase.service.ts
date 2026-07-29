@@ -112,6 +112,18 @@ export class SupabaseService implements StorageProvider {
     };
   }
 
+  async readFile(path: string): Promise<Buffer> {
+    const { data, error } = await this.supabase.storage
+      .from(this.bucket)
+      .download(path);
+
+    if (error || !data) {
+      throw new BadRequestException('Erro ao ler arquivo no Supabase');
+    }
+
+    return Buffer.from(await data.arrayBuffer());
+  }
+
   async getSignedUrl(path: string, expiresIn?: number): Promise<string> {
     const { data, error } = await this.supabase.storage
       .from(this.bucket)

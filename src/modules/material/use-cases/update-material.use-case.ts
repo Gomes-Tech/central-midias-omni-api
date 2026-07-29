@@ -1,5 +1,7 @@
 import { BadRequestException } from '@common/filters';
+import { StorageService } from '@infrastructure/providers';
 import { FindCategoryByIdUseCase } from '@modules/category/use-cases';
+import { validateMaterialTemplateImage } from '@modules/material-template/services/material-template-image.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { UpdateMaterialDTO } from '../dto';
 import { MaterialRepository } from '../repository';
@@ -16,6 +18,7 @@ export class UpdateMaterialUseCase {
     private readonly findMaterialByIdUseCase: FindMaterialByIdUseCase,
     private readonly findCategoryByIdUseCase: FindCategoryByIdUseCase,
     private readonly resolveMaterialTagIdsUseCase: ResolveMaterialTagIdsUseCase,
+    private readonly storageService: StorageService,
     private readonly enqueueMaterialAcceptanceEmailsUseCase: EnqueueMaterialAcceptanceEmailsUseCase,
     private readonly enqueueMaterialNotificationEmailsUseCase: EnqueueMaterialNotificationEmailsUseCase,
   ) {}
@@ -26,18 +29,34 @@ export class UpdateMaterialUseCase {
     data: UpdateMaterialDTO,
     userId: string,
   ): Promise<void> {
-    if (data.customization !== undefined && data.isCustomizable !== true) {
-      throw new BadRequestException(
-        'Customização só pode ser informada para materiais personalizáveis',
-      );
-    }
-
     const material = await this.findMaterialByIdUseCase.execute(
       id,
       organizationId,
     );
 
     const previousRequiresAcceptance = material.requiresAcceptance;
+    let activateTemplate: { baseMaterialFileId: string } | undefined;
+    if (data.isCustomizable === true && !material.isCustomizable) {
+      const files = await this.materialRepository.findFilesByMaterialId(
+        id,
+        organizationId,
+      );
+      const base = files[0];
+      if (
+        files.length !== 1 ||
+        !base ||
+        !['image/png', 'image/jpeg', 'image/jpg'].includes(
+          base.mimeType.toLowerCase(),
+        )
+      ) {
+        throw new BadRequestException(
+          'Material customizável deve possuir exatamente uma imagem PNG ou JPEG',
+        );
+      }
+      const buffer = await this.storageService.readFile(base.fileKey);
+      validateMaterialTemplateImage({ buffer, size: base.size });
+      activateTemplate = { baseMaterialFileId: base.id };
+    }
 
     const nextCategoryId = data.categoryId ?? material.categoryId;
     const nextName = data.name ?? material.name;
@@ -76,6 +95,7 @@ export class UpdateMaterialUseCase {
 
     await this.materialRepository.update(id, organizationId, data, userId, {
       tags: resolvedTags,
+      activateTemplate,
     });
 
     if (

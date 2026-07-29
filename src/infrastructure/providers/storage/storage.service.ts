@@ -23,6 +23,10 @@ export class StorageService {
     return this.storageProvider.uploadFile(file, folder);
   }
 
+  async readFile(path: string): Promise<Buffer> {
+    return this.storageProvider.readFile(path);
+  }
+
   async getPublicUrl(path: string, expiresIn?: number): Promise<string> {
     return this.storageProvider.getSignedUrl(path, expiresIn);
   }

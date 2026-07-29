@@ -1,4 +1,4 @@
-import { NotFoundException } from '@common/filters';
+import { BadRequestException, NotFoundException } from '@common/filters';
 import { StorageService } from '@infrastructure/providers';
 import { Injectable } from '@nestjs/common';
 import { MaterialRepository } from '../repository';
@@ -18,7 +18,16 @@ export class DeleteMaterialFileUseCase {
     organizationId: string,
     userId: string,
   ): Promise<void> {
-    await this.findMaterialByIdUseCase.execute(materialId, organizationId);
+    const material = await this.findMaterialByIdUseCase.execute(
+      materialId,
+      organizationId,
+    );
+
+    if (material.isCustomizable) {
+      throw new BadRequestException(
+        'A imagem base de um material customizável só pode ser substituída',
+      );
+    }
 
     const file = await this.materialRepository.findFileById(
       fileId,

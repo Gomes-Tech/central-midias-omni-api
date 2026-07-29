@@ -16,6 +16,7 @@ describe('FindMemberRoleUseCase', () => {
 
   it('deve retornar o papel quando o membro existir', async () => {
     const role = {
+      roleId: 'role-id',
       name: 'admin',
       label: 'Administrador',
       canAccessBackoffice: true,
@@ -25,9 +26,7 @@ describe('FindMemberRoleUseCase', () => {
 
     memberRepository.findMemberRole.mockResolvedValue(role);
 
-    await expect(
-      useCase.execute('org-id', 'user-id'),
-    ).resolves.toEqual(role);
+    await expect(useCase.execute('org-id', 'user-id')).resolves.toEqual(role);
     expect(memberRepository.findMemberRole).toHaveBeenCalledWith(
       'org-id',
       'user-id',
@@ -37,8 +36,8 @@ describe('FindMemberRoleUseCase', () => {
   it('deve lançar NotFoundException quando não existir', async () => {
     memberRepository.findMemberRole.mockResolvedValue(null);
 
-    await expect(
-      useCase.execute('org-id', 'user-id'),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(useCase.execute('org-id', 'user-id')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });

@@ -3,10 +3,6 @@ import { TransformBoolean } from '@common/decorators/tansform-boolean.decorator'
 import { Transform } from 'class-transformer';
 import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
 import {
-  MaterialCustomizationDTO,
-  TransformMaterialCustomization,
-} from './material-customization.dto';
-import {
   normalizeMaterialTags,
   readMaterialTagsField,
 } from './material-tags.transform';
@@ -65,10 +61,6 @@ export class UpdateMaterialDTO {
   @TransformBoolean()
   @IsBoolean()
   isCustomizable?: boolean;
-
-  @IsOptional()
-  @TransformMaterialCustomization()
-  customization?: MaterialCustomizationDTO;
 
   @IsOptional()
   @IsString()
