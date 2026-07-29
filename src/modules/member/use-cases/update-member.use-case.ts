@@ -1,6 +1,7 @@
 import { BadRequestException } from '@common/filters';
 import { FindRoleByIdUseCase } from '@modules/roles/use-cases/find-role-by-id.use-case';
-import { Injectable } from '@nestjs/common';
+import { UserRepository } from '@modules/user/repository';
+import { Inject, Injectable } from '@nestjs/common';
 import { UpdateMemberDTO } from '../dto';
 import { MemberRepository } from '../repository';
 import { FindMemberByIdUseCase } from './find-member-by-id.use-case';
@@ -11,6 +12,8 @@ export class UpdateMemberUseCase {
     private readonly memberRepository: MemberRepository,
     private readonly findMemberByIdUseCase: FindMemberByIdUseCase,
     private readonly findRoleByIdUseCase: FindRoleByIdUseCase,
+    @Inject('UserRepository')
+    private readonly userRepository: UserRepository,
   ) {}
 
   async execute(
@@ -21,25 +24,26 @@ export class UpdateMemberUseCase {
   ): Promise<void> {
     const member = await this.findMemberByIdUseCase.execute(id, organizationId);
 
-    if (!data.roleId) {
-      await this.memberRepository.update(id, organizationId, data, userId);
-      return;
+    if (data.roleId && member.roleId !== data.roleId) {
+      const role = await this.findRoleByIdUseCase.execute(
+        data.roleId,
+        organizationId,
+      );
+
+      const isGlobalUser = member.globalRoleId !== null;
+
+      if (isGlobalUser !== role.canAccessBackoffice) {
+        throw new BadRequestException(
+          'O tipo do usuário é incompatível com o perfil selecionado',
+        );
+      }
     }
 
-    if (member.roleId === data.roleId) {
-      throw new BadRequestException('O membro já possui o perfil informado');
-    }
-
-    const role = await this.findRoleByIdUseCase.execute(
-      data.roleId,
-      organizationId,
-    );
-
-    const isGlobalUser = member.globalRoleId !== null;
-
-    if (isGlobalUser !== role.canAccessBackoffice) {
-      throw new BadRequestException(
-        'O tipo do usuário é incompatível com o perfil selecionado',
+    if (data.managerAssignments !== undefined) {
+      await this.userRepository.assertValidManagerAssignments(
+        organizationId,
+        data.managerAssignments,
+        member.userId,
       );
     }
 

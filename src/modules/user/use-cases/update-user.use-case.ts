@@ -70,11 +70,13 @@ export class UpdateUserUseCase {
       await this.findGlobalRoleByIdUseCase.execute(data.globalRoleId);
     }
 
-    // if (!ADMIN_ROLE_NAMES.has(requesterRole)) {
-    //   delete data.organizationIds;
-    //   delete data.managerAssignments;
-    //   delete data.isActive;
-    // }
+    if (organizationId && data.managerAssignments !== undefined) {
+      await this.userRepository.assertValidManagerAssignments(
+        organizationId,
+        data.managerAssignments,
+        id,
+      );
+    }
 
     await this.userRepository.update(id, data, userId, organizationId);
   }

@@ -10,6 +10,7 @@ import {
   CreateMemberWithUserUseCase,
   DeleteMemberUseCase,
   FindAllMembersUseCase,
+  FindManagersSelectUseCase,
   FindMemberByIdUseCase,
   FindMemberRoleDetailsUseCase,
   FindMemberRoleUseCase,
@@ -23,6 +24,7 @@ import {
   providers: [
     PlatformPermissionGuard,
     FindAllMembersUseCase,
+    FindManagersSelectUseCase,
     FindMemberByIdUseCase,
     FindMemberRoleUseCase,
     FindMemberRoleDetailsUseCase,
@@ -39,6 +41,7 @@ import {
   ],
   exports: [
     FindAllMembersUseCase,
+    FindManagersSelectUseCase,
     FindMemberByIdUseCase,
     FindMemberRoleUseCase,
     FindMemberRoleDetailsUseCase,

@@ -18,6 +18,7 @@ describe('CreateUserUseCase', () => {
     userRepository = {
       create: jest.fn(),
       findByTaxIdentifier: jest.fn().mockResolvedValue(null),
+      assertValidManagerAssignments: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<UserRepository>;
 
     findByEmailUseCase = {

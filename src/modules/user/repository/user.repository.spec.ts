@@ -19,6 +19,9 @@ function createPrismaMock() {
       create: jest.fn(),
       update: jest.fn(),
     },
+    member: {
+      findFirst: jest.fn(),
+    },
     userPlatformLogin: {
       upsert: jest.fn(),
       findUnique: jest.fn(),
@@ -42,6 +45,62 @@ describe('UserRepository', () => {
       prisma as unknown as PrismaService,
       logger as unknown as LoggerService,
     );
+  });
+
+  describe('assertValidManagerAssignments', () => {
+    it('deve retornar sem validar quando assignments estiver vazio', async () => {
+      await expect(
+        repository.assertValidManagerAssignments('org-1', []),
+      ).resolves.toBeUndefined();
+
+      expect(prisma.member.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('deve rejeitar mais de um gestor', async () => {
+      await expect(
+        repository.assertValidManagerAssignments('org-1', [
+          { managerId: 'm1' },
+          { managerId: 'm2' },
+        ]),
+      ).rejects.toMatchObject({
+        message: 'Apenas um gestor é permitido por organização',
+      });
+    });
+
+    it('deve rejeitar auto-gestão', async () => {
+      await expect(
+        repository.assertValidManagerAssignments(
+          'org-1',
+          [{ managerId: 'user-1' }],
+          'user-1',
+        ),
+      ).rejects.toMatchObject({
+        message: 'Um usuário não pode ser gestor de si mesmo',
+      });
+    });
+
+    it('deve rejeitar gestor inelegível', async () => {
+      prisma.member.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.assertValidManagerAssignments('org-1', [
+          { managerId: 'manager-1' },
+        ]),
+      ).rejects.toMatchObject({
+        message:
+          'Gestor inválido: deve ser membro ativo da organização com perfil que permite subordinados',
+      });
+    });
+
+    it('deve aceitar gestor elegível', async () => {
+      prisma.member.findFirst.mockResolvedValue({ id: 'member-1' });
+
+      await expect(
+        repository.assertValidManagerAssignments('org-1', [
+          { managerId: 'manager-1' },
+        ]),
+      ).resolves.toBeUndefined();
+    });
   });
 
   describe('findAll', () => {
@@ -651,10 +710,18 @@ describe('UserRepository', () => {
     it('deve criar usuário e membro na transação e registrar log', async () => {
       const dto = makeCreateUserDTO();
       const memberCreate = jest.fn().mockResolvedValue({ id: 'm1' });
+      const userHierarchyDeleteMany = jest.fn().mockResolvedValue({});
+      const userHierarchyCreate = jest.fn().mockResolvedValue({});
       prisma.user.create.mockResolvedValue({ id: 'new-user' });
       prisma.$transaction.mockImplementation(
         async (fn: (tx: unknown) => unknown) =>
-          fn({ member: { create: memberCreate } }),
+          fn({
+            member: { create: memberCreate },
+            userHierarchy: {
+              deleteMany: userHierarchyDeleteMany,
+              create: userHierarchyCreate,
+            },
+          }),
       );
 
       const result = await repository.create(
@@ -691,6 +758,39 @@ describe('UserRepository', () => {
         }),
       );
       expect(logger.info).toHaveBeenCalled();
+    });
+
+    it('deve criar hierarquia quando managerAssignments for informado', async () => {
+      const dto = makeCreateUserDTO({
+        managerAssignments: [{ managerId: 'manager-1' }],
+      });
+      const memberCreate = jest.fn().mockResolvedValue({ id: 'm1' });
+      const userHierarchyDeleteMany = jest.fn().mockResolvedValue({});
+      const userHierarchyCreate = jest.fn().mockResolvedValue({});
+      prisma.user.create.mockResolvedValue({ id: 'new-user' });
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => unknown) =>
+          fn({
+            member: { create: memberCreate },
+            userHierarchy: {
+              deleteMany: userHierarchyDeleteMany,
+              create: userHierarchyCreate,
+            },
+          }),
+      );
+
+      await repository.create({ ...dto, password: 'hash' }, 'creator-id', 'org-id');
+
+      expect(userHierarchyDeleteMany).toHaveBeenCalledWith({
+        where: { subordinateId: 'new-user', organizationId: 'org-id' },
+      });
+      expect(userHierarchyCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          managerId: 'manager-1',
+          subordinateId: 'new-user',
+          organizationId: 'org-id',
+        }),
+      });
     });
 
     it('deve lançar BadRequest quando a transação falhar', async () => {

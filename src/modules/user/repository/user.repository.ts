@@ -10,8 +10,10 @@ import {
   CreateUserDTO,
   FindAllUsersFiltersDTO,
   UpdateUserDTO,
+  UserManagerAssignmentDTO,
 } from '../dto';
 import { ListUser, UserById } from '../entities';
+import { syncManagerAssignments } from '../helpers/sync-manager-assignments';
 
 @Injectable()
 export class UserRepository {
@@ -439,6 +441,69 @@ export class UserRepository {
     }
   }
 
+  async assertValidManagerAssignments(
+    organizationId: string,
+    assignments: UserManagerAssignmentDTO[] | undefined,
+    subordinateUserId?: string,
+  ): Promise<void> {
+    if (!assignments?.length) {
+      return;
+    }
+
+    if (assignments.length > 1) {
+      throw new BadRequestException(
+        'Apenas um gestor é permitido por organização',
+      );
+    }
+
+    const managerId = assignments[0].managerId;
+
+    if (subordinateUserId && managerId === subordinateUserId) {
+      throw new BadRequestException(
+        'Um usuário não pode ser gestor de si mesmo',
+      );
+    }
+
+    try {
+      const manager = await this.prisma.member.findFirst({
+        where: {
+          organizationId,
+          userId: managerId,
+          user: {
+            isDeleted: false,
+            isActive: true,
+          },
+          role: {
+            canHaveSubordinates: true,
+            deletedAt: null,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (!manager) {
+        throw new BadRequestException(
+          'Gestor inválido: deve ser membro ativo da organização com perfil que permite subordinados',
+        );
+      }
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      void this.logger.error(
+        'UserRepository.assertValidManagerAssignments falhou',
+        {
+          error: String(error),
+          organizationId,
+          managerId,
+        },
+      );
+
+      throw new BadRequestException('Erro ao validar gestor');
+    }
+  }
+
   async create(
     data: CreateUserDTO & { password: string },
     userId: string,
@@ -476,6 +541,13 @@ export class UserRepository {
             id: true,
           },
         });
+
+        await syncManagerAssignments(
+          tx,
+          user.id,
+          organizationId,
+          data.managerAssignments,
+        );
 
         return user;
       });
@@ -595,6 +667,15 @@ export class UserRepository {
               roleId: data.globalRoleId,
             },
           });
+        }
+
+        if (organizationId && data.managerAssignments !== undefined) {
+          await syncManagerAssignments(
+            tx,
+            id,
+            organizationId,
+            data.managerAssignments,
+          );
         }
       });
 

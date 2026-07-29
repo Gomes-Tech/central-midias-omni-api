@@ -51,6 +51,11 @@ export class CreateUserUseCase {
       );
     }
 
+    await this.userRepository.assertValidManagerAssignments(
+      organizationId,
+      data.managerAssignments,
+    );
+
     const hashedPassword = await this.cryptographyService.hash(
       data.taxIdentifier,
     );

@@ -2,6 +2,7 @@ import { UF } from '@prisma/client';
 
 export interface Member {
   id: string;
+  userId: string;
   name: string;
   socialReason: string;
   email: string;
@@ -14,6 +15,12 @@ export interface Member {
   roleId: string;
   globalRoleId: string | null;
   isActive: boolean;
+  managerId: string | null;
+}
+
+export interface MemberManagerSelect {
+  id: string;
+  name: string;
 }
 
 export interface MemberList {

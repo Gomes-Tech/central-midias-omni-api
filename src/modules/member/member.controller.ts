@@ -18,12 +18,13 @@ import {
   FindAllMembersFiltersDTO,
   UpdateMemberDTO,
 } from './dto';
-import { Member, MemberList, ImportantDateItem } from './entities';
+import { Member, MemberList, ImportantDateItem, MemberManagerSelect } from './entities';
 import {
   AddUserMemberUseCase,
   CreateMemberWithUserUseCase,
   DeleteMemberUseCase,
   FindAllMembersUseCase,
+  FindManagersSelectUseCase,
   FindMemberByIdUseCase,
   FindMemberRoleDetailsUseCase,
   FindMemberRoleUseCase,
@@ -38,6 +39,7 @@ export class MemberController {
     private readonly addUserMemberUseCase: AddUserMemberUseCase,
     private readonly createMemberWithUserUseCase: CreateMemberWithUserUseCase,
     private readonly findAllMembersUseCase: FindAllMembersUseCase,
+    private readonly findManagersSelectUseCase: FindManagersSelectUseCase,
     private readonly findMemberByIdUseCase: FindMemberByIdUseCase,
     private readonly findMemberRoleDetailsUseCase: FindMemberRoleDetailsUseCase,
     private readonly findMemberRoleUseCase: FindMemberRoleUseCase,
@@ -76,6 +78,18 @@ export class MemberController {
     @OrgId() organizationId: string,
   ): Promise<ImportantDateItem[]> {
     return await this.listImportantDatesUseCase.execute(organizationId);
+  }
+
+  @RequirePermission('members', 'read')
+  @Get('managers/select')
+  async findManagersSelect(
+    @OrgId() organizationId: string,
+    @Query('excludeUserId') excludeUserId?: string,
+  ): Promise<MemberManagerSelect[]> {
+    return await this.findManagersSelectUseCase.execute(
+      organizationId,
+      excludeUserId,
+    );
   }
 
   @RequirePermission('members', 'read')

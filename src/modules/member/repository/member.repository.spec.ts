@@ -162,6 +162,7 @@ describe('MemberRepository', () => {
       const row = {
         id: 'm1',
         roleId: 'role-1',
+        userId: 'user-1',
         user: {
           name: 'B',
           socialReason: 'Razão Social',
@@ -170,14 +171,18 @@ describe('MemberRepository', () => {
           phone: '11999999999',
           birthDate: new Date('1990-01-01'),
           admissionDate: new Date('2020-01-01'),
+          city: 'São Paulo',
+          uf: 'SP',
           globalRoleId: null,
           isActive: true,
+          managerOf: [{ managerId: 'manager-1' }],
         },
       };
       prisma.member.findFirst.mockResolvedValue(row);
 
       await expect(repository.findById('m1', 'org-1')).resolves.toEqual({
         id: 'm1',
+        userId: 'user-1',
         name: 'B',
         socialReason: 'Razão Social',
         email: 'b@c.com',
@@ -188,6 +193,9 @@ describe('MemberRepository', () => {
         roleId: 'role-1',
         globalRoleId: null,
         isActive: true,
+        city: 'São Paulo',
+        uf: 'SP',
+        managerId: 'manager-1',
       });
 
       expect(prisma.member.findFirst).toHaveBeenCalledWith({
@@ -195,6 +203,7 @@ describe('MemberRepository', () => {
         select: {
           id: true,
           roleId: true,
+          userId: true,
           user: {
             select: {
               name: true,
@@ -208,6 +217,11 @@ describe('MemberRepository', () => {
               uf: true,
               isActive: true,
               globalRoleId: true,
+              managerOf: {
+                where: { organizationId: 'org-1' },
+                select: { managerId: true },
+                take: 1,
+              },
             },
           },
         },
@@ -225,6 +239,46 @@ describe('MemberRepository', () => {
 
       await expect(repository.findById('m1', 'org-1')).rejects.toThrow(
         'Erro ao buscar membro',
+      );
+    });
+  });
+
+  describe('findManagersSelect', () => {
+    it('deve listar gestores elegíveis da organização', async () => {
+      prisma.member.findMany.mockResolvedValue([
+        { user: { id: 'u1', name: 'Gestor A' } },
+        { user: { id: 'u2', name: 'Gestor B' } },
+      ]);
+
+      await expect(repository.findManagersSelect('org-1')).resolves.toEqual([
+        { id: 'u1', name: 'Gestor A' },
+        { id: 'u2', name: 'Gestor B' },
+      ]);
+
+      expect(prisma.member.findMany).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          user: { isDeleted: false, isActive: true },
+          role: { canHaveSubordinates: true, deletedAt: null },
+        },
+        select: {
+          user: { select: { id: true, name: true } },
+        },
+        orderBy: [{ user: { name: 'asc' } }],
+      });
+    });
+
+    it('deve excluir userId informado', async () => {
+      prisma.member.findMany.mockResolvedValue([]);
+
+      await repository.findManagersSelect('org-1', 'user-self');
+
+      expect(prisma.member.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: { not: 'user-self' },
+          }),
+        }),
       );
     });
   });
@@ -292,6 +346,7 @@ describe('MemberRepository', () => {
           role: { deletedAt: null },
         },
         select: {
+          roleId: true,
           role: {
             select: roleSelectExpectation,
           },
@@ -349,6 +404,7 @@ describe('MemberRepository', () => {
           role: { deletedAt: null },
         },
         select: {
+          roleId: true,
           role: {
             select: roleSelectExpectation,
           },
@@ -557,11 +613,16 @@ describe('MemberRepository', () => {
     it('deve executar transação com update do membro', async () => {
       const memberUpdate = jest.fn().mockResolvedValue({ userId: 'user-1' });
       const userUpdate = jest.fn().mockResolvedValue({});
+      const userHierarchyDeleteMany = jest.fn().mockResolvedValue({});
       prisma.$transaction.mockImplementation(
         async (fn: (tx: unknown) => Promise<unknown>) =>
           fn({
             member: { update: memberUpdate },
             user: { update: userUpdate },
+            userHierarchy: {
+              deleteMany: userHierarchyDeleteMany,
+              create: jest.fn(),
+            },
           }),
       );
 
@@ -573,6 +634,7 @@ describe('MemberRepository', () => {
         select: { userId: true },
       });
       expect(userUpdate).not.toHaveBeenCalled();
+      expect(userHierarchyDeleteMany).not.toHaveBeenCalled();
       expect(logger.info).toHaveBeenCalledWith(
         'Membro atualizado',
         expect.objectContaining({ memberId: 'm1' }),
@@ -587,6 +649,10 @@ describe('MemberRepository', () => {
           fn({
             member: { update: memberUpdate },
             user: { update: userUpdate },
+            userHierarchy: {
+              deleteMany: jest.fn(),
+              create: jest.fn(),
+            },
           }),
       );
 
@@ -611,6 +677,44 @@ describe('MemberRepository', () => {
           city: 'São Paulo',
           uf: 'SP',
         },
+      });
+    });
+
+    it('deve sincronizar gestor quando managerAssignments for informado', async () => {
+      const memberUpdate = jest.fn().mockResolvedValue({ userId: 'user-1' });
+      const userHierarchyDeleteMany = jest.fn().mockResolvedValue({});
+      const userHierarchyCreate = jest.fn().mockResolvedValue({});
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) =>
+          fn({
+            member: { update: memberUpdate },
+            user: { update: jest.fn() },
+            userHierarchy: {
+              deleteMany: userHierarchyDeleteMany,
+              create: userHierarchyCreate,
+            },
+          }),
+      );
+
+      await repository.update(
+        'm1',
+        'org-1',
+        {
+          roleId: 'new-role',
+          managerAssignments: [{ managerId: 'manager-1' }],
+        },
+        'upd-1',
+      );
+
+      expect(userHierarchyDeleteMany).toHaveBeenCalledWith({
+        where: { subordinateId: 'user-1', organizationId: 'org-1' },
+      });
+      expect(userHierarchyCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          managerId: 'manager-1',
+          subordinateId: 'user-1',
+          organizationId: 'org-1',
+        }),
       });
     });
 

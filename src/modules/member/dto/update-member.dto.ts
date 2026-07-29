@@ -1,6 +1,16 @@
 import { Sanitize } from '@common/decorators';
 import { UF } from '@prisma/client';
-import { IsEmail, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  ValidateNested,
+} from 'class-validator';
+import { UserManagerAssignmentDTO } from '@modules/user/dto';
 
 export class UpdateMemberDTO {
   @IsOptional()
@@ -49,5 +59,11 @@ export class UpdateMemberDTO {
 
   @IsOptional()
   @IsUUID('4', { message: 'Permissão inválida' })
-  roleId: string;
+  roleId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UserManagerAssignmentDTO)
+  managerAssignments?: UserManagerAssignmentDTO[];
 }
