@@ -533,9 +533,11 @@ export class MemberRepository {
       ...(data.socialReason !== undefined && {
         socialReason: data.socialReason,
       }),
-      ...(data.birthDate !== undefined && { birthDate: data.birthDate }),
+      ...(data.birthDate !== undefined && {
+        birthDate: new Date(data.birthDate),
+      }),
       ...(data.admissionDate !== undefined && {
-        admissionDate: data.admissionDate,
+        admissionDate: new Date(data.admissionDate),
       }),
     };
 

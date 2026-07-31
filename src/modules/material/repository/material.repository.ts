@@ -322,8 +322,8 @@ export class MaterialRepository {
     organizationId: string,
     userId: string,
     filters: SearchMaterialsFiltersDTO = {},
-  ): Promise<PaginatedResponse<MaterialListItem & { materialFile: string }>> {
-    const { page = 1, limit = 25, term } = filters;
+  ): Promise<PaginatedResponse<MaterialByCategorySlugRow>> {
+    const { page = 1, limit = 24, term } = filters;
 
     if (!term?.trim()) {
       return { data: [], total: 0, page, totalPages: 0 };
@@ -372,15 +372,15 @@ export class MaterialRepository {
             id: true,
             name: true,
             description: true,
-            category: {
-              select: {
-                name: true,
-              },
-            },
+            externalLink: true,
+            hasTextCopy: true,
+            textCopy: true,
+            isCustomizable: true,
             materialFiles: {
               select: {
-                id: true,
                 imageKey: true,
+                mimeType: true,
+                size: true,
               },
               take: 1,
             },
@@ -393,14 +393,22 @@ export class MaterialRepository {
       ]);
 
       return {
-        data: materials.map((material) => ({
-          id: material.id,
-          name: material.name,
-          description: material.description,
-          category: material.category,
-          materialFilesCount: material.materialFiles.length,
-          materialFile: material.materialFiles[0]?.imageKey,
-        })),
+        data: materials.map((material) => {
+          const file = material.materialFiles[0];
+
+          return {
+            id: material.id,
+            name: material.name,
+            description: material.description,
+            externalLink: material.externalLink || null,
+            hasTextCopy: material.hasTextCopy,
+            textCopy: material.textCopy,
+            isCustomizable: material.isCustomizable,
+            imageKey: file?.imageKey ?? null,
+            mimeType: file?.mimeType ?? null,
+            size: file?.size ?? null,
+          };
+        }),
         total,
         page,
         totalPages: Math.ceil(total / limit),

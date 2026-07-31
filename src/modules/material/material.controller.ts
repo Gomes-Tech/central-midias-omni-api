@@ -23,6 +23,7 @@ import {
   UpdateMaterialDTO,
 } from './dto';
 import {
+  MaterialByCategorySlugItem,
   MaterialListItem,
   MaterialMosaicItem,
   MostAccessedMaterialItem,
@@ -118,7 +119,7 @@ export class MaterialController {
     @OrgId() organizationId: string,
     @UserId() userId: string,
     @Query() filters: SearchMaterialsFiltersDTO = {},
-  ): Promise<PaginatedResponse<MaterialListItem & { materialFile: string }>> {
+  ): Promise<PaginatedResponse<MaterialByCategorySlugItem>> {
     return await this.searchMaterialsUseCase.execute(
       organizationId,
       userId,

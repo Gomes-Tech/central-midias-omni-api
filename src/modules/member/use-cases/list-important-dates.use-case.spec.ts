@@ -131,6 +131,36 @@ describe('ListImportantDatesUseCase', () => {
     await expect(useCase.execute(organizationId)).resolves.toEqual([]);
   });
 
+  it('deve ignorar admissão no ano corrente (years < 1)', async () => {
+    memberRepository.findPlatformMembersWithDates.mockResolvedValue([
+      {
+        user: {
+          name: 'Usuário com cidade e uf',
+          avatarKey: null,
+          birthDate: null,
+          admissionDate: new Date('2026-06-21T00:00:00.000Z'),
+        },
+      },
+    ]);
+
+    await expect(useCase.execute(organizationId)).resolves.toEqual([]);
+  });
+
+  it('deve ignorar aniversário com years < 1', async () => {
+    memberRepository.findPlatformMembersWithDates.mockResolvedValue([
+      {
+        user: {
+          name: 'Bebê',
+          avatarKey: null,
+          birthDate: new Date('2026-06-10T00:00:00.000Z'),
+          admissionDate: null,
+        },
+      },
+    ]);
+
+    await expect(useCase.execute(organizationId)).resolves.toEqual([]);
+  });
+
   it('deve retornar avatarUrl null quando getPublicUrl falhar', async () => {
     memberRepository.findPlatformMembersWithDates.mockResolvedValue([
       {

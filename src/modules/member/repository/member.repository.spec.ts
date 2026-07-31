@@ -680,6 +680,40 @@ describe('MemberRepository', () => {
       });
     });
 
+    it('deve converter birthDate e admissionDate para Date no update do user', async () => {
+      const memberUpdate = jest.fn().mockResolvedValue({ userId: 'user-1' });
+      const userUpdate = jest.fn().mockResolvedValue({});
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) =>
+          fn({
+            member: { update: memberUpdate },
+            user: { update: userUpdate },
+            userHierarchy: {
+              deleteMany: jest.fn(),
+              create: jest.fn(),
+            },
+          }),
+      );
+
+      await repository.update(
+        'm1',
+        'org-1',
+        {
+          birthDate: '1998-05-20',
+          admissionDate: '2015-07-29',
+        },
+        'upd-1',
+      );
+
+      expect(userUpdate).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: {
+          birthDate: new Date('1998-05-20'),
+          admissionDate: new Date('2015-07-29'),
+        },
+      });
+    });
+
     it('deve sincronizar gestor quando managerAssignments for informado', async () => {
       const memberUpdate = jest.fn().mockResolvedValue({ userId: 'user-1' });
       const userHierarchyDeleteMany = jest.fn().mockResolvedValue({});

@@ -6,6 +6,10 @@ import {
 } from '../entities';
 import { MemberRepository } from '../repository';
 
+function getCompletedYears(date: Date, now: Date): number {
+  return now.getUTCFullYear() - date.getUTCFullYear();
+}
+
 @Injectable()
 export class ListImportantDatesUseCase {
   constructor(
@@ -17,8 +21,8 @@ export class ListImportantDatesUseCase {
     const members =
       await this.memberRepository.findPlatformMembersWithDates(organizationId);
 
-    const currentMonth = new Date().getUTCMonth() + 1;
-    const currentYear = new Date().getUTCFullYear();
+    const now = new Date();
+    const currentMonth = now.getUTCMonth() + 1;
 
     const items: ImportantDateItem[] = [];
 
@@ -33,25 +37,31 @@ export class ListImportantDatesUseCase {
       }
 
       if (birthDate && birthDate.getUTCMonth() + 1 === currentMonth) {
-        items.push({
-          avatarUrl,
-          name,
-          day: birthDate.getUTCDate(),
-          month: currentMonth,
-          years: currentYear - birthDate.getUTCFullYear(),
-          type: IMPORTANT_DATE_TYPE.BIRTHDAY,
-        });
+        const years = getCompletedYears(birthDate, now);
+        if (years >= 1) {
+          items.push({
+            avatarUrl,
+            name,
+            day: birthDate.getUTCDate(),
+            month: currentMonth,
+            years,
+            type: IMPORTANT_DATE_TYPE.BIRTHDAY,
+          });
+        }
       }
 
       if (admissionDate && admissionDate.getUTCMonth() + 1 === currentMonth) {
-        items.push({
-          avatarUrl,
-          name,
-          day: admissionDate.getUTCDate(),
-          month: currentMonth,
-          years: currentYear - admissionDate.getUTCFullYear(),
-          type: IMPORTANT_DATE_TYPE.COMPANY_ANNIVERSARY,
-        });
+        const years = getCompletedYears(admissionDate, now);
+        if (years >= 1) {
+          items.push({
+            avatarUrl,
+            name,
+            day: admissionDate.getUTCDate(),
+            month: currentMonth,
+            years,
+            type: IMPORTANT_DATE_TYPE.COMPANY_ANNIVERSARY,
+          });
+        }
       }
     }
 
