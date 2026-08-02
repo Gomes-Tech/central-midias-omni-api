@@ -1,6 +1,13 @@
 import { BadRequestException } from '@common/filters';
 import { MailerService } from '@nestjs-modules/mailer';
+import { join } from 'path';
 import { MailService } from './mail.service';
+
+const footerAttachment = {
+  filename: 'footer-logos.png',
+  path: join(__dirname, 'assets', 'footer-logos.png'),
+  cid: 'footer-logos',
+};
 
 describe('MailService', () => {
   let mailer: jest.Mocked<Pick<MailerService, 'sendMail'>>;
@@ -11,7 +18,7 @@ describe('MailService', () => {
     service = new MailService(mailer as unknown as MailerService);
   });
 
-  it('sendMail deve delegar ao MailerService', async () => {
+  it('sendMail deve delegar ao MailerService com asset de marca', async () => {
     await service.sendMail({
       to: 'a@b.com',
       subject: 's',
@@ -24,10 +31,11 @@ describe('MailService', () => {
       subject: 's',
       template: 'welcome',
       context: { name: 'x' },
+      attachments: [footerAttachment],
     });
   });
 
-  it('sendMail deve repassar attachments quando informados', async () => {
+  it('sendMail deve prefixar attachments do caller com o asset de marca', async () => {
     const attachments = [
       {
         filename: 'relatorio.csv',
@@ -48,7 +56,7 @@ describe('MailService', () => {
       subject: 's',
       template: 'welcome',
       context: {},
-      attachments,
+      attachments: [footerAttachment, ...attachments],
     });
   });
 
@@ -64,6 +72,7 @@ describe('MailService', () => {
       subject: 's',
       template: 'welcome',
       context: {},
+      attachments: [footerAttachment],
     });
   });
 

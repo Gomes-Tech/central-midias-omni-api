@@ -1,0 +1,45 @@
+doctype html
+html(lang="pt-BR")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    meta(http-equiv="X-UA-Compatible" content="IE=edge")
+    title
+      block title
+    //- [if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]
+  body(style="margin:0;padding:0;background-color:#F5F5F5;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;")
+    table(role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#F5F5F5;")
+      tr
+        td(align="center" style="padding:24px 12px;")
+          table(role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;background-color:#FFFFFF;border-radius:16px;")
+            //- Header
+            tr
+              td(style="padding:18px 30px 0 30px;")
+                table(role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%")
+                  tr
+                    td(style="padding:0 0 0 8px;")
+                      table(role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #002FA7;border-radius:20px;")
+                        tr
+                          td(style="padding:4px 0 0 0;")
+                            table(role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#0035DE;background-image:linear-gradient(225deg,#0035DE 0%,#002FA7 100%);border-radius:20px;")
+                              tr
+                                td(style="padding:30px 40px;")
+                                  p(style="margin:0 0 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:600;line-height:1.2;letter-spacing:-0.03em;color:#FFFFFF;opacity:0.5;")
+                                    block label
+                                      | Comunicado
+                                  h1(style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:23px;font-weight:700;line-height:1.2;letter-spacing:-0.02em;color:#FFFFFF;")
+                                    block title
+            //- Body
+            tr
+              td(style="padding:32px 30px 24px 30px;")
+                p(style="margin:0 0 16px 0;font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:700;line-height:21px;color:#E95814;") Olá,
+                div(style="font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:400;line-height:21px;color:#000000;")
+                  block content
+            //- CTA
+            tr
+              td(align="center" style="padding:8px 30px 40px 30px;")
+                block cta
+            //- Footer
+            tr
+              td(align="center" style="padding:0 30px 40px 30px;")
+                img(src="cid:footer-logos" width="514" alt="Omni & Co, Omni, Finsol, i9 auto, Instituto Omni" style="display:block;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;")

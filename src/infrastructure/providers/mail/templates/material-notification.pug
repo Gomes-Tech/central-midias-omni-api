@@ -1,14 +1,19 @@
-doctype html
-html
-  head
-    title Novo material
-  body(style="font-family: Arial, sans-serif; padding: 20px;")
-    h1(style="color: #333;") Novo material disponível
-    p Olá#{name ? ' ' + name : ''},
-    p Foi publicado um novo material na plataforma:
-    p
-      strong #{materialName}
-    if materialLink
-      p
-        a(href=materialLink, style="color: #0066cc;") Acessar material
-    p Acesse a plataforma para visualizar o conteúdo.
+extends layouts/base
+
+block label
+  | Comunicado
+
+block title
+  | Novo material disponível
+
+block content
+  if name
+    p(style="margin:0 0 16px 0;") #{name},
+  p(style="margin:0 0 16px 0;") Foi publicado um novo material na plataforma:
+  p(style="margin:0 0 16px 0;")
+    strong #{materialName}
+  p(style="margin:0;") Acesse a plataforma para visualizar o conteúdo.
+
+block cta
+  if materialLink
+    a(href=materialLink style="display:inline-block;padding:24px 48px;background-color:#E95814;color:#FFFFFF;text-decoration:none;border-radius:12px;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;letter-spacing:-0.02em;line-height:1;") Acessar material

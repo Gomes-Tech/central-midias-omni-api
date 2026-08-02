@@ -2,10 +2,19 @@ import { BadRequestException } from '@common/filters';
 import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable } from '@nestjs/common';
 import { Attachment } from 'nodemailer/lib/mailer';
+import { join } from 'path';
 
 @Injectable()
 export class MailService {
   constructor(private readonly mailerService: MailerService) {}
+
+  private readonly brandAttachments: Attachment[] = [
+    {
+      filename: 'footer-logos.png',
+      path: join(__dirname, 'assets', 'footer-logos.png'),
+      cid: 'footer-logos',
+    },
+  ];
 
   async sendMail({
     to,
@@ -26,7 +35,7 @@ export class MailService {
         subject,
         template,
         context,
-        attachments,
+        attachments: [...this.brandAttachments, ...(attachments ?? [])],
       })
       .catch((error) => {
         console.error('Error sending email:', error);

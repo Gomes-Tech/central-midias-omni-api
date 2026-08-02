@@ -14,6 +14,11 @@
         "include": "infrastructure/providers/mail/templates/**/*",
         "outDir": "dist/src",
         "watchAssets": true
+      },
+      {
+        "include": "infrastructure/providers/mail/assets/**/*",
+        "outDir": "dist/src",
+        "watchAssets": true
       }
     ]
   }
