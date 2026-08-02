@@ -19,12 +19,6 @@ export class DeleteTagUseCase {
       );
     }
 
-    if (tag.tagSearchesCount > 0) {
-      throw new BadRequestException(
-        'Não é possível remover uma tag vinculada a buscas',
-      );
-    }
-
     await this.tagRepository.delete(id, organizationId);
   }
 }

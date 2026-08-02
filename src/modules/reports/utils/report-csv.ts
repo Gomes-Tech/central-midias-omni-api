@@ -79,10 +79,9 @@ export const buildTopMaterialsByDownloadsCsv = (
 };
 
 export const buildTopSearchesCsv = (rows: TopSearchRow[]): string => {
-  const header = 'term,search,tag,quantity';
+  const header = 'busca,tag,quantidade';
   const lines = rows.map((row) =>
     [
-      escapeCsvValue(row.term),
       escapeCsvValue(row.search),
       escapeCsvValue(row.tag),
       String(row.quantity),

@@ -138,10 +138,10 @@ describe('ReportRepository', () => {
         ])
         .mockResolvedValueOnce([{ total: BigInt(1) }]);
 
-      const result = await repository.findTopUsersByMaterialDownloads(
-        'org-1',
-        { page: 1, limit: 25 },
-      );
+      const result = await repository.findTopUsersByMaterialDownloads('org-1', {
+        page: 1,
+        limit: 25,
+      });
 
       expect(result).toEqual({
         data: [
@@ -163,9 +163,7 @@ describe('ReportRepository', () => {
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]);
 
-      const result = await repository.findTopUsersByMaterialDownloads(
-        'org-1',
-      );
+      const result = await repository.findTopUsersByMaterialDownloads('org-1');
 
       expect(result).toEqual({ data: [], total: 0, totalPages: 0, page: 1 });
     });
@@ -346,10 +344,9 @@ describe('ReportRepository', () => {
       prisma.$queryRawUnsafe
         .mockResolvedValueOnce([
           {
-            term: 'bola',
-            search: 'bola',
-            tag: 'bola',
-            quantity: BigInt(51),
+            search: 'blocos de notas',
+            tag: 'Papelaria, Produtividade, Texto',
+            quantity: BigInt(3),
           },
         ])
         .mockResolvedValueOnce([{ total: BigInt(1) }]);
@@ -359,10 +356,9 @@ describe('ReportRepository', () => {
       expect(result).toEqual({
         data: [
           {
-            term: 'bola',
-            search: 'bola',
-            tag: 'bola',
-            quantity: 51,
+            search: 'blocos de notas',
+            tag: 'Papelaria, Produtividade, Texto',
+            quantity: 3,
           },
         ],
         total: 1,
@@ -376,10 +372,19 @@ describe('ReportRepository', () => {
         0,
       );
       expect(prisma.$queryRawUnsafe.mock.calls[0][0]).toContain(
-        'GROUP BY ts.term, ts.search, t.name',
+        'GROUP BY ts.term',
+      );
+      expect(prisma.$queryRawUnsafe.mock.calls[0][0]).toContain(
+        "STRING_AGG(DISTINCT ts.tag_name, ', ' ORDER BY ts.tag_name)",
       );
       expect(prisma.$queryRawUnsafe.mock.calls[0][0]).toContain(
         'FROM tag_searches ts',
+      );
+      expect(prisma.$queryRawUnsafe.mock.calls[0][0]).toContain(
+        'WHERE ts.organization_id = $1',
+      );
+      expect(prisma.$queryRawUnsafe.mock.calls[0][0]).not.toContain(
+        'JOIN tags',
       );
     });
 
@@ -431,7 +436,6 @@ describe('ReportRepository', () => {
       prisma.$queryRawUnsafe
         .mockResolvedValueOnce([
           {
-            term: 'bola',
             search: 'bola',
             tag: 'bola',
             quantity: BigInt(51),
@@ -441,7 +445,6 @@ describe('ReportRepository', () => {
 
       await expect(repository.findAllTopSearches('org-1')).resolves.toEqual([
         {
-          term: 'bola',
           search: 'bola',
           tag: 'bola',
           quantity: 51,

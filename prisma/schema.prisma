@@ -66,6 +66,7 @@ model User {
   members             Member[]
   materialAcceptances MaterialAcceptance[]
   materialDownloads   MaterialDownload[]
+  tagSearches         TagSearch[]
   platformLogin       UserPlatformLogin?
   platformLoginEvents UserPlatformLoginEvent[]
   calendarEvents      CalendarEvent[]
@@ -221,6 +222,7 @@ model Organization {
   banners                Banner[]
   socialHighlights       SocialHighlight[]
   tags                   Tag[]
+  tagSearches            TagSearch[]
   faqs                   Faq[]
   faqItems               FaqItem[]
   category_role_accesses CategoryRoleAccess[]
@@ -598,15 +600,24 @@ model Tag {
 }
 
 model TagSearch {
-  id        String   @id @default(uuid())
-  term      String
-  search    String
-  tagId     String   @map("tag_id")
-  tag       Tag      @relation(fields: [tagId], references: [id])
-  createdAt DateTime @default(now()) @map("created_at")
+  id             String   @id @default(uuid())
+  searchId       String   @map("search_id")
+  organizationId String   @map("organization_id")
+  userId         String?  @map("user_id")
+  term           String
+  search         String
+  tagId          String?  @map("tag_id")
+  tagName        String   @map("tag_name")
+  createdAt      DateTime @default(now()) @map("created_at")
 
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tag          Tag?         @relation(fields: [tagId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, userId, searchId, tagName])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, term])
   @@index([tagId])
-  @@index([term])
   @@index([search])
   @@map("tag_searches")
 }

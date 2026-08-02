@@ -35,10 +35,7 @@ function matchScalar(
   }
   if (isPlainObject(condition)) {
     if ('equals' in condition) {
-      if (
-        condition.mode === 'insensitive' &&
-        typeof fieldValue === 'string'
-      ) {
+      if (condition.mode === 'insensitive' && typeof fieldValue === 'string') {
         return (
           fieldValue.toLowerCase() === String(condition.equals).toLowerCase()
         );
@@ -52,7 +49,9 @@ function matchScalar(
       const term = String(condition.contains).toLowerCase();
       const value = fieldValue.toLowerCase();
       const mode = condition.mode === 'insensitive';
-      return mode ? value.includes(term) : fieldValue.includes(String(condition.contains));
+      return mode
+        ? value.includes(term)
+        : fieldValue.includes(String(condition.contains));
     }
     if ('is' in condition) {
       return fieldValue === condition.is;
@@ -60,7 +59,12 @@ function matchScalar(
     if ('not' in condition) {
       return !matchScalar(fieldValue, condition.not, store);
     }
-    if ('lte' in condition || 'gte' in condition || 'lt' in condition || 'gt' in condition) {
+    if (
+      'lte' in condition ||
+      'gte' in condition ||
+      'lt' in condition ||
+      'gt' in condition
+    ) {
       const numericValue =
         fieldValue instanceof Date
           ? fieldValue.getTime()
@@ -71,24 +75,40 @@ function matchScalar(
         return false;
       }
       if ('lte' in condition) {
-        const bound = condition.lte instanceof Date ? condition.lte.getTime() : new Date(String(condition.lte)).getTime();
+        const bound =
+          condition.lte instanceof Date
+            ? condition.lte.getTime()
+            : new Date(String(condition.lte)).getTime();
         if (!(numericValue <= bound)) return false;
       }
       if ('gte' in condition) {
-        const bound = condition.gte instanceof Date ? condition.gte.getTime() : new Date(String(condition.gte)).getTime();
+        const bound =
+          condition.gte instanceof Date
+            ? condition.gte.getTime()
+            : new Date(String(condition.gte)).getTime();
         if (!(numericValue >= bound)) return false;
       }
       if ('lt' in condition) {
-        const bound = condition.lt instanceof Date ? condition.lt.getTime() : new Date(String(condition.lt)).getTime();
+        const bound =
+          condition.lt instanceof Date
+            ? condition.lt.getTime()
+            : new Date(String(condition.lt)).getTime();
         if (!(numericValue < bound)) return false;
       }
       if ('gt' in condition) {
-        const bound = condition.gt instanceof Date ? condition.gt.getTime() : new Date(String(condition.gt)).getTime();
+        const bound =
+          condition.gt instanceof Date
+            ? condition.gt.getTime()
+            : new Date(String(condition.gt)).getTime();
         if (!(numericValue > bound)) return false;
       }
       return true;
     }
-    return matchWhere(recordFromValue(fieldValue), condition as Record<string, unknown>, store);
+    return matchWhere(
+      recordFromValue(fieldValue),
+      condition as Record<string, unknown>,
+      store,
+    );
   }
   return fieldValue === condition;
 }
@@ -117,12 +137,20 @@ function matchRelation(
   }
   if ('some' in filter && Array.isArray(related)) {
     return related.some((item) =>
-      matchWhere(item as Record<string, unknown>, filter.some as Record<string, unknown>, store),
+      matchWhere(
+        item as Record<string, unknown>,
+        filter.some as Record<string, unknown>,
+        store,
+      ),
     );
   }
   if ('every' in filter && Array.isArray(related)) {
     return related.every((item) =>
-      matchWhere(item as Record<string, unknown>, filter.every as Record<string, unknown>, store),
+      matchWhere(
+        item as Record<string, unknown>,
+        filter.every as Record<string, unknown>,
+        store,
+      ),
     );
   }
   if ('none' in filter) {
@@ -187,6 +215,17 @@ function resolveRelation(
   if (relationKey === 'material' && record.materialId) {
     return store.materials.find((m) => m.id === record.materialId) ?? null;
   }
+  if (
+    relationKey === 'material' &&
+    record.id &&
+    store.tags.some((tag) => tag.id === record.id)
+  ) {
+    return store.materials.filter(
+      (material) =>
+        Array.isArray(material.tags) &&
+        material.tags.some((tag) => isPlainObject(tag) && tag.id === record.id),
+    );
+  }
   if (relationKey === 'materials' && record.id) {
     return store.calendarEventMaterials
       .filter((link) => link.eventId === record.id)
@@ -219,7 +258,8 @@ function resolveRelation(
   if (relationKey === '_count') {
     return {
       material: Array.isArray(record.material) ? record.material.length : 0,
-      tagSearches: store.tagSearches.filter((s) => s.tagId === record.id).length,
+      tagSearches: store.tagSearches.filter((s) => s.tagId === record.id)
+        .length,
     };
   }
 
@@ -318,15 +358,29 @@ function applySelect(
     if (isPlainObject(value) && 'select' in value) {
       if (Array.isArray(related)) {
         result[key] = related.map((item) =>
-          applySelect(item as Record<string, unknown>, value.select as Record<string, unknown>, store),
+          applySelect(
+            item as Record<string, unknown>,
+            value.select as Record<string, unknown>,
+            store,
+          ),
         );
       } else if (isPlainObject(related)) {
-        result[key] = applySelect(related, value.select as Record<string, unknown>, store);
+        result[key] = applySelect(
+          related,
+          value.select as Record<string, unknown>,
+          store,
+        );
       } else {
         result[key] = related;
       }
     } else if (isPlainObject(related)) {
-      result[key] = applySelect(related, isPlainObject(value) ? (value.select as Record<string, unknown>) : undefined, store);
+      result[key] = applySelect(
+        related,
+        isPlainObject(value)
+          ? (value.select as Record<string, unknown>)
+          : undefined,
+        store,
+      );
     } else {
       result[key] = related;
     }
@@ -378,7 +432,9 @@ export function queryCollection(
   if (typeof args.take === 'number') {
     rows = rows.slice(0, args.take);
   }
-  return rows.map((row) => applySelect(row, args.select as Record<string, unknown> | undefined, store));
+  return rows.map((row) =>
+    applySelect(row, args.select as Record<string, unknown> | undefined, store),
+  );
 }
 
 export function findFirst(
@@ -411,13 +467,16 @@ export function throwIfNotFound<T>(value: T | null): T {
 
 export function mergeCreateData(
   data: Record<string, unknown>,
-  store: E2eStore,
 ): Record<string, unknown> {
   const row: Record<string, unknown> = { ...data };
   if (data.connect && isPlainObject(data.connect)) {
     return row;
   }
-  if (row.globalRole && isPlainObject(row.globalRole) && row.globalRole.connect) {
+  if (
+    row.globalRole &&
+    isPlainObject(row.globalRole) &&
+    row.globalRole.connect
+  ) {
     row.globalRoleId = (row.globalRole.connect as Record<string, unknown>).id;
     delete row.globalRole;
   }

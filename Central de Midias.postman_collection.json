@@ -1877,13 +1877,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/materials/search?term=&page=1&limit=10",
+              "raw": "{{baseUrl}}/materials/search?term=&searchId=017f22e2-79b0-4d1f-9c3d-1e12f53d5098&page=1&limit=10",
               "host": ["{{baseUrl}}"],
               "path": ["materials", "search"],
               "query": [
                 {
                   "key": "term",
                   "value": "",
+                  "type": "text"
+                },
+                {
+                  "key": "searchId",
+                  "value": "017f22e2-79b0-4d1f-9c3d-1e12f53d5098",
                   "type": "text"
                 },
                 {

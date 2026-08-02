@@ -32,16 +32,13 @@ describe('ExportReportUseCase', () => {
   });
 
   it('deve exportar CSV de usuários por login', async () => {
-    const result = await useCase.execute(
-      ReportType.USERS_TOP_LOGINS,
-      'org-1',
-    );
+    const result = await useCase.execute(ReportType.USERS_TOP_LOGINS, 'org-1');
 
     expect(result.filename).toBe('relatorio-usuarios-logins.csv');
     expect(result.content).toContain('Ana');
-    expect(reportRepository.findAllTopUsersByPlatformLogins).toHaveBeenCalledWith(
-      'org-1',
-    );
+    expect(
+      reportRepository.findAllTopUsersByPlatformLogins,
+    ).toHaveBeenCalledWith('org-1');
   });
 
   it('deve exportar CSV de usuários por download de materiais', async () => {
@@ -113,7 +110,6 @@ describe('ExportReportUseCase', () => {
   it('deve exportar CSV de buscas agregadas', async () => {
     reportRepository.findAllTopSearches.mockResolvedValue([
       {
-        term: 'bola',
         search: 'bola',
         tag: 'bola',
         quantity: 51,
@@ -123,9 +119,7 @@ describe('ExportReportUseCase', () => {
     const result = await useCase.execute(ReportType.SEARCHES_TOP, 'org-1');
 
     expect(result.filename).toBe('relatorio-buscas.csv');
-    expect(result.content).toBe(
-      'term,search,tag,quantity\nbola,bola,bola,51',
-    );
+    expect(result.content).toBe('busca,tag,quantidade\nbola,bola,51');
     expect(reportRepository.findAllTopSearches).toHaveBeenCalledWith('org-1');
   });
 

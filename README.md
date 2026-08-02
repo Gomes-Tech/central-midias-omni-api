@@ -233,7 +233,7 @@ use-cases/
 - Organizations accessible / users me
 
 ### Relatórios e assíncrono
-- Top logins, downloads por usuário, views/downloads de materiais, top buscas
+- Top logins, downloads por usuário, views/downloads de materiais e top buscas consolidadas por termo
 - Export CSV por e-mail via fila `report-export`
 - Export de aceites de material via fila `material-acceptance-export`
 - Notificações de material / aceite via filas de e-mail
@@ -289,7 +289,7 @@ use-cases/
 
 ### Tags
 - Escopo por organização; `name` único dentro da org.
-- Não remove se houver materiais ou `TagSearch` associados.
+- Não remove se houver materiais associados. Buscas preservam um snapshot do nome e não bloqueiam a remoção.
 
 ### FAQ
 - Escopo por organização; itens ligados a um FAQ; detalhe 1:1 com telefones/WhatsApp e imagem opcional.
@@ -481,7 +481,7 @@ Visibilidade de eventos: `canAccessBackoffice=true` vê todos; caso contrário, 
 | GET | `/materials` | Lista admin | `materials:READ` + org |
 | GET | `/materials/most-accessed` | Portal | JWT+API+Org |
 | GET | `/materials/mosaic` | Portal | JWT+API+Org |
-| GET | `/materials/search` | Busca portal | JWT+API+Org |
+| GET | `/materials/search` | Busca portal + tracking idempotente por `searchId` | JWT+API+Org |
 | GET | `/materials/:id/download` | Download/URLs + tracking | JWT+API+Org |
 | GET | `/materials/:id/details` | Detalhe + view | JWT+API+Org |
 | GET | `/materials/:id` | Detalhe admin | `materials:READ` + org |
@@ -583,7 +583,7 @@ ORM: **Prisma** · Provider: **PostgreSQL** · Schema: `prisma/schema.prisma`
 | `MaterialDownload` | `material_downloads` | Downloads |
 | `MaterialFile` | `material_files` | Arquivos do material |
 | `Tag` | `tags` | Tags por org |
-| `TagSearch` | `tag_searches` | Termos de busca ligados a tags |
+| `TagSearch` | `tag_searches` | Eventos de busca por tag, organização e usuário |
 | `Log` | `logs` | Logs persistidos |
 | `SeedStatus` | `seed_status` | Controle de seed |
 

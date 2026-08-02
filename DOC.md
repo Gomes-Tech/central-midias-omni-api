@@ -316,7 +316,7 @@ ORM: Prisma com PostgreSQL.
 - `Material`: material associado a categoria, com relação many-to-many para `Tag`. Atenção: o próprio schema comenta que está fora do padrão completo de soft delete e usa principalmente `deletedAt`.
 - `MaterialFile`: arquivos de um material.
 - `Tag`: tags por organização, com `organizationId` obrigatório e `name` único dentro da organização.
-- `TagSearch`: termos de busca associados a tags.
+- `TagSearch`: eventos idempotentes de busca associados a organização, usuário e snapshots de tags.
 - `Log`: logs persistidos.
 - `SeedStatus`: controle para rodar seed uma única vez.
 
