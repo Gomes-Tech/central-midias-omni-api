@@ -33,6 +33,11 @@ export class MaterialCustomizationDTO {
   @IsOptional()
   @Transform(({ value }) => transformBoolean(value), { toClassOnly: true })
   @IsBoolean()
+  hasName?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => transformBoolean(value), { toClassOnly: true })
+  @IsBoolean()
   hasPhonePrimary?: boolean;
 
   @IsOptional()

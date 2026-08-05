@@ -9,7 +9,7 @@ describe('Material customization DTO', () => {
       categoryId: 'category-id',
       isCustomizable: 'true',
       customization:
-        '{"position":"TOP","hasPhonePrimary":"true","hasCity":"false"}',
+        '{"position":"TOP","hasName":"true","hasPhonePrimary":"true","hasCity":"false"}',
     });
 
     const errors = await validate(dto);
@@ -19,6 +19,7 @@ describe('Material customization DTO', () => {
     expect(dto.customization).toEqual(
       expect.objectContaining({
         position: 'TOP',
+        hasName: true,
         hasPhonePrimary: true,
         hasCity: false,
       }),

@@ -509,6 +509,7 @@ model MaterialCustomization {
 
   position CustomizationPosition @default(FOOTER)
 
+  hasName           Boolean @default(false) @map("has_name")
   hasPhonePrimary   Boolean @default(false) @map("has_phone_primary")
   hasPhoneSecondary Boolean @default(false) @map("has_phone_secondary")
   hasAddress        Boolean @default(false) @map("has_address")

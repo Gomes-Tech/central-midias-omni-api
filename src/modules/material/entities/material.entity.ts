@@ -33,6 +33,7 @@ export interface MaterialFileWithUrl extends Omit<MaterialFileItem, 'fileKey'> {
 
 export interface MaterialCustomizationDetails {
   position: 'TOP' | 'FOOTER';
+  hasName: boolean;
   hasPhonePrimary: boolean;
   hasPhoneSecondary: boolean;
   hasAddress: boolean;

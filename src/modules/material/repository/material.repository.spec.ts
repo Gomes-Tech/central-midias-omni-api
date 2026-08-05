@@ -579,6 +579,7 @@ describe('MaterialRepository', () => {
         isCustomizable: true,
         materialCustomization: {
           position: 'TOP',
+          hasName: true,
           hasPhonePrimary: true,
           hasPhoneSecondary: false,
           hasAddress: true,
@@ -603,6 +604,7 @@ describe('MaterialRepository', () => {
           isCustomizable: true,
           customization: {
             position: 'TOP',
+            hasName: true,
             hasPhonePrimary: true,
             hasPhoneSecondary: false,
             hasAddress: true,
@@ -929,6 +931,7 @@ describe('MaterialRepository', () => {
           isCustomizable: true,
           customization: {
             position: 'TOP',
+            hasName: true,
             hasPhonePrimary: true,
             hasAddress: true,
           },
@@ -952,6 +955,7 @@ describe('MaterialRepository', () => {
             create: {
               id: 'mocked-uuid',
               position: 'TOP',
+              hasName: true,
               hasPhonePrimary: true,
               hasAddress: true,
             },
@@ -1120,6 +1124,7 @@ describe('MaterialRepository', () => {
           isCustomizable: true,
           customization: {
             position: 'TOP',
+            hasName: true,
             hasPhonePrimary: true,
           },
         },
@@ -1135,10 +1140,12 @@ describe('MaterialRepository', () => {
               create: {
                 id: 'mocked-uuid',
                 position: 'TOP',
+                hasName: true,
                 hasPhonePrimary: true,
               },
               update: {
                 position: 'TOP',
+                hasName: true,
                 hasPhonePrimary: true,
               },
             },

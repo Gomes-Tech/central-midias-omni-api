@@ -53,6 +53,7 @@ const buildMaterialDetailsSelect = (organizationId: string) =>
     materialCustomization: {
       select: {
         position: true,
+        hasName: true,
         hasPhonePrimary: true,
         hasPhoneSecondary: true,
         hasAddress: true,
@@ -864,6 +865,7 @@ export class MaterialRepository {
               material.isCustomizable && material.materialCustomization
                 ? {
                     position: material.materialCustomization.position,
+                    hasName: material.materialCustomization.hasName,
                     hasPhonePrimary:
                       material.materialCustomization.hasPhonePrimary,
                     hasPhoneSecondary:
@@ -1155,6 +1157,9 @@ export class MaterialRepository {
       ...(customization?.position !== undefined && {
         position: customization.position,
       }),
+      ...(customization?.hasName !== undefined && {
+        hasName: customization.hasName,
+      }),
       ...(customization?.hasPhonePrimary !== undefined && {
         hasPhonePrimary: customization.hasPhonePrimary,
       }),
@@ -1176,6 +1181,9 @@ export class MaterialRepository {
     return {
       ...(customization?.position !== undefined && {
         position: customization.position,
+      }),
+      ...(customization?.hasName !== undefined && {
+        hasName: customization.hasName,
       }),
       ...(customization?.hasPhonePrimary !== undefined && {
         hasPhonePrimary: customization.hasPhonePrimary,
