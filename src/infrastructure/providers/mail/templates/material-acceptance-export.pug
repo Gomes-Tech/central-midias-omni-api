@@ -1,9 +1,15 @@
-doctype html
-html
-  head
-    title Relatório de aceite de material
-  body(style="font-family: Arial, sans-serif; padding: 20px;")
-    h1(style="color: #333;") Relatório de aceite de material
-    p Olá#{name ? ' ' + name : ''},
-    p Segue em anexo o relatório de aceite solicitado (#{filename}).
-    p Este arquivo contém a lista de usuários, status de visualização e datas de aceite.
+extends layouts/base
+
+block label
+  | Relatório
+
+block title
+  | Relatório de aceite de material
+
+block content
+  if name
+    p(style="margin:0 0 16px 0;") #{name},
+  p(style="margin:0 0 16px 0;") Segue em anexo o relatório de aceite solicitado (#{filename}).
+  p(style="margin:0;") Este arquivo contém a lista de usuários, status de visualização e datas de aceite.
+
+block cta

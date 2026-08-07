@@ -82,13 +82,37 @@ function createDelegate(collectionKey: keyof ReturnType<typeof getE2eStore>) {
         ) ?? row
       );
     },
-    createMany: async (args: { data: Record<string, unknown>[] }) => {
+    createMany: async (args: {
+      data: Record<string, unknown>[];
+      skipDuplicates?: boolean;
+    }) => {
       const store = getE2eStore();
       const collection = store[collectionKey] as Record<string, unknown>[];
+      let count = 0;
       for (const item of args.data) {
+        const duplicate =
+          args.skipDuplicates &&
+          collection.some((row) => {
+            if (collectionKey === 'tagSearches') {
+              return (
+                row.organizationId === item.organizationId &&
+                row.userId === item.userId &&
+                row.searchId === item.searchId &&
+                row.tagName === item.tagName
+              );
+            }
+
+            return row.id === item.id;
+          });
+
+        if (duplicate) {
+          continue;
+        }
+
         collection.push(mergeCreateData(item));
+        count += 1;
       }
-      return { count: args.data.length };
+      return { count };
     },
     update: async (args: {
       where: Record<string, unknown>;
@@ -176,6 +200,75 @@ export class E2ePrismaService {
 
   async $queryRaw() {
     return [{ '?column?': 1 }];
+  }
+
+  async $queryRawUnsafe(
+    query: string,
+    organizationId: string,
+    limit?: number,
+    offset?: number,
+  ) {
+    if (!query.includes('FROM tag_searches ts')) {
+      return [];
+    }
+
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const rows = getE2eStore().tagSearches.filter((row) => {
+      const createdAt = row.createdAt;
+      return (
+        row.organizationId === organizationId &&
+        createdAt instanceof Date &&
+        createdAt.getTime() >= cutoff
+      );
+    });
+    const grouped = new Map<
+      string,
+      {
+        search: string;
+        tags: Set<string>;
+        quantity: bigint;
+        createdAt: Date;
+      }
+    >();
+
+    for (const row of rows) {
+      const key = String(row.term);
+      const createdAt = row.createdAt as Date;
+      const current = grouped.get(key);
+
+      if (!current) {
+        grouped.set(key, {
+          search: String(row.search),
+          tags: new Set([String(row.tagName)]),
+          quantity: BigInt(1),
+          createdAt,
+        });
+        continue;
+      }
+
+      current.quantity += BigInt(1);
+      current.tags.add(String(row.tagName));
+      if (createdAt > current.createdAt) {
+        current.search = String(row.search);
+        current.createdAt = createdAt;
+      }
+    }
+
+    if (query.includes('SELECT COUNT(*)::bigint AS total')) {
+      return [{ total: BigInt(grouped.size) }];
+    }
+
+    return [...grouped.values()]
+      .sort((a, b) => {
+        const quantityOrder = Number(b.quantity - a.quantity);
+        return quantityOrder || a.search.localeCompare(b.search);
+      })
+      .slice(offset ?? 0, (offset ?? 0) + (limit ?? grouped.size))
+      .map(({ search, tags, quantity }) => ({
+        search,
+        tag: [...tags].sort((a, b) => a.localeCompare(b)).join(', '),
+        quantity,
+      }));
   }
 
   async $connect() {

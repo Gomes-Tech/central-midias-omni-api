@@ -19,7 +19,6 @@ describe('FindTopSearchesUseCase', () => {
     const paginated = {
       data: [
         {
-          term: 'bola',
           search: 'bola',
           tag: 'bola',
           quantity: 51,

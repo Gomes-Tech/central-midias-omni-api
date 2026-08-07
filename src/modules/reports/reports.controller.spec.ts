@@ -98,9 +98,7 @@ describe('ReportsController', () => {
 
   it('deve delegar listagem de usuários por download de materiais', async () => {
     const paginated = { data: [], total: 0, totalPages: 0, page: 1 };
-    findTopUsersByMaterialDownloadsUseCase.execute.mockResolvedValue(
-      paginated,
-    );
+    findTopUsersByMaterialDownloadsUseCase.execute.mockResolvedValue(paginated);
 
     const result = await controller.findTopUsersByMaterialDownloads('org-1', {
       page: 1,
@@ -108,9 +106,10 @@ describe('ReportsController', () => {
     });
 
     expect(result).toBe(paginated);
-    expect(
-      findTopUsersByMaterialDownloadsUseCase.execute,
-    ).toHaveBeenCalledWith('org-1', { page: 1, limit: 10 });
+    expect(findTopUsersByMaterialDownloadsUseCase.execute).toHaveBeenCalledWith(
+      'org-1',
+      { page: 1, limit: 10 },
+    );
   });
 
   it('deve delegar listagem de materiais mais visualizados', async () => {
@@ -149,7 +148,6 @@ describe('ReportsController', () => {
     const paginated = {
       data: [
         {
-          term: 'bola',
           search: 'bola',
           tag: 'bola',
           quantity: 51,
@@ -169,7 +167,6 @@ describe('ReportsController', () => {
     expect(result).toEqual(paginated);
     expect(result.data).toHaveLength(1);
     expect(result.data[0]).toEqual({
-      term: 'bola',
       search: 'bola',
       tag: 'bola',
       quantity: 51,
@@ -283,9 +280,10 @@ describe('ReportsController', () => {
       'org-1',
       {},
     );
-    expect(
-      findTopUsersByMaterialDownloadsUseCase.execute,
-    ).toHaveBeenCalledWith('org-1', {});
+    expect(findTopUsersByMaterialDownloadsUseCase.execute).toHaveBeenCalledWith(
+      'org-1',
+      {},
+    );
     expect(findTopMaterialsByViewsUseCase.execute).toHaveBeenCalledWith(
       'org-1',
       {},

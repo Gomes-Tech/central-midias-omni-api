@@ -70,20 +70,18 @@ describe('report-csv', () => {
   it('deve montar CSV de buscas agregadas', () => {
     const csv = buildTopSearchesCsv([
       {
-        term: 'bola',
         search: 'bola',
         tag: 'bola',
         quantity: 51,
       },
     ]);
 
-    expect(csv).toBe('term,search,tag,quantity\nbola,bola,bola,51');
+    expect(csv).toBe('busca,tag,quantidade\nbola,bola,51');
   });
 
   it('deve escapar valores com vírgula no CSV de buscas', () => {
     const csv = buildTopSearchesCsv([
       {
-        term: 'bola, basquete',
         search: 'bola, basquete',
         tag: 'esporte',
         quantity: 3,

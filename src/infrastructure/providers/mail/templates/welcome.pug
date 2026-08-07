@@ -1,19 +1,25 @@
-doctype html
-html
-  head
-    title Bem-vindo
-  body(style="font-family: Arial, sans-serif; padding: 20px;")
-    h1(style="color: #333;") Bem-vindo!
-    p Olá#{name ? ' ' + name : ''},
-    p Sua conta foi criada com sucesso. Para ativá-la, faça login no sistema.
-    p
-      strong Para acessar, utilize:
-    ul(style="list-style: none; padding-left: 0;")
-      li
-        strong Login:
-        |  #{email}
-      li
-        strong Senha:
-        |  #{taxIdentifier}
-    p Na primeira vez que entrar, recomendamos que você altere sua senha por uma de sua preferência.
-    p Se você não solicitou a criação desta conta, entre em contato com o suporte.
+extends layouts/base
+
+block label
+  | Bem-vindo
+
+block title
+  | Conta criada
+
+block content
+  if name
+    p(style="margin:0 0 16px 0;") #{name},
+  p(style="margin:0 0 16px 0;") Sua conta foi criada com sucesso. Para ativá-la, faça login no sistema.
+  p(style="margin:0 0 8px 0;")
+    strong Para acessar, utilize:
+  ul(style="list-style:none;padding-left:0;margin:0 0 16px 0;")
+    li(style="margin:0 0 4px 0;")
+      strong Login:
+      |  #{email}
+    li(style="margin:0 0 4px 0;")
+      strong Senha:
+      |  #{taxIdentifier}
+  p(style="margin:0 0 16px 0;") Na primeira vez que entrar, recomendamos que você altere sua senha por uma de sua preferência.
+  p(style="margin:0;") Se você não solicitou a criação desta conta, entre em contato com o suporte.
+
+block cta

@@ -2,7 +2,7 @@ import { StorageService } from '@infrastructure/providers';
 import { Inject, Injectable } from '@nestjs/common';
 import { PaginatedResponse } from '../../../types';
 import { SearchMaterialsFiltersDTO } from '../dto';
-import { MaterialListItem } from '../entities';
+import { MaterialByCategorySlugItem } from '../entities';
 import { MaterialRepository } from '../repository';
 
 @Injectable()
@@ -17,25 +17,43 @@ export class SearchMaterialsUseCase {
     organizationId: string,
     userId: string,
     filters: SearchMaterialsFiltersDTO = {},
-  ): Promise<PaginatedResponse<MaterialListItem & { materialFile: string }>> {
-    const materials = await this.materialRepository.search(
+  ): Promise<PaginatedResponse<MaterialByCategorySlugItem>> {
+    const result = await this.materialRepository.search(
       organizationId,
       userId,
       filters,
     );
 
-    const materialsWithFile = await Promise.all(
-      materials.data.map(async (material) => ({
-        ...material,
-        materialFile: await this.storageService.getPublicUrl(
-          material.materialFile,
-        ),
-      })),
+    const data = await Promise.all(
+      result.data.map(async (material) => {
+        const isImage = material.mimeType?.startsWith('image/') ?? false;
+        const imageUrl =
+          isImage && material.imageKey
+            ? await this.storageService
+                .getPublicUrl(material.imageKey, 840)
+                .catch(() => null)
+            : null;
+
+        return {
+          id: material.id,
+          name: material.name,
+          description: material.description,
+          imageUrl,
+          mimeType: material.mimeType,
+          size: material.size,
+          externalLink: material.externalLink,
+          hasTextCopy: material.hasTextCopy,
+          textCopy: material.textCopy,
+          isCustomizable: material.isCustomizable,
+        };
+      }),
     );
 
     return {
-      ...materials,
-      data: materialsWithFile,
+      data,
+      total: result.total,
+      page: result.page,
+      totalPages: result.totalPages,
     };
   }
 }

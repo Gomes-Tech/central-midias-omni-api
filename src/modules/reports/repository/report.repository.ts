@@ -407,7 +407,6 @@ export class ReportRepository {
       const [rows, countResult] = await Promise.all([
         this.prisma.$queryRawUnsafe<
           {
-            term: string;
             search: string;
             tag: string;
             quantity: bigint;
@@ -415,16 +414,14 @@ export class ReportRepository {
         >(
           `
           SELECT
-            ts.term,
-            ts.search,
-            t.name AS tag,
+            (ARRAY_AGG(ts.search ORDER BY ts.created_at DESC))[1] AS search,
+            STRING_AGG(DISTINCT ts.tag_name, ', ' ORDER BY ts.tag_name) AS tag,
             COUNT(ts.id)::bigint AS quantity
           FROM tag_searches ts
-          JOIN tags t ON t.id = ts.tag_id
-          WHERE t.organization_id = $1
+          WHERE ts.organization_id = $1
             AND ts.created_at >= NOW() - INTERVAL '30 days'
-          GROUP BY ts.term, ts.search, t.name
-          ORDER BY quantity DESC, ts.term ASC
+          GROUP BY ts.term
+          ORDER BY quantity DESC, search ASC
           LIMIT $2 OFFSET $3
           `,
           organizationId,
@@ -435,12 +432,11 @@ export class ReportRepository {
           `
           SELECT COUNT(*)::bigint AS total
           FROM (
-            SELECT ts.term, ts.search, t.name
+            SELECT ts.term
             FROM tag_searches ts
-            JOIN tags t ON t.id = ts.tag_id
-            WHERE t.organization_id = $1
+            WHERE ts.organization_id = $1
               AND ts.created_at >= NOW() - INTERVAL '30 days'
-            GROUP BY ts.term, ts.search, t.name
+            GROUP BY ts.term
           ) grouped_searches
           `,
           organizationId,
@@ -451,7 +447,6 @@ export class ReportRepository {
 
       return {
         data: rows.map((row) => ({
-          term: row.term,
           search: row.search,
           tag: row.tag,
           quantity: Number(row.quantity),

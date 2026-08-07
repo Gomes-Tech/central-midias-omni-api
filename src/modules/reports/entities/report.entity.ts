@@ -28,7 +28,6 @@ export interface TopMaterialByDownloadRow {
 }
 
 export interface TopSearchRow {
-  term: string;
   search: string;
   tag: string;
   quantity: number;

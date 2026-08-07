@@ -47,16 +47,15 @@ describe('DeleteTagUseCase', () => {
     );
   });
 
-  it('deve impedir remoção quando houver buscas vinculadas', async () => {
+  it('deve permitir remoção quando houver apenas buscas vinculadas', async () => {
     findTagByIdUseCase.execute.mockResolvedValue(
       makeTagEntity({ tagSearchesCount: 1 }),
     );
+    tagRepository.delete.mockResolvedValue(undefined);
 
-    await expect(useCase.execute('tag-id', organizationId)).rejects.toThrow(
-      BadRequestException,
-    );
-    await expect(useCase.execute('tag-id', organizationId)).rejects.toThrow(
-      'Não é possível remover uma tag vinculada a buscas',
-    );
+    await expect(
+      useCase.execute('tag-id', organizationId),
+    ).resolves.toBeUndefined();
+    expect(tagRepository.delete).toHaveBeenCalledWith('tag-id', organizationId);
   });
 });

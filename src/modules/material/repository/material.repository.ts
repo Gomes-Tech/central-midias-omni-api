@@ -20,6 +20,7 @@ import {
   MaterialListItem,
 } from '../entities';
 import type { ResolvedMaterialTags } from '../use-cases/resolve-material-tags.use-case';
+import { normalizeSearchTerm } from '../utils/normalize-search-term';
 
 const materialListSelect = {
   id: true,
@@ -325,12 +326,14 @@ export class MaterialRepository {
     organizationId: string,
     userId: string,
     filters: SearchMaterialsFiltersDTO = {},
-  ): Promise<PaginatedResponse<MaterialListItem & { materialFile: string }>> {
-    const { page = 1, limit = 25, term } = filters;
+  ): Promise<PaginatedResponse<MaterialByCategorySlugRow>> {
+    const { page = 1, limit = 24, term, searchId } = filters;
 
     if (!term?.trim()) {
       return { data: [], total: 0, page, totalPages: 0 };
     }
+
+    const search = term.trim();
 
     try {
       const categoryWhere = await this.buildAccessibleCategoryWhere(
@@ -350,7 +353,7 @@ export class MaterialRepository {
         OR: [
           {
             name: {
-              contains: term,
+              contains: search,
               mode: 'insensitive',
             },
           },
@@ -359,7 +362,7 @@ export class MaterialRepository {
               some: {
                 organizationId,
                 name: {
-                  contains: term,
+                  contains: search,
                   mode: 'insensitive',
                 },
               },
@@ -375,19 +378,18 @@ export class MaterialRepository {
             id: true,
             name: true,
             description: true,
-            category: {
-              select: {
-                name: true,
-              },
-            },
+            externalLink: true,
+            hasTextCopy: true,
+            textCopy: true,
+            isCustomizable: true,
             materialFiles: {
               select: {
-                id: true,
                 imageKey: true,
+                mimeType: true,
+                size: true,
               },
               take: 1,
             },
-            isCustomizable: true,
             materialTemplate: { select: { status: true } },
           },
           orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
@@ -397,17 +399,33 @@ export class MaterialRepository {
         this.prisma.material.count({ where }),
       ]);
 
+      if (page === 1 && total > 0) {
+        await this.registerSearchMetrics({
+          organizationId,
+          userId,
+          searchId: searchId ?? generateId(),
+          search,
+          materialWhere: where,
+        });
+      }
+
       return {
-        data: materials.map((material) => ({
-          id: material.id,
-          name: material.name,
-          description: material.description,
-          category: material.category,
-          materialFilesCount: material.materialFiles.length,
-          materialFile: material.materialFiles[0]?.imageKey,
-          isCustomizable: material.isCustomizable,
-          templateStatus: material.materialTemplate?.status ?? null,
-        })),
+        data: materials.map((material) => {
+          const file = material.materialFiles[0];
+
+          return {
+            id: material.id,
+            name: material.name,
+            description: material.description,
+            externalLink: material.externalLink || null,
+            hasTextCopy: material.hasTextCopy,
+            textCopy: material.textCopy,
+            isCustomizable: material.isCustomizable,
+            imageKey: file?.imageKey ?? null,
+            mimeType: file?.mimeType ?? null,
+            size: file?.size ?? null,
+          };
+        }),
         total,
         page,
         totalPages: Math.ceil(total / limit),
@@ -421,6 +439,63 @@ export class MaterialRepository {
       });
 
       throw new BadRequestException('Erro ao buscar materiais');
+    }
+  }
+
+  private async registerSearchMetrics(input: {
+    organizationId: string;
+    userId: string;
+    searchId: string;
+    search: string;
+    materialWhere: Prisma.MaterialWhereInput;
+  }): Promise<void> {
+    const { organizationId, userId, searchId, search, materialWhere } = input;
+
+    try {
+      const tags = await this.prisma.tag.findMany({
+        where: {
+          organizationId,
+          material: {
+            some: materialWhere,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: [{ name: 'asc' }],
+      });
+
+      if (tags.length === 0) {
+        return;
+      }
+
+      const term = normalizeSearchTerm(search);
+
+      await this.prisma.tagSearch.createMany({
+        data: tags.map((tag) => ({
+          id: generateId(),
+          searchId,
+          organizationId,
+          userId,
+          term,
+          search,
+          tagId: tag.id,
+          tagName: tag.name,
+        })),
+        skipDuplicates: true,
+      });
+    } catch (error) {
+      void this.logger.error(
+        'MaterialRepository.registerSearchMetrics falhou',
+        {
+          error: String(error),
+          organizationId,
+          userId,
+          searchId,
+          search,
+        },
+      );
     }
   }
 

@@ -35,10 +35,7 @@ function matchScalar(
   }
   if (isPlainObject(condition)) {
     if ('equals' in condition) {
-      if (
-        condition.mode === 'insensitive' &&
-        typeof fieldValue === 'string'
-      ) {
+      if (condition.mode === 'insensitive' && typeof fieldValue === 'string') {
         return (
           fieldValue.toLowerCase() === String(condition.equals).toLowerCase()
         );
@@ -217,6 +214,17 @@ function resolveRelation(
   }
   if (relationKey === 'material' && record.materialId) {
     return store.materials.find((m) => m.id === record.materialId) ?? null;
+  }
+  if (
+    relationKey === 'material' &&
+    record.id &&
+    store.tags.some((tag) => tag.id === record.id)
+  ) {
+    return store.materials.filter(
+      (material) =>
+        Array.isArray(material.tags) &&
+        material.tags.some((tag) => isPlainObject(tag) && tag.id === record.id),
+    );
   }
   if (relationKey === 'materials' && record.id) {
     return store.calendarEventMaterials

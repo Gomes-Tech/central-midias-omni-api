@@ -27,6 +27,12 @@ function createPrismaMock() {
     user: {
       findFirst: jest.fn(),
     },
+    tag: {
+      findMany: jest.fn(),
+    },
+    tagSearch: {
+      createMany: jest.fn(),
+    },
     categoryRoleAccess: {
       findMany: jest.fn(),
     },
@@ -55,6 +61,8 @@ describe('MaterialRepository', () => {
       prisma as unknown as PrismaService,
       logger as unknown as LoggerService,
     );
+    prisma.tag.findMany.mockResolvedValue([]);
+    prisma.tagSearch.createMany.mockResolvedValue({ count: 0 });
   });
 
   describe('findAll', () => {
@@ -225,7 +233,16 @@ describe('MaterialRepository', () => {
           category: { name: 'Categoria' },
           isCustomizable: false,
           materialTemplate: null,
-          materialFiles: [{ id: 'file-1' }],
+          externalLink: 'https://example.com',
+          hasTextCopy: true,
+          textCopy: 'Texto',
+          materialFiles: [
+            {
+              imageKey: 'materials/material-id/preview.png',
+              mimeType: 'image/png',
+              size: 1024,
+            },
+          ],
         },
       ]);
       prisma.material.count.mockResolvedValue(1);
@@ -247,6 +264,12 @@ describe('MaterialRepository', () => {
             materialFile: undefined,
             isCustomizable: false,
             templateStatus: null,
+            externalLink: 'https://example.com',
+            hasTextCopy: true,
+            textCopy: 'Texto',
+            imageKey: 'materials/material-id/preview.png',
+            mimeType: 'image/png',
+            size: 1024,
           },
         ],
         total: 1,
@@ -280,11 +303,29 @@ describe('MaterialRepository', () => {
             },
           ],
         },
-        select: expect.any(Object),
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          externalLink: true,
+          hasTextCopy: true,
+          textCopy: true,
+          isCustomizable: true,
+          materialFiles: {
+            select: {
+              imageKey: true,
+              mimeType: true,
+              size: true,
+            },
+            take: 1,
+          },
+        },
         orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
         skip: 10,
         take: 10,
       });
+      expect(prisma.tag.findMany).not.toHaveBeenCalled();
+      expect(prisma.tagSearch.createMany).not.toHaveBeenCalled();
     });
 
     it('deve buscar sem filtro de role para admin global', async () => {
@@ -320,6 +361,126 @@ describe('MaterialRepository', () => {
               },
             ],
           },
+        }),
+      );
+    });
+
+    it('deve registrar uma ocorrência por tag única dos resultados da primeira página', async () => {
+      prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.material.findMany.mockResolvedValue([]);
+      prisma.material.count.mockResolvedValue(2);
+      prisma.tag.findMany.mockResolvedValue([
+        { id: 'tag-1', name: 'Campanha' },
+        { id: 'tag-2', name: 'Verão' },
+      ]);
+      prisma.tagSearch.createMany.mockResolvedValue({ count: 2 });
+
+      await repository.search('org-id', 'user-id', {
+        term: '  Campanha   DE Verão  ',
+        searchId: '017f22e2-79b0-4d1f-9c3d-1e12f53d5098',
+      });
+
+      expect(prisma.tag.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId: 'org-id',
+            material: { some: expect.any(Object) },
+          }),
+          select: { id: true, name: true },
+        }),
+      );
+      expect(prisma.tagSearch.createMany).toHaveBeenCalledWith({
+        data: [
+          {
+            id: expect.any(String),
+            searchId: '017f22e2-79b0-4d1f-9c3d-1e12f53d5098',
+            organizationId: 'org-id',
+            userId: 'user-id',
+            term: 'campanha de verão',
+            search: 'Campanha   DE Verão',
+            tagId: 'tag-1',
+            tagName: 'Campanha',
+          },
+          {
+            id: expect.any(String),
+            searchId: '017f22e2-79b0-4d1f-9c3d-1e12f53d5098',
+            organizationId: 'org-id',
+            userId: 'user-id',
+            term: 'campanha de verão',
+            search: 'Campanha   DE Verão',
+            tagId: 'tag-2',
+            tagName: 'Verão',
+          },
+        ],
+        skipDuplicates: true,
+      });
+    });
+
+    it('deve registrar busca de admin global com a mesma política', async () => {
+      prisma.member.findFirst.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue({
+        globalRole: { name: 'ADMIN', canAccessBackoffice: true },
+      });
+      prisma.material.findMany.mockResolvedValue([]);
+      prisma.material.count.mockResolvedValue(1);
+      prisma.tag.findMany.mockResolvedValue([{ id: 'tag-1', name: 'Vídeo' }]);
+
+      await repository.search('org-id', 'admin-id', {
+        term: 'vídeo',
+        searchId: '6c0ba207-18c3-4212-b3d4-2c996114e4f9',
+      });
+
+      expect(prisma.tagSearch.createMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: [
+            expect.objectContaining({
+              organizationId: 'org-id',
+              userId: 'admin-id',
+              tagName: 'Vídeo',
+            }),
+          ],
+          skipDuplicates: true,
+        }),
+      );
+    });
+
+    it('não deve registrar quando os resultados não possuírem tags', async () => {
+      prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.material.findMany.mockResolvedValue([]);
+      prisma.material.count.mockResolvedValue(1);
+      prisma.tag.findMany.mockResolvedValue([]);
+
+      await repository.search('org-id', 'user-id', { term: 'sem tag' });
+
+      expect(prisma.tagSearch.createMany).not.toHaveBeenCalled();
+    });
+
+    it('deve manter os resultados quando a telemetria falhar', async () => {
+      prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.material.findMany.mockResolvedValue([]);
+      prisma.material.count.mockResolvedValue(1);
+      prisma.tag.findMany.mockRejectedValue(new Error('metrics db error'));
+
+      await expect(
+        repository.search('org-id', 'user-id', {
+          term: 'campanha',
+          searchId: 'ebf035c5-8e07-478a-bf6c-a1ca08e28939',
+        }),
+      ).resolves.toEqual({
+        data: [],
+        total: 1,
+        page: 1,
+        totalPages: 1,
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        'MaterialRepository.registerSearchMetrics falhou',
+        expect.objectContaining({
+          organizationId: 'org-id',
+          userId: 'user-id',
+          search: 'campanha',
         }),
       );
     });
