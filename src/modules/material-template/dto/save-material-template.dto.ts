@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsInt, IsObject, Min } from 'class-validator';
-import { MaterialTemplateDocumentV1 } from '../entities';
+import { MaterialTemplateDocument } from '../entities';
 
 export class SaveMaterialTemplateDTO {
   @Type(() => Number)
@@ -9,5 +9,5 @@ export class SaveMaterialTemplateDTO {
   revision: number;
 
   @IsObject()
-  document: MaterialTemplateDocumentV1;
+  document: MaterialTemplateDocument;
 }

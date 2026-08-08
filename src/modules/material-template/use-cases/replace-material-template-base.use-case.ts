@@ -1,7 +1,7 @@
 import { BadRequestException } from '@common/filters';
 import { StorageService } from '@infrastructure/providers';
 import { Injectable } from '@nestjs/common';
-import { MaterialTemplateDocumentV1 } from '../entities';
+import { MaterialTemplateDocument } from '../entities';
 import { MaterialTemplateRepository } from '../repository';
 import {
   MaterialTemplateDocumentService,
@@ -37,7 +37,7 @@ export class ReplaceMaterialTemplateBaseUseCase {
     const currentDocument = template.document
       ? this.documentService.validate(template.document)
       : null;
-    const scaledDocument: MaterialTemplateDocumentV1 | null = currentDocument
+    const scaledDocument: MaterialTemplateDocument | null = currentDocument
       ? this.documentService.scaleForBaseReplacement(
           currentDocument,
           image.width,

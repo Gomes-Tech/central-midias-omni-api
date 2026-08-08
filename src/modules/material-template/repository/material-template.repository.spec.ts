@@ -1,7 +1,10 @@
 import { ConflictException } from '@common/filters';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
-import { MaterialTemplateDocumentV1 } from '../entities';
+import {
+  MaterialTemplateDocumentV1,
+  MaterialTemplateDocumentV2,
+} from '../entities';
 import {
   MaterialTemplateRepository,
   MaterialTemplateRow,
@@ -159,6 +162,39 @@ describe('MaterialTemplateRepository', () => {
       ],
       skipDuplicates: true,
     });
+    expect(tx.materialTemplate.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ schemaVersion: 1 }),
+      }),
+    );
+  });
+
+  it('persiste a versão do schema do documento V2', async () => {
+    const richDocument: MaterialTemplateDocumentV2 = {
+      version: 2,
+      canvas: { width: 100, height: 100 },
+      layerOrder: [],
+      layers: [],
+    };
+    const tx = {
+      materialTemplate: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      materialTemplateAsset: {
+        deleteMany: jest.fn(),
+        createMany: jest.fn(),
+      },
+    };
+    prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+    prisma.materialTemplate.findFirst.mockResolvedValue(template());
+
+    await repository.save(template(), 3, richDocument, [], 'user-id');
+
+    expect(tx.materialTemplate.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ schemaVersion: 2 }),
+      }),
+    );
   });
 
   it('despublica todos os templates dependentes quando um asset é invalidado', async () => {

@@ -1,15 +1,17 @@
 import { BadRequestException } from '@common/filters';
 import { Injectable } from '@nestjs/common';
 import {
-  MaterialTemplateAssetLayer,
+  MaterialTemplateDocument,
   MaterialTemplateDocumentV1,
-  MaterialTemplateLayer,
+  MaterialTemplateDocumentV2,
   MaterialTemplateProfileBinding,
 } from '../entities';
 
 const MAX_CANVAS_SIDE = 3840;
 const MAX_CANVAS_PIXELS = 3840 * 2160;
 const MAX_LAYERS = 200;
+const MAX_TEXT_LENGTH = 2000;
+const MAX_TEXT_RUNS = 500;
 const PROFILE_BINDINGS = new Set<MaterialTemplateProfileBinding>([
   'NAME',
   'PHONE',
@@ -49,28 +51,11 @@ function validateCommonLayer(layer: Record<string, unknown>) {
   }
 }
 
-function validateTextLayer(layer: Record<string, unknown>): void {
+function validateProfileBinding(
+  layer: Record<string, unknown>,
+  editableProperty: 'value' | 'content',
+) {
   const editableProperties = layer.editableProperties as unknown[];
-  if (typeof layer.value !== 'string' || layer.value.length > 2000) {
-    throw new BadRequestException('Conteúdo do texto inválido');
-  }
-  if (
-    !isFiniteNumber(layer.fontSize) ||
-    layer.fontSize < 8 ||
-    layer.fontSize > 500
-  ) {
-    throw new BadRequestException('Tamanho da fonte inválido');
-  }
-  readString(layer.fontFamily, 'Família da fonte', 100);
-  if (typeof layer.fill !== 'string' || !/^#[0-9a-f]{6}$/i.test(layer.fill)) {
-    throw new BadRequestException('Cor do texto inválida');
-  }
-  if (
-    editableProperties.some((property) => property !== 'value') ||
-    new Set(editableProperties).size !== editableProperties.length
-  ) {
-    throw new BadRequestException('Permissões do texto inválidas');
-  }
   if (
     layer.profileBinding !== null &&
     !PROFILE_BINDINGS.has(
@@ -79,11 +64,84 @@ function validateTextLayer(layer: Record<string, unknown>): void {
   ) {
     throw new BadRequestException('Vínculo de perfil inválido');
   }
-  if (layer.profileBinding !== null && !editableProperties.includes('value')) {
+  if (
+    layer.profileBinding !== null &&
+    !editableProperties.includes(editableProperty)
+  ) {
     throw new BadRequestException(
       'Textos vinculados ao perfil precisam ser editáveis',
     );
   }
+}
+
+function validateTextStyle(style: Record<string, unknown>) {
+  if (
+    !isFiniteNumber(style.fontSize) ||
+    style.fontSize < 8 ||
+    style.fontSize > 500
+  ) {
+    throw new BadRequestException('Tamanho da fonte inválido');
+  }
+  readString(style.fontFamily, 'Família da fonte', 100);
+  if (typeof style.fill !== 'string' || !/^#[0-9a-f]{6}$/i.test(style.fill)) {
+    throw new BadRequestException('Cor do texto inválida');
+  }
+  for (const property of ['bold', 'italic', 'underline']) {
+    if (typeof style[property] !== 'boolean') {
+      throw new BadRequestException('Estilo do texto inválido');
+    }
+  }
+}
+
+function validateTextLayerV1(layer: Record<string, unknown>): void {
+  const editableProperties = layer.editableProperties as unknown[];
+  if (typeof layer.value !== 'string' || layer.value.length > MAX_TEXT_LENGTH) {
+    throw new BadRequestException('Conteúdo do texto inválido');
+  }
+  validateTextStyle({
+    fontSize: layer.fontSize,
+    fontFamily: layer.fontFamily,
+    fill: layer.fill,
+    bold: false,
+    italic: false,
+    underline: false,
+  });
+  if (
+    editableProperties.some((property) => property !== 'value') ||
+    new Set(editableProperties).size !== editableProperties.length
+  ) {
+    throw new BadRequestException('Permissões do texto inválidas');
+  }
+  validateProfileBinding(layer, 'value');
+}
+
+function validateTextLayerV2(layer: Record<string, unknown>): void {
+  const editableProperties = layer.editableProperties as unknown[];
+  if (
+    !Array.isArray(layer.runs) ||
+    layer.runs.length === 0 ||
+    layer.runs.length > MAX_TEXT_RUNS
+  ) {
+    throw new BadRequestException('Trechos do texto inválidos');
+  }
+  let totalLength = 0;
+  for (const run of layer.runs) {
+    if (!isRecord(run) || typeof run.text !== 'string') {
+      throw new BadRequestException('Trecho do texto inválido');
+    }
+    totalLength += run.text.length;
+    validateTextStyle(run);
+  }
+  if (totalLength > MAX_TEXT_LENGTH) {
+    throw new BadRequestException('Conteúdo do texto inválido');
+  }
+  if (
+    editableProperties.some((property) => property !== 'content') ||
+    new Set(editableProperties).size !== editableProperties.length
+  ) {
+    throw new BadRequestException('Permissões do texto inválidas');
+  }
+  validateProfileBinding(layer, 'content');
 }
 
 function validateAssetLayer(layer: Record<string, unknown>): void {
@@ -103,8 +161,8 @@ function validateAssetLayer(layer: Record<string, unknown>): void {
 
 @Injectable()
 export class MaterialTemplateDocumentService {
-  validate(value: unknown): MaterialTemplateDocumentV1 {
-    if (!isRecord(value) || value.version !== 1) {
+  validate(value: unknown): MaterialTemplateDocument {
+    if (!isRecord(value) || (value.version !== 1 && value.version !== 2)) {
       throw new BadRequestException('Versão do template inválida');
     }
     if (!isRecord(value.canvas)) {
@@ -139,8 +197,10 @@ export class MaterialTemplateDocumentService {
         throw new BadRequestException('Identificador de camada duplicado');
       }
       ids.add(candidate.id as string);
-      if (candidate.type === 'text') validateTextLayer(candidate);
-      else if (candidate.type === 'asset') validateAssetLayer(candidate);
+      if (candidate.type === 'text') {
+        if (value.version === 1) validateTextLayerV1(candidate);
+        else validateTextLayerV2(candidate);
+      } else if (candidate.type === 'asset') validateAssetLayer(candidate);
       else throw new BadRequestException('Tipo de camada inválido');
     }
 
@@ -152,38 +212,60 @@ export class MaterialTemplateDocumentService {
       throw new BadRequestException('Ordem das camadas inválida');
     }
 
-    return value as unknown as MaterialTemplateDocumentV1;
+    return value as unknown as MaterialTemplateDocument;
   }
 
-  getAssetIds(document: MaterialTemplateDocumentV1): string[] {
-    return [
-      ...new Set(
-        document.layers
-          .filter(
-            (layer): layer is MaterialTemplateAssetLayer =>
-              layer.type === 'asset',
-          )
-          .map((layer) => layer.assetId),
-      ),
-    ];
+  getAssetIds(document: MaterialTemplateDocument): string[] {
+    const assetIds = new Set<string>();
+    for (const layer of document.layers) {
+      if (layer.type === 'asset') assetIds.add(layer.assetId);
+    }
+    return [...assetIds];
   }
 
-  hasEditableText(document: MaterialTemplateDocumentV1): boolean {
+  hasEditableText(document: MaterialTemplateDocument): boolean {
+    if (document.version === 1) {
+      return document.layers.some(
+        (layer) =>
+          layer.type === 'text' && layer.editableProperties.includes('value'),
+      );
+    }
     return document.layers.some(
-      (layer: MaterialTemplateLayer) =>
-        layer.type === 'text' && layer.editableProperties.includes('value'),
+      (layer) =>
+        layer.type === 'text' && layer.editableProperties.includes('content'),
     );
   }
 
   scaleForBaseReplacement(
-    document: MaterialTemplateDocumentV1,
+    document: MaterialTemplateDocument,
     width: number,
     height: number,
-  ): MaterialTemplateDocumentV1 {
+  ): MaterialTemplateDocument {
     const scaleX = width / document.canvas.width;
     const scaleY = height / document.canvas.height;
     const uniformScale = Math.min(scaleX, scaleY);
 
+    if (document.version === 1) {
+      return this.scaleV1(
+        document,
+        width,
+        height,
+        scaleX,
+        scaleY,
+        uniformScale,
+      );
+    }
+    return this.scaleV2(document, width, height, scaleX, scaleY, uniformScale);
+  }
+
+  private scaleV1(
+    document: MaterialTemplateDocumentV1,
+    width: number,
+    height: number,
+    scaleX: number,
+    scaleY: number,
+    uniformScale: number,
+  ): MaterialTemplateDocumentV1 {
     return {
       ...document,
       canvas: { width, height },
@@ -194,6 +276,39 @@ export class MaterialTemplateDocumentService {
               x: layer.x * scaleX,
               y: layer.y * scaleY,
               fontSize: layer.fontSize * uniformScale,
+            }
+          : {
+              ...layer,
+              x: layer.x * scaleX,
+              y: layer.y * scaleY,
+              width: layer.width * uniformScale,
+              height: layer.height * uniformScale,
+            },
+      ),
+    };
+  }
+
+  private scaleV2(
+    document: MaterialTemplateDocumentV2,
+    width: number,
+    height: number,
+    scaleX: number,
+    scaleY: number,
+    uniformScale: number,
+  ): MaterialTemplateDocumentV2 {
+    return {
+      ...document,
+      canvas: { width, height },
+      layers: document.layers.map((layer) =>
+        layer.type === 'text'
+          ? {
+              ...layer,
+              x: layer.x * scaleX,
+              y: layer.y * scaleY,
+              runs: layer.runs.map((run) => ({
+                ...run,
+                fontSize: run.fontSize * uniformScale,
+              })),
             }
           : {
               ...layer,

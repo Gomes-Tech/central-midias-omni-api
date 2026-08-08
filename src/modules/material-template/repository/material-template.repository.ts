@@ -8,7 +8,7 @@ import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
 import { MaterialTemplateStatus, Prisma } from '@prisma/client';
-import { MaterialTemplateDocumentV1 } from '../entities';
+import { MaterialTemplateDocument } from '../entities';
 
 const templateSelect = {
   id: true,
@@ -112,7 +112,7 @@ export class MaterialTemplateRepository {
   async save(
     template: MaterialTemplateRow,
     revision: number,
-    document: MaterialTemplateDocumentV1,
+    document: MaterialTemplateDocument,
     assetIds: string[],
     userId: string,
   ): Promise<MaterialTemplateRow> {
@@ -125,7 +125,7 @@ export class MaterialTemplateRepository {
         },
         data: {
           document: document as unknown as Prisma.InputJsonValue,
-          schemaVersion: 1,
+          schemaVersion: document.version,
           legacyImport: Prisma.DbNull,
           status: MaterialTemplateStatus.DRAFT,
           publishedAt: null,
@@ -227,7 +227,7 @@ export class MaterialTemplateRepository {
     fileKey: string;
     mimeType: string;
     size: number;
-    document: MaterialTemplateDocumentV1 | null;
+    document: MaterialTemplateDocument | null;
     userId: string;
   }): Promise<{
     template: MaterialTemplateRow;

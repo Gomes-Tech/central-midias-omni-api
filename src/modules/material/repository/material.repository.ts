@@ -421,6 +421,10 @@ export class MaterialRepository {
             hasTextCopy: material.hasTextCopy,
             textCopy: material.textCopy,
             isCustomizable: material.isCustomizable,
+            canCustomize:
+              material.isCustomizable &&
+              material.materialTemplate?.status ===
+                MaterialTemplateStatus.PUBLISHED,
             imageKey: file?.imageKey ?? null,
             mimeType: file?.mimeType ?? null,
             size: file?.size ?? null,

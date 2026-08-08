@@ -28,6 +28,16 @@ export interface MaterialTemplateTextLayer {
   profileBinding: MaterialTemplateProfileBinding | null;
 }
 
+export interface MaterialTemplateTextRun {
+  text: string;
+  fontSize: number;
+  fontFamily: string;
+  fill: string;
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+}
+
 export interface MaterialTemplateAssetLayer {
   id: string;
   type: 'asset';
@@ -52,6 +62,41 @@ export interface MaterialTemplateDocumentV1 {
   layerOrder: string[];
   layers: MaterialTemplateLayer[];
 }
+
+export interface MaterialTemplateTextLayerV2 {
+  id: string;
+  type: 'text';
+  name: string;
+  runs: MaterialTemplateTextRun[];
+  x: number;
+  y: number;
+  rotation: number;
+  isVisible: boolean;
+  editableProperties: Array<'content'>;
+  profileBinding: MaterialTemplateProfileBinding | null;
+}
+
+export interface MaterialTemplateAssetLayerV2 extends Omit<
+  MaterialTemplateAssetLayer,
+  'editableProperties'
+> {
+  editableProperties: [];
+}
+
+export type MaterialTemplateLayerV2 =
+  | MaterialTemplateTextLayerV2
+  | MaterialTemplateAssetLayerV2;
+
+export interface MaterialTemplateDocumentV2 {
+  version: 2;
+  canvas: MaterialTemplateCanvas;
+  layerOrder: string[];
+  layers: MaterialTemplateLayerV2[];
+}
+
+export type MaterialTemplateDocument =
+  | MaterialTemplateDocumentV1
+  | MaterialTemplateDocumentV2;
 
 export interface LegacyMaterialTemplateImport {
   position: 'TOP' | 'FOOTER';
@@ -80,7 +125,7 @@ export interface MaterialTemplateResponse {
   materialId: string;
   status: MaterialTemplateStatus;
   schemaVersion: number;
-  document: MaterialTemplateDocumentV1 | null;
+  document: MaterialTemplateDocument | null;
   legacyImport: LegacyMaterialTemplateImport | null;
   revision: number;
   publishedAt: Date | null;

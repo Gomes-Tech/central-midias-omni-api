@@ -3,7 +3,7 @@ import { AssetStorageService } from '@modules/asset';
 import { Injectable } from '@nestjs/common';
 import {
   LegacyMaterialTemplateImport,
-  MaterialTemplateDocumentV1,
+  MaterialTemplateDocument,
   MaterialTemplateResponse,
 } from '../entities';
 import { MaterialTemplateRepository, MaterialTemplateRow } from '../repository';
@@ -39,7 +39,7 @@ export class MaterialTemplateResponseService {
       materialId: template.materialId,
       status: template.status,
       schemaVersion: template.schemaVersion,
-      document: document as MaterialTemplateDocumentV1 | null,
+      document: document as MaterialTemplateDocument | null,
       legacyImport:
         (template.legacyImport as unknown as LegacyMaterialTemplateImport | null) ??
         null,
