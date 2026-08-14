@@ -16,10 +16,10 @@ import { MailService } from './mail.service';
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASS,
           },
-          secure: true,
+          secure: process.env.SMTP_SECURE === 'true',
         },
         defaults: {
-          from: `"Prefeitura de Belford Roxo" <${process.env.SMTP_FROM}>`,
+          from: `"Central de Midias Omni" <${process.env.SMTP_FROM}>`,
         },
         template: {
           dir: join(__dirname, 'templates'),
