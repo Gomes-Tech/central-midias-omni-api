@@ -25,6 +25,7 @@ const MODULES = [
   { name: 'faqs', label: 'FAQ' },
   { name: 'calendar', label: 'Calendário' },
   { name: 'assets', label: 'Assets' },
+  { name: 'print-profiles', label: 'Perfis de impressão' },
 ];
 
 async function main() {

@@ -10,6 +10,43 @@ export interface PreparedAssetFile {
   mimeType: 'image/png' | 'image/jpeg' | 'image/svg+xml';
   size: number;
   defaultName: string;
+  width: number | null;
+  height: number | null;
+}
+
+export function readRasterDimensions(
+  buffer: Buffer,
+  mimeType: string,
+): { width: number; height: number } | null {
+  if (mimeType === 'image/png') {
+    if (buffer.length < 24) return null;
+    return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+  }
+  if (!['image/jpeg', 'image/jpg'].includes(mimeType)) return null;
+  let offset = 2;
+  const markers = new Set([
+    0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce,
+    0xcf,
+  ]);
+  while (offset + 8 < buffer.length) {
+    if (buffer[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+    const marker = buffer[offset + 1];
+    offset += 2;
+    if (marker === 0xd8 || marker === 0xd9) continue;
+    const length = buffer.readUInt16BE(offset);
+    if (length < 2 || offset + length > buffer.length) break;
+    if (markers.has(marker)) {
+      return {
+        height: buffer.readUInt16BE(offset + 3),
+        width: buffer.readUInt16BE(offset + 5),
+      };
+    }
+    offset += length;
+  }
+  return null;
 }
 
 const SVG_ALLOWED_TAGS = [
@@ -132,7 +169,14 @@ export class AssetFileValidationService {
           `Arquivo "${file.originalname}" não é um PNG válido`,
         );
       }
-      return this.prepared(file.buffer, extension, 'image/png', defaultName);
+      const dimensions = this.readPngDimensions(file.buffer);
+      return this.prepared(
+        file.buffer,
+        extension,
+        'image/png',
+        defaultName,
+        dimensions,
+      );
     }
 
     if (extension === 'jpg' || extension === 'jpeg') {
@@ -144,7 +188,14 @@ export class AssetFileValidationService {
           `Arquivo "${file.originalname}" não é um JPEG válido`,
         );
       }
-      return this.prepared(file.buffer, extension, 'image/jpeg', defaultName);
+      const dimensions = this.readJpegDimensions(file.buffer);
+      return this.prepared(
+        file.buffer,
+        extension,
+        'image/jpeg',
+        defaultName,
+        dimensions,
+      );
     }
 
     if (mimeType !== 'image/svg+xml') {
@@ -154,7 +205,14 @@ export class AssetFileValidationService {
     }
 
     const sanitizedBuffer = this.sanitizeSvg(file.buffer, file.originalname);
-    return this.prepared(sanitizedBuffer, 'svg', 'image/svg+xml', defaultName);
+    const dimensions = this.readSvgDimensions(sanitizedBuffer);
+    return this.prepared(
+      sanitizedBuffer,
+      'svg',
+      'image/svg+xml',
+      defaultName,
+      dimensions,
+    );
   }
 
   private prepared(
@@ -162,8 +220,40 @@ export class AssetFileValidationService {
     extension: PreparedAssetFile['extension'],
     mimeType: PreparedAssetFile['mimeType'],
     defaultName: string,
+    dimensions: { width: number; height: number } | null,
   ): PreparedAssetFile {
-    return { buffer, extension, mimeType, size: buffer.length, defaultName };
+    return {
+      buffer,
+      extension,
+      mimeType,
+      size: buffer.length,
+      defaultName,
+      width: dimensions?.width ?? null,
+      height: dimensions?.height ?? null,
+    };
+  }
+
+  private readPngDimensions(buffer: Buffer) {
+    return readRasterDimensions(buffer, 'image/png');
+  }
+
+  private readJpegDimensions(buffer: Buffer) {
+    return readRasterDimensions(buffer, 'image/jpeg');
+  }
+
+  private readSvgDimensions(buffer: Buffer) {
+    const source = buffer.toString('utf8');
+    const viewBox = source.match(
+      /\bviewBox=["']\s*([\d.+-]+)[,\s]+([\d.+-]+)[,\s]+([\d.+-]+)[,\s]+([\d.+-]+)\s*["']/i,
+    );
+    if (viewBox) {
+      const width = Number(viewBox[3]);
+      const height = Number(viewBox[4]);
+      if (width > 0 && height > 0) return { width, height };
+    }
+    const width = Number(source.match(/\bwidth=["']([\d.]+)/i)?.[1]);
+    const height = Number(source.match(/\bheight=["']([\d.]+)/i)?.[1]);
+    return width > 0 && height > 0 ? { width, height } : null;
   }
 
   private defaultName(originalName: string, extension: string): string {

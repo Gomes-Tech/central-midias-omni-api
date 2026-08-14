@@ -111,6 +111,9 @@ export interface MaterialTemplateResolvedAsset {
   name: string;
   url: string;
   mimeType: string;
+  size: number;
+  width: number | null;
+  height: number | null;
 }
 
 export interface MaterialTemplateBaseImage {
@@ -118,6 +121,49 @@ export interface MaterialTemplateBaseImage {
   url: string;
   mimeType: string;
   size: number;
+  width: number | null;
+  height: number | null;
+}
+
+export interface MaterialTemplateDelivery {
+  digital: null | { mimeType: 'image/png' | 'image/jpeg' };
+  print: null | { presetId: string };
+}
+
+export interface MaterialTemplatePrintPreset {
+  id: string;
+  name: string;
+  trimWidthMm: number;
+  trimHeightMm: number;
+  bleedTopMm: number;
+  bleedRightMm: number;
+  bleedBottomMm: number;
+  bleedLeftMm: number;
+  safeMarginTopMm: number;
+  safeMarginRightMm: number;
+  safeMarginBottomMm: number;
+  safeMarginLeftMm: number;
+  minimumDpi: number;
+  includeCropMarks: boolean;
+  cropMarkOffsetMm: number;
+  renderingIntent: string;
+  isActive: boolean;
+  updatedAt: Date;
+  colorProfile: {
+    id: string;
+    name: string;
+    checksum: string;
+    outputConditionIdentifier: string;
+    isActive: boolean;
+  };
+}
+
+export interface MaterialTemplatePrintPreflight {
+  status: 'PENDING' | 'READY' | 'FAILED';
+  issues: Array<{ code: string; message: string; layerId?: string }>;
+  checkedAt: Date | null;
+  templateRevision: number;
+  presetUpdatedAt: Date;
 }
 
 export interface MaterialTemplateResponse {
@@ -130,6 +176,9 @@ export interface MaterialTemplateResponse {
   revision: number;
   publishedAt: Date | null;
   updatedAt: Date;
+  delivery: MaterialTemplateDelivery;
+  printPreset: MaterialTemplatePrintPreset | null;
+  printPreflight: MaterialTemplatePrintPreflight | null;
   baseImage: MaterialTemplateBaseImage | null;
   assets: MaterialTemplateResolvedAsset[];
   missingAssetIds: string[];

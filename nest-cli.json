@@ -19,6 +19,11 @@
         "include": "infrastructure/providers/mail/assets/**/*",
         "outDir": "dist/src",
         "watchAssets": true
+      },
+      {
+        "include": "modules/print/resources/**/*",
+        "outDir": "dist/src",
+        "watchAssets": true
       }
     ]
   }

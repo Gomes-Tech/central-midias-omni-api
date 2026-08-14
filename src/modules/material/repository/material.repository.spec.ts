@@ -1132,7 +1132,10 @@ describe('MaterialRepository', () => {
         },
         'user-id',
         {
-          activateTemplate: { baseMaterialFileId: 'base-file-id' },
+          activateTemplate: {
+            baseMaterialFileId: 'base-file-id',
+            digitalExportMimeType: 'image/png',
+          },
         },
       );
 

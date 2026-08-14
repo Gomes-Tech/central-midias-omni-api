@@ -10,6 +10,10 @@ import {
   MATERIAL_NOTIFICATION_EMAIL_QUEUE_OPTIONS,
   REPORT_EXPORT_QUEUE,
   REPORT_EXPORT_QUEUE_OPTIONS,
+  PRINT_EXPORT_QUEUE,
+  PRINT_EXPORT_QUEUE_OPTIONS,
+  PRINT_PREFLIGHT_QUEUE,
+  PRINT_PREFLIGHT_QUEUE_OPTIONS,
 } from './queue.constants';
 
 @Global()
@@ -42,6 +46,14 @@ import {
     BullModule.registerQueue({
       name: REPORT_EXPORT_QUEUE,
       defaultJobOptions: REPORT_EXPORT_QUEUE_OPTIONS,
+    }),
+    BullModule.registerQueue({
+      name: PRINT_EXPORT_QUEUE,
+      defaultJobOptions: PRINT_EXPORT_QUEUE_OPTIONS,
+    }),
+    BullModule.registerQueue({
+      name: PRINT_PREFLIGHT_QUEUE,
+      defaultJobOptions: PRINT_PREFLIGHT_QUEUE_OPTIONS,
     }),
   ],
   exports: [BullModule],

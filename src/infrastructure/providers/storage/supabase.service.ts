@@ -16,7 +16,11 @@ import type {
   MulterFile,
   StoredFile,
 } from './local-storage.service';
-import type { AssetUpload, StorageProvider } from './storage-provider';
+import type {
+  AssetUpload,
+  PrivateFileWrite,
+  StorageProvider,
+} from './storage-provider';
 
 @Injectable()
 export class SupabaseService implements StorageProvider {
@@ -235,6 +239,31 @@ export class SupabaseService implements StorageProvider {
       throw new InternalServerErrorException(
         `Erro ao fazer upload do asset no Supabase: ${error.message}`,
       );
+    }
+  }
+
+  async readAsset(fileKey: string): Promise<Buffer> {
+    const { data, error } = await this.supabase.storage
+      .from(this.assetsBucket)
+      .download(fileKey);
+    if (error || !data) {
+      throw new BadRequestException('Erro ao ler asset no Supabase');
+    }
+    return Buffer.from(await data.arrayBuffer());
+  }
+
+  async writePrivateFile(file: PrivateFileWrite): Promise<void> {
+    if (file.path.includes('..') || file.path.startsWith('/')) {
+      throw new BadRequestException('Caminho privado inválido');
+    }
+    const { error } = await this.supabase.storage
+      .from(this.bucket)
+      .upload(file.path, file.buffer, {
+        contentType: file.mimeType,
+        upsert: true,
+      });
+    if (error) {
+      throw new BadRequestException('Erro ao gravar arquivo privado');
     }
   }
 

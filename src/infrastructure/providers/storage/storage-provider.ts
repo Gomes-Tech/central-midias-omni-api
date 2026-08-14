@@ -12,6 +12,12 @@ export interface AssetUpload {
   mimeType: string;
 }
 
+export interface PrivateFileWrite {
+  path: string;
+  buffer: Buffer;
+  mimeType: string;
+}
+
 export interface StorageProvider {
   uploadFile(file: MulterFile, folder?: string): Promise<LocalStorageFile>;
   readFile(path: string): Promise<Buffer>;
@@ -26,4 +32,6 @@ export interface StorageProvider {
   uploadAsset(params: AssetUpload): Promise<void>;
   deleteAsset(fileKey: string): Promise<void>;
   getAssetPublicUrl(fileKey: string): string;
+  readAsset(fileKey: string): Promise<Buffer>;
+  writePrivateFile(file: PrivateFileWrite): Promise<void>;
 }

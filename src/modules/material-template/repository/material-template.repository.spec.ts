@@ -129,6 +129,7 @@ describe('MaterialTemplateRepository', () => {
         deleteMany: jest.fn(),
         createMany: jest.fn(),
       },
+      printPreflight: { deleteMany: jest.fn() },
     };
     prisma.$transaction.mockImplementation(async (callback) => callback(tx));
     prisma.materialTemplate.findFirst.mockResolvedValue(
@@ -141,6 +142,10 @@ describe('MaterialTemplateRepository', () => {
       document,
       ['asset-1', 'asset-2'],
       'user-id',
+      {
+        digitalExportMimeType: 'image/png',
+        printPresetId: 'preset-id',
+      },
     );
 
     expect(tx.materialTemplate.updateMany).toHaveBeenCalledWith({
@@ -153,6 +158,8 @@ describe('MaterialTemplateRepository', () => {
         status: 'DRAFT',
         publishedAt: null,
         revision: { increment: 1 },
+        digitalExportMimeType: 'image/png',
+        printPresetId: 'preset-id',
       }),
     });
     expect(tx.materialTemplateAsset.createMany).toHaveBeenCalledWith({
@@ -167,6 +174,9 @@ describe('MaterialTemplateRepository', () => {
         data: expect.objectContaining({ schemaVersion: 1 }),
       }),
     );
+    expect(tx.printPreflight.deleteMany).toHaveBeenCalledWith({
+      where: { templateId: 'template-id' },
+    });
   });
 
   it('persiste a versão do schema do documento V2', async () => {
@@ -184,6 +194,7 @@ describe('MaterialTemplateRepository', () => {
         deleteMany: jest.fn(),
         createMany: jest.fn(),
       },
+      printPreflight: { deleteMany: jest.fn() },
     };
     prisma.$transaction.mockImplementation(async (callback) => callback(tx));
     prisma.materialTemplate.findFirst.mockResolvedValue(template());

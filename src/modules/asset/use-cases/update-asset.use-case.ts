@@ -52,6 +52,8 @@ export class UpdateAssetUseCase {
         fileKey: uploaded.fileKey,
         mimeType: prepared.mimeType,
         size: prepared.size,
+        width: prepared.width,
+        height: prepared.height,
       });
     }
 

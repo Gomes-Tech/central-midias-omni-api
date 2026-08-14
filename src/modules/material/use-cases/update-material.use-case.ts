@@ -35,7 +35,12 @@ export class UpdateMaterialUseCase {
     );
 
     const previousRequiresAcceptance = material.requiresAcceptance;
-    let activateTemplate: { baseMaterialFileId: string } | undefined;
+    let activateTemplate:
+      | {
+          baseMaterialFileId: string;
+          digitalExportMimeType: 'image/png' | 'image/jpeg';
+        }
+      | undefined;
     if (data.isCustomizable === true && !material.isCustomizable) {
       const files = await this.materialRepository.findFilesByMaterialId(
         id,
@@ -55,7 +60,13 @@ export class UpdateMaterialUseCase {
       }
       const buffer = await this.storageService.readFile(base.fileKey);
       validateMaterialTemplateImage({ buffer, size: base.size });
-      activateTemplate = { baseMaterialFileId: base.id };
+      activateTemplate = {
+        baseMaterialFileId: base.id,
+        digitalExportMimeType:
+          base.mimeType.toLowerCase() === 'image/png'
+            ? 'image/png'
+            : 'image/jpeg',
+      };
     }
 
     const nextCategoryId = data.categoryId ?? material.categoryId;

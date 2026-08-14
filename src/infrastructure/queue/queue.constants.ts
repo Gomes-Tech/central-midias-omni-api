@@ -30,4 +30,24 @@ export const REPORT_EXPORT_QUEUE = 'report-export';
 
 export const REPORT_EXPORT_JOB = 'send-export';
 
-export const REPORT_EXPORT_QUEUE_OPTIONS = MATERIAL_ACCEPTANCE_EMAIL_QUEUE_OPTIONS;
+export const REPORT_EXPORT_QUEUE_OPTIONS =
+  MATERIAL_ACCEPTANCE_EMAIL_QUEUE_OPTIONS;
+
+export const PRINT_EXPORT_QUEUE = 'print-export';
+export const PRINT_EXPORT_JOB = 'generate-pdf-x';
+export const PRINT_PREFLIGHT_QUEUE = 'print-preflight';
+export const PRINT_PREFLIGHT_JOB = 'recheck-templates';
+
+export const PRINT_EXPORT_QUEUE_OPTIONS = {
+  attempts: 2,
+  backoff: { type: 'exponential' as const, delay: 5000 },
+  removeOnComplete: true,
+  removeOnFail: true,
+};
+
+export const PRINT_PREFLIGHT_QUEUE_OPTIONS = {
+  attempts: 3,
+  backoff: { type: 'exponential' as const, delay: 3000 },
+  removeOnComplete: true,
+  removeOnFail: false,
+};

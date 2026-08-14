@@ -821,6 +821,25 @@ npm run build
 
 Saída em `dist/`. Em produção Docker o entrypoint executa `db:deploy` e depois `node dist/src/main.js`.
 
+### Exportação PDF/X para impressão
+
+A exportação profissional usa um worker BullMQ separado (`node dist/src/worker.js`),
+Redis e o mesmo storage privado da API. O container precisa de Ghostscript, qpdf,
+pdfinfo/pdffonts e das fontes Averta incluídas em
+`src/modules/print/resources/fonts`.
+
+Ative novas solicitações somente após aplicar a migration, cadastrar e homologar
+um perfil ICC CMYK e criar os presets organizacionais:
+
+```env
+PRINT_EXPORT_ENABLED=true
+```
+
+O artefato é PDF/X-1a:2001, expira em 24 horas e é removido pelo job horário do
+worker. Antes da liberação em produção, valide os golden files em Acrobat/callas
+e faça uma prova física com a gráfica. Mudanças em presets são aplicadas a novas
+exportações sem republicar templates e disparam rechecagem automática.
+
 ### Dockerfile
 
 - Multi-stage Node 22 Alpine

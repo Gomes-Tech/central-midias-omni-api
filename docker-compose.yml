@@ -49,6 +49,21 @@ services:
       - default
       - proxy
 
+  print-worker:
+    image: central-midias-api
+    env_file:
+      - .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    command: ['node', 'dist/src/worker.js']
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - default
+
 volumes:
   central_midias_api_redis_data:
     name: central-midias-api-redis-data

@@ -90,6 +90,8 @@ export class CreateMaterialUseCase {
             file.mimetype ||
             'application/octet-stream',
           size: Number.isFinite(file.size) ? file.size : 0,
+          width: customizableImage?.width,
+          height: customizableImage?.height,
         })),
         tags: resolvedTags,
       });

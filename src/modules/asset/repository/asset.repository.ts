@@ -14,6 +14,8 @@ const assetSelect = {
   fileKey: true,
   mimeType: true,
   size: true,
+  width: true,
+  height: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.AssetSelect;
@@ -24,6 +26,8 @@ export interface CreateAssetInput {
   fileKey: string;
   mimeType: string;
   size: number;
+  width: number | null;
+  height: number | null;
 }
 
 export interface UpdateAssetInput {
@@ -31,6 +35,8 @@ export interface UpdateAssetInput {
   fileKey?: string;
   mimeType?: string;
   size?: number;
+  width?: number | null;
+  height?: number | null;
 }
 
 @Injectable()

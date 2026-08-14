@@ -60,6 +60,7 @@ import * as Joi from 'joi';
                 : (process.env.SUPABASE_ASSETS_BUCKET ??
                   process.env.SUPABASE_BUCKET),
           },
+          printExportEnabled: process.env.PRINT_EXPORT_ENABLED === 'true',
         }),
       ],
       validationSchema: Joi.object({
@@ -142,6 +143,10 @@ import * as Joi from 'joi';
         SUPABASE_SIGNED_URL_EXPIRES_SECONDS: Joi.number()
           .default(300)
           .optional(),
+        PRINT_EXPORT_ENABLED: Joi.boolean()
+          .truthy('true')
+          .falsy('false')
+          .default(false),
       }),
     }),
   ],

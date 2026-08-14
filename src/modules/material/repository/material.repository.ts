@@ -85,6 +85,8 @@ const materialFileSelect = {
   imageKey: true,
   mimeType: true,
   size: true,
+  width: true,
+  height: true,
 } satisfies Prisma.MaterialFileSelect;
 
 type MaterialFileRow = Prisma.MaterialFileGetPayload<{
@@ -130,6 +132,8 @@ export interface CreateMaterialFileInput {
   fileKey: string;
   mimeType: string;
   size: number;
+  width?: number | null;
+  height?: number | null;
 }
 
 export interface CreateMaterialOptions {
@@ -140,7 +144,10 @@ export interface CreateMaterialOptions {
 
 export interface UpdateMaterialOptions {
   tags?: ResolvedMaterialTags;
-  activateTemplate?: { baseMaterialFileId: string };
+  activateTemplate?: {
+    baseMaterialFileId: string;
+    digitalExportMimeType: 'image/png' | 'image/jpeg';
+  };
 }
 
 @Injectable()
@@ -951,6 +958,8 @@ export class MaterialRepository {
             imageKey: file.fileKey,
             mimeType: file.mimeType,
             size: file.size,
+            width: file.width,
+            height: file.height,
           })),
         };
       }
@@ -967,6 +976,10 @@ export class MaterialRepository {
             id: generateId(),
             organizationId,
             baseMaterialFileId: baseFileId,
+            digitalExportMimeType:
+              options.files?.[0]?.mimeType === 'image/png'
+                ? 'image/png'
+                : 'image/jpeg',
             status: MaterialTemplateStatus.DRAFT,
           },
         };
@@ -1072,6 +1085,8 @@ export class MaterialRepository {
               id: generateId(),
               organizationId,
               baseMaterialFileId: options.activateTemplate.baseMaterialFileId,
+              digitalExportMimeType:
+                options.activateTemplate.digitalExportMimeType,
               status: MaterialTemplateStatus.DRAFT,
             },
             update: {
@@ -1225,6 +1240,8 @@ export class MaterialRepository {
               imageKey: file.fileKey,
               mimeType: file.mimeType,
               size: file.size,
+              width: file.width,
+              height: file.height,
             },
             select: materialFileSelect,
           }),

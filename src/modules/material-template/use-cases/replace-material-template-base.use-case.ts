@@ -54,6 +54,8 @@ export class ReplaceMaterialTemplateBaseUseCase {
         fileKey: uploaded.path,
         mimeType: image.mimeType,
         size: file.size,
+        width: image.width,
+        height: image.height,
         document: scaledDocument,
         userId,
       });

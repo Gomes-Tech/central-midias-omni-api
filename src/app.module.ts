@@ -34,6 +34,7 @@ import { MaterialTemplateModule } from '@modules/material-template';
 import { MemberModule } from '@modules/member';
 import { ModuleModule } from '@modules/module';
 import { OrganizationModule } from '@modules/organization';
+import { PrintModule } from '@modules/print';
 import { ReportsModule } from '@modules/reports';
 import { RolesModule } from '@modules/roles';
 import { SocialHighlightModule } from '@modules/social-highlight';
@@ -86,6 +87,7 @@ import { AppService } from './app.service';
     SocialHighlightModule,
     FaqModule,
     ReportsModule,
+    PrintModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { MulterFile, StoredFile } from './local-storage.service';
+import type { PrivateFileWrite } from './storage-provider';
 import { STORAGE_PROVIDER, StorageProvider } from './storage-provider';
 
 export interface StorageFile {
@@ -37,6 +38,14 @@ export class StorageService {
 
   async deleteFile(paths: string[]): Promise<void> {
     return this.storageProvider.deleteFile(paths);
+  }
+
+  async readAsset(path: string): Promise<Buffer> {
+    return this.storageProvider.readAsset(path);
+  }
+
+  async writePrivateFile(file: PrivateFileWrite): Promise<void> {
+    return this.storageProvider.writePrivateFile(file);
   }
 
   async storePublicationAttachment(params: {

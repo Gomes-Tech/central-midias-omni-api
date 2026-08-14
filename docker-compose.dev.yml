@@ -47,6 +47,19 @@ services:
       retries: 3
       start_period: 40s
 
+  print-worker:
+    image: central-midias-api
+    env_file:
+      - .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    command: ['node', 'dist/src/worker.js']
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   prometheus:
     image: prom/prometheus:v2.55.1
     restart: unless-stopped

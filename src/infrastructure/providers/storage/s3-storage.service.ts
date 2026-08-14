@@ -23,7 +23,11 @@ import type {
   MulterFile,
   StoredFile,
 } from './local-storage.service';
-import type { AssetUpload, StorageProvider } from './storage-provider';
+import type {
+  AssetUpload,
+  PrivateFileWrite,
+  StorageProvider,
+} from './storage-provider';
 
 @Injectable()
 export class S3StorageService implements StorageProvider {
@@ -228,6 +232,36 @@ export class S3StorageService implements StorageProvider {
         CacheControl: 'public, max-age=31536000, immutable',
       }),
     );
+  }
+
+  async readAsset(fileKey: string): Promise<Buffer> {
+    try {
+      const response = await this.s3.send(
+        new GetObjectCommand({ Bucket: this.assetsBucket, Key: fileKey }),
+      );
+      if (!response.Body) throw new Error('Arquivo sem conteúdo');
+      return Buffer.from(await response.Body.transformToByteArray());
+    } catch {
+      throw new BadRequestException('Erro ao ler asset no S3');
+    }
+  }
+
+  async writePrivateFile(file: PrivateFileWrite): Promise<void> {
+    if (file.path.includes('..') || file.path.startsWith('/')) {
+      throw new BadRequestException('Caminho privado inválido');
+    }
+    try {
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: file.path,
+          Body: file.buffer,
+          ContentType: file.mimeType,
+        }),
+      );
+    } catch {
+      throw new BadRequestException('Erro ao gravar arquivo privado no S3');
+    }
   }
 
   async deleteAsset(fileKey: string): Promise<void> {

@@ -46,6 +46,34 @@ export class MaterialTemplateResponseService {
       revision: template.revision,
       publishedAt: template.publishedAt,
       updatedAt: template.updatedAt,
+      delivery: {
+        digital: template.digitalExportMimeType
+          ? {
+              mimeType: template.digitalExportMimeType as
+                | 'image/png'
+                | 'image/jpeg',
+            }
+          : null,
+        print: template.printPresetId
+          ? { presetId: template.printPresetId }
+          : null,
+      },
+      printPreset: template.printPreset
+        ? this.serializePreset(template.printPreset)
+        : null,
+      printPreflight: template.printPreflight
+        ? {
+            status: template.printPreflight.status,
+            issues: template.printPreflight.issues as Array<{
+              code: string;
+              message: string;
+              layerId?: string;
+            }>,
+            checkedAt: template.printPreflight.checkedAt,
+            templateRevision: template.printPreflight.templateRevision,
+            presetUpdatedAt: template.printPreflight.presetUpdatedAt,
+          }
+        : null,
       baseImage: template.baseFile
         ? {
             id: template.baseFile.id,
@@ -55,15 +83,39 @@ export class MaterialTemplateResponseService {
             ),
             mimeType: template.baseFile.mimeType,
             size: template.baseFile.size,
+            width: template.baseFile.width,
+            height: template.baseFile.height,
           }
         : null,
       assets: assets.map((asset) => ({
         id: asset.id,
         name: asset.name,
         mimeType: asset.mimeType,
+        size: asset.size,
+        width: asset.width,
+        height: asset.height,
         url: this.assetStorageService.getPublicUrl(asset.fileKey),
       })),
       missingAssetIds,
+    };
+  }
+
+  private serializePreset(
+    preset: NonNullable<MaterialTemplateRow['printPreset']>,
+  ) {
+    return {
+      ...preset,
+      trimWidthMm: Number(preset.trimWidthMm),
+      trimHeightMm: Number(preset.trimHeightMm),
+      bleedTopMm: Number(preset.bleedTopMm),
+      bleedRightMm: Number(preset.bleedRightMm),
+      bleedBottomMm: Number(preset.bleedBottomMm),
+      bleedLeftMm: Number(preset.bleedLeftMm),
+      safeMarginTopMm: Number(preset.safeMarginTopMm),
+      safeMarginRightMm: Number(preset.safeMarginRightMm),
+      safeMarginBottomMm: Number(preset.safeMarginBottomMm),
+      safeMarginLeftMm: Number(preset.safeMarginLeftMm),
+      cropMarkOffsetMm: Number(preset.cropMarkOffsetMm),
     };
   }
 }

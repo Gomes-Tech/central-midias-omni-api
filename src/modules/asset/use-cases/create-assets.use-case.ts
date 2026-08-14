@@ -62,6 +62,8 @@ export class CreateAssetsUseCase {
       fileKey: uploadedKeys[index],
       mimeType: item.file.mimeType,
       size: item.file.size,
+      width: item.file.width,
+      height: item.file.height,
     }));
 
     try {

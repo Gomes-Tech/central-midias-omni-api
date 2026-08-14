@@ -203,7 +203,10 @@ describe('UpdateMaterialUseCase', () => {
       'user-id',
       {
         tags: undefined,
-        activateTemplate: { baseMaterialFileId: 'base-file-id' },
+        activateTemplate: {
+          baseMaterialFileId: 'base-file-id',
+          digitalExportMimeType: 'image/png',
+        },
       },
     );
     expect(storageService.readFile).toHaveBeenCalledWith(

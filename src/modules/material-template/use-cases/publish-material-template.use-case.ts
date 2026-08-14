@@ -1,6 +1,7 @@
 import { BadRequestException } from '@common/filters';
 import { StorageService } from '@infrastructure/providers';
-import { Injectable } from '@nestjs/common';
+import { PrintPreflightService } from '@modules/print';
+import { Injectable, Optional } from '@nestjs/common';
 import { PublishMaterialTemplateDTO } from '../dto';
 import { MaterialTemplateRepository } from '../repository';
 import {
@@ -17,6 +18,8 @@ export class PublishMaterialTemplateUseCase {
     private readonly imageService: MaterialTemplateImageService,
     private readonly responseService: MaterialTemplateResponseService,
     private readonly storageService: StorageService,
+    @Optional()
+    private readonly printPreflight?: PrintPreflightService,
   ) {}
 
   async execute(
@@ -48,6 +51,23 @@ export class PublishMaterialTemplateUseCase {
       throw new BadRequestException(
         'Substitua os assets ausentes antes de publicar',
       );
+    }
+    if (template.printPresetId) {
+      if (!this.printPreflight) {
+        throw new BadRequestException(
+          'O preflight de impressão está indisponível',
+        );
+      }
+      const preflight = await this.printPreflight.run(
+        materialId,
+        organizationId,
+      );
+      if (preflight.status !== 'READY') {
+        throw new BadRequestException(
+          preflight.issues[0]?.message ??
+            'Corrija o preflight antes de publicar o template',
+        );
+      }
     }
     const published = await this.repository.publish(
       template,

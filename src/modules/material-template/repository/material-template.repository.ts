@@ -15,6 +15,8 @@ const templateSelect = {
   organizationId: true,
   materialId: true,
   baseMaterialFileId: true,
+  printPresetId: true,
+  digitalExportMimeType: true,
   status: true,
   schemaVersion: true,
   document: true,
@@ -28,6 +30,8 @@ const templateSelect = {
       imageKey: true,
       mimeType: true,
       size: true,
+      width: true,
+      height: true,
     },
   },
   material: {
@@ -40,6 +44,20 @@ const templateSelect = {
     },
   },
   assets: { select: { assetId: true } },
+  printPreset: {
+    include: {
+      colorProfile: {
+        select: {
+          id: true,
+          name: true,
+          checksum: true,
+          outputConditionIdentifier: true,
+          isActive: true,
+        },
+      },
+    },
+  },
+  printPreflight: true,
 } satisfies Prisma.MaterialTemplateSelect;
 
 export type MaterialTemplateRow = Prisma.MaterialTemplateGetPayload<{
@@ -51,6 +69,14 @@ export interface MaterialTemplateAssetRow {
   name: string;
   fileKey: string;
   mimeType: string;
+  size: number;
+  width: number | null;
+  height: number | null;
+}
+
+export interface MaterialTemplateDeliveryInput {
+  digitalExportMimeType: string | null;
+  printPresetId: string | null;
 }
 
 @Injectable()
@@ -115,6 +141,7 @@ export class MaterialTemplateRepository {
     document: MaterialTemplateDocument,
     assetIds: string[],
     userId: string,
+    delivery?: MaterialTemplateDeliveryInput,
   ): Promise<MaterialTemplateRow> {
     await this.prisma.$transaction(async (tx) => {
       const updated = await tx.materialTemplate.updateMany({
@@ -130,6 +157,7 @@ export class MaterialTemplateRepository {
           status: MaterialTemplateStatus.DRAFT,
           publishedAt: null,
           revision: { increment: 1 },
+          ...(delivery && delivery),
         },
       });
       if (updated.count !== 1) {
@@ -149,6 +177,9 @@ export class MaterialTemplateRepository {
           skipDuplicates: true,
         });
       }
+      await tx.printPreflight.deleteMany({
+        where: { templateId: template.id },
+      });
     });
 
     void this.logger.info('Rascunho de template salvo', {
@@ -198,7 +229,15 @@ export class MaterialTemplateRepository {
     if (!assetIds.length) return [];
     return await this.prisma.asset.findMany({
       where: { id: { in: assetIds }, organizationId },
-      select: { id: true, name: true, fileKey: true, mimeType: true },
+      select: {
+        id: true,
+        name: true,
+        fileKey: true,
+        mimeType: true,
+        size: true,
+        width: true,
+        height: true,
+      },
     });
   }
 
@@ -227,13 +266,24 @@ export class MaterialTemplateRepository {
     fileKey: string;
     mimeType: string;
     size: number;
+    width: number;
+    height: number;
     document: MaterialTemplateDocument | null;
     userId: string;
   }): Promise<{
     template: MaterialTemplateRow;
     previousFileKey: string | null;
   }> {
-    const { template, fileKey, mimeType, size, document, userId } = options;
+    const {
+      template,
+      fileKey,
+      mimeType,
+      size,
+      width,
+      height,
+      document,
+      userId,
+    } = options;
     const previousFileKey = template.baseFile?.imageKey ?? null;
     const newFileId = generateId();
 
@@ -245,6 +295,8 @@ export class MaterialTemplateRepository {
           imageKey: fileKey,
           mimeType,
           size,
+          width,
+          height,
         },
       });
       await tx.materialTemplate.update({

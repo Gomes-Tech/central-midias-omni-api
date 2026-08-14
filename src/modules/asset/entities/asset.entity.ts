@@ -5,6 +5,8 @@ export interface AssetEntity {
   fileKey: string;
   mimeType: string;
   size: number;
+  width: number | null;
+  height: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -15,6 +17,8 @@ export interface AssetResponse {
   url: string;
   mimeType: string;
   size: number;
+  width: number | null;
+  height: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,6 +33,8 @@ export function toAssetResponse(
     url,
     mimeType: asset.mimeType,
     size: asset.size,
+    width: asset.width,
+    height: asset.height,
     createdAt: asset.createdAt,
     updatedAt: asset.updatedAt,
   };
