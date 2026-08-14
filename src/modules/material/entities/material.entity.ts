@@ -57,6 +57,7 @@ export interface MaterialDetails {
   category: MaterialCategorySummary;
   tags: string[];
   materialFilesCount: number;
+  mimeType: string | null;
   deletedAt?: Date | null;
   currentUserAcceptedAt?: Date | null;
 }

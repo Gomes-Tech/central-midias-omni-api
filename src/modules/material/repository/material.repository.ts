@@ -82,6 +82,7 @@ const buildMaterialDetailsSelect = (organizationId: string) =>
     materialFiles: {
       select: {
         id: true,
+        mimeType: true,
       },
     },
   }) satisfies Prisma.MaterialSelect;
@@ -856,6 +857,7 @@ export class MaterialRepository {
             category: material.category,
             tags: material.tags.map((tag) => tag.id),
             materialFilesCount: material.materialFiles.length,
+            mimeType: material.materialFiles[0]?.mimeType ?? null,
             hasExternalLink: material.hasExternalLink,
             externalLink: material.externalLink,
             hasTextCopy: material.hasTextCopy,

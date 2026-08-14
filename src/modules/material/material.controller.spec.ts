@@ -11,6 +11,7 @@ import {
   FindMaterialFilesUseCase,
   FindMaterialByIdUseCase,
   ViewMaterialByIdUseCase,
+  ViewMaterialFilesUseCase,
   DownloadMaterialUseCase,
   FindMostAccessedMaterialsUseCase,
   FindMaterialMosaicUseCase,
@@ -38,6 +39,7 @@ describe('MaterialController', () => {
   let findMaterialFilesUseCase: { execute: jest.Mock };
   let findMaterialByIdUseCase: { execute: jest.Mock };
   let viewMaterialByIdUseCase: { execute: jest.Mock };
+  let viewMaterialFilesUseCase: { execute: jest.Mock };
   let downloadMaterialUseCase: { execute: jest.Mock };
   let findMostAccessedMaterialsUseCase: { execute: jest.Mock };
   let findMaterialMosaicUseCase: { execute: jest.Mock };
@@ -55,6 +57,7 @@ describe('MaterialController', () => {
     findMaterialFilesUseCase = { execute: jest.fn() };
     findMaterialByIdUseCase = { execute: jest.fn() };
     viewMaterialByIdUseCase = { execute: jest.fn() };
+    viewMaterialFilesUseCase = { execute: jest.fn() };
     downloadMaterialUseCase = { execute: jest.fn() };
     findMostAccessedMaterialsUseCase = { execute: jest.fn() };
     findMaterialMosaicUseCase = { execute: jest.fn() };
@@ -100,6 +103,10 @@ describe('MaterialController', () => {
         {
           provide: FindMaterialFilesUseCase,
           useValue: findMaterialFilesUseCase,
+        },
+        {
+          provide: ViewMaterialFilesUseCase,
+          useValue: viewMaterialFilesUseCase,
         },
         {
           provide: UploadMaterialFilesUseCase,
@@ -325,6 +332,24 @@ describe('MaterialController', () => {
       message:
         'Relatório enfileirado. Você receberá o CSV por e-mail em breve.',
     });
+  });
+
+  it('deve delegar viewFiles', async () => {
+    const files = [{ ...makeMaterialFile(), url: 'https://cdn.test/file.pdf' }];
+    viewMaterialFilesUseCase.execute.mockResolvedValue(files);
+
+    const result = await controller.viewFiles(
+      'material-id',
+      'org-id',
+      'user-id',
+    );
+
+    expect(result).toBe(files);
+    expect(viewMaterialFilesUseCase.execute).toHaveBeenCalledWith(
+      'material-id',
+      'org-id',
+      'user-id',
+    );
   });
 
   it('deve delegar findFiles', async () => {

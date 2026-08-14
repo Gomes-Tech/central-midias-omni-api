@@ -44,6 +44,7 @@ import {
   UpdateMaterialUseCase,
   UploadMaterialFilesUseCase,
   ViewMaterialByIdUseCase,
+  ViewMaterialFilesUseCase,
 } from './use-cases';
 
 type UploadedMaterialFiles =
@@ -67,6 +68,7 @@ export class MaterialController {
     private readonly deleteMaterialUseCase: DeleteMaterialUseCase,
     private readonly uploadMaterialFilesUseCase: UploadMaterialFilesUseCase,
     private readonly findMaterialFilesUseCase: FindMaterialFilesUseCase,
+    private readonly viewMaterialFilesUseCase: ViewMaterialFilesUseCase,
     private readonly deleteMaterialFileUseCase: DeleteMaterialFileUseCase,
     private readonly acceptMaterialUseCase: AcceptMaterialUseCase,
     private readonly enqueueMaterialAcceptanceExportUseCase: EnqueueMaterialAcceptanceExportUseCase,
@@ -200,6 +202,19 @@ export class MaterialController {
       organizationId,
       userId,
       dto,
+    );
+  }
+
+  @Get(':id/view/files')
+  async viewFiles(
+    @Param('id') id: string,
+    @OrgId() organizationId: string,
+    @UserId() userId: string,
+  ) {
+    return await this.viewMaterialFilesUseCase.execute(
+      id,
+      organizationId,
+      userId,
     );
   }
 

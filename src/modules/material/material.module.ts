@@ -33,6 +33,7 @@ import {
   UpdateMaterialUseCase,
   UploadMaterialFilesUseCase,
   ViewMaterialByIdUseCase,
+  ViewMaterialFilesUseCase,
 } from './use-cases';
 
 @Module({
@@ -45,6 +46,7 @@ import {
     FindMaterialByIdUseCase,
     FindMaterialsByCategorySlugUseCase,
     ViewMaterialByIdUseCase,
+    ViewMaterialFilesUseCase,
     DownloadMaterialUseCase,
     FindMostAccessedMaterialsUseCase,
     FindMaterialMosaicUseCase,

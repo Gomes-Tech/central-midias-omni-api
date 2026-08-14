@@ -563,6 +563,45 @@ describe('MaterialRepository', () => {
           textCopy: 'Texto livre para copiar',
           isCustomizable: false,
           customization: null,
+          mimeType: null,
+        }),
+      );
+    });
+
+    it('deve retornar o mimeType do primeiro arquivo do material', async () => {
+      prisma.material.findFirst.mockResolvedValue({
+        id: 'material-id',
+        name: 'Material institucional',
+        description: 'Descricao',
+        categoryId: 'category-id',
+        requiresAcceptance: false,
+        hasExternalLink: false,
+        externalLink: null,
+        hasTextCopy: false,
+        textCopy: null,
+        isCustomizable: false,
+        materialCustomization: null,
+        createdAt: new Date('2024-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2024-01-02T00:00:00.000Z'),
+        deletedAt: null,
+        category: {
+          id: 'category-id',
+          name: 'Categoria',
+          slug: 'categoria',
+        },
+        tags: [],
+        materialFiles: [
+          { id: 'file-1', mimeType: 'application/pdf' },
+          { id: 'file-2', mimeType: 'image/png' },
+        ],
+      });
+
+      await expect(
+        repository.findById('material-id', 'org-id'),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          materialFilesCount: 2,
+          mimeType: 'application/pdf',
         }),
       );
     });
