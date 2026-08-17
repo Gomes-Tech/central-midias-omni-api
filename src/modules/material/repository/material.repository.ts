@@ -269,6 +269,7 @@ export class MaterialRepository {
             hasTextCopy: true,
             textCopy: true,
             isCustomizable: true,
+            requiresAcceptance: true,
             materialFiles: {
               select: {
                 imageKey: true,
@@ -297,6 +298,7 @@ export class MaterialRepository {
             hasTextCopy: material.hasTextCopy,
             textCopy: material.textCopy,
             isCustomizable: material.isCustomizable,
+            requiresAcceptance: material.requiresAcceptance,
             imageKey: file?.imageKey ?? null,
             mimeType: file?.mimeType ?? null,
             size: file?.size ?? null,
@@ -381,6 +383,7 @@ export class MaterialRepository {
             hasTextCopy: true,
             textCopy: true,
             isCustomizable: true,
+            requiresAcceptance: true,
             materialFiles: {
               select: {
                 imageKey: true,
@@ -419,6 +422,7 @@ export class MaterialRepository {
             hasTextCopy: material.hasTextCopy,
             textCopy: material.textCopy,
             isCustomizable: material.isCustomizable,
+            requiresAcceptance: material.requiresAcceptance,
             imageKey: file?.imageKey ?? null,
             mimeType: file?.mimeType ?? null,
             size: file?.size ?? null,

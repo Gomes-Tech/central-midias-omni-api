@@ -92,6 +92,7 @@ export interface MaterialByCategorySlugItem {
   hasTextCopy: boolean;
   textCopy: string | null;
   isCustomizable: boolean;
+  requiresAcceptance: boolean;
 }
 
 export interface MaterialByCategorySlugRow {
@@ -102,6 +103,7 @@ export interface MaterialByCategorySlugRow {
   hasTextCopy: boolean;
   textCopy: string | null;
   isCustomizable: boolean;
+  requiresAcceptance: boolean;
   imageKey: string | null;
   mimeType: string | null;
   size: number | null;

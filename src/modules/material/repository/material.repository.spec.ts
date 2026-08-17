@@ -230,6 +230,7 @@ describe('MaterialRepository', () => {
           hasTextCopy: true,
           textCopy: 'Texto',
           isCustomizable: false,
+          requiresAcceptance: false,
           materialFiles: [
             {
               imageKey: 'materials/material-id/preview.png',
@@ -257,6 +258,7 @@ describe('MaterialRepository', () => {
             hasTextCopy: true,
             textCopy: 'Texto',
             isCustomizable: false,
+            requiresAcceptance: false,
             imageKey: 'materials/material-id/preview.png',
             mimeType: 'image/png',
             size: 1024,
@@ -301,6 +303,7 @@ describe('MaterialRepository', () => {
           hasTextCopy: true,
           textCopy: true,
           isCustomizable: true,
+          requiresAcceptance: true,
           materialFiles: {
             select: {
               imageKey: true,
@@ -2314,6 +2317,7 @@ describe('MaterialRepository', () => {
           hasTextCopy: true,
           textCopy: 'texto',
           isCustomizable: false,
+          requiresAcceptance: true,
           materialFiles: [
             {
               imageKey: 'materials/m1.png',
@@ -2341,6 +2345,7 @@ describe('MaterialRepository', () => {
             hasTextCopy: true,
             textCopy: 'texto',
             isCustomizable: false,
+            requiresAcceptance: true,
             imageKey: 'materials/m1.png',
             mimeType: 'image/png',
             size: 100,
@@ -2377,6 +2382,7 @@ describe('MaterialRepository', () => {
           hasTextCopy: false,
           textCopy: null,
           isCustomizable: true,
+          requiresAcceptance: false,
           materialFiles: [],
         },
       ]);

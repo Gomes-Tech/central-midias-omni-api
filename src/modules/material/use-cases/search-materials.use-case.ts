@@ -45,6 +45,7 @@ export class SearchMaterialsUseCase {
           hasTextCopy: material.hasTextCopy,
           textCopy: material.textCopy,
           isCustomizable: material.isCustomizable,
+          requiresAcceptance: material.requiresAcceptance,
         };
       }),
     );
