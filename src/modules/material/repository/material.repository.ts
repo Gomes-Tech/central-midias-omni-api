@@ -160,7 +160,13 @@ export class MaterialRepository {
     filters: FindAllMaterialsFiltersDTO = {},
     organizationId: string,
   ): Promise<PaginatedResponse<MaterialListItem>> {
-    const { page = 1, limit = 25, categoryId, searchTerm } = filters;
+    const {
+      page = 1,
+      limit = 25,
+      categoryId,
+      searchTerm,
+      requiresAcceptance,
+    } = filters;
     const skip = (page - 1) * limit;
 
     try {
@@ -171,6 +177,7 @@ export class MaterialRepository {
           isDeleted: false,
         },
         ...(categoryId && { categoryId }),
+        ...(requiresAcceptance !== undefined && { requiresAcceptance }),
         ...(searchTerm && {
           OR: [
             {

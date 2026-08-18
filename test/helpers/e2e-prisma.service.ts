@@ -151,6 +151,24 @@ function createDelegate(collectionKey: keyof ReturnType<typeof getE2eStore>) {
       store[collectionKey] = remaining as never;
       return { count: before - remaining.length };
     },
+    upsert: async (args: {
+      where: Record<string, unknown>;
+      create: Record<string, unknown>;
+      update: Record<string, unknown>;
+    }) => {
+      const store = getE2eStore();
+      const collection = store[collectionKey] as Record<string, unknown>[];
+      const existing = findUnique(collection, { where: args.where }, store);
+
+      if (existing) {
+        Object.assign(existing, args.update, { updatedAt: new Date() });
+        return existing;
+      }
+
+      const row = mergeCreateData(args.create);
+      collection.push(row);
+      return row;
+    },
   };
 }
 
@@ -176,6 +194,7 @@ export class E2ePrismaService {
   passwordResetToken = createDelegate('passwordResetTokens');
   log = createDelegate('logs');
   tagSearch = createDelegate('tagSearches');
+  supplierDocument = createDelegate('supplierDocuments');
 
   async $queryRaw() {
     return [{ '?column?': 1 }];

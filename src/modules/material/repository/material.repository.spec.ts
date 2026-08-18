@@ -159,6 +159,28 @@ describe('MaterialRepository', () => {
       });
     });
 
+    it('deve filtrar materiais que exigem aceite', async () => {
+      prisma.material.findMany.mockResolvedValue([]);
+      prisma.material.count.mockResolvedValue(0);
+
+      await repository.findAll({ requiresAcceptance: true }, 'org-id');
+
+      expect(prisma.material.findMany).toHaveBeenCalledWith({
+        where: {
+          deletedAt: null,
+          category: {
+            organizationId: 'org-id',
+            isDeleted: false,
+          },
+          requiresAcceptance: true,
+        },
+        select: expect.any(Object),
+        orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+        skip: 0,
+        take: 25,
+      });
+    });
+
     it('deve lançar BadRequest quando findMany falhar', async () => {
       prisma.material.findMany.mockRejectedValue(new Error('db'));
       prisma.material.count.mockResolvedValue(0);

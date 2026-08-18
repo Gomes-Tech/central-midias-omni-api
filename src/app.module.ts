@@ -35,6 +35,7 @@ import { OrganizationModule } from '@modules/organization';
 import { ReportsModule } from '@modules/reports';
 import { RolesModule } from '@modules/roles';
 import { SocialHighlightModule } from '@modules/social-highlight';
+import { SupplierModule } from '@modules/supplier';
 import { TagModule } from '@modules/tag';
 import { TokenPasswordModule } from '@modules/token-password';
 import { UserModule } from '@modules/user';
@@ -80,6 +81,7 @@ import { AppService } from './app.service';
     CategoryRoleAccessModule,
     BannerModule,
     SocialHighlightModule,
+    SupplierModule,
     FaqModule,
     ReportsModule,
   ],

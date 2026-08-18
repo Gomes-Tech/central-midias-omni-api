@@ -1,6 +1,7 @@
 import { Sanitize } from '@common/decorators';
+import { TransformBoolean } from '@common/decorators/tansform-boolean.decorator';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class FindAllMaterialsFiltersDTO {
   @IsOptional()
@@ -23,4 +24,9 @@ export class FindAllMaterialsFiltersDTO {
   @IsString()
   @Sanitize()
   searchTerm?: string;
+
+  @IsOptional()
+  @TransformBoolean()
+  @IsBoolean()
+  requiresAcceptance?: boolean;
 }

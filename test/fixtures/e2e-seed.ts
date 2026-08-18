@@ -68,6 +68,7 @@ export type E2eStore = {
   passwordResetTokens: Record<string, unknown>[];
   logs: Record<string, unknown>[];
   tagSearches: Record<string, unknown>[];
+  supplierDocuments: Record<string, unknown>[];
 };
 
 export function createE2eSeed(): E2eStore {
@@ -476,5 +477,6 @@ export function createE2eSeed(): E2eStore {
     passwordResetTokens: [],
     logs: [],
     tagSearches: [],
+    supplierDocuments: [],
   };
 }

@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { MulterFile } from './local-storage.service';
 import { S3StorageService } from './s3-storage.service';
 
+/** Máximo permitido pelo SigV4 com credenciais IAM permanentes: 7 dias. */
+export const S3_MAX_SIGNED_URL_EXPIRES_IN = 7 * 24 * 60 * 60;
+
 export interface StorageFile {
   id: string;
   path: string;

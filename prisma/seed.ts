@@ -34,6 +34,7 @@ async function main() {
     { id: uuidv4(), name: 'reports', label: 'Relatórios' },
     { id: uuidv4(), name: 'faqs', label: 'FAQ' },
     { id: uuidv4(), name: 'calendar', label: 'Calendário' },
+    { id: uuidv4(), name: 'suppliers', label: 'Fornecedores' },
   ];
 
   const roleId = uuidv4();
