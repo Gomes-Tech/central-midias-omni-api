@@ -22,6 +22,7 @@ import { MailModule, StorageModule } from '@infrastructure/providers';
 import { QueueModule } from '@infrastructure/queue';
 import { SecurityModule } from '@infrastructure/security';
 import { ThrottlerConfigModule } from '@infrastructure/throttler';
+import { AvatarModule } from '@modules/avatar';
 import { AuthModule } from '@modules/auth';
 import { BannerModule } from '@modules/banner';
 import { CalendarModule } from '@modules/calendar';
@@ -82,6 +83,7 @@ import { AppService } from './app.service';
     BannerModule,
     SocialHighlightModule,
     SupplierModule,
+    AvatarModule,
     FaqModule,
     ReportsModule,
   ],
