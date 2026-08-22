@@ -174,15 +174,14 @@ export class UserRepository {
         where: {
           isDeleted: false,
           isActive: true,
-          globalRoleId: {
-            not: null,
-          },
           globalRole: {
-            name: {
-              not: 'ADMIN',
-            },
+            canAccessBackoffice: true,
+            deletedAt: null,
           },
           members: {
+            some: {
+              organizationId: { not: organizationId },
+            },
             none: {
               organizationId,
             },
