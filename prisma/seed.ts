@@ -24,6 +24,11 @@ const MODULES = [
   { name: 'reports', label: 'Relatórios' },
   { name: 'faqs', label: 'FAQ' },
   { name: 'calendar', label: 'Calendário' },
+
+  // Main
+  { name: 'suppliers', label: 'Fornecedores' },
+
+  // Image Editor
   { name: 'assets', label: 'Assets' },
   { name: 'print-profiles', label: 'Perfis de impressão' },
 ];
@@ -39,17 +44,38 @@ async function main() {
 
   const permissionsCreated = await prisma.$transaction(
     async (tx) => {
+      /*
+       * Sincroniza os módulos conhecidos pela branch.
+       *
+       * Isso permite que novos módulos vindos da main sejam adicionados
+       * mesmo em bancos onde o seed inicial já foi executado.
+       */
       await tx.module.createMany({
-        data: MODULES.map((module) => ({ id: uuidv4(), ...module })),
+        data: MODULES.map((module) => ({
+          id: uuidv4(),
+          ...module,
+        })),
         skipDuplicates: true,
       });
 
+      /*
+       * Busca os registros reais do banco.
+       *
+       * Não usamos UUIDs previamente gerados porque alguns módulos podem
+       * já existir de execuções anteriores.
+       */
       const modules = await tx.module.findMany({
-        where: { name: { in: MODULES.map((module) => module.name) } },
+        where: {
+          name: {
+            in: MODULES.map((module) => module.name),
+          },
+        },
       });
 
       const adminRole = await tx.role.upsert({
-        where: { name: 'ADMIN' },
+        where: {
+          name: 'ADMIN',
+        },
         update: {},
         create: {
           id: uuidv4(),
@@ -60,7 +86,6 @@ async function main() {
           canHaveSubordinates: false,
         },
       });
-
       const result = await tx.rolePermission.createMany({
         data: modules.flatMap((module) =>
           ALL_ACTIONS.map((action) => ({
@@ -72,10 +97,11 @@ async function main() {
         ),
         skipDuplicates: true,
       });
-
       if (!alreadySeeded && hashedPassword) {
         await tx.user.upsert({
-          where: { email: 'admin@admin.com' },
+          where: {
+            email: 'admin@admin.com',
+          },
           update: {},
           create: {
             id: uuidv4(),
@@ -94,13 +120,18 @@ async function main() {
         });
 
         await tx.seedStatus.create({
-          data: { id: 'main-seed', executedAt: new Date() },
+          data: {
+            id: 'main-seed',
+            executedAt: new Date(),
+          },
         });
       }
 
       return result.count;
     },
-    { timeout: 30_000 },
+    {
+      timeout: 30_000,
+    },
   );
 
   console.log(
@@ -108,6 +139,7 @@ async function main() {
       ? `Seed já executado. Sincronização concluída: ${permissionsCreated} permissão(ões) adicionada(s) ao ADMIN.`
       : 'Seed concluído com sucesso!',
   );
+
   console.log(
     'Nota: rotas do backoffice exigem um Member (usuário + organização + role). Sem organização seedada, o admin ainda não passa no PlatformPermissionGuard.',
   );

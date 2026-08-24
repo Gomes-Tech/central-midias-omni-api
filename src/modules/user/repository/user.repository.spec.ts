@@ -326,7 +326,7 @@ describe('UserRepository', () => {
   });
 
   describe('findGlobalUsersSelect', () => {
-    it('deve listar apenas usuários globais disponíveis na organização', async () => {
+    it('deve listar usuários globais de outras organizações ainda não vinculados à organização atual', async () => {
       const users = [{ id: 'global-1', name: 'Global' }];
       prisma.user.findMany.mockResolvedValue(users);
 
@@ -337,15 +337,14 @@ describe('UserRepository', () => {
         where: {
           isDeleted: false,
           isActive: true,
-          globalRoleId: {
-            not: null,
-          },
           globalRole: {
-            name: {
-              not: 'ADMIN',
-            },
+            canAccessBackoffice: true,
+            deletedAt: null,
           },
           members: {
+            some: {
+              organizationId: { not: 'org-1' },
+            },
             none: {
               organizationId: 'org-1',
             },

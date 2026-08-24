@@ -90,6 +90,7 @@ export function makeMaterialDetails(
     },
     tags: ['tag-id'],
     materialFilesCount: 0,
+    mimeType: null,
     deletedAt: null,
     ...overrides,
   };

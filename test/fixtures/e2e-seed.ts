@@ -77,6 +77,7 @@ export type E2eStore = {
   logs: Record<string, unknown>[];
   tagSearches: Record<string, unknown>[];
   assets: Record<string, unknown>[];
+  supplierDocuments: Record<string, unknown>[];
 };
 
 export function createE2eSeed(): E2eStore {
@@ -585,5 +586,6 @@ export function createE2eSeed(): E2eStore {
     logs: [],
     tagSearches: [],
     assets: [asset],
+    supplierDocuments: [],
   };
 }

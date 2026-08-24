@@ -50,6 +50,7 @@ export interface MaterialDetails {
   category: MaterialCategorySummary;
   tags: string[];
   materialFilesCount: number;
+  mimeType: string | null;
   deletedAt?: Date | null;
   currentUserAcceptedAt?: Date | null;
 }
@@ -85,6 +86,7 @@ export interface MaterialByCategorySlugItem {
   textCopy: string | null;
   isCustomizable: boolean;
   canCustomize: boolean;
+  requiresAcceptance: boolean;
 }
 
 export interface MaterialByCategorySlugRow {
@@ -96,6 +98,7 @@ export interface MaterialByCategorySlugRow {
   textCopy: string | null;
   isCustomizable: boolean;
   canCustomize: boolean;
+  requiresAcceptance: boolean;
   imageKey: string | null;
   mimeType: string | null;
   size: number | null;

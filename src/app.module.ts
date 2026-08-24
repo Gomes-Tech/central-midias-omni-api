@@ -22,6 +22,7 @@ import { MailModule, StorageModule } from '@infrastructure/providers';
 import { QueueModule } from '@infrastructure/queue';
 import { SecurityModule } from '@infrastructure/security';
 import { ThrottlerConfigModule } from '@infrastructure/throttler';
+import { AvatarModule } from '@modules/avatar';
 import { AuthModule } from '@modules/auth';
 import { AssetModule } from '@modules/asset';
 import { BannerModule } from '@modules/banner';
@@ -38,6 +39,7 @@ import { PrintModule } from '@modules/print';
 import { ReportsModule } from '@modules/reports';
 import { RolesModule } from '@modules/roles';
 import { SocialHighlightModule } from '@modules/social-highlight';
+import { SupplierModule } from '@modules/supplier';
 import { TagModule } from '@modules/tag';
 import { TokenPasswordModule } from '@modules/token-password';
 import { UserModule } from '@modules/user';
@@ -85,6 +87,8 @@ import { AppService } from './app.service';
     CategoryRoleAccessModule,
     BannerModule,
     SocialHighlightModule,
+    SupplierModule,
+    AvatarModule,
     FaqModule,
     ReportsModule,
     PrintModule,

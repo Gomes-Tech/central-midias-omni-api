@@ -24,8 +24,8 @@ import {
   DeleteUserUseCase,
   FindAllUsersUseCase,
   FindGlobalUsersSelectUseCase,
-  FindUsersSelectUseCase,
   FindUserByIdUseCase,
+  FindUsersSelectUseCase,
   GetMeUseCase,
   UpdateUserUseCase,
 } from './use-cases';

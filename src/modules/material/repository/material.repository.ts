@@ -75,6 +75,7 @@ const buildMaterialDetailsSelect = (organizationId: string) =>
     materialFiles: {
       select: {
         id: true,
+        mimeType: true,
       },
     },
   }) satisfies Prisma.MaterialSelect;
@@ -161,7 +162,13 @@ export class MaterialRepository {
     filters: FindAllMaterialsFiltersDTO = {},
     organizationId: string,
   ): Promise<PaginatedResponse<MaterialListItem>> {
-    const { page = 1, limit = 25, categoryId, searchTerm } = filters;
+    const {
+      page = 1,
+      limit = 25,
+      categoryId,
+      searchTerm,
+      requiresAcceptance,
+    } = filters;
     const skip = (page - 1) * limit;
 
     try {
@@ -172,6 +179,7 @@ export class MaterialRepository {
           isDeleted: false,
         },
         ...(categoryId && { categoryId }),
+        ...(requiresAcceptance !== undefined && { requiresAcceptance }),
         ...(searchTerm && {
           OR: [
             {
@@ -273,6 +281,7 @@ export class MaterialRepository {
             textCopy: true,
             isCustomizable: true,
             materialTemplate: { select: { status: true } },
+            requiresAcceptance: true,
             materialFiles: {
               select: {
                 imageKey: true,
@@ -305,6 +314,7 @@ export class MaterialRepository {
               material.isCustomizable &&
               material.materialTemplate?.status ===
                 MaterialTemplateStatus.PUBLISHED,
+            requiresAcceptance: material.requiresAcceptance,
             imageKey: file?.imageKey ?? null,
             mimeType: file?.mimeType ?? null,
             size: file?.size ?? null,
@@ -389,6 +399,7 @@ export class MaterialRepository {
             hasTextCopy: true,
             textCopy: true,
             isCustomizable: true,
+            requiresAcceptance: true,
             materialFiles: {
               select: {
                 imageKey: true,
@@ -432,6 +443,7 @@ export class MaterialRepository {
               material.isCustomizable &&
               material.materialTemplate?.status ===
                 MaterialTemplateStatus.PUBLISHED,
+            requiresAcceptance: material.requiresAcceptance,
             imageKey: file?.imageKey ?? null,
             mimeType: file?.mimeType ?? null,
             size: file?.size ?? null,
@@ -870,6 +882,7 @@ export class MaterialRepository {
             category: material.category,
             tags: material.tags.map((tag) => tag.id),
             materialFilesCount: material.materialFiles.length,
+            mimeType: material.materialFiles[0]?.mimeType ?? null,
             hasExternalLink: material.hasExternalLink,
             externalLink: material.externalLink,
             hasTextCopy: material.hasTextCopy,

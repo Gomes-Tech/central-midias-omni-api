@@ -3,6 +3,9 @@ import type { MulterFile, StoredFile } from './local-storage.service';
 import type { PrivateFileWrite } from './storage-provider';
 import { STORAGE_PROVIDER, StorageProvider } from './storage-provider';
 
+/** Máximo permitido pelo SigV4 com credenciais IAM permanentes: 7 dias. */
+export const S3_MAX_SIGNED_URL_EXPIRES_IN = 7 * 24 * 60 * 60;
+
 export interface StorageFile {
   id: string;
   path: string;

@@ -163,6 +163,28 @@ describe('MaterialRepository', () => {
       });
     });
 
+    it('deve filtrar materiais que exigem aceite', async () => {
+      prisma.material.findMany.mockResolvedValue([]);
+      prisma.material.count.mockResolvedValue(0);
+
+      await repository.findAll({ requiresAcceptance: true }, 'org-id');
+
+      expect(prisma.material.findMany).toHaveBeenCalledWith({
+        where: {
+          deletedAt: null,
+          category: {
+            organizationId: 'org-id',
+            isDeleted: false,
+          },
+          requiresAcceptance: true,
+        },
+        select: expect.any(Object),
+        orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+        skip: 0,
+        take: 25,
+      });
+    });
+
     it('deve lançar BadRequest quando findMany falhar', async () => {
       prisma.material.findMany.mockRejectedValue(new Error('db'));
       prisma.material.count.mockResolvedValue(0);
@@ -236,6 +258,7 @@ describe('MaterialRepository', () => {
           externalLink: 'https://example.com',
           hasTextCopy: true,
           textCopy: 'Texto',
+          requiresAcceptance: false,
           materialFiles: [
             {
               imageKey: 'materials/material-id/preview.png',
@@ -264,6 +287,7 @@ describe('MaterialRepository', () => {
             textCopy: 'Texto',
             isCustomizable: false,
             canCustomize: false,
+            requiresAcceptance: false,
             imageKey: 'materials/material-id/preview.png',
             mimeType: 'image/png',
             size: 1024,
@@ -308,6 +332,7 @@ describe('MaterialRepository', () => {
           hasTextCopy: true,
           textCopy: true,
           isCustomizable: true,
+          requiresAcceptance: true,
           materialFiles: {
             select: {
               imageKey: true,
@@ -571,6 +596,45 @@ describe('MaterialRepository', () => {
           textCopy: 'Texto livre para copiar',
           isCustomizable: false,
           templateStatus: null,
+          mimeType: null,
+        }),
+      );
+    });
+
+    it('deve retornar o mimeType do primeiro arquivo do material', async () => {
+      prisma.material.findFirst.mockResolvedValue({
+        id: 'material-id',
+        name: 'Material institucional',
+        description: 'Descricao',
+        categoryId: 'category-id',
+        requiresAcceptance: false,
+        hasExternalLink: false,
+        externalLink: null,
+        hasTextCopy: false,
+        textCopy: null,
+        isCustomizable: false,
+        materialTemplate: null,
+        createdAt: new Date('2024-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2024-01-02T00:00:00.000Z'),
+        deletedAt: null,
+        category: {
+          id: 'category-id',
+          name: 'Categoria',
+          slug: 'categoria',
+        },
+        tags: [],
+        materialFiles: [
+          { id: 'file-1', mimeType: 'application/pdf' },
+          { id: 'file-2', mimeType: 'image/png' },
+        ],
+      });
+
+      await expect(
+        repository.findById('material-id', 'org-id'),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          materialFilesCount: 2,
+          mimeType: 'application/pdf',
         }),
       );
     });
@@ -2288,6 +2352,7 @@ describe('MaterialRepository', () => {
           hasTextCopy: true,
           textCopy: 'texto',
           isCustomizable: false,
+          requiresAcceptance: true,
           materialFiles: [
             {
               imageKey: 'materials/m1.png',
@@ -2316,6 +2381,7 @@ describe('MaterialRepository', () => {
             textCopy: 'texto',
             isCustomizable: false,
             canCustomize: false,
+            requiresAcceptance: true,
             imageKey: 'materials/m1.png',
             mimeType: 'image/png',
             size: 100,
@@ -2352,6 +2418,7 @@ describe('MaterialRepository', () => {
           hasTextCopy: false,
           textCopy: null,
           isCustomizable: true,
+          requiresAcceptance: false,
           materialFiles: [],
         },
       ]);

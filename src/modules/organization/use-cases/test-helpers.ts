@@ -11,6 +11,8 @@ export function makeOrganization(
     domain: 'organization.com',
     shouldAttachUsersByDomain: true,
     avatarKey: null,
+    standardAvatarKey: null,
+    customizableAvatarKey: null,
     isActive: true,
     isDeleted: false,
     createdAt: new Date('2024-01-01T00:00:00.000Z'),
