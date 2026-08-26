@@ -89,6 +89,63 @@ describe('PrintPresetService', () => {
     );
   });
 
+  it('desvincula templates e remove o preset', async () => {
+    const tx = {
+      materialTemplate: {
+        findMany: jest.fn().mockResolvedValue([{ id: 't1' }, { id: 't2' }]),
+        updateMany: jest.fn(),
+      },
+      printPreflight: { deleteMany: jest.fn() },
+      printPreset: { delete: jest.fn() },
+    };
+    prisma.$transaction.mockImplementation(async (callback: any) =>
+      callback(tx),
+    );
+
+    await expect(
+      service.remove('preset-id', 'org-id', 'user-id'),
+    ).resolves.toEqual({
+      deleted: true,
+      unlinkedTemplateCount: 2,
+    });
+    expect(tx.printPreflight.deleteMany).toHaveBeenCalledWith({
+      where: { templateId: { in: ['t1', 't2'] } },
+    });
+    expect(tx.materialTemplate.updateMany).toHaveBeenCalledWith({
+      where: { printPresetId: 'preset-id' },
+      data: { printPresetId: null },
+    });
+    expect(tx.printPreset.delete).toHaveBeenCalledWith({
+      where: { id: 'preset-id' },
+    });
+  });
+
+  it('remove o preset sem templates vinculados', async () => {
+    const tx = {
+      materialTemplate: {
+        findMany: jest.fn().mockResolvedValue([]),
+        updateMany: jest.fn(),
+      },
+      printPreflight: { deleteMany: jest.fn() },
+      printPreset: { delete: jest.fn() },
+    };
+    prisma.$transaction.mockImplementation(async (callback: any) =>
+      callback(tx),
+    );
+
+    await expect(
+      service.remove('preset-id', 'org-id', 'user-id'),
+    ).resolves.toEqual({
+      deleted: true,
+      unlinkedTemplateCount: 0,
+    });
+    expect(tx.printPreflight.deleteMany).not.toHaveBeenCalled();
+    expect(tx.materialTemplate.updateMany).not.toHaveBeenCalled();
+    expect(tx.printPreset.delete).toHaveBeenCalledWith({
+      where: { id: 'preset-id' },
+    });
+  });
+
   it('rejeita marcas de corte que invadem a sangria', async () => {
     await expect(
       service.create(

@@ -1,7 +1,7 @@
 import { PlatformPermissionGuard } from '@common/guards';
 import { AssetModule } from '@modules/asset';
 import { MaterialModule } from '@modules/material';
-import { PrintModule } from '@modules/print';
+import { PrintModule } from '@modules/print/print.module';
 import { forwardRef, Module } from '@nestjs/common';
 import { MaterialTemplateController } from './material-template.controller';
 import { MaterialTemplateRepository } from './repository';

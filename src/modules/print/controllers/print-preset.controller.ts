@@ -3,6 +3,7 @@ import { PlatformPermissionGuard } from '@common/guards';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -65,5 +66,15 @@ export class PrintPresetController {
     @UserId() userId: string,
   ) {
     return this.service.archive(id, organizationId, userId);
+  }
+
+  @RequirePermission('materials', 'delete')
+  @Delete(':id')
+  remove(
+    @Param('id') id: string,
+    @OrgId() organizationId: string,
+    @UserId() userId: string,
+  ) {
+    return this.service.remove(id, organizationId, userId);
   }
 }

@@ -38,7 +38,7 @@ export class UpdateMaterialUseCase {
     let activateTemplate:
       | {
           baseMaterialFileId: string;
-          digitalExportMimeType: 'image/png' | 'image/jpeg';
+          baseMimeType: string;
         }
       | undefined;
     if (data.isCustomizable === true && !material.isCustomizable) {
@@ -62,11 +62,21 @@ export class UpdateMaterialUseCase {
       validateMaterialTemplateImage({ buffer, size: base.size });
       activateTemplate = {
         baseMaterialFileId: base.id,
-        digitalExportMimeType:
-          base.mimeType.toLowerCase() === 'image/png'
-            ? 'image/png'
-            : 'image/jpeg',
+        baseMimeType: base.mimeType,
       };
+    }
+
+    const willBeCustomizable =
+      data.isCustomizable === true ||
+      (data.isCustomizable !== false && material.isCustomizable);
+    if (willBeCustomizable) {
+      await this.assertExportConfig(
+        organizationId,
+        data.exportTypes ?? material.exportTypes,
+        data.printPresetId !== undefined
+          ? data.printPresetId
+          : material.printPresetId,
+      );
     }
 
     const nextCategoryId = data.categoryId ?? material.categoryId;
@@ -122,6 +132,26 @@ export class UpdateMaterialUseCase {
       void this.enqueueMaterialNotificationEmailsUseCase
         .execute(id, organizationId, data.roleId)
         .catch(() => undefined);
+    }
+  }
+
+  private async assertExportConfig(
+    organizationId: string,
+    exportTypes: Array<'png' | 'jpg' | 'pdf' | 'print_pdf'>,
+    printPresetId: string | null,
+  ) {
+    if (!exportTypes.includes('print_pdf')) {
+      return;
+    }
+    if (!printPresetId) {
+      throw new BadRequestException('Selecione um preset de impressão');
+    }
+    const isActive = await this.materialRepository.isActivePrintPreset(
+      organizationId,
+      printPresetId,
+    );
+    if (!isActive) {
+      throw new BadRequestException('Preset de impressão indisponível');
     }
   }
 }

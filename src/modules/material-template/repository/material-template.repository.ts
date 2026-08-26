@@ -17,6 +17,7 @@ const templateSelect = {
   baseMaterialFileId: true,
   printPresetId: true,
   digitalExportMimeType: true,
+  allowedExportTypes: true,
   status: true,
   schemaVersion: true,
   document: true,
@@ -77,6 +78,7 @@ export interface MaterialTemplateAssetRow {
 export interface MaterialTemplateDeliveryInput {
   digitalExportMimeType: string | null;
   printPresetId: string | null;
+  allowedExportTypes?: string[];
 }
 
 @Injectable()

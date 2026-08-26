@@ -98,6 +98,27 @@ describe('MaterialTemplateDocumentService', () => {
     expect(service.hasEditableText(richDocument)).toBe(true);
   });
 
+  it('aceita os tamanhos proporcionais usados em canvases grandes', () => {
+    const largeDocument = structuredClone(richDocument);
+    largeDocument.canvas = { width: 6000, height: 5000 };
+    const text = largeDocument.layers[0];
+    if (text.type !== 'text') throw new Error('Camada de teste inválida');
+    text.runs = text.runs.map((run) => ({ ...run, fontSize: 1500 }));
+
+    expect(service.validate(largeDocument)).toBe(largeDocument);
+  });
+
+  it('mantém um teto técnico para o tamanho da fonte', () => {
+    const invalidDocument = structuredClone(richDocument);
+    const text = invalidDocument.layers[0];
+    if (text.type !== 'text') throw new Error('Camada de teste inválida');
+    text.runs = text.runs.map((run) => ({ ...run, fontSize: 1801 }));
+
+    expect(() => service.validate(invalidDocument)).toThrow(
+      'Tamanho da fonte inválido',
+    );
+  });
+
   it('rejeita trechos V2 inválidos e o limite de conteúdo', () => {
     const richTextLayer = richDocument.layers[0];
     if (richTextLayer.type !== 'text')

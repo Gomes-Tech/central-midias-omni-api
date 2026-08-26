@@ -582,6 +582,7 @@ model MaterialTemplate {
   baseMaterialFileId    String?                @unique @map("base_material_file_id")
   printPresetId         String?                @map("print_preset_id")
   digitalExportMimeType String?                @map("digital_export_mime_type")
+  allowedExportTypes    String[]               @default([]) @map("allowed_export_types")
   status                MaterialTemplateStatus @default(DRAFT)
   schemaVersion         Int                    @default(1) @map("schema_version")
   document              Json?

@@ -30,7 +30,7 @@ const MODULES = [
 
   // Image Editor
   { name: 'assets', label: 'Assets' },
-  { name: 'print-profiles', label: 'Perfis de impressão' },
+  { name: 'print-profiles', label: 'Perfis ICC (CMYK)' },
 ];
 
 async function main() {

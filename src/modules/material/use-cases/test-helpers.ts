@@ -81,6 +81,8 @@ export function makeMaterialDetails(
     textCopy: null,
     isCustomizable: false,
     templateStatus: null,
+    exportTypes: [],
+    printPresetId: null,
     createdAt: now,
     updatedAt: now,
     category: {

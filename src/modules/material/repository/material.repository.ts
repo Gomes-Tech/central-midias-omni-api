@@ -12,6 +12,8 @@ import {
   SearchMaterialsFiltersDTO,
   UpdateMaterialDTO,
 } from '../dto';
+import { resolveTemplateExportConfig } from '../dto/material-export-types';
+import type { MaterialExportType } from '../dto/material-export-types';
 import {
   MaterialAcceptanceReportRow,
   MaterialByCategorySlugRow,
@@ -52,7 +54,13 @@ const buildMaterialDetailsSelect = (organizationId: string) =>
     hasTextCopy: true,
     textCopy: true,
     isCustomizable: true,
-    materialTemplate: { select: { status: true } },
+    materialTemplate: {
+      select: {
+        status: true,
+        allowedExportTypes: true,
+        printPresetId: true,
+      },
+    },
     createdAt: true,
     updatedAt: true,
     deletedAt: true,
@@ -147,7 +155,7 @@ export interface UpdateMaterialOptions {
   tags?: ResolvedMaterialTags;
   activateTemplate?: {
     baseMaterialFileId: string;
-    digitalExportMimeType: 'image/png' | 'image/jpeg';
+    baseMimeType: string;
   };
 }
 
@@ -889,6 +897,9 @@ export class MaterialRepository {
             textCopy: material.textCopy,
             isCustomizable: material.isCustomizable,
             templateStatus: material.materialTemplate?.status ?? null,
+            exportTypes: (material.materialTemplate?.allowedExportTypes ??
+              []) as MaterialExportType[],
+            printPresetId: material.materialTemplate?.printPresetId ?? null,
             deletedAt: material.deletedAt,
             currentUserAcceptedAt:
               userId && 'materialAcceptances' in material
@@ -934,6 +945,22 @@ export class MaterialRepository {
 
       throw new BadRequestException('Erro ao buscar material');
     }
+  }
+
+  async isActivePrintPreset(
+    organizationId: string,
+    presetId: string,
+  ): Promise<boolean> {
+    const preset = await this.prisma.printPreset.findFirst({
+      where: {
+        id: presetId,
+        organizationId,
+        isActive: true,
+        colorProfile: { isActive: true },
+      },
+      select: { id: true },
+    });
+    return Boolean(preset);
   }
 
   async create(
@@ -989,10 +1016,11 @@ export class MaterialRepository {
             id: generateId(),
             organizationId,
             baseMaterialFileId: baseFileId,
-            digitalExportMimeType:
-              options.files?.[0]?.mimeType === 'image/png'
-                ? 'image/png'
-                : 'image/jpeg',
+            ...resolveTemplateExportConfig({
+              exportTypes: data.exportTypes,
+              printPresetId: data.printPresetId,
+              baseMimeType: options.files?.[0]?.mimeType,
+            }),
             status: MaterialTemplateStatus.DRAFT,
           },
         };
@@ -1046,6 +1074,10 @@ export class MaterialRepository {
           materialTemplate: {
             select: {
               id: true,
+              allowedExportTypes: true,
+              printPresetId: true,
+              digitalExportMimeType: true,
+              baseFile: { select: { mimeType: true } },
             },
           },
         },
@@ -1083,32 +1115,53 @@ export class MaterialRepository {
 
       if (data.isCustomizable === false && material.materialTemplate) {
         updateData.materialTemplate = {
-          update: {
-            status: MaterialTemplateStatus.DRAFT,
-            publishedAt: null,
-            revision: { increment: 1 },
-          },
+          delete: true,
         };
       }
 
       if (options.activateTemplate) {
+        const exportConfig = resolveTemplateExportConfig({
+          exportTypes: data.exportTypes,
+          printPresetId: data.printPresetId,
+          baseMimeType: options.activateTemplate.baseMimeType,
+        });
         updateData.materialTemplate = {
           upsert: {
             create: {
               id: generateId(),
               organizationId,
               baseMaterialFileId: options.activateTemplate.baseMaterialFileId,
-              digitalExportMimeType:
-                options.activateTemplate.digitalExportMimeType,
+              ...exportConfig,
               status: MaterialTemplateStatus.DRAFT,
             },
             update: {
               baseMaterialFileId: options.activateTemplate.baseMaterialFileId,
+              ...exportConfig,
               status: MaterialTemplateStatus.DRAFT,
               publishedAt: null,
               revision: { increment: 1 },
             },
           },
+        };
+      } else if (
+        data.isCustomizable !== false &&
+        material.materialTemplate &&
+        (data.exportTypes !== undefined || data.printPresetId !== undefined)
+      ) {
+        const exportConfig = resolveTemplateExportConfig({
+          exportTypes:
+            data.exportTypes ??
+            (material.materialTemplate.allowedExportTypes as MaterialExportType[]),
+          printPresetId:
+            data.printPresetId !== undefined
+              ? data.printPresetId
+              : material.materialTemplate.printPresetId,
+          baseMimeType:
+            material.materialTemplate.baseFile?.mimeType ??
+            material.materialTemplate.digitalExportMimeType,
+        });
+        updateData.materialTemplate = {
+          update: exportConfig,
         };
       }
 
@@ -1125,6 +1178,18 @@ export class MaterialRepository {
         },
         data: updateData,
       });
+
+      if (
+        material.materialTemplate &&
+        (options.activateTemplate ||
+          (data.isCustomizable !== false &&
+            (data.exportTypes !== undefined ||
+              data.printPresetId !== undefined)))
+      ) {
+        await this.prisma.printPreflight.deleteMany({
+          where: { templateId: material.materialTemplate.id },
+        });
+      }
 
       void this.logger.info('Material atualizado', {
         materialId: id,
@@ -1359,18 +1424,36 @@ export class MaterialRepository {
     userId: string,
   ): Promise<void> {
     try {
-      await this.prisma.materialFile.deleteMany({
-        where: {
-          id,
-          materialId,
-          material: {
-            deletedAt: null,
-            category: {
-              organizationId,
-              isDeleted: false,
+      await this.prisma.$transaction(async (tx) => {
+        await tx.materialTemplate.deleteMany({
+          where: {
+            materialId,
+            organizationId,
+            baseMaterialFileId: id,
+            material: {
+              isCustomizable: false,
+              deletedAt: null,
+              category: {
+                organizationId,
+                isDeleted: false,
+              },
             },
           },
-        },
+        });
+
+        await tx.materialFile.deleteMany({
+          where: {
+            id,
+            materialId,
+            material: {
+              deletedAt: null,
+              category: {
+                organizationId,
+                isDeleted: false,
+              },
+            },
+          },
+        });
       });
 
       void this.logger.info('Arquivo de material removido', {

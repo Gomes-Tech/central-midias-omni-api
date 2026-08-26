@@ -31,6 +31,14 @@ describe('MaterialTemplateImageService', () => {
     });
   });
 
+  it('aceita a imagem base de 2584 por 3876 pixels', () => {
+    expect(service.validate(file(png(2584, 3876)))).toEqual({
+      width: 2584,
+      height: 3876,
+      mimeType: 'image/png',
+    });
+  });
+
   it('rejeita arquivo que apenas declara um MIME de imagem', () => {
     expect(() => service.validate(file(Buffer.from('not an image')))).toThrow(
       'A imagem base deve ser PNG ou JPEG válido',
@@ -38,11 +46,11 @@ describe('MaterialTemplateImageService', () => {
   });
 
   it('rejeita lado e área acima dos limites', () => {
-    expect(() => service.validate(file(png(3841, 100)))).toThrow(
-      'A imagem base excede o limite de resolução permitido',
+    expect(() => service.validate(file(png(6001, 100)))).toThrow(
+      'A imagem base deve ter no máximo 6000 px por lado e 30 megapixels',
     );
-    expect(() => service.validate(file(png(3000, 3000)))).toThrow(
-      'A imagem base excede o limite de resolução permitido',
+    expect(() => service.validate(file(png(5500, 5500)))).toThrow(
+      'A imagem base deve ter no máximo 6000 px por lado e 30 megapixels',
     );
   });
 

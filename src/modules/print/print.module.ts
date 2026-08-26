@@ -1,6 +1,6 @@
 import { PlatformPermissionGuard } from '@common/guards';
 import { MaterialModule } from '@modules/material';
-import { MaterialTemplateModule } from '@modules/material-template';
+import { MaterialTemplateModule } from '@modules/material-template/material-template.module';
 import { forwardRef, Module } from '@nestjs/common';
 import { PrintColorProfileController } from './controllers/print-color-profile.controller';
 import { PrintExportController } from './controllers/print-export.controller';
@@ -30,6 +30,10 @@ import { PrintRendererService } from './services/print-renderer.service';
     PrintExportService,
     PrintRendererService,
   ],
-  exports: [PrintPreflightService, PrintRendererService],
+  exports: [
+    PrintPreflightService,
+    PrintRendererService,
+    PrintExportService,
+  ],
 })
 export class PrintModule {}

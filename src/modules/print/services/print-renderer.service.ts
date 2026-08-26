@@ -1,5 +1,6 @@
 import { PrismaService } from '@infrastructure/prisma';
 import { StorageService } from '@infrastructure/providers';
+import { readRasterDimensions } from '@modules/asset/services/asset-file-validation.service';
 import type { MaterialTemplateDocumentV2 } from '@modules/material-template';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
@@ -92,6 +93,11 @@ export class PrintRendererService {
         document,
         preset,
         baseBuffer,
+        exportRecord.template.baseFile.mimeType,
+        {
+          width: exportRecord.template.baseFile.width,
+          height: exportRecord.template.baseFile.height,
+        },
         assets,
       );
       await fs.writeFile(intermediatePath, intermediate);
@@ -149,6 +155,8 @@ export class PrintRendererService {
     document: MaterialTemplateDocumentV2,
     preset: PrintPresetSnapshot,
     baseBuffer: Buffer,
+    baseMimeType: string,
+    baseSize: { width: number | null; height: number | null },
     assets: Map<string, { mimeType: string; name: string; buffer: Buffer }>,
   ): Promise<Buffer> {
     const bleedWidthMm =
@@ -201,18 +209,35 @@ export class PrintRendererService {
       );
     }
 
+    const bleedWidthPt = bleedWidthMm * MM_TO_POINTS;
+    const bleedHeightPt = bleedHeightMm * MM_TO_POINTS;
     pdf
-      .rect(
-        canvasX,
-        canvasY,
-        bleedWidthMm * MM_TO_POINTS,
-        bleedHeightMm * MM_TO_POINTS,
-      )
+      .rect(canvasX, canvasY, bleedWidthPt, bleedHeightPt)
       .fill('#ffffff');
-    pdf.image(baseBuffer, canvasX, canvasY, {
-      width: bleedWidthMm * MM_TO_POINTS,
-      height: bleedHeightMm * MM_TO_POINTS,
-    });
+
+    const probed = readRasterDimensions(baseBuffer, baseMimeType);
+    const baseWidth =
+      baseSize.width ?? probed?.width ?? document.canvas.width;
+    const baseHeight =
+      baseSize.height ?? probed?.height ?? document.canvas.height;
+    const coverScale = Math.max(
+      bleedWidthPt / Math.max(baseWidth, 1),
+      bleedHeightPt / Math.max(baseHeight, 1),
+    );
+    const coveredWidth = baseWidth * coverScale;
+    const coveredHeight = baseHeight * coverScale;
+    pdf.save();
+    pdf.rect(canvasX, canvasY, bleedWidthPt, bleedHeightPt).clip();
+    pdf.image(
+      baseBuffer,
+      canvasX + (bleedWidthPt - coveredWidth) / 2,
+      canvasY + (bleedHeightPt - coveredHeight) / 2,
+      {
+        width: coveredWidth,
+        height: coveredHeight,
+      },
+    );
+    pdf.restore();
 
     const layers = new Map(document.layers.map((layer) => [layer.id, layer]));
     for (const id of document.layerOrder) {

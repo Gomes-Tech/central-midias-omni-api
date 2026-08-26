@@ -112,6 +112,8 @@ describe('PrintRendererService', () => {
           document: MaterialTemplateDocumentV2,
           preset: PrintPresetSnapshot,
           base: Buffer,
+          baseMimeType: string,
+          baseSize: { width: number | null; height: number | null },
           assets: Map<
             string,
             { mimeType: string; name: string; buffer: Buffer }
@@ -124,6 +126,8 @@ describe('PrintRendererService', () => {
       document,
       preset,
       png,
+      'image/png',
+      { width: null, height: null },
       new Map([
         [
           'bitmap-asset',

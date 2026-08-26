@@ -1,14 +1,15 @@
 import { BadRequestException } from '@common/filters';
-import {
-  MaterialTemplateDocumentService,
-  MaterialTemplateDocumentV2,
-} from '@modules/material-template';
-import { Injectable } from '@nestjs/common';
+import type { MaterialTemplateDocumentV2 } from '@modules/material-template/entities';
+import { MaterialTemplateDocumentService } from '@modules/material-template/services/material-template-document.service';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 
 @Injectable()
 export class PrintDocumentService {
-  constructor(private readonly documents: MaterialTemplateDocumentService) {}
+  constructor(
+    @Inject(forwardRef(() => MaterialTemplateDocumentService))
+    private readonly documents: MaterialTemplateDocumentService,
+  ) {}
 
   validateCustomizedDocument(
     publishedValue: unknown,

@@ -2,8 +2,8 @@ import { BadRequestException } from '@common/filters';
 import { Injectable } from '@nestjs/common';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const MAX_SIDE = 3840;
-const MAX_PIXELS = 3840 * 2160;
+const MAX_SIDE = 6000;
+const MAX_PIXELS = 30_000_000;
 
 function readPngDimensions(buffer: Buffer) {
   const signature = '89504e470d0a1a0a';
@@ -73,7 +73,7 @@ export function validateMaterialTemplateImage(
     dimensions.width * dimensions.height > MAX_PIXELS
   ) {
     throw new BadRequestException(
-      'A imagem base excede o limite de resolução permitido',
+      'A imagem base deve ter no máximo 6000 px por lado e 30 megapixels',
     );
   }
   return { ...dimensions, mimeType };

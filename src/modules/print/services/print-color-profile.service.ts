@@ -5,7 +5,21 @@ import { PrismaService } from '@infrastructure/prisma';
 import { StorageService } from '@infrastructure/providers';
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
-import { CreatePrintColorProfileDTO } from '../dto';
+import {
+  CreatePrintColorProfileDTO,
+  UpdatePrintColorProfileDTO,
+} from '../dto';
+
+const profilePublicSelect = {
+  id: true,
+  name: true,
+  checksum: true,
+  outputConditionIdentifier: true,
+  description: true,
+  isActive: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
 
 const MAX_ICC_SIZE = 5 * 1024 * 1024;
 
@@ -18,19 +32,26 @@ export class PrintColorProfileService {
   ) {}
 
   async list() {
-    return this.prisma.printColorProfile.findMany({
+    const profiles = await this.prisma.printColorProfile.findMany({
       orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
       select: {
-        id: true,
-        name: true,
-        checksum: true,
-        outputConditionIdentifier: true,
-        description: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+        ...profilePublicSelect,
+        _count: { select: { presets: true } },
       },
     });
+    return profiles.map((profile) => this.response(profile));
+  }
+
+  async get(id: string) {
+    const profile = await this.prisma.printColorProfile.findUnique({
+      where: { id },
+      select: {
+        ...profilePublicSelect,
+        _count: { select: { presets: true } },
+      },
+    });
+    if (!profile) throw new NotFoundException('Perfil ICC não encontrado');
+    return this.response(profile);
   }
 
   async create(
@@ -110,6 +131,60 @@ export class PrintColorProfileService {
     return this.response(updated);
   }
 
+  async update(id: string, dto: UpdatePrintColorProfileDTO, userId: string) {
+    await this.get(id);
+    const name = dto.name.trim();
+    const duplicate = await this.prisma.printColorProfile.findFirst({
+      where: { name, NOT: { id } },
+      select: { id: true },
+    });
+    if (duplicate) {
+      throw new BadRequestException('Nome ou conteúdo ICC já cadastrado');
+    }
+    const updated = await this.prisma.printColorProfile.update({
+      where: { id },
+      data: {
+        name,
+        outputConditionIdentifier: dto.outputConditionIdentifier.trim(),
+        description: dto.description?.trim() || null,
+      },
+      select: {
+        ...profilePublicSelect,
+        _count: { select: { presets: true } },
+      },
+    });
+    void this.logger.info('Perfil ICC atualizado', {
+      profileId: id,
+      userId,
+    });
+    return this.response(updated);
+  }
+
+  async remove(id: string, userId: string) {
+    const profile = await this.prisma.printColorProfile.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        storageKey: true,
+        _count: { select: { presets: true } },
+      },
+    });
+    if (!profile) throw new NotFoundException('Perfil ICC não encontrado');
+    if (profile._count.presets) {
+      throw new BadRequestException(
+        'O perfil está vinculado a presets de impressão. Remova os presets antes de excluir o perfil.',
+      );
+    }
+
+    await this.prisma.printColorProfile.delete({ where: { id } });
+    await this.storage.deleteFile([profile.storageKey]).catch(() => undefined);
+    void this.logger.info('Perfil ICC removido', {
+      profileId: id,
+      userId,
+    });
+    return { deleted: true };
+  }
+
   private assertCmykIcc(file: Express.Multer.File) {
     if (
       !file?.buffer?.length ||
@@ -139,6 +214,7 @@ export class PrintColorProfileService {
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
+    _count?: { presets: number };
   }) {
     return {
       id: profile.id,
@@ -149,6 +225,7 @@ export class PrintColorProfileService {
       isActive: profile.isActive,
       createdAt: profile.createdAt,
       updatedAt: profile.updatedAt,
+      linkedPresetCount: profile._count?.presets ?? 0,
     };
   }
 }

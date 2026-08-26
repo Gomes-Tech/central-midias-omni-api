@@ -447,6 +447,7 @@ export function createE2eSeed(): E2eStore {
     organizationId: E2E_IDS.orgId,
     materialId: E2E_IDS.customizableMaterialId,
     baseMaterialFileId: E2E_IDS.materialBaseFileId,
+    allowedExportTypes: [],
     status: 'PUBLISHED',
     schemaVersion: 1,
     document: templateDocument,

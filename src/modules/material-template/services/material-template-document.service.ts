@@ -7,11 +7,15 @@ import {
   MaterialTemplateProfileBinding,
 } from '../entities';
 
-const MAX_CANVAS_SIDE = 3840;
-const MAX_CANVAS_PIXELS = 3840 * 2160;
+// Limites alinhados a formatos de impressão comuns (ex.: A4/A3 @ 300 DPI).
+// O teto antigo (3840×2160) era voltado a arte digital 16:9 e rejeitava A4@300.
+const MAX_CANVAS_SIDE = 6000;
+const MAX_CANVAS_PIXELS = 30_000_000;
 const MAX_LAYERS = 200;
 const MAX_TEXT_LENGTH = 2000;
 const MAX_TEXT_RUNS = 500;
+// O editor aplica o limite proporcional; este teto protege o contrato persistido.
+const MAX_TEXT_FONT_SIZE = 1800;
 const PROFILE_BINDINGS = new Set<MaterialTemplateProfileBinding>([
   'NAME',
   'PHONE',
@@ -78,7 +82,7 @@ function validateTextStyle(style: Record<string, unknown>) {
   if (
     !isFiniteNumber(style.fontSize) ||
     style.fontSize < 8 ||
-    style.fontSize > 500
+    style.fontSize > MAX_TEXT_FONT_SIZE
   ) {
     throw new BadRequestException('Tamanho da fonte inválido');
   }

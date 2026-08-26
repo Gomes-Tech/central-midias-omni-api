@@ -24,6 +24,7 @@ describe('UpdateMaterialUseCase', () => {
       findByName: jest.fn(),
       findFilesByMaterialId: jest.fn(),
       update: jest.fn(),
+      isActivePrintPreset: jest.fn(),
     } as unknown as jest.Mocked<MaterialRepository>;
 
     findMaterialByIdUseCase = { execute: jest.fn() };
@@ -205,7 +206,7 @@ describe('UpdateMaterialUseCase', () => {
         tags: undefined,
         activateTemplate: {
           baseMaterialFileId: 'base-file-id',
-          digitalExportMimeType: 'image/png',
+          baseMimeType: 'image/png',
         },
       },
     );
@@ -226,6 +227,17 @@ describe('UpdateMaterialUseCase', () => {
       'Material customizável deve possuir exatamente uma imagem PNG ou JPEG',
     );
 
+    expect(materialRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('deve exigir preset quando o material customizável marcar PDF para impressão', async () => {
+    const material = makeMaterialDetails({ isCustomizable: true });
+    const dto = makeUpdateMaterialDTO({ exportTypes: ['print_pdf'] });
+    findMaterialByIdUseCase.execute.mockResolvedValue(material);
+
+    await expect(
+      useCase.execute(material.id, 'org-id', dto, 'user-id'),
+    ).rejects.toThrow('Selecione um preset de impressão');
     expect(materialRepository.update).not.toHaveBeenCalled();
   });
 

@@ -45,6 +45,8 @@ export interface MaterialDetails {
   textCopy?: string | null;
   isCustomizable: boolean;
   templateStatus: 'DRAFT' | 'PUBLISHED' | null;
+  exportTypes: Array<'png' | 'jpg' | 'pdf' | 'print_pdf'>;
+  printPresetId: string | null;
   createdAt: Date;
   updatedAt: Date;
   category: MaterialCategorySummary;

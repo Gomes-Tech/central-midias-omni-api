@@ -1,5 +1,7 @@
 import { StorageService } from '@infrastructure/providers';
 import { AssetStorageService } from '@modules/asset';
+import { toDigitalMimeTypes } from '@modules/material/dto/material-export-types';
+import type { MaterialExportType } from '@modules/material/dto/material-export-types';
 import { Injectable } from '@nestjs/common';
 import {
   LegacyMaterialTemplateImport,
@@ -33,6 +35,12 @@ export class MaterialTemplateResponseService {
     );
     const foundIds = new Set(assets.map((asset) => asset.id));
     const missingAssetIds = requestedAssetIds.filter((id) => !foundIds.has(id));
+    const exportTypes = (template.allowedExportTypes ??
+      []) as MaterialExportType[];
+    const mimeTypes = toDigitalMimeTypes(
+      exportTypes,
+      template.baseFile?.mimeType,
+    );
 
     return {
       id: template.id,
@@ -47,13 +55,8 @@ export class MaterialTemplateResponseService {
       publishedAt: template.publishedAt,
       updatedAt: template.updatedAt,
       delivery: {
-        digital: template.digitalExportMimeType
-          ? {
-              mimeType: template.digitalExportMimeType as
-                | 'image/png'
-                | 'image/jpeg',
-            }
-          : null,
+        exportTypes,
+        digital: mimeTypes.length > 0 ? { mimeTypes } : null,
         print: template.printPresetId
           ? { presetId: template.printPresetId }
           : null,

@@ -35,6 +35,7 @@ describe('CreateMaterialUseCase', () => {
     materialRepository = {
       findByName: jest.fn(),
       create: jest.fn(),
+      isActivePrintPreset: jest.fn(),
     } as unknown as jest.Mocked<MaterialRepository>;
 
     findCategoryByIdUseCase = { execute: jest.fn() };
@@ -148,6 +149,19 @@ describe('CreateMaterialUseCase', () => {
         ],
       }),
     );
+  });
+
+  it('deve exigir preset quando exportação for PDF para impressão', async () => {
+    const dto = makeCreateMaterialDTO({
+      isCustomizable: true,
+      exportTypes: ['print_pdf'],
+    });
+    const file = makePngFile();
+
+    await expect(
+      useCase.execute('org-id', dto, 'user-id', [file]),
+    ).rejects.toThrow('Selecione um preset de impressão');
+    expect(materialRepository.create).not.toHaveBeenCalled();
   });
 
   it('deve exigir exatamente uma imagem base para material personalizável', async () => {

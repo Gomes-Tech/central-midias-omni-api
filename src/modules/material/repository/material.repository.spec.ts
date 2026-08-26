@@ -4,7 +4,8 @@ import { PrismaService } from '@infrastructure/prisma';
 import { MaterialRepository } from './material.repository';
 
 function createPrismaMock() {
-  return {
+  const prisma = {
+    $transaction: jest.fn(),
     material: {
       findMany: jest.fn(),
       groupBy: jest.fn(),
@@ -18,6 +19,15 @@ function createPrismaMock() {
       create: jest.fn(),
       findMany: jest.fn(),
       findFirst: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    materialTemplate: {
+      deleteMany: jest.fn(),
+    },
+    printPreset: {
+      findFirst: jest.fn(),
+    },
+    printPreflight: {
       deleteMany: jest.fn(),
     },
     member: {
@@ -47,6 +57,13 @@ function createPrismaMock() {
       create: jest.fn(),
     },
   };
+
+  prisma.$transaction.mockImplementation(
+    async (callback: (tx: typeof prisma) => Promise<unknown>) =>
+      callback(prisma),
+  );
+
+  return prisma;
 }
 
 describe('MaterialRepository', () => {
@@ -596,6 +613,8 @@ describe('MaterialRepository', () => {
           textCopy: 'Texto livre para copiar',
           isCustomizable: false,
           templateStatus: null,
+          exportTypes: [],
+          printPresetId: null,
           mimeType: null,
         }),
       );
@@ -1028,6 +1047,9 @@ describe('MaterialRepository', () => {
               id: 'mocked-uuid',
               organizationId: 'org-id',
               baseMaterialFileId: 'base-file-id',
+              allowedExportTypes: [],
+              digitalExportMimeType: 'image/png',
+              printPresetId: null,
               status: 'DRAFT',
             },
           },
@@ -1080,6 +1102,10 @@ describe('MaterialRepository', () => {
           materialTemplate: {
             select: {
               id: true,
+              allowedExportTypes: true,
+              printPresetId: true,
+              digitalExportMimeType: true,
+              baseFile: { select: { mimeType: true } },
             },
           },
         },
@@ -1198,7 +1224,7 @@ describe('MaterialRepository', () => {
         {
           activateTemplate: {
             baseMaterialFileId: 'base-file-id',
-            digitalExportMimeType: 'image/png',
+            baseMimeType: 'image/png',
           },
         },
       );
@@ -1213,10 +1239,16 @@ describe('MaterialRepository', () => {
                 id: 'mocked-uuid',
                 organizationId: 'org-id',
                 baseMaterialFileId: 'base-file-id',
+                allowedExportTypes: [],
+                digitalExportMimeType: 'image/png',
+                printPresetId: null,
                 status: 'DRAFT',
               },
               update: {
                 baseMaterialFileId: 'base-file-id',
+                allowedExportTypes: [],
+                digitalExportMimeType: 'image/png',
+                printPresetId: null,
                 status: 'DRAFT',
                 publishedAt: null,
                 revision: { increment: 1 },
@@ -1227,7 +1259,7 @@ describe('MaterialRepository', () => {
       });
     });
 
-    it('deve preservar o template em rascunho ao desativar personalização', async () => {
+    it('deve remover o template ao desativar personalização', async () => {
       prisma.material.findFirst.mockResolvedValue({
         id: 'material-id',
         materialTemplate: { id: 'template-id' },
@@ -1246,11 +1278,7 @@ describe('MaterialRepository', () => {
         data: {
           isCustomizable: false,
           materialTemplate: {
-            update: {
-              status: 'DRAFT',
-              publishedAt: null,
-              revision: { increment: 1 },
-            },
+            delete: true,
           },
         },
       });
@@ -1341,6 +1369,8 @@ describe('MaterialRepository', () => {
           imageKey: 'materials/material-id/file.pdf',
           mimeType: 'application/pdf',
           size: 1024,
+          width: undefined,
+          height: undefined,
         },
         select: {
           id: true,
@@ -1348,6 +1378,8 @@ describe('MaterialRepository', () => {
           imageKey: true,
           mimeType: true,
           size: true,
+          width: true,
+          height: true,
         },
       });
       expect(logger.info).toHaveBeenCalledWith(
@@ -1470,12 +1502,28 @@ describe('MaterialRepository', () => {
 
   describe('deleteFile', () => {
     it('deve remover arquivo no escopo da organização', async () => {
+      prisma.materialTemplate.deleteMany.mockResolvedValue({ count: 1 });
       prisma.materialFile.deleteMany.mockResolvedValue({ count: 1 });
 
       await expect(
         repository.deleteFile('file-id', 'material-id', 'org-id', 'user-id'),
       ).resolves.toBe(undefined);
 
+      expect(prisma.materialTemplate.deleteMany).toHaveBeenCalledWith({
+        where: {
+          materialId: 'material-id',
+          organizationId: 'org-id',
+          baseMaterialFileId: 'file-id',
+          material: {
+            isCustomizable: false,
+            deletedAt: null,
+            category: {
+              organizationId: 'org-id',
+              isDeleted: false,
+            },
+          },
+        },
+      });
       expect(prisma.materialFile.deleteMany).toHaveBeenCalledWith({
         where: {
           id: 'file-id',
@@ -1499,6 +1547,7 @@ describe('MaterialRepository', () => {
     });
 
     it('deve lançar BadRequest quando deleteMany falhar', async () => {
+      prisma.materialTemplate.deleteMany.mockResolvedValue({ count: 0 });
       prisma.materialFile.deleteMany.mockRejectedValue(new Error('db'));
 
       await expect(
@@ -1646,6 +1695,8 @@ describe('MaterialRepository', () => {
                 imageKey: 'materials/fallback-1/a.png',
                 mimeType: 'image/png',
                 size: 1024,
+                width: null,
+                height: null,
               },
             ],
           },
@@ -1666,6 +1717,8 @@ describe('MaterialRepository', () => {
               imageKey: 'materials/fallback-1/a.png',
               mimeType: 'image/png',
               size: 1024,
+              width: null,
+              height: null,
             },
           ],
         },
@@ -1700,6 +1753,8 @@ describe('MaterialRepository', () => {
             imageKey: 'materials/fallback-1/a.png',
             mimeType: 'image/png',
             size: 1024,
+            width: null,
+            height: null,
           },
         ],
       };
@@ -2042,6 +2097,8 @@ describe('MaterialRepository', () => {
                 imageKey: 'materials/material-1/a.png',
                 mimeType: 'image/png',
                 size: 1024,
+                width: null,
+                height: null,
               },
             ],
           },
@@ -2074,6 +2131,8 @@ describe('MaterialRepository', () => {
                 imageKey: 'materials/material-2/a2.png',
                 mimeType: 'image/png',
                 size: 1024,
+                width: null,
+                height: null,
               },
             ],
           },
@@ -2089,6 +2148,8 @@ describe('MaterialRepository', () => {
                 imageKey: 'materials/material-4/b2.png',
                 mimeType: 'image/png',
                 size: 1024,
+                width: null,
+                height: null,
               },
             ],
           },

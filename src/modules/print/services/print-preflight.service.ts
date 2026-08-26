@@ -2,13 +2,13 @@ import { BadRequestException, NotFoundException } from '@common/filters';
 import { PrismaService } from '@infrastructure/prisma';
 import { StorageService } from '@infrastructure/providers';
 import { readRasterDimensions } from '@modules/asset/services/asset-file-validation.service';
-import {
+import type {
   MaterialTemplateDocument,
-  MaterialTemplateDocumentService,
   MaterialTemplateTextLayerV2,
-} from '@modules/material-template';
+} from '@modules/material-template/entities';
+import { MaterialTemplateDocumentService } from '@modules/material-template/services/material-template-document.service';
 import { validateMaterialTemplateImage } from '@modules/material-template/services/material-template-image.service';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import * as fontkit from 'fontkit';
 import type { PrintPreflightIssue, PrintPreflightResult } from '../entities';
@@ -33,6 +33,7 @@ export class PrintPreflightService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    @Inject(forwardRef(() => MaterialTemplateDocumentService))
     private readonly documentService: MaterialTemplateDocumentService,
   ) {}
 
@@ -162,14 +163,7 @@ export class PrintPreflightService {
       bleedHeightMm,
       preset.minimumDpi,
     );
-    const baseRatio = baseWidth / baseHeight;
-    if (Math.abs(baseRatio / canvasRatio - 1) > 0.005) {
-      issues.push({
-        code: 'BASE_DOES_NOT_COVER_BLEED',
-        message:
-          'A imagem base não cobre a sangria sem distorção ou áreas vazias.',
-      });
-    }
+    // A arte cobre a sangria com crop (cover); proporções diferentes são aceitas.
 
     const assets = new Map(
       template.assets.map(({ asset }) => [asset.id, asset]),

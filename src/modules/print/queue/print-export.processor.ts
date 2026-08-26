@@ -90,6 +90,7 @@ export class PrintExportProcessor extends WorkerHost implements OnModuleInit {
       void this.logger.error('Falha ao gerar exportação para impressão', {
         exportId,
         errorType: error instanceof Error ? error.name : 'UnknownError',
+        errorMessage: error instanceof Error ? error.message : String(error),
         durationMs: Date.now() - startedAt,
       });
       throw error;

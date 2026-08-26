@@ -1,7 +1,7 @@
 import { BadRequestException } from '@common/filters';
 import { StorageService } from '@infrastructure/providers';
-import { PrintPreflightService } from '@modules/print';
-import { Injectable, Optional } from '@nestjs/common';
+import { PrintPreflightService } from '@modules/print/services/print-preflight.service';
+import { Inject, Injectable, Optional, forwardRef } from '@nestjs/common';
 import { PublishMaterialTemplateDTO } from '../dto';
 import { MaterialTemplateRepository } from '../repository';
 import {
@@ -19,6 +19,7 @@ export class PublishMaterialTemplateUseCase {
     private readonly responseService: MaterialTemplateResponseService,
     private readonly storageService: StorageService,
     @Optional()
+    @Inject(forwardRef(() => PrintPreflightService))
     private readonly printPreflight?: PrintPreflightService,
   ) {}
 

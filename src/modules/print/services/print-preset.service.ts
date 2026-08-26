@@ -20,6 +20,9 @@ const presetInclude = {
       isActive: true,
     },
   },
+  _count: {
+    select: { templates: true },
+  },
 } as const;
 
 @Injectable()
@@ -144,6 +147,34 @@ export class PrintPresetService {
     return { archived: true };
   }
 
+  async remove(id: string, organizationId: string, userId: string) {
+    await this.findOrThrow(id, organizationId);
+    const unlinkedTemplateCount = await this.prisma.$transaction(async (tx) => {
+      const templates = await tx.materialTemplate.findMany({
+        where: { printPresetId: id },
+        select: { id: true },
+      });
+      if (templates.length) {
+        await tx.printPreflight.deleteMany({
+          where: { templateId: { in: templates.map((item) => item.id) } },
+        });
+        await tx.materialTemplate.updateMany({
+          where: { printPresetId: id },
+          data: { printPresetId: null },
+        });
+      }
+      await tx.printPreset.delete({ where: { id } });
+      return templates.length;
+    });
+    void this.logger.info('Preset de impressão removido', {
+      presetId: id,
+      organizationId,
+      userId,
+      unlinkedTemplateCount,
+    });
+    return { deleted: true, unlinkedTemplateCount };
+  }
+
   private async findOrThrow(id: string, organizationId: string) {
     const preset = await this.prisma.printPreset.findFirst({
       where: { id, organizationId },
@@ -187,6 +218,7 @@ export class PrintPresetService {
   }
 
   private serialize<T extends Record<string, any>>(preset: T) {
+    const { _count, ...rest } = preset;
     const decimalKeys = [
       'trimWidthMm',
       'trimHeightMm',
@@ -200,11 +232,14 @@ export class PrintPresetService {
       'safeMarginLeftMm',
       'cropMarkOffsetMm',
     ];
-    return Object.fromEntries(
-      Object.entries(preset).map(([key, value]) => [
-        key,
-        decimalKeys.includes(key) ? Number(value) : value,
-      ]),
-    );
+    return {
+      ...Object.fromEntries(
+        Object.entries(rest).map(([key, value]) => [
+          key,
+          decimalKeys.includes(key) ? Number(value) : value,
+        ]),
+      ),
+      linkedTemplateCount: _count?.templates ?? 0,
+    };
   }
 }

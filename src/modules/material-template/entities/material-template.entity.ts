@@ -125,8 +125,11 @@ export interface MaterialTemplateBaseImage {
   height: number | null;
 }
 
+export type MaterialExportType = 'png' | 'jpg' | 'pdf' | 'print_pdf';
+
 export interface MaterialTemplateDelivery {
-  digital: null | { mimeType: 'image/png' | 'image/jpeg' };
+  exportTypes: MaterialExportType[];
+  digital: null | { mimeTypes: Array<'image/png' | 'image/jpeg'> };
   print: null | { presetId: string };
 }
 

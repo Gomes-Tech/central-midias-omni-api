@@ -38,6 +38,11 @@ export class CreateMaterialUseCase {
         );
       }
       customizableImage = validateMaterialTemplateImage(files[0]);
+      await this.assertExportConfig(
+        organizationId,
+        data.exportTypes ?? [],
+        data.printPresetId ?? null,
+      );
     }
 
     const category = await this.findCategoryByIdUseCase.execute(
@@ -115,6 +120,26 @@ export class CreateMaterialUseCase {
         );
       }
       throw error;
+    }
+  }
+
+  private async assertExportConfig(
+    organizationId: string,
+    exportTypes: Array<'png' | 'jpg' | 'pdf' | 'print_pdf'>,
+    printPresetId: string | null,
+  ) {
+    if (!exportTypes.includes('print_pdf')) {
+      return;
+    }
+    if (!printPresetId) {
+      throw new BadRequestException('Selecione um preset de impressão');
+    }
+    const isActive = await this.materialRepository.isActivePrintPreset(
+      organizationId,
+      printPresetId,
+    );
+    if (!isActive) {
+      throw new BadRequestException('Preset de impressão indisponível');
     }
   }
 }
