@@ -6,10 +6,6 @@ import { FindMaterialsByCategorySlugUseCase } from '@modules/material/use-cases'
 import { Test, TestingModule } from '@nestjs/testing';
 import { CategoryController } from './category.controller';
 import {
-  makeCreateCategoryDTO,
-  makeUpdateCategoryDTO,
-} from './use-cases/test-helpers';
-import {
   CreateCategoryUseCase,
   DeleteCategoryUseCase,
   FindAllCategoriesUseCase,
@@ -18,6 +14,10 @@ import {
   FindCategoryTreeUseCase,
   UpdateCategoryUseCase,
 } from './use-cases';
+import {
+  makeCreateCategoryDTO,
+  makeUpdateCategoryDTO,
+} from './use-cases/test-helpers';
 
 describe('CategoryController', () => {
   let controller: CategoryController;
@@ -76,11 +76,17 @@ describe('CategoryController', () => {
 
   describe('findAll', () => {
     it('deve usar filtros vazios quando query não for passada', async () => {
-      findAllCategoriesUseCase.execute.mockResolvedValue({ data: [], total: 0 });
+      findAllCategoriesUseCase.execute.mockResolvedValue({
+        data: [],
+        total: 0,
+      });
 
       await controller.findAll('org-1');
 
-      expect(findAllCategoriesUseCase.execute).toHaveBeenCalledWith('org-1', {});
+      expect(findAllCategoriesUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+        {},
+      );
     });
 
     it('deve delegar ao FindAllCategoriesUseCase com org e filtros', async () => {
@@ -193,6 +199,22 @@ describe('CategoryController', () => {
         'c1',
         'org-1',
         'user-1',
+        undefined,
+      );
+    });
+
+    it('deve encaminhar transferCategoryId quando informado', async () => {
+      deleteCategoryUseCase.execute.mockResolvedValue(undefined);
+
+      await controller.delete('c1', 'org-1', 'user-1', {
+        transferCategoryId: 'dest-1',
+      });
+
+      expect(deleteCategoryUseCase.execute).toHaveBeenCalledWith(
+        'c1',
+        'org-1',
+        'user-1',
+        'dest-1',
       );
     });
   });

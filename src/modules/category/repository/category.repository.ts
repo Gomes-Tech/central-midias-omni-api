@@ -577,6 +577,23 @@ export class CategoryRepository {
     }
   }
 
+  async countMaterials(categoryId: string): Promise<number> {
+    try {
+      return await this.prisma.material.count({
+        where: {
+          categoryId,
+        },
+      });
+    } catch (error) {
+      void this.logger.error('CategoryRepository.countMaterials falhou', {
+        error: String(error),
+        categoryId,
+      });
+
+      throw new BadRequestException('Erro ao contar materiais da categoria');
+    }
+  }
+
   async create(
     organizationId: string,
     data: CreateCategoryDTO & { slug: string; slugPath: string },
@@ -682,70 +699,86 @@ export class CategoryRepository {
     }
   }
 
-  // Remoção lógica que desativa a categoria e todas as suas subcategorias
   async delete(
     id: string,
     organizationId: string,
     userId: string,
+    transferMaterialsToCategoryId?: string,
   ): Promise<void> {
     try {
-      // Para garantir a integridade da hierarquia, buscamos todas as categorias e identificamos quais precisam ser desativadas
-      const hierarchy = await this.findHierarchyReferences(organizationId);
-      const idsToDelete = new Set<string>([id]);
-
-      // Usamos uma fila para percorrer a hierarquia e encontrar todas as subcategorias do item a ser deletado
-      const queue = [id];
-
-      while (queue.length > 0) {
-        const currentId = queue.shift();
-
-        if (!currentId) {
-          continue;
+      await this.prisma.$transaction(async (tx) => {
+        if (transferMaterialsToCategoryId) {
+          await tx.material.updateMany({
+            where: {
+              categoryId: id,
+            },
+            data: {
+              categoryId: transferMaterialsToCategoryId,
+            },
+          });
         }
 
-        // Para cada categoria na hierarquia, verificamos se ela é filha da categoria atual e ainda não foi marcada para deleção
-        for (const category of hierarchy) {
-          if (category.parentId !== currentId || idsToDelete.has(category.id)) {
-            continue;
-          }
-          // Se for filha e ainda não estiver marcada, adicionamos à lista de deleção e à fila para verificar suas subcategorias
-          idsToDelete.add(category.id);
-          queue.push(category.id);
-        }
-      }
-
-      // Realizamos a atualização em massa para marcar todas as categorias identificadas como deletadas
-      await this.prisma.category.updateMany({
-        where: {
-          id: {
-            in: Array.from(idsToDelete),
+        await tx.categoryRoleAccess.deleteMany({
+          where: {
+            categoryId: id,
+            organizationId,
           },
-          organizationId,
-          isDeleted: false,
-        },
-        data: {
-          isActive: false,
-          isDeleted: true,
-          deletedAt: new Date(),
-        },
+        });
+
+        await tx.category.updateMany({
+          where: {
+            parentId: id,
+            organizationId,
+          },
+          data: {
+            parentId: null,
+          },
+        });
+
+        await tx.category.deleteMany({
+          where: {
+            id,
+            organizationId,
+          },
+        });
       });
 
       void this.logger.info('Categoria removida', {
         categoryId: id,
         organizationId,
         userId,
-        deletedCount: idsToDelete.size,
+        transferMaterialsToCategoryId,
       });
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      if (this.isUniqueConstraintError(error)) {
+        throw new BadRequestException(
+          'Já existe um material com o mesmo nome na categoria de destino',
+        );
+      }
+
       void this.logger.error('CategoryRepository.delete falhou', {
         error: String(error),
         categoryId: id,
         organizationId,
         userId,
+        transferMaterialsToCategoryId,
       });
 
       throw new BadRequestException('Erro ao remover categoria');
     }
+  }
+
+  private isUniqueConstraintError(error: unknown): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code: string }).code === 'P2002'
+    );
   }
 
   private async recalculateDescendantSlugPaths(
