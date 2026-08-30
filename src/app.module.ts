@@ -32,6 +32,7 @@ import { FaqModule } from '@modules/faq';
 import { MaterialModule } from '@modules/material';
 import { MemberModule } from '@modules/member';
 import { ModuleModule } from '@modules/module';
+import { NotificationModule } from '@modules/notification';
 import { OrganizationModule } from '@modules/organization';
 import { ReportsModule } from '@modules/reports';
 import { RolesModule } from '@modules/roles';
@@ -85,6 +86,7 @@ import { AppService } from './app.service';
     SupplierModule,
     AvatarModule,
     FaqModule,
+    NotificationModule,
     ReportsModule,
   ],
   controllers: [AppController],

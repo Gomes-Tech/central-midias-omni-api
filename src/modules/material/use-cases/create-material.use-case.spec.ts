@@ -5,6 +5,7 @@ import { MaterialRepository } from '../repository';
 import { CreateMaterialUseCase } from './create-material.use-case';
 import { EnqueueMaterialAcceptanceEmailsUseCase } from './enqueue-material-acceptance-emails.use-case';
 import { EnqueueMaterialNotificationEmailsUseCase } from './enqueue-material-notification-emails.use-case';
+import { EnqueueInAppNotificationsUseCase } from '@modules/notification/use-cases';
 import { ResolveMaterialTagIdsUseCase } from './resolve-material-tag-ids.use-case';
 import { makeCreateMaterialDTO, makeUploadFile } from './test-helpers';
 
@@ -17,6 +18,7 @@ describe('CreateMaterialUseCase', () => {
   >;
   let enqueueMaterialAcceptanceEmailsUseCase: { execute: jest.Mock };
   let enqueueMaterialNotificationEmailsUseCase: { execute: jest.Mock };
+  let enqueueInAppNotificationsUseCase: { execute: jest.Mock };
   let useCase: CreateMaterialUseCase;
 
   beforeEach(() => {
@@ -37,6 +39,9 @@ describe('CreateMaterialUseCase', () => {
     enqueueMaterialNotificationEmailsUseCase = {
       execute: jest.fn().mockResolvedValue({ enqueued: 1 }),
     };
+    enqueueInAppNotificationsUseCase = {
+      execute: jest.fn().mockResolvedValue({ enqueued: 1 }),
+    };
 
     useCase = new CreateMaterialUseCase(
       materialRepository,
@@ -45,6 +50,7 @@ describe('CreateMaterialUseCase', () => {
       storageService as unknown as StorageService,
       enqueueMaterialAcceptanceEmailsUseCase as unknown as EnqueueMaterialAcceptanceEmailsUseCase,
       enqueueMaterialNotificationEmailsUseCase as unknown as EnqueueMaterialNotificationEmailsUseCase,
+      enqueueInAppNotificationsUseCase as unknown as EnqueueInAppNotificationsUseCase,
     );
   });
 
@@ -93,6 +99,12 @@ describe('CreateMaterialUseCase', () => {
     expect(storageService.uploadFile).not.toHaveBeenCalled();
     expect(enqueueMaterialAcceptanceEmailsUseCase.execute).not.toHaveBeenCalled();
     expect(enqueueMaterialNotificationEmailsUseCase.execute).not.toHaveBeenCalled();
+    expect(enqueueInAppNotificationsUseCase.execute).toHaveBeenCalledWith({
+      materialId: 'mocked-uuid',
+      organizationId: 'org-id',
+      type: 'MATERIAL_CREATED',
+      actorUserId: 'user-id',
+    });
   });
 
   it('deve criar material personalizável com configuração', async () => {
@@ -143,7 +155,7 @@ describe('CreateMaterialUseCase', () => {
     expect(materialRepository.create).not.toHaveBeenCalled();
   });
 
-  it('deve disparar notificação quando notifyUsers for true', async () => {
+  it('deve disparar e-mail quando notifyUsers for true e sempre enfileirar inbox', async () => {
     const dto = makeCreateMaterialDTO({ notifyUsers: true });
     findCategoryByIdUseCase.execute.mockResolvedValue({
       id: dto.categoryId,
@@ -161,7 +173,14 @@ describe('CreateMaterialUseCase', () => {
     expect(enqueueMaterialNotificationEmailsUseCase.execute).toHaveBeenCalledWith(
       'mocked-uuid',
       'org-id',
+      undefined,
     );
+    expect(enqueueInAppNotificationsUseCase.execute).toHaveBeenCalledWith({
+      materialId: 'mocked-uuid',
+      organizationId: 'org-id',
+      type: 'MATERIAL_CREATED',
+      actorUserId: 'user-id',
+    });
   });
 
   it('não deve impedir criação quando enfileiramento de notificação falhar', async () => {
@@ -177,6 +196,9 @@ describe('CreateMaterialUseCase', () => {
     });
     materialRepository.create.mockResolvedValue(undefined);
     enqueueMaterialNotificationEmailsUseCase.execute.mockRejectedValue(
+      new Error('queue'),
+    );
+    enqueueInAppNotificationsUseCase.execute.mockRejectedValue(
       new Error('queue'),
     );
 
@@ -213,7 +235,7 @@ describe('CreateMaterialUseCase', () => {
       isActive: true,
     });
     materialRepository.findByName.mockResolvedValue(null);
-    resolveMaterialTagsUseCase.execute.mockResolvedValue({
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue({
       existingTagIds: [],
       newTagNames: [],
     });

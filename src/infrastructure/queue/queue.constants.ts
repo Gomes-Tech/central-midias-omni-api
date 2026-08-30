@@ -31,3 +31,10 @@ export const REPORT_EXPORT_QUEUE = 'report-export';
 export const REPORT_EXPORT_JOB = 'send-export';
 
 export const REPORT_EXPORT_QUEUE_OPTIONS = MATERIAL_ACCEPTANCE_EMAIL_QUEUE_OPTIONS;
+
+export const IN_APP_NOTIFICATION_QUEUE = 'in-app-notification';
+
+export const IN_APP_NOTIFICATION_JOB = 'create-in-app-notification';
+
+export const IN_APP_NOTIFICATION_QUEUE_OPTIONS =
+  MATERIAL_ACCEPTANCE_EMAIL_QUEUE_OPTIONS;

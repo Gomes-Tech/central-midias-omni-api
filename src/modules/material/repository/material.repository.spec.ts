@@ -2316,6 +2316,41 @@ describe('MaterialRepository', () => {
       );
     });
 
+    it('deve restringir por roleId mesmo quando a categoria for irrestrita', async () => {
+      prisma.categoryRoleAccess.findMany.mockResolvedValue([]);
+      prisma.member.findMany.mockResolvedValue([]);
+
+      await repository.findPlatformMembersForCategory(
+        'org-id',
+        'category-id',
+        'role-sales',
+      );
+
+      expect(prisma.member.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            roleId: 'role-sales',
+          }),
+        }),
+      );
+    });
+
+    it('não deve consultar membros quando roleId não tiver acesso à categoria restrita', async () => {
+      prisma.categoryRoleAccess.findMany.mockResolvedValue([
+        { roleId: 'role-1' },
+      ]);
+
+      await expect(
+        repository.findPlatformMembersForCategory(
+          'org-id',
+          'category-id',
+          'role-2',
+        ),
+      ).resolves.toEqual([]);
+
+      expect(prisma.member.findMany).not.toHaveBeenCalled();
+    });
+
     it('deve lançar BadRequest quando findMany falhar', async () => {
       prisma.categoryRoleAccess.findMany.mockResolvedValue([]);
       prisma.member.findMany.mockRejectedValue(new Error('db'));

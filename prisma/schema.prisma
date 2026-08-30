@@ -70,6 +70,7 @@ model User {
   platformLogin       UserPlatformLogin?
   platformLoginEvents UserPlatformLoginEvent[]
   calendarEvents      CalendarEvent[]
+  notifications       Notification[]
 
   @@index([email])
   @@map("users")
@@ -232,6 +233,7 @@ model Organization {
   calendarEventTypes     CalendarEventType[]
   calendarEvents         CalendarEvent[]
   supplierDocument       SupplierDocument?
+  notifications          Notification[]
 
   @@map("organizations")
 }
@@ -665,6 +667,36 @@ enum LogLevel {
   INFO
   WARNING
   ERROR
+}
+
+enum NotificationType {
+  MATERIAL_CREATED
+  MATERIAL_UPDATED
+  CATEGORY_CREATED
+}
+
+model Notification {
+  id             String           @id @default(uuid())
+  organizationId String           @map("organization_id")
+  userId         String           @map("user_id")
+  type           NotificationType
+  title          String
+  body           String
+  href           String
+  resourceType   String           @map("resource_type")
+  resourceId     String           @map("resource_id")
+  actorUserId    String?          @map("actor_user_id")
+  dedupeKey      String           @unique @map("dedupe_key")
+  readAt         DateTime?        @map("read_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, organizationId, createdAt(sort: Desc)])
+  @@index([userId, organizationId, readAt])
+  @@index([organizationId, resourceType, resourceId])
+  @@map("notifications")
 }
 
 model SeedStatus {

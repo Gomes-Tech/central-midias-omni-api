@@ -255,7 +255,7 @@ describe('UpdateMaterialUseCase', () => {
 
     expect(
       enqueueMaterialNotificationEmailsUseCase.execute,
-    ).toHaveBeenCalledWith(material.id, 'org-id');
+    ).toHaveBeenCalledWith(material.id, 'org-id', undefined);
   });
 
   it('não deve notificar usuários quando notifyUsers não for true', async () => {

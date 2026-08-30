@@ -1,5 +1,6 @@
 import { PlatformPermissionGuard } from '@common/guards';
 import { CategoryModule } from '@modules/category/category.module';
+import { NotificationModule } from '@modules/notification';
 import { TagModule } from '@modules/tag';
 import { UserModule } from '@modules/user';
 import { forwardRef, Module } from '@nestjs/common';
@@ -37,7 +38,12 @@ import {
 } from './use-cases';
 
 @Module({
-  imports: [forwardRef(() => CategoryModule), TagModule, UserModule],
+  imports: [
+    forwardRef(() => CategoryModule),
+    TagModule,
+    UserModule,
+    forwardRef(() => NotificationModule),
+  ],
   controllers: [MaterialController],
   providers: [
     PlatformPermissionGuard,

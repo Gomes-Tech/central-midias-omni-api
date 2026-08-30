@@ -10,6 +10,8 @@ import {
   MATERIAL_NOTIFICATION_EMAIL_QUEUE_OPTIONS,
   REPORT_EXPORT_QUEUE,
   REPORT_EXPORT_QUEUE_OPTIONS,
+  IN_APP_NOTIFICATION_QUEUE,
+  IN_APP_NOTIFICATION_QUEUE_OPTIONS,
 } from './queue.constants';
 
 @Global()
@@ -42,6 +44,10 @@ import {
     BullModule.registerQueue({
       name: REPORT_EXPORT_QUEUE,
       defaultJobOptions: REPORT_EXPORT_QUEUE_OPTIONS,
+    }),
+    BullModule.registerQueue({
+      name: IN_APP_NOTIFICATION_QUEUE,
+      defaultJobOptions: IN_APP_NOTIFICATION_QUEUE_OPTIONS,
     }),
   ],
   exports: [BullModule],

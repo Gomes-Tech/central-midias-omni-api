@@ -1,6 +1,7 @@
 import { multipartMiddleware, requestIdMiddleware } from '@common/middlewares';
 import { getEnv } from '@infrastructure/config';
 import { ValidationPipe } from '@nestjs/common';
+import { NotificationIoAdapter } from '@modules/notification/gateway/notification-io.adapter';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -17,6 +18,7 @@ async function bootstrap() {
     console.log('[bootstrap] Iniciando aplicação...');
   }
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.useWebSocketAdapter(new NotificationIoAdapter(app));
   if (process.env.NODE_ENV !== 'prod') {
     console.log('[bootstrap] AppModule criado, configurando middlewares...');
   }

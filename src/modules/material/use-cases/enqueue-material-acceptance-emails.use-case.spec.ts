@@ -62,7 +62,7 @@ describe('EnqueueMaterialAcceptanceEmailsUseCase', () => {
         organizationId: 'org-id',
         userId: 'user-1',
         email: 'joao@teste.com',
-        materialLink: `https://app.exemplo.com/materials/${material.id}`,
+        materialLink: `https://app.exemplo.com/material/${material.id}`,
       }),
       { jobId: `${material.id}:user-1` },
     );
