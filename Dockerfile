@@ -7,7 +7,9 @@ ARG YARN_TIMEOUT=60000
 COPY package.json yarn.lock ./
 RUN if command -v yarn >/dev/null 2>&1; then yarn --frozen-lockfile --network-timeout $YARN_TIMEOUT; else npm install; fi
 COPY . .
-RUN if command -v yarn >/dev/null 2>&1; then yarn prisma:generate && yarn build; else npm run prisma:generate && npm run build; fi
+RUN if command -v yarn >/dev/null 2>&1; then yarn prisma:generate && yarn build; else npm run prisma:generate && npm run build; fi \
+  && test -f dist/src/main.js \
+  && test -f dist/src/worker.js
 RUN npm prune --production
 
 RUN find . -type f -name "*.sh" -exec sed -i 's/\r$//' {} +

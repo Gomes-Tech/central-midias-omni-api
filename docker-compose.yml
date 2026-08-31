@@ -45,6 +45,9 @@ services:
       start_period: 40s
 
   print-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: central-midias-api
     env_file:
       - .env
