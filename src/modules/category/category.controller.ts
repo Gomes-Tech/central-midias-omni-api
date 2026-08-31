@@ -18,6 +18,7 @@ import {
 } from '@nestjs/common';
 import {
   CreateCategoryDTO,
+  DeleteCategoryDTO,
   FindAllCategoriesFiltersDTO,
   UpdateCategoryDTO,
 } from './dto';
@@ -136,7 +137,13 @@ export class CategoryController {
     @Param('id') id: string,
     @OrgId() organizationId: string,
     @UserId() userId: string,
+    @Query() query: DeleteCategoryDTO = {},
   ) {
-    await this.deleteCategoryUseCase.execute(id, organizationId, userId);
+    await this.deleteCategoryUseCase.execute(
+      id,
+      organizationId,
+      userId,
+      query.transferCategoryId,
+    );
   }
 }

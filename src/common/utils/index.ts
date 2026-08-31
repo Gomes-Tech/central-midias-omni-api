@@ -1,5 +1,6 @@
 export * from './base-filters';
 export * from './base64-converter';
+export * from './build-portal-material-link';
 export * from './crypto.util';
 export * from './format-filename';
 export * from './format-slug';

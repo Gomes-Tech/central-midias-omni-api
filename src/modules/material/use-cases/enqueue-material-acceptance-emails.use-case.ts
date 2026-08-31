@@ -1,3 +1,4 @@
+import { buildPortalMaterialLink } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import {
   MATERIAL_ACCEPTANCE_EMAIL_JOB,
@@ -49,10 +50,7 @@ export class EnqueueMaterialAcceptanceEmailsUseCase {
       return { enqueued: 0 };
     }
 
-    const frontendUrl = process.env.FRONTEND_URL?.replace(/\/$/, '') ?? '';
-    const materialLink = frontendUrl
-      ? `${frontendUrl}/materials/${materialId}`
-      : undefined;
+    const materialLink = buildPortalMaterialLink(materialId);
 
     let enqueued = 0;
 

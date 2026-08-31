@@ -31,7 +31,7 @@ describe('SendMaterialNotificationEmailUseCase', () => {
       email: 'joao@teste.com',
       name: 'João',
       materialName: 'Manual',
-      materialLink: 'https://app.test/materials/material-id',
+      materialLink: 'https://app.test/material/material-id',
     });
 
     expect(mailService.sendMail).toHaveBeenCalledWith({
@@ -41,7 +41,7 @@ describe('SendMaterialNotificationEmailUseCase', () => {
       context: {
         name: 'João',
         materialName: 'Manual',
-        materialLink: 'https://app.test/materials/material-id',
+        materialLink: 'https://app.test/material/material-id',
       },
     });
   });

@@ -34,6 +34,7 @@ import { MaterialModule } from '@modules/material';
 import { MaterialTemplateModule } from '@modules/material-template';
 import { MemberModule } from '@modules/member';
 import { ModuleModule } from '@modules/module';
+import { NotificationModule } from '@modules/notification';
 import { OrganizationModule } from '@modules/organization';
 import { PrintModule } from '@modules/print';
 import { ReportsModule } from '@modules/reports';
@@ -90,6 +91,7 @@ import { AppService } from './app.service';
     SupplierModule,
     AvatarModule,
     FaqModule,
+    NotificationModule,
     ReportsModule,
     PrintModule,
   ],

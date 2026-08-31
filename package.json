@@ -42,8 +42,10 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/platform-socket.io": "11",
     "@nestjs/swagger": "^11.2.6",
     "@nestjs/throttler": "^6.5.0",
+    "@nestjs/websockets": "11",
     "@prisma/client": "^6.8.2",
     "@scalar/nestjs-api-reference": "^1.1.5",
     "@supabase/supabase-js": "^2.104.1",
@@ -65,6 +67,7 @@
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
     "sanitize-html": "^2.17.2",
+    "socket.io": "^4.8.3",
     "svg-to-pdfkit": "^0.1.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0"
@@ -120,7 +123,8 @@
       "^@infrastructure/(.*)$": "<rootDir>/infrastructure/$1",
       "^@modules/(.*)$": "<rootDir>/modules/$1",
       "^types/(.*)$": "<rootDir>/types/$1",
-      "^uuid$": "<rootDir>/test-utils/uuid.mock.ts"
+      "^uuid$": "<rootDir>/test-utils/uuid.mock.ts",
+      "^sanitize-html$": "<rootDir>/test-utils/sanitize-html.mock.ts"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

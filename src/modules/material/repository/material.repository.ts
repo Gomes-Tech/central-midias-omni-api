@@ -1649,11 +1649,18 @@ export class MaterialRepository {
     roleId?: string,
   ): Promise<Array<{ userId: string; name: string; email: string }>> {
     try {
-      const roleIds = await this.findRoleIdsByCategoryAndOrganization(
+      const accessRoleIds = await this.findRoleIdsByCategoryAndOrganization(
         categoryId,
         organizationId,
-        roleId,
       );
+
+      if (
+        roleId &&
+        accessRoleIds.length > 0 &&
+        !accessRoleIds.includes(roleId)
+      ) {
+        return [];
+      }
 
       const members = await this.prisma.member.findMany({
         where: {
@@ -1667,9 +1674,11 @@ export class MaterialRepository {
               { globalRole: { canAccessBackoffice: false } },
             ],
           },
-          ...(roleIds.length > 0 && {
-            roleId: { in: roleIds },
-          }),
+          ...(roleId
+            ? { roleId }
+            : accessRoleIds.length > 0
+              ? { roleId: { in: accessRoleIds } }
+              : {}),
         },
         select: {
           userId: true,

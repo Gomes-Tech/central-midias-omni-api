@@ -51,3 +51,10 @@ export const PRINT_PREFLIGHT_QUEUE_OPTIONS = {
   removeOnComplete: true,
   removeOnFail: false,
 };
+
+export const IN_APP_NOTIFICATION_QUEUE = 'in-app-notification';
+
+export const IN_APP_NOTIFICATION_JOB = 'create-in-app-notification';
+
+export const IN_APP_NOTIFICATION_QUEUE_OPTIONS =
+  MATERIAL_ACCEPTANCE_EMAIL_QUEUE_OPTIONS;

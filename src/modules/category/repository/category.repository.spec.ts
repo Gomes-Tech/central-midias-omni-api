@@ -21,6 +21,14 @@ function createPrismaMock() {
       create: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    material: {
+      count: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    categoryRoleAccess: {
+      deleteMany: jest.fn(),
     },
     member: {
       findFirst: jest.fn(),
@@ -948,51 +956,98 @@ describe('CategoryRepository', () => {
     });
   });
 
+  describe('countMaterials', () => {
+    it('deve contar materiais da categoria', async () => {
+      prisma.material.count.mockResolvedValue(4);
+
+      await expect(repository.countMaterials('cat-1')).resolves.toBe(4);
+
+      expect(prisma.material.count).toHaveBeenCalledWith({
+        where: { categoryId: 'cat-1' },
+      });
+    });
+
+    it('deve lançar BadRequest quando count falhar', async () => {
+      prisma.material.count.mockRejectedValue(new Error('db'));
+
+      await expect(repository.countMaterials('cat-1')).rejects.toThrow(
+        'Erro ao contar materiais da categoria',
+      );
+    });
+  });
+
   describe('delete', () => {
-    it('deve marcar a categoria e descendentes como deletadas', async () => {
-      prisma.category.findMany.mockResolvedValue([
-        { id: 'root', parentId: null },
-        { id: 'c1', parentId: 'root' },
-        { id: 'c2', parentId: 'c1' },
-      ]);
-      prisma.category.updateMany.mockResolvedValue({ count: 3 } as never);
+    it('deve remover a categoria e os acessos sem transferir materiais', async () => {
+      prisma.categoryRoleAccess.deleteMany.mockResolvedValue({ count: 2 } as never);
+      prisma.category.updateMany.mockResolvedValue({ count: 0 } as never);
+      prisma.category.deleteMany.mockResolvedValue({ count: 1 } as never);
 
       await repository.delete('root', 'org-1', 'user-1');
 
+      expect(prisma.material.updateMany).not.toHaveBeenCalled();
+      expect(prisma.categoryRoleAccess.deleteMany).toHaveBeenCalledWith({
+        where: {
+          categoryId: 'root',
+          organizationId: 'org-1',
+        },
+      });
       expect(prisma.category.updateMany).toHaveBeenCalledWith({
         where: {
-          id: { in: expect.arrayContaining(['root', 'c1', 'c2']) },
+          parentId: 'root',
           organizationId: 'org-1',
-          isDeleted: false,
         },
         data: {
-          isActive: false,
-          isDeleted: true,
-          deletedAt: expect.any(Date),
+          parentId: null,
+        },
+      });
+      expect(prisma.category.deleteMany).toHaveBeenCalledWith({
+        where: {
+          id: 'root',
+          organizationId: 'org-1',
         },
       });
       expect(logger.info).toHaveBeenCalledWith(
         'Categoria removida',
-        expect.objectContaining({ deletedCount: 3 }),
+        expect.objectContaining({ categoryId: 'root' }),
       );
     });
 
-    it('deve lançar BadRequest quando updateMany falhar', async () => {
-      prisma.category.findMany.mockResolvedValue([{ id: 'x', parentId: null }]);
-      prisma.category.updateMany.mockRejectedValue(new Error('db'));
+    it('deve transferir materiais antes de remover a categoria', async () => {
+      prisma.material.updateMany.mockResolvedValue({ count: 3 } as never);
+      prisma.categoryRoleAccess.deleteMany.mockResolvedValue({ count: 1 } as never);
+      prisma.category.updateMany.mockResolvedValue({ count: 0 } as never);
+      prisma.category.deleteMany.mockResolvedValue({ count: 1 } as never);
+
+      await repository.delete('cat-1', 'org-1', 'user-1', 'dest-1');
+
+      expect(prisma.material.updateMany).toHaveBeenCalledWith({
+        where: { categoryId: 'cat-1' },
+        data: { categoryId: 'dest-1' },
+      });
+      expect(prisma.category.deleteMany).toHaveBeenCalledWith({
+        where: {
+          id: 'cat-1',
+          organizationId: 'org-1',
+        },
+      });
+    });
+
+    it('deve lançar BadRequest quando o nome do material já existir no destino', async () => {
+      prisma.material.updateMany.mockRejectedValue({ code: 'P2002' });
+
+      await expect(
+        repository.delete('cat-1', 'org-1', 'user-1', 'dest-1'),
+      ).rejects.toThrow(
+        'Já existe um material com o mesmo nome na categoria de destino',
+      );
+    });
+
+    it('deve lançar BadRequest quando a transação falhar', async () => {
+      prisma.categoryRoleAccess.deleteMany.mockRejectedValue(new Error('db'));
 
       await expect(repository.delete('x', 'org-1', 'user-1')).rejects.toThrow(
         'Erro ao remover categoria',
       );
-    });
-
-    it('deve ignorar shift indefinido na fila quando id for string vazia', async () => {
-      prisma.category.findMany.mockResolvedValue([{ id: '', parentId: null }]);
-      prisma.category.updateMany.mockResolvedValue({ count: 1 } as never);
-
-      await repository.delete('', 'org-1', 'user-1');
-
-      expect(prisma.category.updateMany).toHaveBeenCalled();
     });
   });
 });

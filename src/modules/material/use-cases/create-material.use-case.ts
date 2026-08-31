@@ -3,6 +3,7 @@ import { generateId } from '@common/utils';
 import { StorageService } from '@infrastructure/providers';
 import { FindCategoryByIdUseCase } from '@modules/category/use-cases';
 import { validateMaterialTemplateImage } from '@modules/material-template/services/material-template-image.service';
+import { EnqueueInAppNotificationsUseCase } from '@modules/notification/use-cases';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateMaterialDTO } from '../dto';
 import { MaterialRepository } from '../repository';
@@ -20,6 +21,7 @@ export class CreateMaterialUseCase {
     private readonly storageService: StorageService,
     private readonly enqueueMaterialAcceptanceEmailsUseCase: EnqueueMaterialAcceptanceEmailsUseCase,
     private readonly enqueueMaterialNotificationEmailsUseCase: EnqueueMaterialNotificationEmailsUseCase,
+    private readonly enqueueInAppNotificationsUseCase: EnqueueInAppNotificationsUseCase,
   ) {}
 
   async execute(
@@ -105,6 +107,17 @@ export class CreateMaterialUseCase {
         void this.enqueueMaterialAcceptanceEmailsUseCase
           .execute(materialId, organizationId)
           .catch(() => undefined);
+      }
+
+      try {
+        await this.enqueueInAppNotificationsUseCase.execute({
+          materialId,
+          organizationId,
+          type: 'MATERIAL_CREATED',
+          actorUserId: userId,
+        });
+      } catch {
+        // A inbox não deve impedir a criação do material.
       }
 
       if (data.notifyUsers === true) {
