@@ -1,4 +1,9 @@
-import { OrgId, RequirePermission, UserId } from '@common/decorators';
+import {
+  OrgId,
+  RequirePermission,
+  UnlimitedFileSize,
+  UserId,
+} from '@common/decorators';
 import { PlatformPermissionGuard } from '@common/guards';
 import {
   Body,
@@ -225,6 +230,7 @@ export class MaterialController {
   }
 
   @RequirePermission('materials', 'create')
+  @UnlimitedFileSize()
   @Post()
   async create(
     @Body() dto: CreateMaterialDTO,
@@ -241,6 +247,7 @@ export class MaterialController {
   }
 
   @RequirePermission('materials', 'update')
+  @UnlimitedFileSize()
   @Post(':id/files')
   async uploadFiles(
     @Param('id') id: string,

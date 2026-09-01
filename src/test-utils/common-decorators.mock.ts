@@ -10,6 +10,11 @@ export const AllowedFileTypes = (policy: unknown): MethodDecorator => {
   return noopMethodDecorator;
 };
 
+export const SKIP_FILE_SIZE_VALIDATION_KEY = 'skipFileSizeValidation';
+
+export const UnlimitedFileSize = () =>
+  SetMetadata(SKIP_FILE_SIZE_VALIDATION_KEY, true);
+
 export const MaxFileSize = (maxSizeInBytes?: number, maxSizeInMB?: number) => {
   let sizeInBytes = 5 * 1024 * 1024;
   if (maxSizeInMB !== undefined) {

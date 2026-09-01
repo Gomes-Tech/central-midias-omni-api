@@ -1,7 +1,10 @@
 import { BadRequestException, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { lastValueFrom, of } from 'rxjs';
-import { MAX_FILE_SIZE_KEY } from '../decorators/max-file-size.decorator';
+import {
+  MAX_FILE_SIZE_KEY,
+  SKIP_FILE_SIZE_VALIDATION_KEY,
+} from '../decorators/max-file-size.decorator';
 import { FileSizeValidationInterceptor } from './file-size-validation.interceptor';
 
 const MB = 1024 * 1024;
@@ -126,6 +129,21 @@ describe('FileSizeValidationInterceptor', () => {
     expect(() =>
       interceptor.intercept(createContext({ files }), next),
     ).toThrow(BadRequestException);
+  });
+
+  it('deve ignorar tamanho quando a rota marca UnlimitedFileSize', async () => {
+    reflector.getAllAndOverride.mockImplementation((key: unknown) => {
+      if (key === SKIP_FILE_SIZE_VALIDATION_KEY) {
+        return true;
+      }
+      return undefined;
+    });
+    const file = multerFile({ size: 500 * MB, originalname: 'grande.bin' });
+    const next = { handle: () => of(1) };
+
+    await expect(
+      lastValueFrom(interceptor.intercept(createContext({ file }), next)),
+    ).resolves.toBe(1);
   });
 
   it('deve ignorar arquivo nulo na lista', async () => {

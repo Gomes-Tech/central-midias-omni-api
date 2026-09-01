@@ -6,6 +6,19 @@ import { SetMetadata } from '@nestjs/common';
 export const MAX_FILE_SIZE_KEY = 'maxFileSize';
 
 /**
+ * Quando true, o interceptor de tamanho não aplica teto nesta rota.
+ */
+export const SKIP_FILE_SIZE_VALIDATION_KEY = 'skipFileSizeValidation';
+
+/**
+ * Desliga o limite de tamanho de arquivo na rota (materiais, etc.).
+ * O parser multipart ainda pode ter teto próprio — use o middleware
+ * sem `fileSize` nesses caminhos.
+ */
+export const UnlimitedFileSize = () =>
+  SetMetadata(SKIP_FILE_SIZE_VALIDATION_KEY, true);
+
+/**
  * Decorator para definir o tamanho máximo de arquivo permitido
  *
  * @param maxSizeInBytes - Tamanho máximo em bytes
