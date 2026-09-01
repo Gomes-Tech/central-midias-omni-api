@@ -12,6 +12,7 @@ import {
 import {
   CategoryDetails,
   CategoryListItem,
+  CategorySubcategoryItem,
   CategoryTreeItem,
 } from '../entities';
 
@@ -351,6 +352,89 @@ export class CategoryRepository {
       });
 
       throw new BadRequestException('Erro ao buscar categoria');
+    }
+  }
+
+  async findAccessibleSubcategoriesBySlug(
+    slug: string,
+    organizationId: string,
+    userId: string,
+  ): Promise<CategorySubcategoryItem[]> {
+    try {
+      const member = await this.prisma.member.findFirst({
+        where: {
+          organizationId,
+          userId,
+          user: { isActive: true, isDeleted: false },
+        },
+        select: { roleId: true },
+      });
+
+      const canViewAllCategories = await this.isGlobalAdmin(userId);
+
+      if (!member && !canViewAllCategories) {
+        return [];
+      }
+
+      const parent = await this.prisma.category.findFirst({
+        where: {
+          organizationId,
+          slugPath: slug,
+          isDeleted: false,
+          isActive: true,
+        },
+        select: { id: true },
+      });
+
+      if (!parent) {
+        return [];
+      }
+
+      const children = await this.prisma.category.findMany({
+        where: {
+          organizationId,
+          parentId: parent.id,
+          isDeleted: false,
+          isActive: true,
+        },
+        orderBy: [{ order: 'asc' }, { name: 'asc' }],
+        select: {
+          name: true,
+          slugPath: true,
+          categoryRoleAccesses: {
+            select: { roleId: true },
+          },
+        },
+      });
+
+      const roleId = member?.roleId;
+
+      return children
+        .filter((category) => {
+          if (canViewAllCategories) {
+            return true;
+          }
+
+          if (category.categoryRoleAccesses.length === 0) {
+            return true;
+          }
+
+          return category.categoryRoleAccesses.some(
+            (access) => access.roleId === roleId,
+          );
+        })
+        .map(({ name, slugPath }) => ({ name, slugPath }));
+    } catch (error) {
+      void this.logger.error(
+        'CategoryRepository.findAccessibleSubcategoriesBySlug falhou',
+        {
+          error: String(error),
+          slug,
+          organizationId,
+        },
+      );
+
+      throw new BadRequestException('Erro ao buscar subcategorias');
     }
   }
 

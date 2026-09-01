@@ -2425,6 +2425,7 @@ describe('MaterialRepository', () => {
           }),
           skip: 0,
           take: 10,
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         }),
       );
     });
@@ -2456,7 +2457,26 @@ describe('MaterialRepository', () => {
         }),
       );
       expect(prisma.material.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ skip: 0, take: 24 }),
+        expect.objectContaining({
+          skip: 0,
+          take: 24,
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        }),
+      );
+    });
+
+    it('deve ordenar pelos mais antigos quando sortOrder for asc', async () => {
+      prisma.material.findMany.mockResolvedValue([]);
+      prisma.material.count.mockResolvedValue(0);
+
+      await repository.findByCategorySlugPath('org-id', 'cat', {
+        sortOrder: 'asc',
+      });
+
+      expect(prisma.material.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        }),
       );
     });
 

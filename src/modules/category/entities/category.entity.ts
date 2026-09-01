@@ -25,6 +25,11 @@ export interface CategoryTreeItem {
   children: CategoryTreeItem[];
 }
 
+export interface CategorySubcategoryItem {
+  name: string;
+  slugPath: string;
+}
+
 export interface CategoryDetails {
   id: string;
   organizationId: string;

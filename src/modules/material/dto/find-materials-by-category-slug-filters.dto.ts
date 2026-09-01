@@ -1,6 +1,11 @@
 import { Sanitize } from '@common/decorators';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+
+export const MATERIAL_CREATED_AT_SORT_ORDERS = ['desc', 'asc'] as const;
+
+export type MaterialCreatedAtSortOrder =
+  (typeof MATERIAL_CREATED_AT_SORT_ORDERS)[number];
 
 export class FindMaterialsByCategorySlugFiltersDTO {
   @IsOptional()
@@ -19,4 +24,8 @@ export class FindMaterialsByCategorySlugFiltersDTO {
   @IsString()
   @Sanitize()
   searchTerm?: string;
+
+  @IsOptional()
+  @IsIn(MATERIAL_CREATED_AT_SORT_ORDERS)
+  sortOrder?: MaterialCreatedAtSortOrder;
 }

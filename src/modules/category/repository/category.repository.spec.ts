@@ -479,6 +479,143 @@ describe('CategoryRepository', () => {
     });
   });
 
+  describe('findAccessibleSubcategoriesBySlug', () => {
+    beforeEach(() => {
+      prisma.member.findFirst.mockResolvedValue({ roleId: 'role-1' });
+      prisma.user.findFirst.mockResolvedValue(null);
+    });
+
+    it('deve retornar array vazio quando usuário não for member nem admin', async () => {
+      prisma.member.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findAccessibleSubcategoriesBySlug(
+          'marketing',
+          'org-1',
+          'user-1',
+        ),
+      ).resolves.toEqual([]);
+      expect(prisma.category.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('deve retornar array vazio quando a categoria pai não existir', async () => {
+      prisma.category.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findAccessibleSubcategoriesBySlug(
+          'marketing',
+          'org-1',
+          'user-1',
+        ),
+      ).resolves.toEqual([]);
+      expect(prisma.category.findMany).not.toHaveBeenCalled();
+    });
+
+    it('deve retornar subcategorias acessíveis pela role, na ordem', async () => {
+      prisma.category.findFirst.mockResolvedValue({ id: 'parent-1' });
+      prisma.category.findMany.mockResolvedValue([
+        {
+          name: 'Livre',
+          slugPath: 'marketing/livre',
+          categoryRoleAccesses: [],
+        },
+        {
+          name: 'Da role',
+          slugPath: 'marketing/da-role',
+          categoryRoleAccesses: [{ roleId: 'role-1' }],
+        },
+        {
+          name: 'Restrita',
+          slugPath: 'marketing/restrita',
+          categoryRoleAccesses: [{ roleId: 'other-role' }],
+        },
+      ]);
+
+      await expect(
+        repository.findAccessibleSubcategoriesBySlug(
+          'marketing',
+          'org-1',
+          'user-1',
+        ),
+      ).resolves.toEqual([
+        { name: 'Livre', slugPath: 'marketing/livre' },
+        { name: 'Da role', slugPath: 'marketing/da-role' },
+      ]);
+
+      expect(prisma.category.findFirst).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          slugPath: 'marketing',
+          isDeleted: false,
+          isActive: true,
+        },
+        select: { id: true },
+      });
+      expect(prisma.category.findMany).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          parentId: 'parent-1',
+          isDeleted: false,
+          isActive: true,
+        },
+        orderBy: [{ order: 'asc' }, { name: 'asc' }],
+        select: {
+          name: true,
+          slugPath: true,
+          categoryRoleAccesses: {
+            select: { roleId: true },
+          },
+        },
+      });
+    });
+
+    it('deve retornar todas as subcategorias para admin global sem member', async () => {
+      prisma.member.findFirst.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue({
+        globalRole: {
+          name: 'ADMIN',
+          canAccessBackoffice: true,
+        },
+      });
+      prisma.category.findFirst.mockResolvedValue({ id: 'parent-1' });
+      prisma.category.findMany.mockResolvedValue([
+        {
+          name: 'Restrita',
+          slugPath: 'marketing/restrita',
+          categoryRoleAccesses: [{ roleId: 'other-role' }],
+        },
+        {
+          name: 'Livre',
+          slugPath: 'marketing/livre',
+          categoryRoleAccesses: [],
+        },
+      ]);
+
+      await expect(
+        repository.findAccessibleSubcategoriesBySlug(
+          'marketing',
+          'org-1',
+          'admin-1',
+        ),
+      ).resolves.toEqual([
+        { name: 'Restrita', slugPath: 'marketing/restrita' },
+        { name: 'Livre', slugPath: 'marketing/livre' },
+      ]);
+    });
+
+    it('deve lançar BadRequest quando a busca falhar', async () => {
+      prisma.category.findFirst.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findAccessibleSubcategoriesBySlug('s', 'org-1', 'u1'),
+      ).rejects.toThrow('Erro ao buscar subcategorias');
+      expect(logger.error).toHaveBeenCalledWith(
+        'CategoryRepository.findAccessibleSubcategoriesBySlug falhou',
+        expect.objectContaining({ organizationId: 'org-1', slug: 's' }),
+      );
+    });
+  });
+
   describe('findSiblingBySlug', () => {
     it('deve buscar irmão com mesmo slug no mesmo nível (raiz)', async () => {
       prisma.category.findFirst.mockResolvedValue({

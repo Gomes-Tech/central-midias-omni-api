@@ -25,6 +25,7 @@ import {
 import {
   CreateCategoryUseCase,
   DeleteCategoryUseCase,
+  FindAccessibleSubcategoriesBySlugUseCase,
   FindAllCategoriesUseCase,
   FindCategoryByIdUseCase,
   FindCategoryTreeBySlugPathUseCase,
@@ -37,6 +38,7 @@ export class CategoryController {
   constructor(
     private readonly createCategoryUseCase: CreateCategoryUseCase,
     private readonly deleteCategoryUseCase: DeleteCategoryUseCase,
+    private readonly findAccessibleSubcategoriesBySlugUseCase: FindAccessibleSubcategoriesBySlugUseCase,
     private readonly findAllCategoriesUseCase: FindAllCategoriesUseCase,
     private readonly findCategoryByIdUseCase: FindCategoryByIdUseCase,
     private readonly findCategoryTreeBySlugPathUseCase: FindCategoryTreeBySlugPathUseCase,
@@ -77,6 +79,21 @@ export class CategoryController {
   ) {
     return await this.findCategoryTreeBySlugPathUseCase.execute(
       slugPath,
+      organizationId,
+      userId,
+    );
+  }
+
+  @Get('*slug/subcategories')
+  async findSubcategoriesBySlug(
+    @Param('slug') slug: string | string[],
+    @OrgId() organizationId: string,
+    @UserId() userId: string,
+  ) {
+    const normalizedSlug = Array.isArray(slug) ? slug.join('/') : slug;
+
+    return await this.findAccessibleSubcategoriesBySlugUseCase.execute(
+      normalizedSlug,
       organizationId,
       userId,
     );

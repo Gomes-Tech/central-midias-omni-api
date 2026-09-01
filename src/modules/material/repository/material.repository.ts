@@ -237,8 +237,9 @@ export class MaterialRepository {
     slugPath: string,
     filters: FindMaterialsByCategorySlugFiltersDTO = {},
   ): Promise<PaginatedResponse<MaterialByCategorySlugRow>> {
-    const { page = 1, limit = 24, searchTerm } = filters;
+    const { page = 1, limit = 24, searchTerm, sortOrder } = filters;
     const skip = (page - 1) * limit;
+    const createdAtOrder = sortOrder === 'asc' ? 'asc' : 'desc';
 
     try {
       const where: Prisma.MaterialWhereInput = {
@@ -288,7 +289,7 @@ export class MaterialRepository {
               take: 1,
             },
           },
-          orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+          orderBy: [{ createdAt: createdAtOrder }, { id: createdAtOrder }],
           skip,
           take: limit,
         }),
