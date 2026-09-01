@@ -4,6 +4,11 @@ export const OrgId = createParamDecorator(() => 'test-organization-id');
 
 export const MAX_FILE_SIZE_KEY = 'maxFileSize';
 
+export const SKIP_FILE_SIZE_VALIDATION_KEY = 'skipFileSizeValidation';
+
+export const UnlimitedFileSize = () =>
+  SetMetadata(SKIP_FILE_SIZE_VALIDATION_KEY, true);
+
 export const MaxFileSize = (maxSizeInBytes?: number, maxSizeInMB?: number) => {
   let sizeInBytes = 5 * 1024 * 1024;
   if (maxSizeInMB !== undefined) {

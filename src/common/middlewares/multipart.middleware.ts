@@ -3,23 +3,54 @@ import multer from 'multer';
 
 /**
  * Teto de bytes por arquivo no parser global (a rota pode limitar menos via @MaxFileSize).
- * Evita uploads enormes antes dos interceptors.
+ * Evita uploads enormes antes dos interceptors. Rotas de material não usam este teto.
  */
 const MULTIPART_MAX_FILE_BYTES = 100 * 1024 * 1024;
 
-const upload = multer({
-  storage: multer.memoryStorage(),
+const memoryStorage = multer.memoryStorage();
+
+const limitedUpload = multer({
+  storage: memoryStorage,
   limits: { fileSize: MULTIPART_MAX_FILE_BYTES },
 });
 
-// `multer().any()` tipa `req/res` usando uma cópia de `express-serve-static-core` que pode
-// divergir da usada no projeto, causando erro de compatibilidade. Como aqui só precisamos
-// do efeito colateral (popular `req.file/req.files`), tipamos como `unknown`.
-const parseMultipart = upload.any() as unknown as (
+const unlimitedUpload = multer({
+  storage: memoryStorage,
+});
+
+const parseLimitedMultipart = limitedUpload.any() as unknown as (
   req: Request,
   res: Response,
   cb: (err?: unknown) => void,
 ) => void;
+
+const parseUnlimitedMultipart = unlimitedUpload.any() as unknown as (
+  req: Request,
+  res: Response,
+  cb: (err?: unknown) => void,
+) => void;
+
+function requestPath(req: Request): string {
+  const raw = req.originalUrl || req.url || req.path || '';
+  const pathOnly = raw.split('?')[0] ?? '';
+  return pathOnly.replace(/\/+$/, '') || '/';
+}
+
+/**
+ * POST /api/materials e POST /api/materials/:id/files (com ou sem prefixo /api).
+ */
+export function isUnlimitedMaterialUpload(req: Pick<Request, 'method' | 'originalUrl' | 'url' | 'path'>): boolean {
+  if (req.method !== 'POST') {
+    return false;
+  }
+
+  const path = requestPath(req as Request);
+
+  return (
+    /^\/(?:api\/)?materials$/.test(path) ||
+    /^\/(?:api\/)?materials\/[^/]+\/files$/.test(path)
+  );
+}
 
 /**
  * Parseia multipart/form-data em todas as rotas que enviarem esse Content-Type.
@@ -39,6 +70,10 @@ export function multipartMiddleware(
     next();
     return;
   }
+
+  const parseMultipart = isUnlimitedMaterialUpload(req)
+    ? parseUnlimitedMultipart
+    : parseLimitedMultipart;
 
   parseMultipart(req, res, (err: unknown) => {
     if (err) {

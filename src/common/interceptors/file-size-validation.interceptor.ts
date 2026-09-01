@@ -7,7 +7,10 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
-import { MAX_FILE_SIZE_KEY } from '../decorators/max-file-size.decorator';
+import {
+  MAX_FILE_SIZE_KEY,
+  SKIP_FILE_SIZE_VALIDATION_KEY,
+} from '../decorators/max-file-size.decorator';
 
 /**
  * Interceptor para validar o tamanho de arquivos enviados
@@ -21,6 +24,16 @@ export class FileSizeValidationInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
+    const skipFileSizeValidation =
+      this.reflector.getAllAndOverride<boolean>(SKIP_FILE_SIZE_VALIDATION_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) === true;
+
+    if (skipFileSizeValidation) {
+      return next.handle();
+    }
+
     const maxFileSize = this.reflector.getAllAndOverride<number>(
       MAX_FILE_SIZE_KEY,
       [context.getHandler(), context.getClass()],
