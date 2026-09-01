@@ -27,12 +27,9 @@ describe('AcceptMaterialUseCase', () => {
     materialRepository.userHasCategoryAccess.mockResolvedValue(true);
     materialRepository.upsertAcceptance.mockResolvedValue(undefined);
 
-    const result = await useCase.execute(
-      material.id,
-      'org-id',
-      'user-id',
-      { accepted: true },
-    );
+    const result = await useCase.execute(material.id, 'org-id', 'user-id', {
+      accepted: true,
+    });
 
     expect(result.acceptedAt).toBeInstanceOf(Date);
     expect(materialRepository.upsertAcceptance).toHaveBeenCalledWith(

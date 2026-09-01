@@ -65,6 +65,11 @@ export class CreateMaterialDTO {
   hasTextCopy?: boolean;
 
   @IsOptional()
+  @TransformBoolean()
+  @IsBoolean()
+  onlyView?: boolean;
+
+  @IsOptional()
   @IsString()
   textCopy?: string;
 

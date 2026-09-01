@@ -43,7 +43,7 @@ model User {
   name          String
   email         String    @unique
   password      String
-  taxIdentifier String    @unique @map("tax_identifier")
+  taxIdentifier String    @map("tax_identifier")
   phone         String?   @map("phone")
   socialReason  String?   @map("social_reason")
   avatarKey     String?   @map("avatar_key")
@@ -365,14 +365,14 @@ model SocialHighlight {
 // ============================================================
 
 model CalendarEventType {
-  id             String             @id @default(uuid())
-  organizationId String             @map("organization_id")
+  id             String  @id @default(uuid())
+  organizationId String  @map("organization_id")
   name           String
   slug           String
-  color          String             @db.VarChar(7)
+  color          String  @db.VarChar(7)
   description    String?
-  order          Int                @default(0)
-  isActive       Boolean            @default(true) @map("is_active")
+  order          Int     @default(0)
+  isActive       Boolean @default(true) @map("is_active")
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -502,23 +502,24 @@ model Material {
   requiresAcceptance Boolean @default(false) @map("requires_acceptance")
   hasExternalLink    Boolean @default(false) @map("has_external_link")
   hasTextCopy        Boolean @default(false) @map("has_text_copy")
+  onlyView           Boolean @default(false) @map("only_view")
   isCustomizable     Boolean @default(false) @map("is_customizable")
 
   externalLink String? @map("external_link")
   textCopy     String? @map("text_copy")
 
-  createdAt             DateTime               @default(now()) @map("created_at")
-  updatedAt             DateTime               @updatedAt @map("updated_at")
-  deletedAt             DateTime?              @map("deleted_at")
+  createdAt             DateTime                @default(now()) @map("created_at")
+  updatedAt             DateTime                @updatedAt @map("updated_at")
+  deletedAt             DateTime?               @map("deleted_at")
   materialFiles         MaterialFile[]
-  categoryId            String                 @map("category_id")
-  category              Category               @relation(fields: [categoryId], references: [id])
-  tags                  Tag[]                  @relation("MaterialTag")
+  categoryId            String                  @map("category_id")
+  category              Category                @relation(fields: [categoryId], references: [id])
+  tags                  Tag[]                   @relation("MaterialTag")
   materialAcceptances   MaterialAcceptance[]
   materialViews         MaterialView[]
   materialDownloads     MaterialDownload[]
   materialCustomization MaterialCustomization?
-  calendarEvents      CalendarEventMaterial[]
+  calendarEvents        CalendarEventMaterial[]
 
   @@unique([categoryId, name])
   @@index([categoryId])

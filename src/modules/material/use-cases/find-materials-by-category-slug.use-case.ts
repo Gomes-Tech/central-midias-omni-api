@@ -43,6 +43,7 @@ export class FindMaterialsByCategorySlugUseCase {
           size: material.size,
           externalLink: material.externalLink,
           hasTextCopy: material.hasTextCopy,
+          onlyView: material.onlyView,
           textCopy: material.textCopy,
           isCustomizable: material.isCustomizable,
           requiresAcceptance: material.requiresAcceptance,
