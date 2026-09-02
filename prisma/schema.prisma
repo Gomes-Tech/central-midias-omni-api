@@ -43,7 +43,7 @@ model User {
   name          String
   email         String    @unique
   password      String
-  taxIdentifier String    @unique @map("tax_identifier")
+  taxIdentifier String    @map("tax_identifier")
   phone         String?   @map("phone")
   socialReason  String?   @map("social_reason")
   avatarKey     String?   @map("avatar_key")
@@ -527,6 +527,7 @@ model Material {
   requiresAcceptance Boolean @default(false) @map("requires_acceptance")
   hasExternalLink    Boolean @default(false) @map("has_external_link")
   hasTextCopy        Boolean @default(false) @map("has_text_copy")
+  onlyView           Boolean @default(false) @map("only_view")
   isCustomizable     Boolean @default(false) @map("is_customizable")
 
   externalLink String? @map("external_link")

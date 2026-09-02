@@ -8,6 +8,7 @@ import { CategoryController } from './category.controller';
 import {
   CreateCategoryUseCase,
   DeleteCategoryUseCase,
+  FindAccessibleSubcategoriesBySlugUseCase,
   FindAllCategoriesUseCase,
   FindCategoryByIdUseCase,
   FindCategoryTreeBySlugPathUseCase,
@@ -23,6 +24,7 @@ describe('CategoryController', () => {
   let controller: CategoryController;
   let createCategoryUseCase: { execute: jest.Mock };
   let deleteCategoryUseCase: { execute: jest.Mock };
+  let findAccessibleSubcategoriesBySlugUseCase: { execute: jest.Mock };
   let findAllCategoriesUseCase: { execute: jest.Mock };
   let findCategoryByIdUseCase: { execute: jest.Mock };
   let findCategoryTreeBySlugPathUseCase: { execute: jest.Mock };
@@ -33,6 +35,7 @@ describe('CategoryController', () => {
   beforeEach(async () => {
     createCategoryUseCase = { execute: jest.fn() };
     deleteCategoryUseCase = { execute: jest.fn() };
+    findAccessibleSubcategoriesBySlugUseCase = { execute: jest.fn() };
     findAllCategoriesUseCase = { execute: jest.fn() };
     findCategoryByIdUseCase = { execute: jest.fn() };
     findCategoryTreeBySlugPathUseCase = { execute: jest.fn() };
@@ -45,6 +48,10 @@ describe('CategoryController', () => {
       providers: [
         { provide: CreateCategoryUseCase, useValue: createCategoryUseCase },
         { provide: DeleteCategoryUseCase, useValue: deleteCategoryUseCase },
+        {
+          provide: FindAccessibleSubcategoriesBySlugUseCase,
+          useValue: findAccessibleSubcategoriesBySlugUseCase,
+        },
         {
           provide: FindAllCategoriesUseCase,
           useValue: findAllCategoriesUseCase,
@@ -128,6 +135,38 @@ describe('CategoryController', () => {
         'user-1',
         filters,
       );
+    });
+  });
+
+  describe('findSubcategoriesBySlug', () => {
+    it('deve normalizar slug em array e delegar ao use case', async () => {
+      const payload = [
+        { name: 'Redes Sociais', slugPath: 'marketing/redes-sociais' },
+      ];
+      findAccessibleSubcategoriesBySlugUseCase.execute.mockResolvedValue(
+        payload,
+      );
+
+      const result = await controller.findSubcategoriesBySlug(
+        ['marketing', 'conteudo'],
+        'org-1',
+        'user-1',
+      );
+
+      expect(result).toBe(payload);
+      expect(
+        findAccessibleSubcategoriesBySlugUseCase.execute,
+      ).toHaveBeenCalledWith('marketing/conteudo', 'org-1', 'user-1');
+    });
+
+    it('deve usar slug string sem RequirePermission de admin', async () => {
+      findAccessibleSubcategoriesBySlugUseCase.execute.mockResolvedValue([]);
+
+      await controller.findSubcategoriesBySlug('marketing', 'org-1', 'user-1');
+
+      expect(
+        findAccessibleSubcategoriesBySlugUseCase.execute,
+      ).toHaveBeenCalledWith('marketing', 'org-1', 'user-1');
     });
   });
 

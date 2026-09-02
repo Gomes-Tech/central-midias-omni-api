@@ -15,9 +15,7 @@ export class MaterialNotificationEmailProcessor extends WorkerHost {
     super();
   }
 
-  async process(
-    job: Job<MaterialNotificationEmailJobPayload>,
-  ): Promise<void> {
+  async process(job: Job<MaterialNotificationEmailJobPayload>): Promise<void> {
     if (job.name !== MATERIAL_NOTIFICATION_EMAIL_JOB) {
       return;
     }

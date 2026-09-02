@@ -26,13 +26,10 @@ export class SendMaterialNotificationEmailUseCase {
       return;
     }
 
-    void this.logger.info(
-      'Notificação de material enfileirada (dev)',
-      {
-        materialId: payload.materialId,
-        organizationId: payload.organizationId,
-        email: payload.email,
-      },
-    );
+    void this.logger.info('Notificação de material enfileirada (dev)', {
+      materialId: payload.materialId,
+      organizationId: payload.organizationId,
+      email: payload.email,
+    });
   }
 }

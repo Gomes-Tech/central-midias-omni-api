@@ -7,6 +7,7 @@ import { CategoryRepository } from './repository';
 import {
   CreateCategoryUseCase,
   DeleteCategoryUseCase,
+  FindAccessibleSubcategoriesBySlugUseCase,
   FindAllCategoriesUseCase,
   FindCategoryByIdUseCase,
   FindCategoryTreeBySlugPathUseCase,
@@ -21,6 +22,7 @@ import {
     PlatformPermissionGuard,
     CategoryRepository,
     FindAllCategoriesUseCase,
+    FindAccessibleSubcategoriesBySlugUseCase,
     FindCategoryTreeUseCase,
     FindCategoryByIdUseCase,
     FindCategoryTreeBySlugPathUseCase,
@@ -35,6 +37,7 @@ import {
   exports: [
     CategoryRepository,
     FindAllCategoriesUseCase,
+    FindAccessibleSubcategoriesBySlugUseCase,
     FindCategoryTreeUseCase,
     FindCategoryByIdUseCase,
     FindCategoryTreeBySlugPathUseCase,

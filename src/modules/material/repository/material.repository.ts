@@ -52,6 +52,7 @@ const buildMaterialDetailsSelect = (organizationId: string) =>
     hasExternalLink: true,
     externalLink: true,
     hasTextCopy: true,
+    onlyView: true,
     textCopy: true,
     isCustomizable: true,
     materialTemplate: {
@@ -248,8 +249,9 @@ export class MaterialRepository {
     slugPath: string,
     filters: FindMaterialsByCategorySlugFiltersDTO = {},
   ): Promise<PaginatedResponse<MaterialByCategorySlugRow>> {
-    const { page = 1, limit = 24, searchTerm } = filters;
+    const { page = 1, limit = 24, searchTerm, sortOrder } = filters;
     const skip = (page - 1) * limit;
+    const createdAtOrder = sortOrder === 'asc' ? 'asc' : 'desc';
 
     try {
       const where: Prisma.MaterialWhereInput = {
@@ -286,6 +288,7 @@ export class MaterialRepository {
             description: true,
             externalLink: true,
             hasTextCopy: true,
+            onlyView: true,
             textCopy: true,
             isCustomizable: true,
             materialTemplate: { select: { status: true } },
@@ -299,7 +302,7 @@ export class MaterialRepository {
               take: 1,
             },
           },
-          orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+          orderBy: [{ createdAt: createdAtOrder }, { id: createdAtOrder }],
           skip,
           take: limit,
         }),
@@ -316,6 +319,7 @@ export class MaterialRepository {
             description: material.description,
             externalLink: material.externalLink || null,
             hasTextCopy: material.hasTextCopy,
+            onlyView: material.onlyView,
             textCopy: material.textCopy,
             isCustomizable: material.isCustomizable,
             canCustomize:
@@ -405,6 +409,7 @@ export class MaterialRepository {
             description: true,
             externalLink: true,
             hasTextCopy: true,
+            onlyView: true,
             textCopy: true,
             isCustomizable: true,
             requiresAcceptance: true,
@@ -445,6 +450,7 @@ export class MaterialRepository {
             description: material.description,
             externalLink: material.externalLink || null,
             hasTextCopy: material.hasTextCopy,
+            onlyView: material.onlyView,
             textCopy: material.textCopy,
             isCustomizable: material.isCustomizable,
             canCustomize:
@@ -894,6 +900,7 @@ export class MaterialRepository {
             hasExternalLink: material.hasExternalLink,
             externalLink: material.externalLink,
             hasTextCopy: material.hasTextCopy,
+            onlyView: material.onlyView,
             textCopy: material.textCopy,
             isCustomizable: material.isCustomizable,
             templateStatus: material.materialTemplate?.status ?? null,

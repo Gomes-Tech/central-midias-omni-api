@@ -29,7 +29,6 @@ import {
 } from './dto';
 import {
   MaterialByCategorySlugItem,
-  MaterialListItem,
   MaterialMosaicItem,
   MostAccessedMaterialItem,
 } from './entities';

@@ -31,13 +31,16 @@ export class CreateUserUseCase {
       throw new BadRequestException('Usuário já existe! Tente outro email.');
     }
 
-    const existingTax = await this.userRepository.findByTaxIdentifier(
-      data.taxIdentifier,
-    );
-    if (existingTax) {
-      throw new BadRequestException(
-        'Já existe um usuário com este documento. Tente outro.',
+    if (data.taxIdentifier.length === 11) {
+      const existingTax = await this.userRepository.findByTaxIdentifier(
+        data.taxIdentifier,
       );
+
+      if (existingTax) {
+        throw new BadRequestException(
+          'Já existe um usuário com este documento. Tente outro.',
+        );
+      }
     }
 
     const role = await this.findRoleByIdUseCase.execute(
@@ -84,6 +87,7 @@ export class CreateUserUseCase {
           name: data.name,
           email: data.email,
           taxIdentifier: data.taxIdentifier,
+          platformLink: process.env.FRONTEND_URL,
         },
       });
     }

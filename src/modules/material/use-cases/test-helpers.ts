@@ -78,6 +78,7 @@ export function makeMaterialDetails(
     hasExternalLink: false,
     externalLink: null,
     hasTextCopy: false,
+    onlyView: false,
     textCopy: null,
     isCustomizable: false,
     templateStatus: null,
