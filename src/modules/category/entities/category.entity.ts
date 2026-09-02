@@ -30,6 +30,11 @@ export interface CategorySubcategoryItem {
   slugPath: string;
 }
 
+export interface CategorySubcategoriesBySlug {
+  showSuppliersList: boolean;
+  subcategories: CategorySubcategoryItem[];
+}
+
 export interface CategoryDetails {
   id: string;
   organizationId: string;
@@ -41,6 +46,7 @@ export interface CategoryDetails {
   parentId?: string | null;
   hasExternalLink: boolean;
   externalLink?: string | null;
+  showSuppliersList?: boolean;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date | null;

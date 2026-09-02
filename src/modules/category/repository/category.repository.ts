@@ -12,7 +12,7 @@ import {
 import {
   CategoryDetails,
   CategoryListItem,
-  CategorySubcategoryItem,
+  CategorySubcategoriesBySlug,
   CategoryTreeItem,
 } from '../entities';
 
@@ -282,6 +282,7 @@ export class CategoryRepository {
           order: true,
           hasExternalLink: true,
           externalLink: true,
+          showSuppliersList: true,
           parentId: true,
           createdAt: true,
           updatedAt: true,
@@ -359,7 +360,12 @@ export class CategoryRepository {
     slug: string,
     organizationId: string,
     userId: string,
-  ): Promise<CategorySubcategoryItem[]> {
+  ): Promise<CategorySubcategoriesBySlug> {
+    const emptyResult: CategorySubcategoriesBySlug = {
+      showSuppliersList: false,
+      subcategories: [],
+    };
+
     try {
       const member = await this.prisma.member.findFirst({
         where: {
@@ -373,7 +379,7 @@ export class CategoryRepository {
       const canViewAllCategories = await this.isGlobalAdmin(userId);
 
       if (!member && !canViewAllCategories) {
-        return [];
+        return emptyResult;
       }
 
       const parent = await this.prisma.category.findFirst({
@@ -383,11 +389,11 @@ export class CategoryRepository {
           isDeleted: false,
           isActive: true,
         },
-        select: { id: true },
+        select: { id: true, showSuppliersList: true },
       });
 
       if (!parent) {
-        return [];
+        return emptyResult;
       }
 
       const children = await this.prisma.category.findMany({
@@ -409,21 +415,24 @@ export class CategoryRepository {
 
       const roleId = member?.roleId;
 
-      return children
-        .filter((category) => {
-          if (canViewAllCategories) {
-            return true;
-          }
+      return {
+        showSuppliersList: parent.showSuppliersList,
+        subcategories: children
+          .filter((category) => {
+            if (canViewAllCategories) {
+              return true;
+            }
 
-          if (category.categoryRoleAccesses.length === 0) {
-            return true;
-          }
+            if (category.categoryRoleAccesses.length === 0) {
+              return true;
+            }
 
-          return category.categoryRoleAccesses.some(
-            (access) => access.roleId === roleId,
-          );
-        })
-        .map(({ name, slugPath }) => ({ name, slugPath }));
+            return category.categoryRoleAccesses.some(
+              (access) => access.roleId === roleId,
+            );
+          })
+          .map(({ name, slugPath }) => ({ name, slugPath })),
+      };
     } catch (error) {
       void this.logger.error(
         'CategoryRepository.findAccessibleSubcategoriesBySlug falhou',
@@ -697,6 +706,7 @@ export class CategoryRepository {
           hasExternalLink: data.hasExternalLink ?? false,
           externalLink: data.hasExternalLink ? data.externalLink : null,
           isActive: data.isActive ?? true,
+          showSuppliersList: data.showSuppliersList ?? false,
           ...(data.parentId && { parentId: data.parentId }),
         },
       });
@@ -751,6 +761,9 @@ export class CategoryRepository {
             }),
             ...(updateData.parentId !== undefined && {
               parentId: updateData.parentId,
+            }),
+            ...(updateData.showSuppliersList !== undefined && {
+              showSuppliersList: updateData.showSuppliersList,
             }),
             ...(slugPath !== undefined && { slugPath }),
           },

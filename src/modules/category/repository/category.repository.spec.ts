@@ -494,7 +494,10 @@ describe('CategoryRepository', () => {
           'org-1',
           'user-1',
         ),
-      ).resolves.toEqual([]);
+      ).resolves.toEqual({
+        showSuppliersList: false,
+        subcategories: [],
+      });
       expect(prisma.category.findFirst).not.toHaveBeenCalled();
     });
 
@@ -507,12 +510,18 @@ describe('CategoryRepository', () => {
           'org-1',
           'user-1',
         ),
-      ).resolves.toEqual([]);
+      ).resolves.toEqual({
+        showSuppliersList: false,
+        subcategories: [],
+      });
       expect(prisma.category.findMany).not.toHaveBeenCalled();
     });
 
     it('deve retornar subcategorias acessíveis pela role, na ordem', async () => {
-      prisma.category.findFirst.mockResolvedValue({ id: 'parent-1' });
+      prisma.category.findFirst.mockResolvedValue({
+        id: 'parent-1',
+        showSuppliersList: true,
+      });
       prisma.category.findMany.mockResolvedValue([
         {
           name: 'Livre',
@@ -537,10 +546,13 @@ describe('CategoryRepository', () => {
           'org-1',
           'user-1',
         ),
-      ).resolves.toEqual([
-        { name: 'Livre', slugPath: 'marketing/livre' },
-        { name: 'Da role', slugPath: 'marketing/da-role' },
-      ]);
+      ).resolves.toEqual({
+        showSuppliersList: true,
+        subcategories: [
+          { name: 'Livre', slugPath: 'marketing/livre' },
+          { name: 'Da role', slugPath: 'marketing/da-role' },
+        ],
+      });
 
       expect(prisma.category.findFirst).toHaveBeenCalledWith({
         where: {
@@ -549,7 +561,7 @@ describe('CategoryRepository', () => {
           isDeleted: false,
           isActive: true,
         },
-        select: { id: true },
+        select: { id: true, showSuppliersList: true },
       });
       expect(prisma.category.findMany).toHaveBeenCalledWith({
         where: {
@@ -577,7 +589,10 @@ describe('CategoryRepository', () => {
           canAccessBackoffice: true,
         },
       });
-      prisma.category.findFirst.mockResolvedValue({ id: 'parent-1' });
+      prisma.category.findFirst.mockResolvedValue({
+        id: 'parent-1',
+        showSuppliersList: false,
+      });
       prisma.category.findMany.mockResolvedValue([
         {
           name: 'Restrita',
@@ -597,10 +612,13 @@ describe('CategoryRepository', () => {
           'org-1',
           'admin-1',
         ),
-      ).resolves.toEqual([
-        { name: 'Restrita', slugPath: 'marketing/restrita' },
-        { name: 'Livre', slugPath: 'marketing/livre' },
-      ]);
+      ).resolves.toEqual({
+        showSuppliersList: false,
+        subcategories: [
+          { name: 'Restrita', slugPath: 'marketing/restrita' },
+          { name: 'Livre', slugPath: 'marketing/livre' },
+        ],
+      });
     });
 
     it('deve lançar BadRequest quando a busca falhar', async () => {
