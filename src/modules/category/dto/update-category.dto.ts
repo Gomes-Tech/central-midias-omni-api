@@ -35,6 +35,11 @@ export class UpdateCategoryDTO {
   hasExternalLink?: boolean;
 
   @IsOptional()
+  @TransformBoolean()
+  @IsBoolean()
+  showSuppliersList?: boolean;
+
+  @IsOptional()
   @IsString()
   externalLink?: string | null;
 

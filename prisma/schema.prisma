@@ -292,8 +292,9 @@ model Category {
   slug     String
   slugPath String @map("slug_path")
 
-  hasExternalLink Boolean @default(false) @map("has_external_link")
-  externalLink    String? @map("external_link")
+  hasExternalLink   Boolean @default(false) @map("has_external_link")
+  externalLink      String? @map("external_link")
+  showSuppliersList Boolean @default(false) @map("show_suppliers_list")
 
   isActive Boolean @default(true) @map("is_active")
   order    Int

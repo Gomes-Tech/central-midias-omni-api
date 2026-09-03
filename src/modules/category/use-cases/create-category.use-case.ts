@@ -24,6 +24,7 @@ export class CreateCategoryUseCase {
     const parentId = data.parentId ?? null;
     const externalLink = data.externalLink?.trim() || null;
     const hasExternalLink = data.hasExternalLink === true || !!externalLink;
+    const showSuppliersList = data.showSuppliersList === true || false;
 
     if (hasExternalLink && !externalLink) {
       throw new BadRequestException(
@@ -92,6 +93,7 @@ export class CreateCategoryUseCase {
         slugPath,
         hasExternalLink,
         externalLink: hasExternalLink ? externalLink : null,
+        showSuppliersList,
       },
       userId,
     );

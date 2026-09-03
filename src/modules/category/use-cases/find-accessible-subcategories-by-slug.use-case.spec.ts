@@ -14,9 +14,12 @@ describe('FindAccessibleSubcategoriesBySlugUseCase', () => {
   });
 
   it('deve retornar as subcategorias acessíveis', async () => {
-    const payload = [
-      { name: 'Redes Sociais', slugPath: 'marketing/redes-sociais' },
-    ];
+    const payload = {
+      showSuppliersList: true,
+      subcategories: [
+        { name: 'Redes Sociais', slugPath: 'marketing/redes-sociais' },
+      ],
+    };
 
     categoryRepository.findAccessibleSubcategoriesBySlug.mockResolvedValue(
       payload,
