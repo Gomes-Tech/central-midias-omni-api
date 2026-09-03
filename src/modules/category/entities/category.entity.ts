@@ -31,6 +31,7 @@ export interface CategorySubcategoryItem {
 }
 
 export interface CategorySubcategoriesBySlug {
+  name: string | null;
   showSuppliersList: boolean;
   subcategories: CategorySubcategoryItem[];
 }

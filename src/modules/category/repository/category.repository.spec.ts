@@ -495,6 +495,7 @@ describe('CategoryRepository', () => {
           'user-1',
         ),
       ).resolves.toEqual({
+        name: null,
         showSuppliersList: false,
         subcategories: [],
       });
@@ -511,6 +512,7 @@ describe('CategoryRepository', () => {
           'user-1',
         ),
       ).resolves.toEqual({
+        name: null,
         showSuppliersList: false,
         subcategories: [],
       });
@@ -520,6 +522,7 @@ describe('CategoryRepository', () => {
     it('deve retornar subcategorias acessíveis pela role, na ordem', async () => {
       prisma.category.findFirst.mockResolvedValue({
         id: 'parent-1',
+        name: 'Marketing',
         showSuppliersList: true,
       });
       prisma.category.findMany.mockResolvedValue([
@@ -547,6 +550,7 @@ describe('CategoryRepository', () => {
           'user-1',
         ),
       ).resolves.toEqual({
+        name: 'Marketing',
         showSuppliersList: true,
         subcategories: [
           { name: 'Livre', slugPath: 'marketing/livre' },
@@ -561,7 +565,7 @@ describe('CategoryRepository', () => {
           isDeleted: false,
           isActive: true,
         },
-        select: { id: true, showSuppliersList: true },
+        select: { id: true, name: true, showSuppliersList: true },
       });
       expect(prisma.category.findMany).toHaveBeenCalledWith({
         where: {
@@ -591,6 +595,7 @@ describe('CategoryRepository', () => {
       });
       prisma.category.findFirst.mockResolvedValue({
         id: 'parent-1',
+        name: 'Marketing',
         showSuppliersList: false,
       });
       prisma.category.findMany.mockResolvedValue([
@@ -613,6 +618,7 @@ describe('CategoryRepository', () => {
           'admin-1',
         ),
       ).resolves.toEqual({
+        name: 'Marketing',
         showSuppliersList: false,
         subcategories: [
           { name: 'Restrita', slugPath: 'marketing/restrita' },

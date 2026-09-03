@@ -15,6 +15,7 @@ describe('FindAccessibleSubcategoriesBySlugUseCase', () => {
 
   it('deve retornar as subcategorias acessíveis', async () => {
     const payload = {
+      name: 'Marketing',
       showSuppliersList: true,
       subcategories: [
         { name: 'Redes Sociais', slugPath: 'marketing/redes-sociais' },

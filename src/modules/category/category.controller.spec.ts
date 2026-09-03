@@ -141,6 +141,7 @@ describe('CategoryController', () => {
   describe('findSubcategoriesBySlug', () => {
     it('deve normalizar slug em array e delegar ao use case', async () => {
       const payload = {
+        name: 'Conteúdo',
         showSuppliersList: true,
         subcategories: [
           { name: 'Redes Sociais', slugPath: 'marketing/redes-sociais' },
@@ -164,6 +165,7 @@ describe('CategoryController', () => {
 
     it('deve usar slug string sem RequirePermission de admin', async () => {
       findAccessibleSubcategoriesBySlugUseCase.execute.mockResolvedValue({
+        name: null,
         showSuppliersList: false,
         subcategories: [],
       });
