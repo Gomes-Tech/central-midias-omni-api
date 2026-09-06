@@ -26,7 +26,14 @@ export class OrganizationRepository {
     PaginatedResponse<
       Pick<
         OrganizationEntity,
-        'id' | 'name' | 'slug' | 'avatarKey' | 'createdAt' | 'isActive'
+        | 'id'
+        | 'name'
+        | 'slug'
+        | 'avatarKey'
+        | 'primaryColor'
+        | 'secondaryColor'
+        | 'createdAt'
+        | 'isActive'
       >
     >
   > {
@@ -50,6 +57,8 @@ export class OrganizationRepository {
             name: true,
             slug: true,
             avatarKey: true,
+            primaryColor: true,
+            secondaryColor: true,
             createdAt: true,
             isActive: true,
           },
@@ -104,9 +113,15 @@ export class OrganizationRepository {
     }
   }
 
-  async findAccessibleSelectForUser(
-    userId: string,
-  ): Promise<{ id: string; name: string; avatarKey?: string }[]> {
+  async findAccessibleSelectForUser(userId: string): Promise<
+    {
+      id: string;
+      name: string;
+      avatarKey?: string;
+      primaryColor?: string | null;
+      secondaryColor?: string | null;
+    }[]
+  > {
     try {
       const user = await this.prisma.user.findFirst({
         where: {
@@ -142,6 +157,8 @@ export class OrganizationRepository {
           id: true,
           avatarKey: true,
           name: true,
+          primaryColor: true,
+          secondaryColor: true,
         },
       });
     } catch (error) {
@@ -169,6 +186,8 @@ export class OrganizationRepository {
           domain: true,
           shouldAttachUsersByDomain: true,
           avatarKey: true,
+          primaryColor: true,
+          secondaryColor: true,
           isActive: true,
           createdAt: true,
         },
@@ -215,6 +234,8 @@ export class OrganizationRepository {
             avatarKey: data.avatarKey ?? null,
             domain: data.domain ?? null,
             shouldAttachUsersByDomain: data.shouldAttachUsersByDomain ?? false,
+            primaryColor: data.primaryColor ?? null,
+            secondaryColor: data.secondaryColor ?? null,
           },
           select: {
             id: true,
@@ -273,7 +294,7 @@ export class OrganizationRepository {
 
   async update(
     id: string,
-    data: UpdateOrganizationDTO,
+    data: UpdateOrganizationDTO & { avatarKey?: string | null },
     userId: string,
   ): Promise<void> {
     try {

@@ -10,9 +10,15 @@ export class FindAccessibleOrganizationsUseCase {
     private readonly storageService: StorageService,
   ) {}
 
-  async execute(
-    userId: string,
-  ): Promise<{ id: string; name: string; avatarUrl?: string }[]> {
+  async execute(userId: string): Promise<
+    {
+      id: string;
+      name: string;
+      avatarUrl?: string | null;
+      primaryColor?: string | null;
+      secondaryColor?: string | null;
+    }[]
+  > {
     const organizations =
       await this.organizationRepository.findAccessibleSelectForUser(userId);
 
@@ -28,6 +34,8 @@ export class FindAccessibleOrganizationsUseCase {
           id: organization.id,
           name: organization.name,
           avatarUrl,
+          primaryColor: organization.primaryColor ?? null,
+          secondaryColor: organization.secondaryColor ?? null,
         };
       }),
     );

@@ -49,6 +49,12 @@ export class UpdateOrganizationUseCase {
         ...(data.slug !== undefined && { slug: data.slug }),
         ...(avatarKey !== null && { avatarKey: avatarKey }),
         ...(typeof data.isActive === 'boolean' && { isActive: data.isActive }),
+        ...(data.primaryColor !== undefined && {
+          primaryColor: data.primaryColor,
+        }),
+        ...(data.secondaryColor !== undefined && {
+          secondaryColor: data.secondaryColor,
+        }),
       },
       userId,
     );

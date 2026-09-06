@@ -45,6 +45,8 @@ export class CreateOrganizationUseCase {
         slug: data.slug,
         avatarKey: avatarKey,
         isActive: data.isActive ?? true,
+        primaryColor: data.primaryColor ?? null,
+        secondaryColor: data.secondaryColor ?? null,
       },
       userId,
     );

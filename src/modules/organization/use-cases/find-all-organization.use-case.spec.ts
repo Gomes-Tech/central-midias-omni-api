@@ -48,6 +48,8 @@ describe('FindAllOrganizationsUseCase', () => {
           isActive: a.isActive,
           createdAt: a.createdAt,
           avatarUrl: null,
+          primaryColor: null,
+          secondaryColor: null,
         },
         {
           id: b.id,
@@ -56,6 +58,8 @@ describe('FindAllOrganizationsUseCase', () => {
           isActive: b.isActive,
           createdAt: b.createdAt,
           avatarUrl: null,
+          primaryColor: null,
+          secondaryColor: null,
         },
       ],
       total: 2,
