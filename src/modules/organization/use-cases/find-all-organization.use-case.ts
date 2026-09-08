@@ -34,6 +34,8 @@ export class FindAllOrganizationsUseCase {
           isActive: organization.isActive,
           createdAt: organization.createdAt,
           avatarUrl,
+          primaryColor: organization.primaryColor ?? null,
+          secondaryColor: organization.secondaryColor ?? null,
         };
       }),
     );

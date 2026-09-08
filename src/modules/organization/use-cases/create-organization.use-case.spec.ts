@@ -67,6 +67,8 @@ describe('CreateOrganizationUseCase', () => {
         slug: dto.slug,
         avatarKey: 'organization/logo.png',
         isActive: true,
+        primaryColor: null,
+        secondaryColor: null,
       },
       'requester-id',
     );
@@ -90,6 +92,8 @@ describe('CreateOrganizationUseCase', () => {
         slug: dto.slug,
         avatarKey: null,
         isActive: true,
+        primaryColor: null,
+        secondaryColor: null,
       },
       'requester-id',
     );
@@ -112,6 +116,8 @@ describe('CreateOrganizationUseCase', () => {
         slug: dto.slug,
         avatarKey: null,
         isActive: false,
+        primaryColor: null,
+        secondaryColor: null,
       },
       'requester-id',
     );

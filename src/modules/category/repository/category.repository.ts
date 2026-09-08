@@ -362,6 +362,7 @@ export class CategoryRepository {
     userId: string,
   ): Promise<CategorySubcategoriesBySlug> {
     const emptyResult: CategorySubcategoriesBySlug = {
+      name: null,
       showSuppliersList: false,
       subcategories: [],
     };
@@ -389,7 +390,7 @@ export class CategoryRepository {
           isDeleted: false,
           isActive: true,
         },
-        select: { id: true, showSuppliersList: true },
+        select: { id: true, name: true, showSuppliersList: true },
       });
 
       if (!parent) {
@@ -416,6 +417,7 @@ export class CategoryRepository {
       const roleId = member?.roleId;
 
       return {
+        name: parent.name,
         showSuppliersList: parent.showSuppliersList,
         subcategories: children
           .filter((category) => {

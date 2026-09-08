@@ -75,6 +75,8 @@ describe('OrganizationRepository', () => {
           name: true,
           slug: true,
           avatarKey: true,
+          primaryColor: true,
+          secondaryColor: true,
           createdAt: true,
           isActive: true,
         },
@@ -193,6 +195,8 @@ describe('OrganizationRepository', () => {
           id: true,
           name: true,
           avatarKey: true,
+          primaryColor: true,
+          secondaryColor: true,
         },
       });
     });
@@ -223,6 +227,8 @@ describe('OrganizationRepository', () => {
           id: true,
           name: true,
           avatarKey: true,
+          primaryColor: true,
+          secondaryColor: true,
         },
       });
       expect(result).toEqual(rows);
@@ -264,6 +270,8 @@ describe('OrganizationRepository', () => {
           domain: true,
           shouldAttachUsersByDomain: true,
           avatarKey: true,
+          primaryColor: true,
+          secondaryColor: true,
           isActive: true,
           createdAt: true,
         },
@@ -315,11 +323,20 @@ describe('OrganizationRepository', () => {
   });
 
   describe('create', () => {
-    it('deve executar transação criando organização, membro e role ADMIN', async () => {
-      const txOrgCreate = jest.fn().mockResolvedValue({ id: 'new-org-id' });
-      const txRoleFind = jest.fn().mockResolvedValue({ id: 'admin-role-id' });
-      const txMemberCreate = jest.fn().mockResolvedValue({});
-      const txFaqCreate = jest.fn().mockResolvedValue({});
+    function createTransactionMock(overrides: {
+      txOrgCreate?: jest.Mock;
+      txRoleFind?: jest.Mock;
+      txMemberCreate?: jest.Mock;
+      txFaqCreate?: jest.Mock;
+    } = {}) {
+      const txOrgCreate =
+        overrides.txOrgCreate ?? jest.fn().mockResolvedValue({ id: 'new-org-id' });
+      const txRoleFind =
+        overrides.txRoleFind ?? jest.fn().mockResolvedValue({ id: 'admin-role-id' });
+      const txMemberCreate =
+        overrides.txMemberCreate ?? jest.fn().mockResolvedValue({});
+      const txFaqCreate =
+        overrides.txFaqCreate ?? jest.fn().mockResolvedValue({});
 
       prisma.$transaction.mockImplementation(
         async (fn: (tx: unknown) => Promise<unknown>) =>
@@ -328,8 +345,24 @@ describe('OrganizationRepository', () => {
             role: { findFirstOrThrow: txRoleFind },
             member: { create: txMemberCreate },
             faq: { create: txFaqCreate },
+            calendarEventType: {
+              findFirst: jest.fn().mockResolvedValue({ id: 'holiday-type-id' }),
+              create: jest.fn().mockResolvedValue({ id: 'holiday-type-id' }),
+            },
+            calendarEvent: {
+              findMany: jest.fn().mockResolvedValue([]),
+              update: jest.fn(),
+              createMany: jest.fn().mockResolvedValue({ count: 0 }),
+            },
           }),
       );
+
+      return { txOrgCreate, txRoleFind, txMemberCreate, txFaqCreate };
+    }
+
+    it('deve executar transação criando organização, membro e role ADMIN', async () => {
+      const { txOrgCreate, txRoleFind, txMemberCreate, txFaqCreate } =
+        createTransactionMock();
 
       const dto = makeCreateOrganizationDTO();
       await repository.create(
@@ -346,6 +379,8 @@ describe('OrganizationRepository', () => {
             avatarKey: 'https://cdn.example/avatar.png',
             domain: dto.domain,
             shouldAttachUsersByDomain: true,
+            primaryColor: null,
+            secondaryColor: null,
           }),
           select: { id: true },
         }),
@@ -386,20 +421,10 @@ describe('OrganizationRepository', () => {
     });
 
     it('deve aplicar padrões quando campos opcionais forem omitidos', async () => {
-      const txOrgCreate = jest.fn().mockResolvedValue({ id: 'o1' });
-      const txRoleFind = jest.fn().mockResolvedValue({ id: 'r1' });
-      const txMemberCreate = jest.fn().mockResolvedValue({});
-      const txFaqCreate = jest.fn().mockResolvedValue({});
-
-      prisma.$transaction.mockImplementation(
-        async (fn: (tx: unknown) => Promise<unknown>) =>
-          fn({
-            organization: { create: txOrgCreate },
-            role: { findFirstOrThrow: txRoleFind },
-            member: { create: txMemberCreate },
-            faq: { create: txFaqCreate },
-          }),
-      );
+      const { txOrgCreate } = createTransactionMock({
+        txOrgCreate: jest.fn().mockResolvedValue({ id: 'o1' }),
+        txRoleFind: jest.fn().mockResolvedValue({ id: 'r1' }),
+      });
 
       await repository.create(
         { name: 'Só nome', slug: 'so-nome', avatarKey: null },
@@ -413,6 +438,8 @@ describe('OrganizationRepository', () => {
             avatarKey: null,
             domain: null,
             shouldAttachUsersByDomain: false,
+            primaryColor: null,
+            secondaryColor: null,
           }),
         }),
       );

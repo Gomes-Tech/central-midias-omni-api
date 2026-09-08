@@ -37,11 +37,15 @@ describe('FindAccessibleOrganizationsUseCase', () => {
         id: 'organization-1',
         name: 'Organization 1',
         avatarUrl: null,
+        primaryColor: null,
+        secondaryColor: null,
       },
       {
         id: 'organization-2',
         name: 'Organization 2',
         avatarUrl: null,
+        primaryColor: null,
+        secondaryColor: null,
       },
     ]);
     expect(organizationRepository.findAccessibleSelectForUser).toHaveBeenCalledWith(
@@ -64,6 +68,8 @@ describe('FindAccessibleOrganizationsUseCase', () => {
         id: 'organization-1',
         name: 'Organization 1',
         avatarUrl: 'https://cdn.test/avatars/org.png',
+        primaryColor: null,
+        secondaryColor: null,
       },
     ]);
     expect(storageService.getPublicUrl).toHaveBeenCalledWith('avatars/org.png');

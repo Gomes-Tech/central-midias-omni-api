@@ -214,6 +214,8 @@ model Organization {
   avatarKey                 String? @map("avatar_key")
   standardAvatarKey         String? @map("standard_avatar_key")
   customizableAvatarKey     String? @map("customizable_avatar_key")
+  primaryColor              String? @map("primary_color")
+  secondaryColor            String? @map("secondary_color")
 
   isActive  Boolean   @default(true) @map("is_active")
   isDeleted Boolean   @default(false) @map("is_deleted")
