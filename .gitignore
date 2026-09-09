@@ -69,3 +69,12 @@ terraform/*.tfstate
 terraform/*.tfstate.*
 terraform/terraform.tfvars
 terraform/crash*.log
+
+# Private keys / certificates
+*.pem
+
+# Sensitive key/certificate files
+*.pem
+*.key
+*.pfx
+*.p12
