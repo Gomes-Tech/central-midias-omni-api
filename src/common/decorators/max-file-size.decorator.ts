@@ -11,9 +11,9 @@ export const MAX_FILE_SIZE_KEY = 'maxFileSize';
 export const SKIP_FILE_SIZE_VALIDATION_KEY = 'skipFileSizeValidation';
 
 /**
- * Desliga o limite de tamanho de arquivo na rota (materiais, etc.).
- * O parser multipart ainda pode ter teto próprio — use o middleware
- * sem `fileSize` nesses caminhos.
+ * Desliga o limite de tamanho no interceptor desta rota.
+ * Nas rotas de material o parser grava em disco sem teto de MB;
+ * nas demais o parser em memória continua com o teto global.
  */
 export const UnlimitedFileSize = () =>
   SetMetadata(SKIP_FILE_SIZE_VALIDATION_KEY, true);

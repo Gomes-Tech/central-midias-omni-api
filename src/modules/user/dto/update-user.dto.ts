@@ -8,7 +8,6 @@ import {
   IsEnum,
   IsOptional,
   IsString,
-  IsStrongPassword,
   IsUUID,
   ValidateNested,
 } from 'class-validator';
@@ -24,17 +23,6 @@ export class UpdateUserDTO {
   @IsOptional()
   @IsEmail({}, { message: 'Email inválido' })
   email?: string;
-
-  @IsOptional()
-  @IsString()
-  @IsStrongPassword(
-    {},
-    {
-      message:
-        'A senha deve ter no mínimo 8 caracteres, incluindo letras maiúsculas, minúsculas e números',
-    },
-  )
-  password?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -66,10 +54,6 @@ export class UpdateUserDTO {
   socialReason?: string;
 
   @IsOptional()
-  @IsBoolean()
-  isFirstAccess?: boolean;
-
-  @IsOptional()
   @IsArray()
   @IsUUID('4', { each: true, message: 'Organização inválida' })
   organizationIds?: string[];
@@ -84,3 +68,9 @@ export class UpdateUserDTO {
   @IsUUID()
   globalRoleId?: string;
 }
+
+/** Campos de credencial só para fluxos internos (ex.: first-access). */
+export type UserUpdateInput = UpdateUserDTO & {
+  password?: string;
+  isFirstAccess?: boolean;
+};

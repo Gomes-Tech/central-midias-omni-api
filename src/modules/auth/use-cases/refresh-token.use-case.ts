@@ -49,6 +49,10 @@ export class RefreshTokenUseCase {
         );
       }
 
+      if (!user.isActive) {
+        throw new UnauthorizedException('Refresh token inválido ou expirado!');
+      }
+
       const accessToken = this.generateToken(user);
 
       const newRefreshToken = this.generateRefreshToken(user);

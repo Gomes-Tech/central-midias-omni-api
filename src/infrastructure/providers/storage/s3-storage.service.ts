@@ -28,6 +28,7 @@ import type {
   PrivateFileWrite,
   StorageProvider,
 } from './storage-provider';
+import { resolveUploadBody, resolveUploadMimeType } from './upload-body';
 
 @Injectable()
 export class S3StorageService implements StorageProvider {
@@ -90,7 +91,7 @@ export class S3StorageService implements StorageProvider {
     this.assertAllowedUpload(file);
 
     const originalName = file.originalname.trim() || 'arquivo';
-    const mimeType = file.mimetype || 'application/octet-stream';
+    const mimeType = resolveUploadMimeType(file);
 
     const ext = this.extensionDot(originalName);
     const id = randomUUID();
@@ -103,8 +104,11 @@ export class S3StorageService implements StorageProvider {
         new PutObjectCommand({
           Bucket: this.bucket,
           Key: key,
-          Body: file.buffer,
+          Body: resolveUploadBody(file),
           ContentType: mimeType,
+          ...(Number.isFinite(file.size) && file.size > 0
+            ? { ContentLength: file.size }
+            : {}),
         }),
       );
       return {
@@ -193,7 +197,7 @@ export class S3StorageService implements StorageProvider {
     this.assertAllowedUpload(file);
 
     const originalName = file.originalname.trim() || 'arquivo';
-    const mimeType = file.mimetype || 'application/octet-stream';
+    const mimeType = resolveUploadMimeType(file);
     const sizeBytes = Number.isFinite(file.size) ? file.size : 0;
 
     const ext = this.extensionDot(originalName);
@@ -209,8 +213,11 @@ export class S3StorageService implements StorageProvider {
         new PutObjectCommand({
           Bucket: this.bucket,
           Key: key,
-          Body: file.buffer,
+          Body: resolveUploadBody(file),
           ContentType: mimeType,
+          ...(Number.isFinite(file.size) && file.size > 0
+            ? { ContentLength: file.size }
+            : {}),
         }),
       );
     } catch {

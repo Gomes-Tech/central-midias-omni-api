@@ -14,6 +14,12 @@ export class UpdateGlobalRoleUseCase {
   async execute(id: string, data: UpdateGlobalRoleDTO) {
     const role = await this.findGlobalRoleByIdUseCase.execute(id);
 
+    if (role.isSystem) {
+      throw new BadRequestException(
+        'Não é possível alterar um perfil global de sistema',
+      );
+    }
+
     if (data.name && data.name !== role.name) {
       const existingRole = await this.rolesRepository.findByName(data.name);
 

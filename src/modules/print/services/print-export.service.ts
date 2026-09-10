@@ -12,7 +12,12 @@ import { PRINT_EXPORT_JOB, PRINT_EXPORT_QUEUE } from '@infrastructure/queue';
 import { MaterialRepository } from '@modules/material/repository';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
-import { MaterialTemplateStatus, Prisma } from '@prisma/client';
+import type { MaterialTemplateDocumentV2 } from '@modules/material-template';
+import {
+  MaterialTemplateStatus,
+  Prisma,
+  PrintExportStatus,
+} from '@prisma/client';
 import { Queue } from 'bullmq';
 import { posix } from 'node:path';
 import type { CreatePrintExportDTO } from '../dto';
@@ -90,7 +95,9 @@ export class PrintExportService {
           'A chave de idempotência já foi usada em outra exportação',
         );
       }
-      return this.response(existing);
+      return this.response(
+        await this.recoverExportJobIfNeeded(existing, document),
+      );
     }
 
     const preflight = await this.preflight.run(materialId, organizationId);
@@ -135,13 +142,11 @@ export class PrintExportService {
           'A chave de idempotência já foi usada em outra exportação',
         );
       }
-      return this.response(concurrent);
+      return this.response(
+        await this.recoverExportJobIfNeeded(concurrent, document),
+      );
     }
-    await this.queue.add(
-      PRINT_EXPORT_JOB,
-      { exportId: record.id, document },
-      { jobId: record.id },
-    );
+    await this.enqueueExportJob(record.id, document);
     void this.logger.info('Exportação para impressão enfileirada', {
       exportId: record.id,
       materialId,
@@ -227,6 +232,75 @@ export class PrintExportService {
       where: { id: record.id },
       data: { status: 'EXPIRED', fileKey: null },
     });
+  }
+
+  private isRecoverableStatus(status: PrintExportStatus): boolean {
+    return (
+      status === PrintExportStatus.QUEUED || status === PrintExportStatus.FAILED
+    );
+  }
+
+  private async recoverExportJobIfNeeded(
+    record: {
+      id: string;
+      status: PrintExportStatus;
+      progress: number;
+      errorCode: string | null;
+      errorMessage: string | null;
+      materialId: string;
+      size: number | null;
+      expiresAt: Date | null;
+      createdAt: Date;
+      updatedAt: Date;
+    },
+    document: MaterialTemplateDocumentV2,
+  ) {
+    if (!this.isRecoverableStatus(record.status)) {
+      return record;
+    }
+
+    let current = record;
+    if (record.status === PrintExportStatus.FAILED) {
+      current = await this.prisma.printExport.update({
+        where: { id: record.id },
+        data: {
+          status: PrintExportStatus.QUEUED,
+          progress: 0,
+          errorCode: null,
+          errorMessage: null,
+        },
+      });
+    }
+
+    await this.enqueueExportJob(record.id, document);
+    return current;
+  }
+
+  private async enqueueExportJob(
+    exportId: string,
+    document: MaterialTemplateDocumentV2,
+  ): Promise<void> {
+    const existingJob = await this.queue.getJob(exportId);
+    if (existingJob) {
+      const state = await existingJob.getState();
+      if (state !== 'failed' && state !== 'completed' && state !== 'unknown') {
+        return;
+      }
+      await existingJob.remove().catch(() => undefined);
+    }
+
+    try {
+      await this.queue.add(
+        PRINT_EXPORT_JOB,
+        { exportId, document },
+        { jobId: exportId },
+      );
+    } catch (error) {
+      if (error instanceof Error && /already exists/i.test(error.message)) {
+        return;
+      }
+      throw error;
+    }
   }
 
   private response(record: any): PrintExportResponse {

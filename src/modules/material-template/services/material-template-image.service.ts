@@ -1,5 +1,6 @@
 import { BadRequestException } from '@common/filters';
 import { Injectable } from '@nestjs/common';
+import { readFileSync } from 'node:fs';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_SIDE = 6000;
@@ -47,7 +48,21 @@ function readJpegDimensions(buffer: Buffer) {
   return null;
 }
 
-type MaterialTemplateImageInput = Pick<Express.Multer.File, 'buffer' | 'size'>;
+type MaterialTemplateImageInput = {
+  buffer?: Buffer;
+  size: number;
+  path?: string;
+};
+
+function resolveTemplateImageBuffer(file: MaterialTemplateImageInput): Buffer {
+  if (file.buffer && file.buffer.length > 0) {
+    return file.buffer;
+  }
+  if (file.path) {
+    return readFileSync(file.path);
+  }
+  throw new BadRequestException('A imagem base deve ser PNG ou JPEG válido');
+}
 
 export function validateMaterialTemplateImage(
   file: MaterialTemplateImageInput,
@@ -59,8 +74,9 @@ export function validateMaterialTemplateImage(
   if (!file || file.size > MAX_FILE_SIZE) {
     throw new BadRequestException('A imagem base deve ter no máximo 5 MB');
   }
-  const png = readPngDimensions(file.buffer);
-  const jpeg = png ? null : readJpegDimensions(file.buffer);
+  const buffer = resolveTemplateImageBuffer(file);
+  const png = readPngDimensions(buffer);
+  const jpeg = png ? null : readJpegDimensions(buffer);
   const dimensions = png ?? jpeg;
   const mimeType = png ? 'image/png' : jpeg ? 'image/jpeg' : null;
   if (!dimensions || !mimeType) {

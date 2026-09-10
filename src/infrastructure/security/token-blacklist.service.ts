@@ -1,6 +1,7 @@
-import { CacheService } from '@infrastructure/cache';
-import { Injectable } from '@nestjs/common';
+import { REDIS_CLIENT } from '@infrastructure/redis';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type Redis from 'ioredis';
 
 @Injectable()
 export class TokenBlacklistService {
@@ -8,7 +9,8 @@ export class TokenBlacklistService {
   private readonly refreshTokenPrefix = 'blacklist:refresh:';
 
   constructor(
-    private readonly cacheService: CacheService,
+    @Inject(REDIS_CLIENT)
+    private readonly redis: Redis,
     private readonly configService: ConfigService,
   ) {}
 
@@ -19,11 +21,7 @@ export class TokenBlacklistService {
    */
   async addToBlacklist(jti: string, expiresIn?: number): Promise<void> {
     const ttl = expiresIn || this.getDefaultTokenTTL();
-    await this.cacheService.set(
-      `${this.blacklistPrefix}${jti}`,
-      { blacklisted: true, timestamp: Date.now() },
-      ttl,
-    );
+    await this.redis.set(`${this.blacklistPrefix}${jti}`, '1', 'EX', ttl);
   }
 
   /**
@@ -36,35 +34,25 @@ export class TokenBlacklistService {
     expiresIn?: number,
   ): Promise<void> {
     const ttl = expiresIn || this.getDefaultRefreshTokenTTL();
-    await this.cacheService.set(
-      `${this.refreshTokenPrefix}${jti}`,
-      { blacklisted: true, timestamp: Date.now() },
-      ttl,
-    );
+    await this.redis.set(`${this.refreshTokenPrefix}${jti}`, '1', 'EX', ttl);
   }
 
   /**
-   * Verifica se um token está na blacklist
-   * @param jti JWT ID do token
+   * Verifica se um token está na blacklist.
+   * Erros de Redis propagam (fail-closed): o caller deve negar o token.
    */
   async isTokenBlacklisted(jti: string): Promise<boolean> {
-    const blacklisted = await this.cacheService.get<{
-      blacklisted: boolean;
-      timestamp: number;
-    }>(`${this.blacklistPrefix}${jti}`);
-    return !!blacklisted;
+    const value = await this.redis.get(`${this.blacklistPrefix}${jti}`);
+    return value !== null;
   }
 
   /**
-   * Verifica se um refresh token está na blacklist
-   * @param jti JWT ID do refresh token
+   * Verifica se um refresh token está na blacklist.
+   * Erros de Redis propagam (fail-closed): o caller deve negar o token.
    */
   async isRefreshTokenBlacklisted(jti: string): Promise<boolean> {
-    const blacklisted = await this.cacheService.get<{
-      blacklisted: boolean;
-      timestamp: number;
-    }>(`${this.refreshTokenPrefix}${jti}`);
-    return !!blacklisted;
+    const value = await this.redis.get(`${this.refreshTokenPrefix}${jti}`);
+    return value !== null;
   }
 
   /**
@@ -72,7 +60,7 @@ export class TokenBlacklistService {
    * @param jti JWT ID do token
    */
   async removeFromBlacklist(jti: string): Promise<void> {
-    await this.cacheService.del(`${this.blacklistPrefix}${jti}`);
+    await this.redis.del(`${this.blacklistPrefix}${jti}`);
   }
 
   /**
@@ -80,7 +68,7 @@ export class TokenBlacklistService {
    * @param jti JWT ID do refresh token
    */
   async removeRefreshTokenFromBlacklist(jti: string): Promise<void> {
-    await this.cacheService.del(`${this.refreshTokenPrefix}${jti}`);
+    await this.redis.del(`${this.refreshTokenPrefix}${jti}`);
   }
 
   /**

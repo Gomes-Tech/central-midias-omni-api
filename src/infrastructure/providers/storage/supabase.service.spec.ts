@@ -4,9 +4,20 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { Readable } from 'node:stream';
 import { SupabaseService } from './supabase.service';
+import { resolveUploadBody } from './upload-body';
 
 jest.mock('@supabase/supabase-js');
+jest.mock('./upload-body', () => {
+  const actual = jest.requireActual('./upload-body');
+  return {
+    ...actual,
+    resolveUploadBody: jest.fn((file: unknown) =>
+      actual.resolveUploadBody(file),
+    ),
+  };
+});
 
 describe('SupabaseService', () => {
   const upload = jest.fn();
@@ -100,6 +111,31 @@ describe('SupabaseService', () => {
     expect(result.fullPath).toContain('supabase://uploads/organizations/');
     expect(result.publicUrl).toBe('https://public.example/file');
     expect(upload).toHaveBeenCalled();
+  });
+
+  it('uploadFile deve enviar stream e preservar mimetype quando houver path', async () => {
+    const stream = Readable.from(['xlsx']);
+    jest.mocked(resolveUploadBody).mockReturnValueOnce(stream);
+    const service = new SupabaseService();
+    const file = {
+      originalname: 'planilha.xlsx',
+      mimetype:
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      size: 80 * 1024 * 1024,
+      path: '/tmp/omni-material-uploads/planilha.xlsx',
+    };
+
+    await service.uploadFile(file, 'materials');
+
+    expect(resolveUploadBody).toHaveBeenCalledWith(file);
+    expect(upload).toHaveBeenCalledWith(
+      expect.any(String),
+      stream,
+      expect.objectContaining({
+        contentType:
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      }),
+    );
   });
 
   it('uploadFile deve rejeitar tipo não permitido', async () => {

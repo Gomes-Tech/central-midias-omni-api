@@ -10,8 +10,8 @@ export class FindUserByIdUseCase {
     private readonly userRepository: UserRepository,
   ) {}
 
-  async execute(id: string): Promise<UserById> {
-    const user = await this.userRepository.findById(id);
+  async execute(id: string, organizationId?: string): Promise<UserById> {
+    const user = await this.userRepository.findById(id, organizationId);
 
     if (!user) {
       throw new NotFoundException('Usuário não encontrado');

@@ -2,6 +2,7 @@ import { multipartMiddleware, requestIdMiddleware } from '@common/middlewares';
 import { MailService } from '@infrastructure/providers/mail/mail.service';
 import { STORAGE_PROVIDER } from '@infrastructure/providers/storage/storage-provider';
 import { StorageService } from '@infrastructure/providers/storage/storage.service';
+import { REDIS_CLIENT } from '@infrastructure/redis';
 import { AssetStorageService } from '@modules/asset';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -9,6 +10,7 @@ import cookieParser from 'cookie-parser';
 import { json } from 'express';
 import { AppModule } from '../../src/app.module';
 import { E2ePrismaService } from './e2e-prisma.service';
+import { createE2eRedisClient } from './e2e-redis';
 
 const e2ePng = Buffer.alloc(24);
 Buffer.from('89504e470d0a1a0a', 'hex').copy(e2ePng);
@@ -63,6 +65,8 @@ export async function createE2eApp(): Promise<INestApplication> {
     .useValue(e2eAssetStorageMock)
     .overrideProvider(MailService)
     .useValue(e2eMailMock)
+    .overrideProvider(REDIS_CLIENT)
+    .useValue(createE2eRedisClient())
     .compile();
 
   const app = moduleFixture.createNestApplication();

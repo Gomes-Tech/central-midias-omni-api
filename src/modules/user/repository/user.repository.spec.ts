@@ -21,6 +21,10 @@ function createPrismaMock() {
     },
     member: {
       findFirst: jest.fn(),
+      findMany: jest.fn(),
+    },
+    organization: {
+      findMany: jest.fn(),
     },
     userPlatformLogin: {
       upsert: jest.fn(),
@@ -451,7 +455,7 @@ describe('UserRepository', () => {
           },
         ],
       };
-      prisma.user.findFirstOrThrow.mockResolvedValue(prismaRow);
+      prisma.user.findFirst.mockResolvedValue(prismaRow);
 
       const result = await repository.findById('u1');
 
@@ -472,14 +476,28 @@ describe('UserRepository', () => {
         globalRoleId: null,
         canAccessBackoffice: true,
       });
-      expect(prisma.user.findFirstOrThrow).toHaveBeenCalledWith({
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
         where: { id: 'u1', isDeleted: false },
         select: findByIdSelectExpectation,
       });
     });
 
-    it('deve lançar BadRequest quando findFirstOrThrow falhar', async () => {
-      prisma.user.findFirstOrThrow.mockRejectedValue(new Error('not found'));
+    it('deve filtrar por membership quando organizationId for informado', async () => {
+      prisma.user.findFirst.mockResolvedValue(null);
+
+      await expect(repository.findById('u1', 'org-1')).resolves.toBeNull();
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'u1',
+          isDeleted: false,
+          members: { some: { organizationId: 'org-1' } },
+        },
+        select: findByIdSelectExpectation,
+      });
+    });
+
+    it('deve lançar BadRequest quando findFirst falhar', async () => {
+      prisma.user.findFirst.mockRejectedValue(new Error('not found'));
 
       await expect(repository.findById('x')).rejects.toBeInstanceOf(
         BadRequestException,
@@ -488,9 +506,109 @@ describe('UserRepository', () => {
     });
 
     it('deve retornar null quando a consulta não retornar usuário', async () => {
-      prisma.user.findFirstOrThrow.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
 
       await expect(repository.findById('missing')).resolves.toBeNull();
+    });
+  });
+
+  describe('hasPlatformAdminRole', () => {
+    it('deve retornar true quando o usuário tiver perfil ADMIN', async () => {
+      prisma.user.findFirst.mockResolvedValue({ id: 'admin-1' });
+
+      await expect(
+        repository.hasPlatformAdminRole('admin-1'),
+      ).resolves.toBe(true);
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'admin-1',
+          isDeleted: false,
+          isActive: true,
+          globalRole: {
+            name: 'ADMIN',
+            deletedAt: null,
+          },
+        },
+        select: { id: true },
+      });
+    });
+
+    it('deve retornar false quando o usuário não for ADMIN', async () => {
+      prisma.user.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.hasPlatformAdminRole('editor-1'),
+      ).resolves.toBe(false);
+    });
+
+    it('deve retornar false quando a consulta falhar', async () => {
+      prisma.user.findFirst.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.hasPlatformAdminRole('admin-1'),
+      ).resolves.toBe(false);
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('findActiveMembershipOrganizationIds', () => {
+    it('deve devolver as organizações ativas do membro', async () => {
+      prisma.member.findMany.mockResolvedValue([
+        { organizationId: 'org-a' },
+        { organizationId: 'org-b' },
+      ]);
+
+      await expect(
+        repository.findActiveMembershipOrganizationIds('user-1'),
+      ).resolves.toEqual(['org-a', 'org-b']);
+      expect(prisma.member.findMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          organization: { isActive: true, isDeleted: false },
+        },
+        select: { organizationId: true },
+      });
+    });
+
+    it('deve lançar BadRequest quando a consulta falhar', async () => {
+      prisma.member.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findActiveMembershipOrganizationIds('user-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('findExistingActiveOrganizationIds', () => {
+    it('deve devolver lista vazia sem consultar quando não houver ids', async () => {
+      await expect(
+        repository.findExistingActiveOrganizationIds([]),
+      ).resolves.toEqual([]);
+      expect(prisma.organization.findMany).not.toHaveBeenCalled();
+    });
+
+    it('deve devolver apenas organizações ativas existentes', async () => {
+      prisma.organization.findMany.mockResolvedValue([{ id: 'org-a' }]);
+
+      await expect(
+        repository.findExistingActiveOrganizationIds(['org-a', 'org-b']),
+      ).resolves.toEqual(['org-a']);
+      expect(prisma.organization.findMany).toHaveBeenCalledWith({
+        where: {
+          id: { in: ['org-a', 'org-b'] },
+          isActive: true,
+          isDeleted: false,
+        },
+        select: { id: true },
+      });
+    });
+
+    it('deve lançar BadRequest quando a consulta falhar', async () => {
+      prisma.organization.findMany.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.findExistingActiveOrganizationIds(['org-a']),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 
@@ -875,7 +993,6 @@ describe('UserRepository', () => {
         data: {
           name: dto.name,
           email: dto.email,
-          password: dto.password,
           isActive: dto.isActive,
         },
       });

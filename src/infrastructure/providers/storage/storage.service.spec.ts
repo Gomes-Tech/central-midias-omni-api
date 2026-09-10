@@ -1,3 +1,4 @@
+import { promises as fsp } from 'node:fs';
 import type { StorageProvider } from './storage-provider';
 import { StorageService } from './storage.service';
 
@@ -71,5 +72,46 @@ describe('StorageService', () => {
       'file.pdf',
     );
     expect(storageProvider.deleteFile).toHaveBeenCalledWith([uploaded.path]);
+  });
+
+  it('deve remover arquivo temporário após upload bem-sucedido', async () => {
+    const service = new StorageService(storageProvider);
+    const unlinkSpy = jest.spyOn(fsp, 'unlink').mockResolvedValue(undefined);
+    storageProvider.uploadFile.mockResolvedValue({
+      id: 'id',
+      path: 'materials/id.mp4',
+      fullPath: 's3://bucket/materials/id.mp4',
+      publicUrl: 'https://public.test/materials/id.mp4',
+    });
+
+    await service.uploadFile({
+      originalname: 'video.mp4',
+      mimetype: 'video/mp4',
+      size: 10,
+      path: '/tmp/omni-material-uploads/video.mp4',
+    });
+
+    expect(unlinkSpy).toHaveBeenCalledWith(
+      '/tmp/omni-material-uploads/video.mp4',
+    );
+  });
+
+  it('deve remover arquivo temporário mesmo quando o provider falhar', async () => {
+    const service = new StorageService(storageProvider);
+    const unlinkSpy = jest.spyOn(fsp, 'unlink').mockResolvedValue(undefined);
+    storageProvider.uploadFile.mockRejectedValue(new Error('s3'));
+
+    await expect(
+      service.uploadFile({
+        originalname: 'video.mp4',
+        mimetype: 'video/mp4',
+        size: 10,
+        path: '/tmp/omni-material-uploads/video.mp4',
+      }),
+    ).rejects.toThrow('s3');
+
+    expect(unlinkSpy).toHaveBeenCalledWith(
+      '/tmp/omni-material-uploads/video.mp4',
+    );
   });
 });

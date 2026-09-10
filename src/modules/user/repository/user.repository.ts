@@ -9,8 +9,8 @@ import {
   CreateGlobalUserDTO,
   CreateUserDTO,
   FindAllUsersFiltersDTO,
-  UpdateUserDTO,
   UserManagerAssignmentDTO,
+  UserUpdateInput,
 } from '../dto';
 import { ListUser, UserById } from '../entities';
 import { syncManagerAssignments } from '../helpers/sync-manager-assignments';
@@ -205,12 +205,22 @@ export class UserRepository {
     }
   }
 
-  async findById(id: string): Promise<UserById | null> {
+  async findById(
+    id: string,
+    organizationId?: string,
+  ): Promise<UserById | null> {
     try {
-      const user = await this.prisma.user.findFirstOrThrow({
+      const user = await this.prisma.user.findFirst({
         where: {
           id,
           isDeleted: false,
+          ...(organizationId && {
+            members: {
+              some: {
+                organizationId,
+              },
+            },
+          }),
         },
         select: {
           id: true,
@@ -263,6 +273,7 @@ export class UserRepository {
       void this.logger.error('UserRepository.findById falhou', {
         error: String(error),
         id,
+        organizationId,
       });
 
       throw new BadRequestException('Erro ao buscar usuário por id');
@@ -620,9 +631,87 @@ export class UserRepository {
     }
   }
 
+  async hasPlatformAdminRole(userId: string): Promise<boolean> {
+    try {
+      const user = await this.prisma.user.findFirst({
+        where: {
+          id: userId,
+          isDeleted: false,
+          isActive: true,
+          globalRole: {
+            name: 'ADMIN',
+            deletedAt: null,
+          },
+        },
+        select: { id: true },
+      });
+
+      return Boolean(user);
+    } catch (error) {
+      void this.logger.error('UserRepository.hasPlatformAdminRole falhou', {
+        error: String(error),
+        userId,
+      });
+
+      return false;
+    }
+  }
+
+  async findActiveMembershipOrganizationIds(userId: string): Promise<string[]> {
+    try {
+      const members = await this.prisma.member.findMany({
+        where: {
+          userId,
+          organization: { isActive: true, isDeleted: false },
+        },
+        select: { organizationId: true },
+      });
+
+      return members.map((member) => member.organizationId);
+    } catch (error) {
+      void this.logger.error(
+        'UserRepository.findActiveMembershipOrganizationIds falhou',
+        {
+          error: String(error),
+          userId,
+        },
+      );
+
+      throw new BadRequestException('Erro ao validar organizações');
+    }
+  }
+
+  async findExistingActiveOrganizationIds(ids: string[]): Promise<string[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    try {
+      const organizations = await this.prisma.organization.findMany({
+        where: {
+          id: { in: ids },
+          isActive: true,
+          isDeleted: false,
+        },
+        select: { id: true },
+      });
+
+      return organizations.map((organization) => organization.id);
+    } catch (error) {
+      void this.logger.error(
+        'UserRepository.findExistingActiveOrganizationIds falhou',
+        {
+          error: String(error),
+        },
+      );
+
+      throw new BadRequestException('Erro ao validar organizações');
+    }
+  }
+
   async update(
     id: string,
-    data: UpdateUserDTO,
+    data: UserUpdateInput,
     userId: string,
     organizationId?: string,
   ): Promise<void> {

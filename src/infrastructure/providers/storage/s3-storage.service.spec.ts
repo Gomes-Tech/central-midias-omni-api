@@ -10,10 +10,21 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { Readable } from 'node:stream';
 import { S3StorageService } from './s3-storage.service';
+import { resolveUploadBody } from './upload-body';
 
 jest.mock('@aws-sdk/client-s3');
 jest.mock('@aws-sdk/s3-request-presigner');
+jest.mock('./upload-body', () => {
+  const actual = jest.requireActual('./upload-body');
+  return {
+    ...actual,
+    resolveUploadBody: jest.fn((file: unknown) =>
+      actual.resolveUploadBody(file),
+    ),
+  };
+});
 
 describe('S3StorageService', () => {
   const send = jest.fn();
@@ -96,6 +107,30 @@ describe('S3StorageService', () => {
     );
     expect(result.path).toContain('organizations/');
     expect(send).toHaveBeenCalledWith(expect.any(PutObjectCommand));
+  });
+
+  it('uploadFile deve enviar stream e preservar mimetype quando houver path', async () => {
+    send.mockResolvedValue({});
+    const stream = Readable.from(['mp4']);
+    jest.mocked(resolveUploadBody).mockReturnValueOnce(stream);
+    const service = new S3StorageService();
+    const file = {
+      originalname: 'video.mp4',
+      mimetype: 'video/mp4',
+      size: 300 * 1024 * 1024,
+      path: '/tmp/omni-material-uploads/video.mp4',
+    };
+
+    await service.uploadFile(file, 'materials');
+
+    expect(resolveUploadBody).toHaveBeenCalledWith(file);
+    expect(PutObjectCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        Body: stream,
+        ContentType: 'video/mp4',
+        ContentLength: 300 * 1024 * 1024,
+      }),
+    );
   });
 
   it('uploadFile deve rejeitar tipo não permitido', async () => {

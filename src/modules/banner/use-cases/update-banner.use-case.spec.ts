@@ -28,7 +28,7 @@ describe('UpdateBannerUseCase', () => {
 
     storageService = {
       uploadFile: jest.fn(),
-      deleteFile: jest.fn(),
+      deleteFile: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<StorageService>;
 
     useCase = new UpdateBannerUseCase(
@@ -187,12 +187,14 @@ describe('UpdateBannerUseCase', () => {
       files.desktopImage,
       'banners',
     );
-    expect(storageService.deleteFile).toHaveBeenNthCalledWith(1, [
+    expect(storageService.deleteFile).toHaveBeenCalledTimes(1);
+    expect(storageService.deleteFile).toHaveBeenCalledWith([
       'banners/mobile/banner-old-mobile.png',
-    ]);
-    expect(storageService.deleteFile).toHaveBeenNthCalledWith(2, [
       'banners/banner-old-desktop.png',
     ]);
+    expect(bannerRepository.update.mock.invocationCallOrder[0]).toBeLessThan(
+      storageService.deleteFile.mock.invocationCallOrder[0],
+    );
     expect(bannerRepository.update).toHaveBeenCalledWith(
       'banner-id',
       'organization-id',
@@ -246,6 +248,9 @@ describe('UpdateBannerUseCase', () => {
     expect(storageService.deleteFile).toHaveBeenCalledWith([
       'banners/mobile/banner-old-mobile.png',
     ]);
+    expect(bannerRepository.update.mock.invocationCallOrder[0]).toBeLessThan(
+      storageService.deleteFile.mock.invocationCallOrder[0],
+    );
     expect(bannerRepository.update).toHaveBeenCalledWith(
       'banner-id',
       'organization-id',
@@ -298,6 +303,9 @@ describe('UpdateBannerUseCase', () => {
     expect(storageService.deleteFile).toHaveBeenCalledWith([
       'banners/banner-old-desktop.png',
     ]);
+    expect(bannerRepository.update.mock.invocationCallOrder[0]).toBeLessThan(
+      storageService.deleteFile.mock.invocationCallOrder[0],
+    );
     expect(bannerRepository.update).toHaveBeenCalledWith(
       'banner-id',
       'organization-id',
@@ -348,8 +356,7 @@ describe('UpdateBannerUseCase', () => {
     expect(bannerRepository.update).not.toHaveBeenCalled();
   });
 
-  it('deve propagar erro quando storageService.deleteFile falhar', async () => {
-    const error = new Error('Erro ao remover arquivo anterior');
+  it('deve concluir o update mesmo quando a remoção do arquivo antigo falhar', async () => {
     const files = {
       mobileImage: makeBannerFile({ originalname: 'banner-mobile.png' }),
       desktopImage: undefined as unknown as Express.Multer.File,
@@ -362,10 +369,14 @@ describe('UpdateBannerUseCase', () => {
     );
     storageService.uploadFile.mockResolvedValue(
       makeStorageFile({
+        path: 'banners/banner-new-mobile.png',
         publicUrl: '/storage/banners/banner-new-mobile.png',
       }),
     );
-    storageService.deleteFile.mockRejectedValue(error);
+    storageService.deleteFile.mockRejectedValue(
+      new Error('Erro ao remover arquivo anterior'),
+    );
+    bannerRepository.update.mockResolvedValue();
 
     await expect(
       useCase.execute(
@@ -375,9 +386,12 @@ describe('UpdateBannerUseCase', () => {
         'user-id',
         files,
       ),
-    ).rejects.toBe(error);
+    ).resolves.toBeUndefined();
 
-    expect(bannerRepository.update).not.toHaveBeenCalled();
+    expect(bannerRepository.update).toHaveBeenCalled();
+    expect(storageService.deleteFile).toHaveBeenCalledWith([
+      'banners/mobile/banner-old-mobile.png',
+    ]);
   });
 
   it('deve usar datas do banner quando update não enviar initialDate/finishDate', async () => {
@@ -544,6 +558,9 @@ describe('UpdateBannerUseCase', () => {
     expect(storageService.deleteFile).toHaveBeenCalledWith([
       'banners/raw-desktop.png',
     ]);
+    expect(bannerRepository.update.mock.invocationCallOrder[0]).toBeLessThan(
+      storageService.deleteFile.mock.invocationCallOrder[0],
+    );
     expect(bannerRepository.update).toHaveBeenCalledWith(
       'banner-id',
       'organization-id',
@@ -598,5 +615,41 @@ describe('UpdateBannerUseCase', () => {
         emptyUpdateBannerFiles,
       ),
     ).rejects.toBe(error);
+  });
+
+  it('não deve apagar o arquivo antigo quando o update na BD falhar', async () => {
+    const error = new Error('Erro ao atualizar banner');
+    const files = {
+      mobileImage: makeBannerFile({ originalname: 'banner-mobile.png' }),
+      desktopImage: undefined as unknown as Express.Multer.File,
+    };
+
+    getBannerUseCase.execute.mockResolvedValue(
+      makeBanner({
+        mobileImageKey: '/storage/banners/mobile/banner-old-mobile.png',
+      }),
+    );
+    storageService.uploadFile.mockResolvedValue(
+      makeStorageFile({ path: 'banners/banner-new-mobile.png' }),
+    );
+    bannerRepository.update.mockRejectedValue(error);
+    storageService.deleteFile.mockResolvedValue();
+
+    await expect(
+      useCase.execute(
+        'banner-id',
+        'organization-id',
+        makeUpdateBannerDTO(),
+        'user-id',
+        files,
+      ),
+    ).rejects.toBe(error);
+
+    expect(storageService.deleteFile).toHaveBeenCalledWith([
+      'banners/banner-new-mobile.png',
+    ]);
+    expect(storageService.deleteFile).not.toHaveBeenCalledWith([
+      'banners/mobile/banner-old-mobile.png',
+    ]);
   });
 });

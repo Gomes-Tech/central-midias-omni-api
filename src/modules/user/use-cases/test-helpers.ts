@@ -92,7 +92,6 @@ export function makeUpdateUserDTO(
   return {
     name: 'Jane Doe',
     email: 'jane@doe.com',
-    password: 'NewStrongPass123',
     isActive: false,
     organizationIds: ['organization-2'],
     managerAssignments: [

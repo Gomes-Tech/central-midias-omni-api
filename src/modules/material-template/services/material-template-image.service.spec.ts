@@ -1,4 +1,13 @@
+import { readFileSync } from 'node:fs';
 import { MaterialTemplateImageService } from './material-template-image.service';
+
+jest.mock('node:fs', () => {
+  const actual = jest.requireActual('node:fs');
+  return {
+    ...actual,
+    readFileSync: jest.fn(),
+  };
+});
 
 function file(buffer: Buffer, overrides: Partial<Express.Multer.File> = {}) {
   return {
@@ -22,6 +31,10 @@ function png(width: number, height: number) {
 
 describe('MaterialTemplateImageService', () => {
   const service = new MaterialTemplateImageService();
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 
   it('detecta PNG pelo conteúdo e retorna dimensões naturais', () => {
     expect(service.validate(file(png(1920, 1080)))).toEqual({
@@ -58,5 +71,24 @@ describe('MaterialTemplateImageService', () => {
     expect(() =>
       service.validate(file(png(100, 100), { size: 5 * 1024 * 1024 + 1 })),
     ).toThrow('A imagem base deve ter no máximo 5 MB');
+  });
+
+  it('lê a imagem do path quando não houver buffer', () => {
+    const buffer = png(320, 240);
+    jest.mocked(readFileSync).mockReturnValue(buffer);
+
+    expect(
+      service.validate({
+        size: buffer.length,
+        path: '/tmp/omni-material-uploads/base.png',
+      }),
+    ).toEqual({
+      width: 320,
+      height: 240,
+      mimeType: 'image/png',
+    });
+    expect(readFileSync).toHaveBeenCalledWith(
+      '/tmp/omni-material-uploads/base.png',
+    );
   });
 });

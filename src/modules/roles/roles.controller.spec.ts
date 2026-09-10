@@ -1,4 +1,4 @@
-import { PlatformPermissionGuard } from '@common/guards';
+import { PlatformAdminGuard, PlatformPermissionGuard } from '@common/guards';
 import { Test, TestingModule } from '@nestjs/testing';
 import { RolesController } from './roles.controller';
 import {
@@ -87,6 +87,8 @@ describe('RolesController', () => {
       ],
     })
       .overrideGuard(PlatformPermissionGuard)
+      .useValue({ canActivate: jest.fn().mockResolvedValue(true) })
+      .overrideGuard(PlatformAdminGuard)
       .useValue({ canActivate: jest.fn().mockResolvedValue(true) })
       .compile();
 

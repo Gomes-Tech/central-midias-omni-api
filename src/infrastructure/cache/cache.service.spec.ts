@@ -9,7 +9,15 @@ describe('CacheService', () => {
     set: jest.Mock;
     del: jest.Mock;
   };
-  let metrics: jest.Mocked<Pick<MetricsService, 'recordCacheHit' | 'recordCacheMiss' | 'recordCacheSet' | 'recordCacheDelete'>>;
+  let metrics: jest.Mocked<
+    Pick<
+      MetricsService,
+      | 'recordCacheHit'
+      | 'recordCacheMiss'
+      | 'recordCacheSet'
+      | 'recordCacheDelete'
+    >
+  >;
   let circuitBreaker: { execute: jest.Mock };
 
   beforeEach(() => {
@@ -49,6 +57,19 @@ describe('CacheService', () => {
 
     await expect(service.get('k')).resolves.toBeNull();
     expect(metrics.recordCacheMiss).toHaveBeenCalledWith('k');
+  });
+
+  it('get deve retornar null e registrar miss quando o store falhar', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    cacheManager.get.mockRejectedValue(new Error('store down'));
+    const service = new CacheService(
+      cacheManager as never,
+      metrics as unknown as MetricsService,
+    );
+
+    await expect(service.get('k')).resolves.toBeNull();
+    expect(metrics.recordCacheMiss).toHaveBeenCalledWith('k');
+    consoleSpy.mockRestore();
   });
 
   it('get deve retornar null e registrar miss quando JSON.parse falhar', async () => {

@@ -1,4 +1,4 @@
-import { secureCompare } from '@common/utils';
+import { secureCompare, userCanAccessOrganization } from '@common/utils';
 import { JWT_SERVICE } from '@infrastructure/jwt';
 import { PrismaService } from '@infrastructure/prisma';
 import { TokenBlacklistService } from '@infrastructure/security';
@@ -99,6 +99,16 @@ export class NotificationGateway
       });
 
       if (!organization) {
+        client.disconnect();
+        return;
+      }
+
+      const canAccess = await userCanAccessOrganization(
+        this.prisma,
+        payload.id,
+        auth.organizationId,
+      );
+      if (!canAccess) {
         client.disconnect();
         return;
       }

@@ -645,12 +645,12 @@ describe('MemberRepository', () => {
 
     it('deve atualizar o usuário quando campos de usuário forem informados', async () => {
       const memberUpdate = jest.fn().mockResolvedValue({ userId: 'user-1' });
-      const userUpdate = jest.fn().mockResolvedValue({});
+      const userUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
       prisma.$transaction.mockImplementation(
         async (fn: (tx: unknown) => Promise<unknown>) =>
           fn({
             member: { update: memberUpdate },
-            user: { update: userUpdate },
+            user: { updateMany: userUpdateMany },
             userHierarchy: {
               deleteMany: jest.fn(),
               create: jest.fn(),
@@ -671,8 +671,11 @@ describe('MemberRepository', () => {
         'upd-1',
       );
 
-      expect(userUpdate).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
+      expect(userUpdateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'user-1',
+          members: { some: { id: 'm1', organizationId: 'org-1' } },
+        },
         data: {
           name: 'Novo Nome',
           email: 'novo@teste.com',
@@ -684,12 +687,12 @@ describe('MemberRepository', () => {
 
     it('deve converter birthDate e admissionDate para Date no update do user', async () => {
       const memberUpdate = jest.fn().mockResolvedValue({ userId: 'user-1' });
-      const userUpdate = jest.fn().mockResolvedValue({});
+      const userUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
       prisma.$transaction.mockImplementation(
         async (fn: (tx: unknown) => Promise<unknown>) =>
           fn({
             member: { update: memberUpdate },
-            user: { update: userUpdate },
+            user: { updateMany: userUpdateMany },
             userHierarchy: {
               deleteMany: jest.fn(),
               create: jest.fn(),
@@ -707,8 +710,11 @@ describe('MemberRepository', () => {
         'upd-1',
       );
 
-      expect(userUpdate).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
+      expect(userUpdateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'user-1',
+          members: { some: { id: 'm1', organizationId: 'org-1' } },
+        },
         data: {
           birthDate: new Date('1998-05-20'),
           admissionDate: new Date('2015-07-29'),

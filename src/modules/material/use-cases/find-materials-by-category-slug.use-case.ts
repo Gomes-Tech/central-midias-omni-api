@@ -1,4 +1,6 @@
+import { ForbiddenException } from '@common/filters';
 import { StorageService } from '@infrastructure/providers';
+import { CategoryRepository } from '@modules/category/repository';
 import { Inject, Injectable } from '@nestjs/common';
 import { PaginatedResponse } from '../../../types';
 import { FindMaterialsByCategorySlugFiltersDTO } from '../dto';
@@ -10,14 +12,36 @@ export class FindMaterialsByCategorySlugUseCase {
   constructor(
     @Inject('MaterialRepository')
     private readonly materialRepository: MaterialRepository,
+    @Inject('CategoryRepository')
+    private readonly categoryRepository: CategoryRepository,
     private readonly storageService: StorageService,
   ) {}
 
   async execute(
     organizationId: string,
     slugPath: string,
+    userId: string,
     filters: FindMaterialsByCategorySlugFiltersDTO = {},
   ): Promise<PaginatedResponse<MaterialByCategorySlugItem>> {
+    const category = await this.categoryRepository.findBySlugPath(
+      slugPath,
+      organizationId,
+    );
+
+    if (category) {
+      const hasAccess = await this.materialRepository.userHasCategoryAccess(
+        organizationId,
+        category.id,
+        userId,
+      );
+
+      if (!hasAccess) {
+        throw new ForbiddenException(
+          'Você não possui acesso ao conteúdo desta categoria',
+        );
+      }
+    }
+
     const result = await this.materialRepository.findByCategorySlugPath(
       organizationId,
       slugPath,

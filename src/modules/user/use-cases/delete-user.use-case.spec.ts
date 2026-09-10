@@ -23,8 +23,8 @@ describe('DeleteUserUseCase', () => {
   it('deve validar o usuário antes de excluir', async () => {
     userRepository.delete.mockResolvedValue(undefined);
 
-    await expect(useCase.execute('user-id')).resolves.toBeUndefined();
-    expect(findUserByIdUseCase.execute).toHaveBeenCalledWith('user-id');
+    await expect(useCase.execute('user-id', 'org-1')).resolves.toBeUndefined();
+    expect(findUserByIdUseCase.execute).toHaveBeenCalledWith('user-id', 'org-1');
     expect(userRepository.delete).toHaveBeenCalledWith('user-id');
   });
 });

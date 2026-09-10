@@ -4,7 +4,11 @@ import { CryptographyService } from '@infrastructure/criptography';
 import { JWT_SERVICE } from '@infrastructure/jwt';
 import { SecurityLoggerService } from '@infrastructure/security';
 import { FindUserBackofficeAccessUseCase } from '@modules/roles';
-import { FindUserByEmailUseCase, RecordUserPlatformLoginUseCase, User } from '@modules/user';
+import {
+  FindUserByEmailUseCase,
+  RecordUserPlatformLoginUseCase,
+  User,
+} from '@modules/user';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
@@ -40,12 +44,14 @@ export class SignInUseCase {
         )
       : await this.cryptographyService.compare(dto.password, dummyHash);
 
-    if (!userExisting || !passwordMatch) {
+    if (!userExisting || !passwordMatch || !userExisting.isActive) {
       this.securityLogger.logFailedLogin(
         dto.email,
         ip || 'unknown',
         userAgent,
-        'Credenciais inválidas',
+        userExisting && passwordMatch && !userExisting.isActive
+          ? 'Conta inativa'
+          : 'Credenciais inválidas',
       );
       // Sempre retornar a mesma mensagem, não revelando se email existe
       throw new LoginException('login ou senha inválidos!');

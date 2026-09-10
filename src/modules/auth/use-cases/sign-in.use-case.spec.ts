@@ -81,11 +81,7 @@ describe('SignInUseCase', () => {
       .mockReturnValueOnce('access-jwt')
       .mockReturnValueOnce('refresh-jwt');
 
-    const result = await useCase.execute(
-      dto,
-      '192.168.1.1',
-      'jest-agent',
-    );
+    const result = await useCase.execute(dto, '192.168.1.1', 'jest-agent');
 
     expect(result).toEqual({
       accessToken: 'access-jwt',
@@ -104,7 +100,9 @@ describe('SignInUseCase', () => {
     );
     expect(securityLogger.logFailedLogin).not.toHaveBeenCalled();
     expect(jwtService.sign).toHaveBeenCalledTimes(2);
-    expect(findUserBackofficeAccessUseCase.execute).toHaveBeenCalledWith(user.id);
+    expect(findUserBackofficeAccessUseCase.execute).toHaveBeenCalledWith(
+      user.id,
+    );
     expect(recordUserPlatformLoginUseCase.execute).not.toHaveBeenCalled();
   });
 
@@ -214,6 +212,26 @@ describe('SignInUseCase', () => {
       dto.password,
       expect.stringContaining('$2b$10$dummy'),
     );
+    expect(findUserBackofficeAccessUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('deve lançar LoginException quando a conta estiver inativa', async () => {
+    const dto = makeLoginDTO();
+    const user = makeUser({ email: dto.email, isActive: false });
+
+    findUserByEmailUseCase.execute.mockResolvedValue(user);
+    cryptographyService.compare.mockResolvedValue(true);
+
+    await expect(useCase.execute(dto)).rejects.toBeInstanceOf(LoginException);
+
+    expect(securityLogger.logFailedLogin).toHaveBeenCalledWith(
+      dto.email,
+      'unknown',
+      undefined,
+      'Conta inativa',
+    );
+    expect(securityLogger.logSuccessfulLogin).not.toHaveBeenCalled();
+    expect(jwtService.sign).not.toHaveBeenCalled();
     expect(findUserBackofficeAccessUseCase.execute).not.toHaveBeenCalled();
   });
 });

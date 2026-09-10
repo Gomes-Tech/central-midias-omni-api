@@ -21,6 +21,7 @@ import type {
   PrivateFileWrite,
   StorageProvider,
 } from './storage-provider';
+import { resolveUploadBody, resolveUploadMimeType } from './upload-body';
 
 @Injectable()
 export class SupabaseService implements StorageProvider {
@@ -81,7 +82,7 @@ export class SupabaseService implements StorageProvider {
     this.assertAllowedUpload(file);
 
     const originalName = file.originalname.trim() || 'arquivo';
-    const mimeType = file.mimetype || 'application/octet-stream';
+    const mimeType = resolveUploadMimeType(file);
 
     const ext = this.extensionDot(originalName);
     const id = randomUUID();
@@ -91,7 +92,7 @@ export class SupabaseService implements StorageProvider {
     try {
       const { error } = await this.supabase.storage
         .from(this.bucket)
-        .upload(path, file.buffer, {
+        .upload(path, resolveUploadBody(file), {
           contentType: mimeType,
           upsert: false,
         });
@@ -191,7 +192,7 @@ export class SupabaseService implements StorageProvider {
     this.assertAllowedUpload(file);
 
     const originalName = file.originalname.trim() || 'arquivo';
-    const mimeType = file.mimetype || 'application/octet-stream';
+    const mimeType = resolveUploadMimeType(file);
     const sizeBytes = Number.isFinite(file.size) ? file.size : 0;
     const fileName = `${randomUUID()}${this.extensionDot(originalName)}`;
     const path = this.safeRelativePath(
@@ -202,7 +203,7 @@ export class SupabaseService implements StorageProvider {
     try {
       const { error } = await this.supabase.storage
         .from(this.bucket)
-        .upload(path, file.buffer, {
+        .upload(path, resolveUploadBody(file), {
           contentType: mimeType,
           upsert: false,
         });

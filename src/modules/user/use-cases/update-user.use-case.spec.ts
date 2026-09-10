@@ -42,6 +42,7 @@ describe('UpdateUserUseCase', () => {
       update: jest.fn(),
       findByTaxIdentifier: jest.fn().mockResolvedValue(null),
       assertValidManagerAssignments: jest.fn().mockResolvedValue(undefined),
+      hasPlatformAdminRole: jest.fn().mockResolvedValue(false),
     } as unknown as jest.Mocked<UserRepository>;
 
     findUserByIdUseCase = {
@@ -80,10 +81,15 @@ describe('UpdateUserUseCase', () => {
     await expect(
       useCase.execute(
         'target-id',
-        makeUpdateUserDTO({ email: 'jane@doe.com', password: undefined }),
+        makeUpdateUserDTO({ email: 'jane@doe.com' }),
         'admin-id',
+        'org-1',
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
+    expect(findUserByIdUseCase.execute).toHaveBeenCalledWith(
+      'target-id',
+      'org-1',
+    );
   });
 
   it('deve seguir quando busca por novo email falhar (email disponível)', async () => {
@@ -97,16 +103,16 @@ describe('UpdateUserUseCase', () => {
         'target-id',
         makeUpdateUserDTO({
           email: 'brand-new@test.com',
-          password: undefined,
         }),
         'admin-id',
+        'org-1',
       ),
     ).resolves.toBeUndefined();
 
     expect(userRepository.update).toHaveBeenCalled();
   });
 
-  it('deve impedir reutilização da senha anterior', async () => {
+  it('deve impedir reutilização da senha anterior no first-access', async () => {
     findUserByIdUseCase.execute.mockResolvedValue(
       makeUserById({ id: 'target-id' }),
     );
@@ -115,10 +121,7 @@ describe('UpdateUserUseCase', () => {
     await expect(
       useCase.execute(
         'target-id',
-        makeUpdateUserDTO({
-          email: undefined,
-          password: 'NewStrongPass123',
-        }),
+        { password: 'NewStrongPass123', isFirstAccess: false },
         'admin-id',
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
@@ -126,40 +129,69 @@ describe('UpdateUserUseCase', () => {
     expect(cryptographyService.hash).not.toHaveBeenCalled();
   });
 
-  it('deve permitir que admin atualize todos os campos e criptografe a nova senha', async () => {
-    const dto = makeUpdateUserDTO();
-    const plainPassword = dto.password;
-
+  it('deve ignorar password e isFirstAccess no PATCH org-scoped', async () => {
     findUserByIdUseCase.execute.mockResolvedValue(
       makeUserById({ id: 'target-id' }),
     );
-    findUserByEmailUseCase.execute.mockResolvedValue(null as never);
+    userRepository.update.mockResolvedValue();
+
+    await useCase.execute(
+      'target-id',
+      {
+        name: 'Jane Doe',
+        password: 'NewStrongPass123',
+        isFirstAccess: false,
+      },
+      'editor-id',
+      'org-1',
+    );
+
+    expect(cryptographyService.compare).not.toHaveBeenCalled();
+    expect(cryptographyService.hash).not.toHaveBeenCalled();
+    expect(userRepository.update).toHaveBeenCalledWith(
+      'target-id',
+      { name: 'Jane Doe' },
+      'editor-id',
+      'org-1',
+    );
+  });
+
+  it('deve criptografar a nova senha no first-access', async () => {
+    findUserByIdUseCase.execute.mockResolvedValue(
+      makeUserById({ id: 'target-id' }),
+    );
     cryptographyService.compare.mockResolvedValue(false);
     cryptographyService.hash.mockResolvedValue('hashed-new-password');
     userRepository.update.mockResolvedValue();
 
-    const result = await useCase.execute('target-id', dto, 'admin-id');
+    await useCase.execute(
+      'target-id',
+      { isFirstAccess: false, password: 'NewStrongPass123' },
+      'target-id',
+    );
 
+    expect(findUserByIdUseCase.execute).toHaveBeenCalledWith(
+      'target-id',
+      undefined,
+    );
     expect(cryptographyService.compare).toHaveBeenCalledWith(
-      plainPassword,
+      'NewStrongPass123',
       'hashed-password',
     );
     expect(userRepository.update).toHaveBeenCalledWith(
       'target-id',
       {
-        ...dto,
+        isFirstAccess: false,
         password: 'hashed-new-password',
       },
-      'admin-id',
+      'target-id',
       undefined,
     );
-    expect(result).toBeUndefined();
   });
 
   it('deve permitir email igual ao do próprio usuário', async () => {
     const dto = makeUpdateUserDTO({
       email: 'john@doe.com',
-      password: undefined,
     });
 
     findUserByIdUseCase.execute.mockResolvedValue(
@@ -167,7 +199,7 @@ describe('UpdateUserUseCase', () => {
     );
 
     await expect(
-      useCase.execute('target-id', dto, 'admin-id'),
+      useCase.execute('target-id', dto, 'admin-id', 'org-1'),
     ).resolves.toBeUndefined();
 
     expect(findUserByEmailUseCase.execute).not.toHaveBeenCalled();
@@ -175,14 +207,13 @@ describe('UpdateUserUseCase', () => {
       'target-id',
       dto,
       'admin-id',
-      undefined,
+      'org-1',
     );
   });
 
   it('deve permitir manter o mesmo documento do usuário', async () => {
     const dto = makeUpdateUserDTO({
       email: undefined,
-      password: undefined,
       taxIdentifier: '12345678901',
     });
 
@@ -191,7 +222,7 @@ describe('UpdateUserUseCase', () => {
     );
 
     await expect(
-      useCase.execute('target-id', dto, 'admin-id'),
+      useCase.execute('target-id', dto, 'admin-id', 'org-1'),
     ).resolves.toBeUndefined();
 
     expect(userRepository.findByTaxIdentifier).not.toHaveBeenCalled();
@@ -211,32 +242,62 @@ describe('UpdateUserUseCase', () => {
         'target-id',
         makeUpdateUserDTO({
           email: undefined,
-          password: undefined,
           taxIdentifier: '999',
         }),
         'admin-id',
+        'org-1',
       ),
     ).rejects.toMatchObject({
       message: 'Já existe um usuário com este documento',
     });
   });
 
-  it('deve validar globalRoleId antes de atualizar', async () => {
+  it('deve ignorar globalRoleId quando o actor não for ADMIN de plataforma', async () => {
     const dto = makeUpdateUserDTO({
       email: undefined,
-      password: undefined,
+      globalRoleId: 'global-role-id',
+    });
+    const { globalRoleId: _ignored, ...expected } = dto;
+    findUserByIdUseCase.execute.mockResolvedValue(
+      makeUserById({ id: 'target-id' }),
+    );
+    userRepository.hasPlatformAdminRole.mockResolvedValue(false);
+
+    await useCase.execute('target-id', dto, 'editor-id', 'org-1');
+
+    expect(findGlobalRoleByIdUseCase.execute).not.toHaveBeenCalled();
+    expect(userRepository.update).toHaveBeenCalledWith(
+      'target-id',
+      expected,
+      'editor-id',
+      'org-1',
+    );
+  });
+
+  it('deve validar globalRoleId quando o actor for ADMIN de plataforma', async () => {
+    const dto = makeUpdateUserDTO({
+      email: undefined,
       globalRoleId: 'global-role-id',
     });
     findUserByIdUseCase.execute.mockResolvedValue(
       makeUserById({ id: 'target-id' }),
     );
+    userRepository.hasPlatformAdminRole.mockResolvedValue(true);
     findGlobalRoleByIdUseCase.execute.mockResolvedValue({} as never);
 
-    await useCase.execute('target-id', dto, 'admin-id');
+    await useCase.execute('target-id', dto, 'admin-id', 'org-1');
 
+    expect(userRepository.hasPlatformAdminRole).toHaveBeenCalledWith(
+      'admin-id',
+    );
     expect(findGlobalRoleByIdUseCase.execute).toHaveBeenCalledWith(
       'global-role-id',
     );
-    expect(userRepository.update).toHaveBeenCalled();
+    expect(userRepository.update).toHaveBeenCalledWith(
+      'target-id',
+      dto,
+      'admin-id',
+      'org-1',
+    );
   });
 });

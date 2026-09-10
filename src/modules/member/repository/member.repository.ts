@@ -557,9 +557,15 @@ export class MemberRepository {
         });
 
         if (Object.keys(updateUser).length > 0) {
-          await tx.user.update({
+          await tx.user.updateMany({
             where: {
               id: member.userId,
+              members: {
+                some: {
+                  id,
+                  organizationId,
+                },
+              },
             },
             data: updateUser,
           });

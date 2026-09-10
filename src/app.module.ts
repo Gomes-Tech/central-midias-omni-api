@@ -1,5 +1,5 @@
 import { HttpExceptionFilter } from '@common/filters';
-import { AuthGuard, CategoryPermissionGuard } from '@common/guards';
+import { AuthGuard, CategoryPermissionGuard, OrganizationMembershipGuard } from '@common/guards';
 import {
   FileSizeValidationInterceptor,
   FileTypeValidationInterceptor,
@@ -126,6 +126,7 @@ import { AppService } from './app.service';
       useClass: FileSizeValidationInterceptor,
     },
     { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useClass: OrganizationMembershipGuard },
   ],
 })
 export class AppModule implements NestModule {

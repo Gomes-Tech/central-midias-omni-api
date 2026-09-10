@@ -135,9 +135,9 @@ describe('UserController', () => {
       };
       findUserByIdUseCase.execute.mockResolvedValue(user);
 
-      const result = await controller.findById('u1');
+      const result = await controller.findById('u1', 'org-1');
 
-      expect(findUserByIdUseCase.execute).toHaveBeenCalledWith('u1');
+      expect(findUserByIdUseCase.execute).toHaveBeenCalledWith('u1', 'org-1');
       expect(result).not.toHaveProperty('password');
       expect(user).not.toHaveProperty('password');
     });
@@ -204,9 +204,9 @@ describe('UserController', () => {
     it('deve delegar ao DeleteUserUseCase', async () => {
       deleteUserUseCase.execute.mockResolvedValue(undefined);
 
-      await controller.delete('user-1');
+      await controller.delete('user-1', 'org-1');
 
-      expect(deleteUserUseCase.execute).toHaveBeenCalledWith('user-1');
+      expect(deleteUserUseCase.execute).toHaveBeenCalledWith('user-1', 'org-1');
     });
   });
 });
