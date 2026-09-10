@@ -561,7 +561,7 @@ Configuração Jest no `package.json`:
 
 ## Pontos Críticos e Débitos Técnicos
 
-- O repositório contém `.env` com segredos reais e uma chave `.pem`. Remover do versionamento, rotacionar credenciais e manter apenas `.env.example`.
+- Não versionar `.env` com segredos reais; manter apenas `.env.example`. A chave `.pem` obsoleta (`minha-chave-nova.pem`) já foi removida do tree (`9f5fb15`).
 - O README anterior era o template padrão do Nest e foi substituído por esta documentação.
 - `StorageService.deleteFile` não apaga arquivos no provider ativo; apenas loga os paths.
 - `CategoryRepository.findTreeBySlug` usa raw SQL com nomes `"Category"`, `"Role"`, `"Member"` e campos camelCase, mas o Prisma schema mapeia tabelas para `categories`, `roles`, `members` e campos snake_case. Esse endpoint tende a falhar no PostgreSQL real.

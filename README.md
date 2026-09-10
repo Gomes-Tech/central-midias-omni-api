@@ -733,7 +733,7 @@ SUPABASE_ASSETS_BUCKET           # opcional; recua para SUPABASE_BUCKET e deve s
 SUPABASE_SIGNED_URL_EXPIRES_SECONDS
 ```
 
-> Não há `.env.example` versionado de forma completa no repositório (há `.env` local). **Não commitar segredos.** Existe também chave `.pem` no root — tratar como risco.
+> Não há `.env.example` versionado de forma completa no repositório (há `.env` local). **Não commitar segredos.** A chave `.pem` obsoleta (`minha-chave-nova.pem`) foi removida do tree em `9f5fb15`; `*.pem` / `*.key` / `*.pfx` / `*.p12` estão no `.gitignore`.
 
 ---
 
@@ -908,7 +908,7 @@ Documentados a partir do código real (não inventados):
 6. **`POST /auth/first-access` exige org middleware** (não está nas exclusões), apesar de ser fluxo de senha.
 7. **Possível e-mail `welcome` duplicado** em `CreateMemberWithUser` (chama create user + envia welcome de novo).
 8. **Healthcheck Docker** testa `:4000` enquanto Dockerfile `EXPOSE 4100` — risco de mismatch conforme `PORT`.
-9. **Segredos no repositório**: `.env`, `.pem` — risco alto; rotacionar e remover do versionamento.
+9. **Segredos no repositório**: não versionar `.env`. A chave `.pem` obsoleta do root já foi removida do tree (`9f5fb15`).
 10. **Sentry não efetivo**; integração permanece desabilitada.
 11. **`UserHierarchy` / `managerAssignments`**: schema existe; persistência completa deve ser validada antes de assumir suporte total.
 12. Entrypoint `.docker/entrypoint.dev.sh` pode referenciar scripts inexistentes no `package.json` (validar antes de usar).
