@@ -4,9 +4,80 @@ import {
   MaterialTemplateDocumentV2,
 } from '../entities';
 import { MaterialTemplateDocumentService } from './material-template-document.service';
+import {
+  placeholder,
+  placeholderDocument,
+} from '../../../test-utils/print-image-fixtures';
 
 describe('MaterialTemplateDocumentService', () => {
   const service = new MaterialTemplateDocumentService();
+  it('valida marcadores V2 sem dependência de asset e sem texto', () => {
+    expect(service.validate(placeholderDocument)).toEqual(placeholderDocument);
+    expect(service.getAssetIds(placeholderDocument)).toEqual([]);
+    expect(service.hasEditableContent(placeholderDocument)).toBe(true);
+    expect(
+      service.hasEditableContent({
+        ...placeholderDocument,
+        layers: [{ ...placeholder, isVisible: false }],
+      }),
+    ).toBe(false);
+  });
+
+  it.each([
+    { width: 0 },
+    { height: -1 },
+    { width: Infinity },
+    { x: NaN },
+    { editableProperties: [] },
+    { editableProperties: ['image', 'image'] },
+    { editableProperties: ['position'] },
+    { assetId: 'asset' },
+    { url: 'https://example.com/photo.png' },
+    { buffer: 'photo' },
+    { src: 'data:image/png;base64,photo' },
+  ])('rejeita marcador inválido: %j', (patch) => {
+    expect(() =>
+      service.validate({
+        ...placeholderDocument,
+        layers: [{ ...placeholder, ...patch }],
+      }),
+    ).toThrow();
+  });
+
+  it('aceita até 20 marcadores e rejeita V1', () => {
+    const layers = Array.from({ length: 20 }, (_, i) => ({
+      ...placeholder,
+      id: `photo-${i}`,
+    }));
+    const value = {
+      ...placeholderDocument,
+      layers,
+      layerOrder: layers.map((layer) => layer.id),
+    };
+    expect(service.validate(value)).toEqual(value);
+    expect(() =>
+      service.validate({
+        ...value,
+        layers: [...layers, { ...placeholder, id: 'extra' }],
+        layerOrder: [...value.layerOrder, 'extra'],
+      }),
+    ).toThrow('20 marcadores');
+    expect(() =>
+      service.validate({ ...placeholderDocument, version: 1 }),
+    ).toThrow('Tipo de camada');
+  });
+
+  it('redimensiona o marcador mantendo a permissão e a rotação', () => {
+    expect(
+      service.scaleForBaseReplacement(placeholderDocument, 2000, 500).layers[0],
+    ).toEqual({
+      ...placeholder,
+      x: 200,
+      y: 50,
+      width: 50,
+      height: 50,
+    });
+  });
   const document: MaterialTemplateDocumentV1 = {
     version: 1,
     canvas: { width: 1080, height: 1080 },

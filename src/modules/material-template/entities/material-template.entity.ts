@@ -83,9 +83,23 @@ export interface MaterialTemplateAssetLayerV2 extends Omit<
   editableProperties: [];
 }
 
+export interface MaterialTemplateImagePlaceholderLayer {
+  id: string;
+  type: 'image-placeholder';
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  isVisible: boolean;
+  editableProperties: ['image'];
+}
+
 export type MaterialTemplateLayerV2 =
   | MaterialTemplateTextLayerV2
-  | MaterialTemplateAssetLayerV2;
+  | MaterialTemplateAssetLayerV2
+  | MaterialTemplateImagePlaceholderLayer;
 
 export interface MaterialTemplateDocumentV2 {
   version: 2;

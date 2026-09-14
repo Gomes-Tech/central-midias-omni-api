@@ -41,9 +41,9 @@ export class PublishMaterialTemplateUseCase {
       throw new BadRequestException('Salve o template antes de publicar');
     }
     const document = this.documentService.validate(template.document);
-    if (!this.documentService.hasEditableText(document)) {
+    if (!this.documentService.hasEditableContent(document)) {
       throw new BadRequestException(
-        'O template precisa possuir ao menos um texto editável',
+        'O template precisa possuir ao menos um texto editável ou marcador de imagem visível',
       );
     }
     const assetIds = this.documentService.getAssetIds(document);

@@ -720,6 +720,31 @@ model PrintExport {
   @@map("print_exports")
 }
 
+// Sem FKs: o rastreio de limpeza deve sobreviver à exclusão da exportação/template.
+model PrintExportInput {
+  id             String   @id @default(uuid())
+  exportId       String   @map("export_id")
+  organizationId String   @map("organization_id")
+  userId         String   @map("user_id")
+  layerId        String   @map("layer_id")
+  storageKey     String   @unique @map("storage_key")
+  checksum       String
+  mimeType       String   @map("mime_type")
+  size           Int
+  width          Int
+  height         Int
+  fitMode        String   @default("cover") @map("fit_mode")
+  positionX      Float    @default(0.5) @map("position_x")
+  positionY      Float    @default(0.5) @map("position_y")
+  zoom           Float    @default(1)
+  expiresAt      DateTime @map("expires_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([exportId])
+  @@index([expiresAt])
+  @@map("print_export_inputs")
+}
+
 model MaterialAcceptance {
   id         String   @id @default(uuid())
   materialId String   @map("material_id")

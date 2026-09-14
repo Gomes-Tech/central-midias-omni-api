@@ -12,6 +12,7 @@ import { PrintExportService } from './services/print-export.service';
 import { PrintPreflightService } from './services/print-preflight.service';
 import { PrintPresetService } from './services/print-preset.service';
 import { PrintRendererService } from './services/print-renderer.service';
+import { PrintImageInputService } from './services/print-image-input.service';
 
 @Module({
   imports: [forwardRef(() => MaterialTemplateModule), MaterialModule],
@@ -29,11 +30,13 @@ import { PrintRendererService } from './services/print-renderer.service';
     PrintDocumentService,
     PrintExportService,
     PrintRendererService,
+    PrintImageInputService,
   ],
   exports: [
     PrintPreflightService,
     PrintRendererService,
     PrintExportService,
+    PrintImageInputService,
   ],
 })
 export class PrintModule {}

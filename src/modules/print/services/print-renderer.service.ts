@@ -17,12 +17,41 @@ import {
   PRINT_FONT_FILES,
   resolvePrintFontFamily,
 } from './print-fonts';
+import {
+  PreparedPrintImage,
+  PrintImageInputService,
+} from './print-image-input.service';
 
 const execFileAsync = promisify(execFile);
 const MM_TO_POINTS = 72 / 25.4;
 const COMMAND_TIMEOUT_MS = 180_000;
 const OUTPUT_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_OUTPUT_SIZE = 250 * 1024 * 1024;
+
+export function getPrintImagePlacement(
+  frameWidth: number,
+  frameHeight: number,
+  image: Pick<
+    PreparedPrintImage,
+    'width' | 'height' | 'fit' | 'positionX' | 'positionY' | 'zoom'
+  >,
+) {
+  const widthScale = frameWidth / Math.max(image.width, 1);
+  const heightScale = frameHeight / Math.max(image.height, 1);
+  const baseScale =
+    image.fit === 'contain'
+      ? Math.min(widthScale, heightScale)
+      : Math.max(widthScale, heightScale);
+  const imageScale = baseScale * image.zoom;
+  const width = image.width * imageScale;
+  const height = image.height * imageScale;
+  return {
+    x: (frameWidth - width) * image.positionX,
+    y: (frameHeight - height) * image.positionY,
+    width,
+    height,
+  };
+}
 
 const RENDERING_INTENTS: Record<
   PrintPresetSnapshot['renderingIntent'],
@@ -39,12 +68,14 @@ export class PrintRendererService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly imageInputs: PrintImageInputService,
   ) {}
 
   async render(
     exportId: string,
     document: MaterialTemplateDocumentV2,
     onProgress: (progress: number) => Promise<void> = async () => undefined,
+    inputIds: string[] = [],
   ) {
     const exportRecord = await this.prisma.printExport.findUnique({
       where: { id: exportId },
@@ -62,6 +93,12 @@ export class PrintRendererService {
     }
     const preset =
       exportRecord.presetSnapshot as unknown as PrintPresetSnapshot;
+    const images = await this.imageInputs.load(
+      exportRecord,
+      document,
+      inputIds,
+    );
+    this.imageInputs.validateDpi(document, [...images.values()], preset);
     const workspace = await fs.mkdtemp(join(tmpdir(), 'print-export-'));
     try {
       const intermediatePath = join(workspace, 'intermediate.pdf');
@@ -99,6 +136,7 @@ export class PrintRendererService {
           height: exportRecord.template.baseFile.height,
         },
         assets,
+        images,
       );
       await fs.writeFile(intermediatePath, intermediate);
       await fs.writeFile(iccPath, iccBuffer);
@@ -158,6 +196,7 @@ export class PrintRendererService {
     baseMimeType: string,
     baseSize: { width: number | null; height: number | null },
     assets: Map<string, { mimeType: string; name: string; buffer: Buffer }>,
+    images: Map<string, PreparedPrintImage> = new Map(),
   ): Promise<Buffer> {
     const bleedWidthMm =
       preset.trimWidthMm + preset.bleedLeftMm + preset.bleedRightMm;
@@ -211,13 +250,10 @@ export class PrintRendererService {
 
     const bleedWidthPt = bleedWidthMm * MM_TO_POINTS;
     const bleedHeightPt = bleedHeightMm * MM_TO_POINTS;
-    pdf
-      .rect(canvasX, canvasY, bleedWidthPt, bleedHeightPt)
-      .fill('#ffffff');
+    pdf.rect(canvasX, canvasY, bleedWidthPt, bleedHeightPt).fill('#ffffff');
 
     const probed = readRasterDimensions(baseBuffer, baseMimeType);
-    const baseWidth =
-      baseSize.width ?? probed?.width ?? document.canvas.width;
+    const baseWidth = baseSize.width ?? probed?.width ?? document.canvas.width;
     const baseHeight =
       baseSize.height ?? probed?.height ?? document.canvas.height;
     const coverScale = Math.max(
@@ -243,6 +279,32 @@ export class PrintRendererService {
     for (const id of document.layerOrder) {
       const layer = layers.get(id);
       if (!layer?.isVisible) continue;
+      if (layer.type === 'image-placeholder') {
+        const image = images.get(layer.id);
+        if (!image) throw new Error(`Marcador ${layer.id}: imagem obrigatória`);
+        const width = layer.width * scaleX;
+        const height = layer.height * scaleY;
+        pdf.save();
+        pdf
+          .translate(
+            canvasX + layer.x * scaleX + width / 2,
+            canvasY + layer.y * scaleY + height / 2,
+          )
+          .rotate(layer.rotation);
+        pdf.rect(-width / 2, -height / 2, width, height).clip();
+        const placement = getPrintImagePlacement(width, height, image);
+        pdf.image(
+          image.buffer,
+          -width / 2 + placement.x,
+          -height / 2 + placement.y,
+          {
+            width: placement.width,
+            height: placement.height,
+          },
+        );
+        pdf.restore();
+        continue;
+      }
       if (layer.type === 'asset') {
         const asset = assets.get(layer.assetId);
         if (!asset) throw new Error(`Asset ausente: ${layer.id}`);
@@ -360,7 +422,7 @@ export class PrintRendererService {
         .replaceAll('\\', '\\\\')
         .replaceAll('(', '\\(')
         .replaceAll(')', '\\)');
-    return `%!PS-Adobe-3.0\n[/_objdef {icc_profile} /type /stream /OBJ pdfmark\n[{icc_profile} << /N 4 >> /PUT pdfmark\n[{icc_profile} (${escape(iccPath)}) /PUTFILE pdfmark\n[/_objdef {OutputIntent_PDFX} /type /dict /OBJ pdfmark\n[{OutputIntent_PDFX} << /Type /OutputIntent /S /GTS_PDFX /OutputCondition (${escape(preset.colorProfile.name)}) /OutputConditionIdentifier (${escape(preset.colorProfile.outputConditionIdentifier)}) /RegistryName (http://www.color.org) /DestOutputProfile {icc_profile} >> /PUT pdfmark\n[{Catalog} << /OutputIntents [{OutputIntent_PDFX}] >> /PUT pdfmark\n[ /GTS_PDFXVersion (PDF/X-1a:2001) /GTS_PDFXConformance (PDF/X-1a:2001) /DOCINFO pdfmark\n`;
+    return `%!PS-Adobe-3.0\n[/_objdef {icc_profile} /type /stream /OBJ pdfmark\n[{icc_profile} << /N 4 >> /PUT pdfmark\n[{icc_profile} (${escape(iccPath)}) (r) file /PUT pdfmark\n[/_objdef {OutputIntent_PDFX} /type /dict /OBJ pdfmark\n[{OutputIntent_PDFX} << /Type /OutputIntent /S /GTS_PDFX /OutputCondition (${escape(preset.colorProfile.name)}) /OutputConditionIdentifier (${escape(preset.colorProfile.outputConditionIdentifier)}) /RegistryName (http://www.color.org) /DestOutputProfile {icc_profile} >> /PUT pdfmark\n[{Catalog} << /OutputIntents [{OutputIntent_PDFX}] >> /PUT pdfmark\n[ /GTS_PDFXVersion (PDF/X-1a:2001) /GTS_PDFXConformance (PDF/X-1a:2001) /DOCINFO pdfmark\n`;
   }
 
   private async validateOutput(path: string) {
@@ -379,6 +441,32 @@ export class PrintRendererService {
       !inspected.includes('/DestOutputProfile')
     ) {
       throw new Error('PDF sem metadados PDF/X ou output intent');
+    }
+    const profileRef = /\/DestOutputProfile\s+(\d+)\s+(\d+)\s+R/.exec(
+      inspected,
+    );
+    if (!profileRef) throw new Error('PDF sem referência ao perfil ICC');
+    const { stdout: embeddedProfile } = await execFileAsync(
+      'qpdf',
+      [
+        `--show-object=${profileRef[1]},${profileRef[2]}`,
+        '--filtered-stream-data',
+        inspectedPath,
+      ],
+      {
+        encoding: 'buffer',
+        timeout: COMMAND_TIMEOUT_MS,
+        maxBuffer: 5 * 1024 * 1024,
+        windowsHide: true,
+      },
+    );
+    if (
+      embeddedProfile.length < 128 ||
+      embeddedProfile.readUInt32BE(0) !== embeddedProfile.length ||
+      embeddedProfile.toString('ascii', 36, 40) !== 'acsp' ||
+      embeddedProfile.toString('ascii', 16, 20) !== 'CMYK'
+    ) {
+      throw new Error('PDF contém perfil ICC vazio ou inválido');
     }
     const { stdout: info } = await this.run('pdfinfo', ['-box', path]);
     if (!info.includes('TrimBox:') || !info.includes('BleedBox:')) {

@@ -55,9 +55,45 @@ export class PrintDocumentService {
     return customized;
   }
 
-  hash(document: MaterialTemplateDocumentV2) {
+  hash(
+    document: MaterialTemplateDocumentV2,
+    images: Array<{
+      layerId: string;
+      checksum: string;
+      fit?: 'cover' | 'contain';
+      positionX?: number;
+      positionY?: number;
+      zoom?: number;
+    }> = [],
+  ) {
+    const value = images.length
+      ? {
+          document,
+          images: images
+            .map(
+              ({
+                layerId,
+                checksum,
+                fit = 'cover',
+                positionX = 0.5,
+                positionY = 0.5,
+                zoom = 1,
+              }) => ({
+                layerId,
+                checksum,
+                fit,
+                positionX,
+                positionY,
+                zoom,
+              }),
+            )
+            .sort((a, b) =>
+              a.layerId < b.layerId ? -1 : a.layerId > b.layerId ? 1 : 0,
+            ),
+        }
+      : document;
     return createHash('sha256')
-      .update(this.stableStringify(document))
+      .update(this.stableStringify(value))
       .digest('hex');
   }
 

@@ -1,6 +1,10 @@
 import type { MaterialTemplateDocumentV2 } from '@modules/material-template';
 import { MaterialTemplateDocumentService } from '@modules/material-template';
 import { PrintDocumentService } from './print-document.service';
+import {
+  placeholder,
+  placeholderDocument,
+} from '../../../test-utils/print-image-fixtures';
 
 const document: MaterialTemplateDocumentV2 = {
   version: 2,
@@ -71,6 +75,44 @@ describe('PrintDocumentService', () => {
   const service = new PrintDocumentService(
     new MaterialTemplateDocumentService(),
   );
+
+  it.each(['x', 'y', 'width', 'height', 'rotation', 'isVisible'])(
+    'mantém %s do marcador definido pelo admin',
+    (property) => {
+      const customized = {
+        ...placeholderDocument,
+        layers: [
+          { ...placeholder, [property]: property === 'isVisible' ? false : 33 },
+        ],
+      };
+      expect(() =>
+        service.validateCustomizedDocument(placeholderDocument, customized),
+      ).toThrow('não permitidas');
+    },
+  );
+
+  it('inclui fotos no hash sem depender da ordem de envio e preserva hashes legados', () => {
+    const first = [
+      { layerId: 'b', checksum: '1' },
+      { layerId: 'a', checksum: '2' },
+    ];
+    expect(service.hash(placeholderDocument, first)).toBe(
+      service.hash(placeholderDocument, [...first].reverse()),
+    );
+    expect(service.hash(placeholderDocument, first)).not.toBe(
+      service.hash(placeholderDocument, [
+        { layerId: 'b', checksum: '3' },
+        first[1],
+      ]),
+    );
+    expect(service.hash(placeholderDocument, first)).not.toBe(
+      service.hash(placeholderDocument, [
+        { ...first[0], fit: 'contain', positionX: 0, zoom: 1.5 },
+        first[1],
+      ]),
+    );
+    expect(service.hash(document, [])).toBe(service.hash(document));
+  });
 
   it('aceita somente a troca dos runs de texto liberado', () => {
     const customized = structuredClone(document);

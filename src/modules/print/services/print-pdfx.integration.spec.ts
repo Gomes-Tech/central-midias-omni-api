@@ -24,12 +24,18 @@ describeWithTools('PrintRendererService PDF/X integration', () => {
   it('converte para PDF/X-1a CMYK com output intent e boxes', async () => {
     const workspace = mkdtempSync(join(tmpdir(), 'pdfx-integration-'));
     try {
-      const service = new PrintRendererService({} as never, {} as never);
+      const service = new PrintRendererService(
+        {} as never,
+        {} as never,
+        {} as never,
+      );
       const internals = service as unknown as {
         createIntermediatePdf: (
           document: MaterialTemplateDocumentV2,
           preset: PrintPresetSnapshot,
           base: Buffer,
+          baseMimeType: string,
+          baseSize: { width: number | null; height: number | null },
           assets: Map<string, never>,
         ) => Promise<Buffer>;
         createPdfXDefinition: (
@@ -84,6 +90,8 @@ describeWithTools('PrintRendererService PDF/X integration', () => {
           document,
           preset,
           base,
+          'image/png',
+          { width: null, height: null },
           new Map<string, never>(),
         ),
       );

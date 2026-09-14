@@ -12,21 +12,17 @@ import { PrintDocumentService } from './modules/print/services/print-document.se
 import { PrintExportService } from './modules/print/services/print-export.service';
 import { PrintPreflightService } from './modules/print/services/print-preflight.service';
 import { PrintRendererService } from './modules/print/services/print-renderer.service';
+import { PrintImageInputService } from './modules/print/services/print-image-input.service';
 
 @Module({
-  imports: [
-    ConfigModule,
-    PrismaModule,
-    LogModule,
-    StorageModule,
-    QueueModule,
-  ],
+  imports: [ConfigModule, PrismaModule, LogModule, StorageModule, QueueModule],
   providers: [
     MaterialRepository,
     MaterialTemplateDocumentService,
     PrintDocumentService,
     PrintPreflightService,
     PrintRendererService,
+    PrintImageInputService,
     PrintExportService,
     PrintExportProcessor,
     PrintPreflightProcessor,

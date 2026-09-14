@@ -1,6 +1,9 @@
 import type { MaterialTemplateDocumentV2 } from '@modules/material-template';
 import type { PrintPresetSnapshot } from '../entities';
-import { PrintRendererService } from './print-renderer.service';
+import {
+  getPrintImagePlacement,
+  PrintRendererService,
+} from './print-renderer.service';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -104,8 +107,35 @@ const document: MaterialTemplateDocumentV2 = {
 };
 
 describe('PrintRendererService', () => {
+  it('calcula cover, contain, zoom e alinhamento como o editor', () => {
+    expect(
+      getPrintImagePlacement(100, 200, {
+        width: 100,
+        height: 100,
+        fit: 'cover',
+        positionX: 0.5,
+        positionY: 0.5,
+        zoom: 1,
+      }),
+    ).toEqual({ x: -50, y: 0, width: 200, height: 200 });
+    expect(
+      getPrintImagePlacement(100, 200, {
+        width: 100,
+        height: 100,
+        fit: 'contain',
+        positionX: 1,
+        positionY: 1,
+        zoom: 2,
+      }),
+    ).toEqual({ x: -100, y: 0, width: 200, height: 200 });
+  });
+
   it('gera o PDF híbrido intermediário com boxes, fontes e camadas', async () => {
-    const service = new PrintRendererService({} as never, {} as never);
+    const service = new PrintRendererService(
+      {} as never,
+      {} as never,
+      {} as never,
+    );
     const createIntermediatePdf = (
       service as unknown as {
         createIntermediatePdf: (

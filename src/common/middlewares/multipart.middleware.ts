@@ -5,11 +5,14 @@ import {
   MULTIPART_MAX_REQUEST_BYTES,
 } from '@common/constants/multipart-limits';
 import { UnauthorizedException } from '@common/filters';
-import { unlinkUploadTemp } from '@infrastructure/providers/storage/upload-body';
 import {
-  BadRequestException,
-  PayloadTooLargeException,
-} from '@nestjs/common';
+  MAX_IMAGE_PLACEHOLDERS,
+  PRINT_IMAGE_MAX_BYTES,
+  PRINT_MULTIPART_FIELD_BYTES,
+  PRINT_MULTIPART_MAX_BYTES,
+} from '@common/constants/print-image-limits';
+import { unlinkUploadTemp } from '@infrastructure/providers/storage/upload-body';
+import { BadRequestException, PayloadTooLargeException } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 import multer, { MulterError } from 'multer';
 import { randomUUID } from 'node:crypto';
@@ -19,6 +22,17 @@ import { extname, join } from 'node:path';
 
 const memoryStorage = multer.memoryStorage();
 const materialUploadDir = join(tmpdir(), 'omni-material-uploads');
+
+const parsePrintMultipart = multer({
+  storage: memoryStorage,
+  limits: {
+    fileSize: PRINT_IMAGE_MAX_BYTES,
+    files: MAX_IMAGE_PLACEHOLDERS,
+    fields: 3,
+    fieldSize: PRINT_MULTIPART_FIELD_BYTES,
+    parts: MAX_IMAGE_PLACEHOLDERS + 3,
+  },
+}).any();
 
 const parseLimitedMultipart = multer({
   storage: memoryStorage,
@@ -59,6 +73,13 @@ function requestPath(req: Request): string {
   const raw = req.originalUrl || req.url || req.path || '';
   const pathOnly = raw.split('?')[0] ?? '';
   return pathOnly.replace(/\/+$/, '') || '/';
+}
+
+export function isPrintImageUpload(req: Request): boolean {
+  return (
+    req.method === 'POST' &&
+    /^\/(?:api\/)?materials\/[^/]+\/print-exports$/.test(requestPath(req))
+  );
 }
 
 /** POST /api/materials e POST /api/materials/:id/files (com ou sem prefixo /api). */
@@ -141,14 +162,14 @@ function registerTempCleanup(req: Request, res: Response): void {
   res.once('close', cleanup);
 }
 
-function toUploadError(err: unknown): unknown {
+function toUploadError(err: unknown, printUpload = false): unknown {
   if (!(err instanceof MulterError)) {
     return err;
   }
 
   if (err.code === 'LIMIT_FILE_SIZE') {
     return new PayloadTooLargeException(
-      `Arquivo excede o tamanho máximo permitido de ${MULTIPART_MAX_FILE_MB}MB.`,
+      `Arquivo excede o tamanho máximo permitido de ${printUpload ? 5 : MULTIPART_MAX_FILE_MB}MB.`,
     );
   }
 
@@ -187,11 +208,13 @@ export function multipartMiddleware(
   }
 
   const materialUpload = isMaterialUpload(req);
+  const printUpload = isPrintImageUpload(req);
   const contentLength = parseContentLength(req);
   if (
     !materialUpload &&
     contentLength !== null &&
-    contentLength > MULTIPART_MAX_REQUEST_BYTES
+    contentLength >
+      (printUpload ? PRINT_MULTIPART_MAX_BYTES : MULTIPART_MAX_REQUEST_BYTES)
   ) {
     next(
       new PayloadTooLargeException(
@@ -201,13 +224,15 @@ export function multipartMiddleware(
     return;
   }
 
-  const parseMultipart = materialUpload
-    ? parseMaterialMultipart
-    : parseLimitedMultipart;
+  const parseMultipart = printUpload
+    ? parsePrintMultipart
+    : materialUpload
+      ? parseMaterialMultipart
+      : parseLimitedMultipart;
 
   parseMultipart(req, res, (err: unknown) => {
     if (err) {
-      next(toUploadError(err));
+      next(toUploadError(err, printUpload));
       return;
     }
 

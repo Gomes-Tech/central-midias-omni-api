@@ -1,5 +1,12 @@
 import { OrgId, UserId } from '@common/decorators';
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  UploadedFiles,
+} from '@nestjs/common';
 import { CreatePrintExportDTO } from '../dto';
 import { PrintExportService } from '../services/print-export.service';
 
@@ -13,8 +20,15 @@ export class PrintExportController {
     @OrgId() organizationId: string,
     @UserId() userId: string,
     @Body() dto: CreatePrintExportDTO,
+    @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    return this.service.create(materialId, organizationId, userId, dto);
+    return this.service.create(
+      materialId,
+      organizationId,
+      userId,
+      dto,
+      files ?? [],
+    );
   }
 
   @Get('print-exports/:id')

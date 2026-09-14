@@ -26,6 +26,10 @@ import type { PrintExportJobPayload } from '../queue/print-export.job';
 import { PrintDocumentService } from './print-document.service';
 import { PrintPreflightService } from './print-preflight.service';
 import { toPrintPresetSnapshot } from './print-preset-snapshot';
+import {
+  PreparedPrintImage,
+  PrintImageInputService,
+} from './print-image-input.service';
 
 @Injectable()
 export class PrintExportService {
@@ -38,6 +42,7 @@ export class PrintExportService {
     private readonly logger: LoggerService,
     @InjectQueue(PRINT_EXPORT_QUEUE)
     private readonly queue: Queue<PrintExportJobPayload>,
+    private readonly imageInputs: PrintImageInputService,
   ) {}
 
   async create(
@@ -45,6 +50,7 @@ export class PrintExportService {
     organizationId: string,
     userId: string,
     dto: CreatePrintExportDTO,
+    files: Express.Multer.File[] = [],
   ): Promise<PrintExportResponse> {
     if (process.env.PRINT_EXPORT_ENABLED !== 'true') {
       throw new BadRequestException(
@@ -82,7 +88,12 @@ export class PrintExportService {
       template.document,
       dto.document,
     );
-    const documentHash = this.documents.hash(document);
+    const images = this.imageInputs.prepare(
+      document,
+      dto.imageBindings ?? [],
+      files,
+    );
+    const documentHash = this.documents.hash(document, images);
     const existing = await this.prisma.printExport.findFirst({
       where: { organizationId, userId, idempotencyKey: dto.idempotencyKey },
     });
@@ -96,7 +107,7 @@ export class PrintExportService {
         );
       }
       return this.response(
-        await this.recoverExportJobIfNeeded(existing, document),
+        await this.recoverExportJobIfNeeded(existing, document, images),
       );
     }
 
@@ -108,6 +119,7 @@ export class PrintExportService {
       );
     }
     const snapshot = toPrintPresetSnapshot(template.printPreset);
+    this.imageInputs.validateDpi(document, images, snapshot);
     let record;
     try {
       record = await this.prisma.printExport.create({
@@ -143,10 +155,10 @@ export class PrintExportService {
         );
       }
       return this.response(
-        await this.recoverExportJobIfNeeded(concurrent, document),
+        await this.recoverExportJobIfNeeded(concurrent, document, images),
       );
     }
-    await this.enqueueExportJob(record.id, document);
+    await this.enqueueExportJob(record, document, images);
     void this.logger.info('Exportação para impressão enfileirada', {
       exportId: record.id,
       materialId,
@@ -252,13 +264,29 @@ export class PrintExportService {
       expiresAt: Date | null;
       createdAt: Date;
       updatedAt: Date;
+      organizationId: string;
+      userId: string;
+      presetSnapshot: Prisma.JsonValue;
     },
     document: MaterialTemplateDocumentV2,
+    images: PreparedPrintImage[],
   ) {
     if (!this.isRecoverableStatus(record.status)) {
       return record;
     }
 
+    this.imageInputs.validateDpi(
+      document,
+      images,
+      record.presetSnapshot as unknown as import('../entities').PrintPresetSnapshot,
+    );
+    const activeJob = await this.queue.getJob(record.id);
+    if (
+      activeJob &&
+      !['failed', 'completed', 'unknown'].includes(await activeJob.getState())
+    ) {
+      return record;
+    }
     let current = record;
     if (record.status === PrintExportStatus.FAILED) {
       current = await this.prisma.printExport.update({
@@ -272,33 +300,56 @@ export class PrintExportService {
       });
     }
 
-    await this.enqueueExportJob(record.id, document);
+    await this.enqueueExportJob(record, document, images);
     return current;
   }
 
   private async enqueueExportJob(
-    exportId: string,
+    record: { id: string; organizationId: string; userId: string },
     document: MaterialTemplateDocumentV2,
+    images: PreparedPrintImage[],
   ): Promise<void> {
+    const exportId = record.id;
     const existingJob = await this.queue.getJob(exportId);
     if (existingJob) {
       const state = await existingJob.getState();
       if (state !== 'failed' && state !== 'completed' && state !== 'unknown') {
         return;
       }
-      await existingJob.remove().catch(() => undefined);
+      await existingJob.remove();
     }
 
+    let inputIds: string[] = [];
     try {
-      await this.queue.add(
-        PRINT_EXPORT_JOB,
-        { exportId, document },
-        { jobId: exportId },
-      );
-    } catch (error) {
-      if (error instanceof Error && /already exists/i.test(error.message)) {
+      inputIds = await this.imageInputs.stage(record, images);
+      const competingJob = await this.queue.getJob(exportId);
+      if (competingJob) {
+        await this.imageInputs.cleanup(inputIds);
         return;
       }
+      await this.queue.add(
+        PRINT_EXPORT_JOB,
+        { exportId, document, ...(inputIds.length ? { inputIds } : {}) },
+        { jobId: exportId },
+      );
+      // BullMQ may return the caller's payload even when another request won.
+      const accepted = await this.queue.getJob(exportId);
+      if (
+        accepted &&
+        inputIds.some((id) => !accepted.data.inputIds?.includes(id))
+      ) {
+        await this.imageInputs.cleanup(inputIds);
+      }
+    } catch (error) {
+      // A Redis timeout can happen after accepting the job: preserve its inputs.
+      const queued = await this.queue.getJob(exportId).catch(() => undefined);
+      if (queued) {
+        if (inputIds.some((id) => !queued.data.inputIds?.includes(id)))
+          await this.imageInputs.cleanup(inputIds);
+        return;
+      }
+      if (queued === null) await this.imageInputs.cleanup(inputIds);
+      // Unknown queue outcome remains recoverable as QUEUED; TTL cleans orphans.
       throw error;
     }
   }

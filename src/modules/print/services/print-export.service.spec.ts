@@ -8,6 +8,11 @@ import { PrintExportStatus } from '@prisma/client';
 import { PrintDocumentService } from './print-document.service';
 import { PrintExportService } from './print-export.service';
 import { PrintPreflightService } from './print-preflight.service';
+import { PrintImageInputService } from './print-image-input.service';
+import {
+  placeholderDocument,
+  printImagePreset,
+} from '../../../test-utils/print-image-fixtures';
 
 jest.mock('./print-preflight.service', () => ({
   PrintPreflightService: class PrintPreflightService {},
@@ -27,6 +32,7 @@ describe('PrintExportService', () => {
     userId: 'user-1',
     idempotencyKey: 'key-1',
     documentHash: 'hash-1',
+    presetSnapshot: printImagePreset,
     status: PrintExportStatus.QUEUED,
     progress: 0,
     errorCode: null,
@@ -58,6 +64,12 @@ describe('PrintExportService', () => {
     getJob: jest.Mock;
   };
   let service: PrintExportService;
+  let imageInputs: {
+    prepare: jest.Mock;
+    validateDpi: jest.Mock;
+    stage: jest.Mock;
+    cleanup: jest.Mock;
+  };
 
   beforeEach(() => {
     process.env.PRINT_EXPORT_ENABLED = 'true';
@@ -119,6 +131,12 @@ describe('PrintExportService', () => {
       add: jest.fn().mockResolvedValue(undefined),
       getJob: jest.fn().mockResolvedValue(null),
     };
+    imageInputs = {
+      prepare: jest.fn().mockReturnValue([]),
+      validateDpi: jest.fn(),
+      stage: jest.fn().mockResolvedValue([]),
+      cleanup: jest.fn().mockResolvedValue(undefined),
+    };
 
     service = new PrintExportService(
       prisma as unknown as PrismaService,
@@ -128,11 +146,112 @@ describe('PrintExportService', () => {
       {} as StorageService,
       { info: jest.fn() } as unknown as LoggerService,
       queue as never,
+      imageInputs as unknown as PrintImageInputService,
     );
   });
 
   afterEach(() => {
     process.env.PRINT_EXPORT_ENABLED = originalEnabled;
+  });
+
+  it('encaminha somente referências das fotos à fila após o upload', async () => {
+    prisma.printExport.create.mockResolvedValue(queuedRecord);
+    documents.validateCustomizedDocument.mockReturnValue(placeholderDocument);
+    const photos = [
+      {
+        layerId: 'photo',
+        checksum: 'image-hash',
+        buffer: Buffer.from('private'),
+      },
+    ];
+    imageInputs.prepare.mockReturnValue(photos);
+    imageInputs.stage.mockResolvedValue(['input-1']);
+    await service.create('mat-1', 'org-1', 'user-1', dto);
+    expect(documents.hash).toHaveBeenCalledWith(placeholderDocument, photos);
+    expect(queue.add).toHaveBeenCalledWith(
+      PRINT_EXPORT_JOB,
+      {
+        exportId: 'export-1',
+        document: placeholderDocument,
+        inputIds: ['input-1'],
+      },
+      { jobId: 'export-1' },
+    );
+    expect(imageInputs.stage.mock.invocationCallOrder[0]).toBeLessThan(
+      queue.add.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('não grava nem enfileira imagens inválidas ou sem acesso', async () => {
+    materialRepository.userHasCategoryAccess.mockResolvedValue(false);
+    await expect(
+      service.create('mat-1', 'org-1', 'user-1', dto),
+    ).rejects.toThrow('acesso');
+    expect(imageInputs.prepare).not.toHaveBeenCalled();
+    materialRepository.userHasCategoryAccess.mockResolvedValue(true);
+    imageInputs.prepare.mockImplementation(() => {
+      throw new Error('foto inválida');
+    });
+    await expect(
+      service.create('mat-1', 'org-1', 'user-1', dto),
+    ).rejects.toThrow('foto inválida');
+    expect(prisma.printExport.create).not.toHaveBeenCalled();
+    expect(imageInputs.stage).not.toHaveBeenCalled();
+  });
+
+  it('limpa arquivos após falha confirmada de enfileiramento', async () => {
+    prisma.printExport.create.mockResolvedValue(queuedRecord);
+    imageInputs.stage.mockResolvedValue(['input-1']);
+    queue.add.mockRejectedValue(new Error('Redis indisponível'));
+    await expect(
+      service.create('mat-1', 'org-1', 'user-1', dto),
+    ).rejects.toThrow('Redis indisponível');
+    expect(imageInputs.cleanup).toHaveBeenCalledWith(['input-1']);
+  });
+
+  it('reenvia fotos com novas referências ao recuperar uma exportação que falhou', async () => {
+    prisma.printExport.findFirst.mockResolvedValue({
+      ...queuedRecord,
+      status: PrintExportStatus.FAILED,
+    });
+    prisma.printExport.update.mockResolvedValue(queuedRecord);
+    const photos = [{ layerId: 'photo', checksum: 'same-photo' }];
+    imageInputs.prepare.mockReturnValue(photos);
+    imageInputs.stage.mockResolvedValue(['new-input']);
+    await service.create('mat-1', 'org-1', 'user-1', dto);
+    expect(imageInputs.stage).toHaveBeenCalledWith(
+      expect.objectContaining({ id: queuedRecord.id }),
+      photos,
+    );
+    expect(queue.add).toHaveBeenCalledWith(
+      PRINT_EXPORT_JOB,
+      { exportId: queuedRecord.id, document, inputIds: ['new-input'] },
+      { jobId: queuedRecord.id },
+    );
+  });
+
+  it('preserva imagens se a fila aceitou o pedido mas perdeu a resposta', async () => {
+    prisma.printExport.create.mockResolvedValue(queuedRecord);
+    imageInputs.stage.mockResolvedValue(['input-1']);
+    queue.add.mockImplementation(async () => {
+      queue.getJob.mockResolvedValue({ data: { inputIds: ['input-1'] } });
+      throw new Error('timeout');
+    });
+    await expect(
+      service.create('mat-1', 'org-1', 'user-1', dto),
+    ).resolves.toMatchObject({ id: 'export-1' });
+    expect(imageInputs.cleanup).not.toHaveBeenCalled();
+  });
+
+  it('remove apenas as imagens da tentativa que perdeu a concorrência', async () => {
+    prisma.printExport.create.mockResolvedValue(queuedRecord);
+    imageInputs.stage.mockResolvedValue(['loser']);
+    queue.add.mockImplementation(async () => {
+      queue.getJob.mockResolvedValue({ data: { inputIds: ['winner'] } });
+    });
+    await service.create('mat-1', 'org-1', 'user-1', dto);
+    expect(imageInputs.cleanup).toHaveBeenCalledWith(['loser']);
+    expect(imageInputs.cleanup).not.toHaveBeenCalledWith(['winner']);
   });
 
   it('deve reenfileirar exportação QUEUED órfã com a mesma chave de idempotência', async () => {
@@ -227,7 +346,9 @@ describe('PrintExportService', () => {
 
   it('deve ignorar job failed residual e enfileirar de novo', async () => {
     prisma.printExport.findFirst.mockResolvedValue(queuedRecord);
-    const remove = jest.fn().mockResolvedValue(undefined);
+    const remove = jest.fn().mockImplementation(async () => {
+      queue.getJob.mockResolvedValue(null);
+    });
     queue.getJob.mockResolvedValue({
       getState: jest.fn().mockResolvedValue('failed'),
       remove,

@@ -1,5 +1,6 @@
 const mockParseLimitedMultipart = jest.fn();
 const mockParseMaterialMultipart = jest.fn();
+const mockParsePrintMultipart = jest.fn();
 const mockMulterOptionsList: Array<{
   storage?: unknown;
   limits?: { fileSize?: number; files?: number };
@@ -51,11 +52,17 @@ jest.mock('multer', () => {
     }
   };
   const factory = jest.fn(
-    (opts: { storage?: unknown; limits?: { fileSize?: number; files?: number } }) => {
+    (opts: {
+      storage?: unknown;
+      limits?: { fileSize?: number; files?: number };
+    }) => {
       mockMulterOptionsList.push(opts);
-      const parser = opts.limits?.fileSize
-        ? mockParseLimitedMultipart
-        : mockParseMaterialMultipart;
+      const parser =
+        opts.limits?.fileSize === 5 * 1024 * 1024
+          ? mockParsePrintMultipart
+          : opts.limits?.fileSize
+            ? mockParseLimitedMultipart
+            : mockParseMaterialMultipart;
       return {
         any: jest.fn(() => parser),
       };
@@ -163,10 +170,11 @@ describe('multipartMiddleware', () => {
     jest.clearAllMocks();
     mockParseLimitedMultipart.mockReset();
     mockParseMaterialMultipart.mockReset();
+    mockParsePrintMultipart.mockReset();
   });
 
   it('deve configurar parser em memória com teto e parser de material sem teto de MB', () => {
-    expect(mockMulterOptionsList[0]).toEqual(
+    expect(mockMulterOptionsList[1]).toEqual(
       expect.objectContaining({
         limits: {
           fileSize: MULTIPART_MAX_FILE_BYTES,
@@ -174,14 +182,59 @@ describe('multipartMiddleware', () => {
         },
       }),
     );
-    expect(mockMulterOptionsList[1]).toEqual(
+    expect(mockMulterOptionsList[2]).toEqual(
       expect.objectContaining({
         limits: {
           files: MULTIPART_MAX_FILES,
         },
       }),
     );
-    expect(mockMulterOptionsList[1]?.limits?.fileSize).toBeUndefined();
+    expect(mockMulterOptionsList[2]?.limits?.fileSize).toBeUndefined();
+    expect(mockMulterOptionsList[0]?.limits).toMatchObject({
+      fileSize: 5 * 1024 * 1024,
+      files: 20,
+      fields: 3,
+      parts: 23,
+      fieldSize: 3 * 1024 * 1024,
+    });
+  });
+
+  it('usa os limites de impressão apenas na criação da exportação', () => {
+    mockParsePrintMultipart.mockImplementation((_req, _res, cb) => cb());
+    multipartMiddleware(
+      materialReq('/api/materials/mat/print-exports?x=1') as Request,
+      {} as Response,
+      next,
+    );
+    expect(mockParsePrintMultipart).toHaveBeenCalledTimes(1);
+    expect(mockParseLimitedMultipart).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith();
+  });
+
+  it('recusa upload de impressão grande antes de consumir o body', () => {
+    const req = materialReq('/api/materials/mat/print-exports', {
+      headers: {
+        ...MULTIPART_HEADERS,
+        'content-length': String(110 * 1024 * 1024),
+      },
+    });
+    multipartMiddleware(req as Request, {} as Response, next);
+    expect(mockParsePrintMultipart).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.any(PayloadTooLargeException));
+  });
+
+  it('informa o limite de 5 MiB nos erros de arquivos para impressão', () => {
+    mockParsePrintMultipart.mockImplementation((_req, _res, cb) =>
+      cb(new MulterError('LIMIT_FILE_SIZE')),
+    );
+    multipartMiddleware(
+      materialReq('/materials/mat/print-exports') as Request,
+      {} as Response,
+      next,
+    );
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('5MB') }),
+    );
   });
 
   it('deve chamar next sem parsear quando Content-Type não for multipart', () => {

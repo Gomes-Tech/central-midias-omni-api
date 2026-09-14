@@ -1,4 +1,5 @@
 import { BadRequestException } from '@common/filters';
+import { MAX_IMAGE_PLACEHOLDERS } from '@common/constants/print-image-limits';
 import { Injectable } from '@nestjs/common';
 import {
   MaterialTemplateDocument,
@@ -163,6 +164,35 @@ function validateAssetLayer(layer: Record<string, unknown>): void {
   }
 }
 
+function validateImagePlaceholder(layer: Record<string, unknown>): void {
+  const allowed = new Set([
+    'id',
+    'type',
+    'name',
+    'x',
+    'y',
+    'width',
+    'height',
+    'rotation',
+    'isVisible',
+    'editableProperties',
+  ]);
+  if (Object.keys(layer).some((key) => !allowed.has(key))) {
+    throw new BadRequestException(`Marcador ${layer.id}: campo não permitido`);
+  }
+  for (const property of ['width', 'height']) {
+    if (!isFiniteNumber(layer[property]) || layer[property] <= 0) {
+      throw new BadRequestException(
+        `Marcador ${layer.id}: ${property} inválido`,
+      );
+    }
+  }
+  const editable = layer.editableProperties as unknown[];
+  if (editable.length !== 1 || editable[0] !== 'image') {
+    throw new BadRequestException(`Marcador ${layer.id}: permissões inválidas`);
+  }
+}
+
 @Injectable()
 export class MaterialTemplateDocumentService {
   validate(value: unknown): MaterialTemplateDocument {
@@ -192,6 +222,7 @@ export class MaterialTemplateDocumentService {
     }
 
     const ids = new Set<string>();
+    let placeholders = 0;
     for (const candidate of value.layers) {
       if (!isRecord(candidate)) {
         throw new BadRequestException('Camada do template inválida');
@@ -205,7 +236,14 @@ export class MaterialTemplateDocumentService {
         if (value.version === 1) validateTextLayerV1(candidate);
         else validateTextLayerV2(candidate);
       } else if (candidate.type === 'asset') validateAssetLayer(candidate);
-      else throw new BadRequestException('Tipo de camada inválido');
+      else if (candidate.type === 'image-placeholder' && value.version === 2) {
+        validateImagePlaceholder(candidate);
+        if (++placeholders > MAX_IMAGE_PLACEHOLDERS) {
+          throw new BadRequestException(
+            'O template permite até 20 marcadores de imagem',
+          );
+        }
+      } else throw new BadRequestException('Tipo de camada inválido');
     }
 
     if (
@@ -237,6 +275,15 @@ export class MaterialTemplateDocumentService {
     return document.layers.some(
       (layer) =>
         layer.type === 'text' && layer.editableProperties.includes('content'),
+    );
+  }
+
+  hasEditableContent(document: MaterialTemplateDocument): boolean {
+    return (
+      this.hasEditableText(document) ||
+      document.layers.some(
+        (layer) => layer.type === 'image-placeholder' && layer.isVisible,
+      )
     );
   }
 

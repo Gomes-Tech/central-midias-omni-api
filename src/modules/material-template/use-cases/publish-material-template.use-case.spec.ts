@@ -7,6 +7,7 @@ import {
   MaterialTemplateResponseService,
 } from '../services';
 import { PublishMaterialTemplateUseCase } from './publish-material-template.use-case';
+import { placeholderDocument } from '../../../test-utils/print-image-fixtures';
 
 const document: MaterialTemplateDocumentV1 = {
   version: 1,
@@ -122,5 +123,18 @@ describe('PublishMaterialTemplateUseCase', () => {
     await expect(
       useCase.execute('material-id', 'org-id', 'user-id', { revision: 7 }),
     ).rejects.toThrow('Substitua os assets ausentes');
+  });
+
+  it('publica um template cuja única personalização é imagem', async () => {
+    repository.findOrThrow.mockResolvedValue({
+      ...template,
+      document: placeholderDocument,
+    } as never);
+    repository.findAssets.mockResolvedValue([]);
+    await expect(
+      useCase.execute('material-id', 'org-id', 'user-id', { revision: 7 }),
+    ).resolves.toEqual({ ok: true });
+    expect(repository.findAssets).toHaveBeenCalledWith([], 'org-id');
+    expect(repository.publish).toHaveBeenCalled();
   });
 });
