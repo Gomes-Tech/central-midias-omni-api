@@ -39,7 +39,7 @@ export class EnqueueReportExportUseCase {
     };
 
     await this.reportExportQueue.add(REPORT_EXPORT_JOB, payload, {
-      jobId: `${reportType}:${organizationId}:${userId}:export`,
+      jobId: `${reportType}-${organizationId}-${userId}-export`,
     });
 
     void this.logger.info('Exportação de relatório enfileirada', {

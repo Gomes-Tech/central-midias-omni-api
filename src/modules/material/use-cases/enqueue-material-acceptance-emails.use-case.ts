@@ -69,7 +69,7 @@ export class EnqueueMaterialAcceptanceEmailsUseCase {
         MATERIAL_ACCEPTANCE_EMAIL_JOB,
         payload,
         {
-          jobId: `${materialId}:${member.userId}`,
+          jobId: `${materialId}-${member.userId}`,
         },
       );
 

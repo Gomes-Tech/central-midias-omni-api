@@ -14,6 +14,7 @@ describe('EnqueueMaterialNotificationEmailsUseCase', () => {
     materialRepository = {
       findById: jest.fn(),
       findPlatformMembersForCategory: jest.fn(),
+      createMaterialEmailDispatch: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<MaterialRepository>;
 
     materialNotificationEmailQueue = {
@@ -48,9 +49,9 @@ describe('EnqueueMaterialNotificationEmailsUseCase', () => {
       },
     ]);
 
-    await expect(
-      useCase.execute(material.id, 'org-id'),
-    ).resolves.toEqual({ enqueued: 2 });
+    await expect(useCase.execute(material.id, 'org-id')).resolves.toEqual({
+      enqueued: 2,
+    });
 
     expect(materialNotificationEmailQueue.add).toHaveBeenCalledTimes(2);
     expect(materialNotificationEmailQueue.add).toHaveBeenCalledWith(
@@ -62,7 +63,28 @@ describe('EnqueueMaterialNotificationEmailsUseCase', () => {
         email: 'joao@teste.com',
         materialLink: `https://app.exemplo.com/material/${material.id}`,
       }),
-      { jobId: `${material.id}:user-1:notification` },
+      { jobId: `${material.id}-user-1-notification` },
+    );
+    expect(materialRepository.createMaterialEmailDispatch).toHaveBeenCalledWith(
+      {
+        organizationId: 'org-id',
+        materialId: material.id,
+        materialName: material.name,
+        subject: `Novo material: ${material.name}`,
+        content: expect.stringContaining(material.name),
+        recipients: [
+          {
+            userId: 'user-1',
+            name: 'João',
+            email: 'joao@teste.com',
+          },
+          {
+            userId: 'user-2',
+            name: 'Maria',
+            email: 'maria@teste.com',
+          },
+        ],
+      },
     );
 
     process.env.FRONTEND_URL = previousFrontendUrl;
@@ -71,9 +93,9 @@ describe('EnqueueMaterialNotificationEmailsUseCase', () => {
   it('não deve enfileirar quando material não existir', async () => {
     materialRepository.findById.mockResolvedValue(null);
 
-    await expect(
-      useCase.execute('material-id', 'org-id'),
-    ).resolves.toEqual({ enqueued: 0 });
+    await expect(useCase.execute('material-id', 'org-id')).resolves.toEqual({
+      enqueued: 0,
+    });
 
     expect(materialNotificationEmailQueue.add).not.toHaveBeenCalled();
   });
@@ -82,12 +104,15 @@ describe('EnqueueMaterialNotificationEmailsUseCase', () => {
     materialRepository.findById.mockResolvedValue(makeMaterialDetails());
     materialRepository.findPlatformMembersForCategory.mockResolvedValue([]);
 
-    await expect(
-      useCase.execute('material-id', 'org-id'),
-    ).resolves.toEqual({ enqueued: 0 });
+    await expect(useCase.execute('material-id', 'org-id')).resolves.toEqual({
+      enqueued: 0,
+    });
 
     expect(materialNotificationEmailQueue.add).not.toHaveBeenCalled();
     expect(logger.info).toHaveBeenCalled();
+    expect(
+      materialRepository.createMaterialEmailDispatch,
+    ).not.toHaveBeenCalled();
   });
 
   it('deve enfileirar sem materialLink quando FRONTEND_URL não estiver definido', async () => {
@@ -104,9 +129,9 @@ describe('EnqueueMaterialNotificationEmailsUseCase', () => {
       },
     ]);
 
-    await expect(
-      useCase.execute(material.id, 'org-id'),
-    ).resolves.toEqual({ enqueued: 1 });
+    await expect(useCase.execute(material.id, 'org-id')).resolves.toEqual({
+      enqueued: 1,
+    });
 
     expect(materialNotificationEmailQueue.add).toHaveBeenCalledWith(
       MATERIAL_NOTIFICATION_EMAIL_JOB,
@@ -117,5 +142,26 @@ describe('EnqueueMaterialNotificationEmailsUseCase', () => {
     );
 
     process.env.FRONTEND_URL = previousFrontendUrl;
+  });
+
+  it('deve enfileirar mesmo se o registro do relatório falhar', async () => {
+    const material = makeMaterialDetails();
+    materialRepository.findById.mockResolvedValue(material);
+    materialRepository.findPlatformMembersForCategory.mockResolvedValue([
+      {
+        userId: 'user-1',
+        name: 'João',
+        email: 'joao@teste.com',
+      },
+    ]);
+    materialRepository.createMaterialEmailDispatch.mockRejectedValue(
+      new Error('db'),
+    );
+
+    await expect(useCase.execute(material.id, 'org-id')).resolves.toEqual({
+      enqueued: 1,
+    });
+
+    expect(materialNotificationEmailQueue.add).toHaveBeenCalledTimes(1);
   });
 });

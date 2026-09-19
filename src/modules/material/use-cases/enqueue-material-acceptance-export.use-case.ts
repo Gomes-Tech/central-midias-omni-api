@@ -56,7 +56,7 @@ export class EnqueueMaterialAcceptanceExportUseCase {
       MATERIAL_ACCEPTANCE_EXPORT_JOB,
       payload,
       {
-        jobId: `${materialId}:${userId}:export`,
+        jobId: `${materialId}-${userId}-export`,
       },
     );
 

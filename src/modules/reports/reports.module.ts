@@ -7,6 +7,7 @@ import { ReportsController } from './reports.controller';
 import {
   EnqueueReportExportUseCase,
   ExportReportUseCase,
+  FindMaterialEmailDispatchesUseCase,
   FindTopMaterialsByDownloadsUseCase,
   FindTopMaterialsByViewsUseCase,
   FindTopSearchesUseCase,
@@ -26,6 +27,7 @@ import {
     FindTopMaterialsByViewsUseCase,
     FindTopMaterialsByDownloadsUseCase,
     FindTopSearchesUseCase,
+    FindMaterialEmailDispatchesUseCase,
     ExportReportUseCase,
     EnqueueReportExportUseCase,
     SendReportExportEmailUseCase,

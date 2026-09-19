@@ -1818,6 +1818,49 @@ export class MaterialRepository {
     }
   }
 
+  async createMaterialEmailDispatch(data: {
+    organizationId: string;
+    materialId: string;
+    materialName: string;
+    subject: string;
+    content: string;
+    recipients: Array<{ userId: string; name: string; email: string }>;
+  }): Promise<void> {
+    try {
+      await this.prisma.materialEmailDispatch.create({
+        data: {
+          id: generateId(),
+          organizationId: data.organizationId,
+          materialId: data.materialId,
+          materialName: data.materialName,
+          subject: data.subject,
+          content: data.content,
+          recipients: {
+            create: data.recipients.map((recipient) => ({
+              id: generateId(),
+              userId: recipient.userId,
+              name: recipient.name,
+              email: recipient.email,
+            })),
+          },
+        },
+      });
+    } catch (error) {
+      void this.logger.error(
+        'MaterialRepository.createMaterialEmailDispatch falhou',
+        {
+          error: String(error),
+          organizationId: data.organizationId,
+          materialId: data.materialId,
+        },
+      );
+
+      throw new BadRequestException(
+        'Erro ao registrar disparo de e-mail do material',
+      );
+    }
+  }
+
   async findMaterialSummaryById(
     materialId: string,
     organizationId: string,

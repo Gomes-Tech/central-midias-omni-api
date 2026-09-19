@@ -72,6 +72,7 @@ model User {
   platformLoginEvents UserPlatformLoginEvent[]
   calendarEvents      CalendarEvent[]
   notifications       Notification[]
+  materialEmailDispatchRecipients MaterialEmailDispatchRecipient[]
 
   @@index([email])
   @@map("users")
@@ -241,6 +242,7 @@ model Organization {
   printExports           PrintExport[]
   supplierDocument       SupplierDocument?
   notifications          Notification[]
+  materialEmailDispatches MaterialEmailDispatch[]
 
   @@map("organizations")
 }
@@ -546,9 +548,10 @@ model Material {
   materialAcceptances MaterialAcceptance[]
   materialViews       MaterialView[]
   materialDownloads   MaterialDownload[]
-  materialTemplate    MaterialTemplate?
-  calendarEvents      CalendarEventMaterial[]
-  printExports        PrintExport[]
+  materialTemplate        MaterialTemplate?
+  calendarEvents          CalendarEventMaterial[]
+  printExports            PrintExport[]
+  materialEmailDispatches MaterialEmailDispatch[]
 
   @@unique([categoryId, name])
   @@index([categoryId])
@@ -787,6 +790,40 @@ model MaterialDownload {
   @@index([userId])
   @@index([downloadedAt])
   @@map("material_downloads")
+}
+
+model MaterialEmailDispatch {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  materialId     String?  @map("material_id")
+  materialName   String   @map("material_name")
+  subject        String
+  content        String   @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization                      @relation(fields: [organizationId], references: [id])
+  material     Material?                         @relation(fields: [materialId], references: [id], onDelete: SetNull)
+  recipients   MaterialEmailDispatchRecipient[]
+
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([materialId])
+  @@map("material_email_dispatches")
+}
+
+model MaterialEmailDispatchRecipient {
+  id         String   @id @default(uuid())
+  dispatchId String   @map("dispatch_id")
+  userId     String?  @map("user_id")
+  name       String
+  email      String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  dispatch MaterialEmailDispatch @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+  user     User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([dispatchId])
+  @@index([email])
+  @@map("material_email_dispatch_recipients")
 }
 
 model MaterialFile {

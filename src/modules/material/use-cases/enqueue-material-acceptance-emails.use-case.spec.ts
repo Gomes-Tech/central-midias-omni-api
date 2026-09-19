@@ -64,7 +64,7 @@ describe('EnqueueMaterialAcceptanceEmailsUseCase', () => {
         email: 'joao@teste.com',
         materialLink: `https://app.exemplo.com/material/${material.id}`,
       }),
-      { jobId: `${material.id}:user-1` },
+      { jobId: `${material.id}-user-1` },
     );
 
     process.env.FRONTEND_URL = previousFrontendUrl;

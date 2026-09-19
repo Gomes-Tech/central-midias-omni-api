@@ -1,4 +1,5 @@
 import {
+  buildMaterialEmailDispatchesCsv,
   buildReportExportFilename,
   buildTopMaterialsByDownloadsCsv,
   buildTopMaterialsByViewsCsv,
@@ -77,6 +78,28 @@ describe('report-csv', () => {
     ]);
 
     expect(csv).toBe('busca,tag,quantidade\nbola,bola,51');
+  });
+
+  it('deve montar CSV de disparos de e-mail de materiais', () => {
+    const csv = buildMaterialEmailDispatchesCsv([
+      {
+        id: 'dispatch-1',
+        materialId: 'mat-1',
+        materialName: 'Campanha ABCDEF',
+        subject: 'Novo material: Campanha ABCDEF',
+        content: 'Novo material disponível',
+        recipientEmails: 'ana@test.com; bruno@test.com',
+        recipientCount: 2,
+        sentAt: new Date('2026-09-19T12:00:00.000Z'),
+      },
+    ]);
+
+    expect(csv).toContain(
+      'material,assunto,conteudo,emails,quantidade,enviado_em',
+    );
+    expect(csv).toContain('Campanha ABCDEF');
+    expect(csv).toContain('ana@test.com; bruno@test.com');
+    expect(csv).toContain('2');
   });
 
   it('deve escapar valores com vírgula no CSV de buscas', () => {

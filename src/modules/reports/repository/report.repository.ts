@@ -10,6 +10,7 @@ import {
   TopSearchRow,
   TopUserByMaterialDownloadRow,
   TopUserByPlatformLoginRow,
+  MaterialEmailDispatchRow,
 } from '../entities';
 
 type PaginationParams = {
@@ -469,6 +470,74 @@ export class ReportRepository {
 
   async findAllTopSearches(organizationId: string): Promise<TopSearchRow[]> {
     const result = await this.findTopSearches(organizationId, {
+      page: 1,
+      limit: Number.MAX_SAFE_INTEGER,
+    });
+
+    return result.data;
+  }
+
+  async findMaterialEmailDispatches(
+    organizationId: string,
+    filters: FindReportFiltersDTO = {},
+  ): Promise<PaginatedResponse<MaterialEmailDispatchRow>> {
+    const { page, limit, offset } = this.resolvePagination(filters);
+
+    try {
+      const [rows, total] = await Promise.all([
+        this.prisma.materialEmailDispatch.findMany({
+          where: { organizationId },
+          include: {
+            recipients: {
+              select: { email: true },
+              orderBy: { email: 'asc' },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          skip: offset,
+          take: limit,
+        }),
+        this.prisma.materialEmailDispatch.count({
+          where: { organizationId },
+        }),
+      ]);
+
+      return {
+        data: rows.map((row) => ({
+          id: row.id,
+          materialId: row.materialId,
+          materialName: row.materialName,
+          subject: row.subject,
+          content: row.content,
+          recipientEmails: row.recipients
+            .map((recipient) => recipient.email)
+            .join('; '),
+          recipientCount: row.recipients.length,
+          sentAt: row.createdAt,
+        })),
+        total,
+        totalPages: Math.ceil(total / limit) || 0,
+        page,
+      };
+    } catch (error) {
+      void this.logger.error(
+        'ReportRepository.findMaterialEmailDispatches falhou',
+        {
+          error: String(error),
+          organizationId,
+        },
+      );
+
+      throw new BadRequestException(
+        'Erro ao buscar relatório de disparos de e-mail',
+      );
+    }
+  }
+
+  async findAllMaterialEmailDispatches(
+    organizationId: string,
+  ): Promise<MaterialEmailDispatchRow[]> {
+    const result = await this.findMaterialEmailDispatches(organizationId, {
       page: 1,
       limit: Number.MAX_SAFE_INTEGER,
     });

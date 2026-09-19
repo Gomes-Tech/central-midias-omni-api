@@ -56,6 +56,9 @@ function createPrismaMock() {
     materialDownload: {
       create: jest.fn(),
     },
+    materialEmailDispatch: {
+      create: jest.fn(),
+    },
   };
 
   prisma.$transaction.mockImplementation(
@@ -2323,6 +2326,65 @@ describe('MaterialRepository', () => {
           userId: 'user-id',
         }),
       );
+    });
+  });
+
+  describe('createMaterialEmailDispatch', () => {
+    it('deve criar o disparo com destinatários', async () => {
+      prisma.materialEmailDispatch.create.mockResolvedValue({ id: 'dispatch-id' });
+
+      await expect(
+        repository.createMaterialEmailDispatch({
+          organizationId: 'org-id',
+          materialId: 'material-id',
+          materialName: 'Campanha ABCDEF',
+          subject: 'Novo material: Campanha ABCDEF',
+          content: 'Conteúdo',
+          recipients: [
+            {
+              userId: 'user-1',
+              name: 'João',
+              email: 'joao@teste.com',
+            },
+          ],
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(prisma.materialEmailDispatch.create).toHaveBeenCalledWith({
+        data: {
+          id: expect.any(String),
+          organizationId: 'org-id',
+          materialId: 'material-id',
+          materialName: 'Campanha ABCDEF',
+          subject: 'Novo material: Campanha ABCDEF',
+          content: 'Conteúdo',
+          recipients: {
+            create: [
+              {
+                id: expect.any(String),
+                userId: 'user-1',
+                name: 'João',
+                email: 'joao@teste.com',
+              },
+            ],
+          },
+        },
+      });
+    });
+
+    it('deve lançar BadRequest quando create falhar', async () => {
+      prisma.materialEmailDispatch.create.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.createMaterialEmailDispatch({
+          organizationId: 'org-id',
+          materialId: 'material-id',
+          materialName: 'Campanha ABCDEF',
+          subject: 'Novo material: Campanha ABCDEF',
+          content: 'Conteúdo',
+          recipients: [],
+        }),
+      ).rejects.toThrow('Erro ao registrar disparo de e-mail do material');
     });
   });
 

@@ -58,7 +58,7 @@ describe('EnqueueMaterialAcceptanceExportUseCase', () => {
         email: 'joao@teste.com',
         name: 'João',
       },
-      { jobId: `${material.id}:user-id:export` },
+      { jobId: `${material.id}-user-id-export` },
     );
   });
 
