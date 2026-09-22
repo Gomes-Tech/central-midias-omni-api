@@ -12,10 +12,11 @@ import {
   MaterialTemplateProfileBinding,
 } from '../entities';
 
-// Limites alinhados a formatos de impressão comuns (ex.: A4/A3 @ 300 DPI).
-// O teto antigo (3840×2160) era voltado a arte digital 16:9 e rejeitava A4@300.
-const MAX_CANVAS_SIDE = 6000;
-const MAX_CANVAS_PIXELS = 30_000_000;
+// Limites alinhados a formatos de impressão comuns (ex.: A1 @ 300 DPI).
+// Devem acompanhar o teto das imagens de template: cada imagem vira uma página
+// no tamanho nativo, então o canvas precisa aceitar a mesma resolução.
+const MAX_CANVAS_SIDE = 12000;
+const MAX_CANVAS_PIXELS = 120_000_000;
 const MAX_LAYERS = 200;
 const MAX_PAGES = 20;
 const MAX_TEXT_LENGTH = 2000;

@@ -17,6 +17,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { PublishMaterialTemplateDTO, SaveMaterialTemplateDTO } from './dto';
+import { MATERIAL_TEMPLATE_IMAGE_MAX_BYTES } from './services/material-template-image.service';
 import {
   GetAdminMaterialTemplateUseCase,
   GetPublishedMaterialTemplateUseCase,
@@ -103,7 +104,7 @@ export class MaterialTemplateController {
     );
   }
 
-  @MaxFileSize(undefined, 5)
+  @MaxFileSize(MATERIAL_TEMPLATE_IMAGE_MAX_BYTES)
   @AllowedFileTypes({
     extensions: ['png', 'jpg', 'jpeg'],
     mimeTypes: ['image/png', 'image/jpeg', 'image/jpg'],

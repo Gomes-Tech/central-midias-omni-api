@@ -1,6 +1,7 @@
 import {
   MAX_IMAGE_PLACEHOLDERS,
   PRINT_IMAGE_MAX_BYTES,
+  PRINT_IMAGE_MAX_MB,
   PRINT_INPUT_TTL_MS,
   PRINT_IMAGE_MAX_SIDE,
   PRINT_IMAGE_MAX_PIXELS,
@@ -14,7 +15,12 @@ import type {
   MaterialTemplateLayerV2,
 } from '@modules/material-template';
 import { validateMaterialTemplateImage } from '@modules/material-template/services/material-template-image.service';
-import { Injectable, PayloadTooLargeException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  PayloadTooLargeException,
+} from '@nestjs/common';
+import { promises as fsp, readFileSync } from 'node:fs';
 import { randomUUID, createHash } from 'node:crypto';
 import { inflateSync } from 'node:zlib';
 import PDFDocument from 'pdfkit';
@@ -25,7 +31,14 @@ import type { PrintableDocument } from './print-document.service';
 export interface PreparedPrintImage {
   materialFileId?: string;
   layerId: string;
-  buffer: Buffer;
+  /**
+   * Bytes da imagem. Presente quando o upload veio em memória (worker/render).
+   * No caminho da requisição o parse grava em disco e só `path` é preenchido,
+   * para não manter 20 × 30 MiB em RAM.
+   */
+  buffer?: Buffer;
+  /** Temporário do parse multipart, quando não há buffer em memória. */
+  path?: string;
   checksum: string;
   mimeType: string;
   size: number;
@@ -35,6 +48,36 @@ export interface PreparedPrintImage {
   positionX: number;
   positionY: number;
   zoom: number;
+}
+
+/** Lê os bytes de um upload: buffer em memória ou o temporário em disco. */
+function readUploadBytes(
+  file: Pick<Express.Multer.File, 'buffer' | 'path'>,
+): Buffer | null {
+  if (file.buffer?.length) {
+    return file.buffer;
+  }
+  if (file.path) {
+    try {
+      return readFileSync(file.path);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/** Bytes da imagem preparada, lendo o temporário quando necessário. */
+export function getPreparedImageBuffer(image: PreparedPrintImage): Buffer {
+  if (image.buffer?.length) {
+    return image.buffer;
+  }
+  if (image.path) {
+    return readFileSync(image.path);
+  }
+  throw new InternalServerErrorException(
+    'Imagem de impressão sem conteúdo disponível',
+  );
 }
 
 interface PrintImagePage {
@@ -178,39 +221,45 @@ export class PrintImageInputService {
             `Marcador ${label}: enquadramento inválido`,
           );
         }
+        const invalidImageMessage = `Marcador ${label}: PNG/JPEG inválido ou acima de ${PRINT_IMAGE_MAX_SIDE} px por lado e ${PRINT_IMAGE_MAX_PIXELS / 1_000_000} megapixels`;
+        const buffer = readUploadBytes(file);
         if (
           file.size > PRINT_IMAGE_MAX_BYTES ||
-          file.buffer?.length > PRINT_IMAGE_MAX_BYTES
+          (buffer?.length ?? 0) > PRINT_IMAGE_MAX_BYTES
         ) {
           throw new PayloadTooLargeException(
-            `Marcador ${label}: imagem deve ter até 5 MiB`,
+            `Marcador ${label}: imagem deve ter até ${PRINT_IMAGE_MAX_MB} MiB`,
           );
         }
+        if (!buffer?.length || file.size !== buffer.length) {
+          throw new BadRequestException(invalidImageMessage);
+        }
         try {
-          if (!file.buffer?.length || file.size !== file.buffer.length)
-            throw new Error();
-          const metadata = validateMaterialTemplateImage(file);
+          const metadata = validateMaterialTemplateImage({
+            buffer,
+            size: buffer.length,
+          });
           const mime =
             file.mimetype === 'image/jpg' ? 'image/jpeg' : file.mimetype;
           if (mime !== metadata.mimeType) throw new Error();
-          const dimensions = this.inspectImage(file.buffer, metadata.mimeType);
+          const dimensions = this.inspectImage(buffer, metadata.mimeType);
           return {
             ...(materialFileId === undefined ? {} : { materialFileId }),
             layerId,
-            buffer: file.buffer,
-            size: file.buffer.length,
+            // Mantém o buffer só quando o upload já veio em memória; caso
+            // contrário o temporário em disco é suficiente para o stage.
+            ...(file.buffer?.length ? { buffer } : { path: file.path }),
+            size: buffer.length,
             mimeType: metadata.mimeType,
             fit,
             positionX: roundPlacementValue(positionX),
             positionY: roundPlacementValue(positionY),
             zoom: roundPlacementValue(zoom),
             ...dimensions,
-            checksum: createHash('sha256').update(file.buffer).digest('hex'),
+            checksum: createHash('sha256').update(buffer).digest('hex'),
           };
         } catch {
-          throw new BadRequestException(
-            `Marcador ${label}: PNG/JPEG inválido ou acima de 6000 px por lado e 30 megapixels`,
-          );
+          throw new BadRequestException(invalidImageMessage);
         }
       },
     );
@@ -280,11 +329,12 @@ export class PrintImageInputService {
     await this.prisma.printExportInput.createMany({ data: records });
     const ids = records.map((record) => record.id);
     try {
-      // Sequential writes keep memory and partial-upload cleanup bounded.
+      // Sequential reads/writes keep memory and partial-upload cleanup
+      // bounded: um temporário de cada vez, nunca o lote inteiro.
       for (let i = 0; i < records.length; i++) {
         await this.storage.writePrivateFile({
           path: records[i].storageKey,
-          buffer: images[i].buffer,
+          buffer: await this.readPreparedImageBytes(images[i]),
           mimeType: records[i].mimeType,
         });
       }
@@ -293,6 +343,20 @@ export class PrintImageInputService {
       await this.cleanup(ids);
       throw error;
     }
+  }
+
+  private async readPreparedImageBytes(
+    image: PreparedPrintImage,
+  ): Promise<Buffer> {
+    if (image.buffer?.length) {
+      return image.buffer;
+    }
+    if (image.path) {
+      return await fsp.readFile(image.path);
+    }
+    throw new InternalServerErrorException(
+      'Imagem de impressão sem conteúdo disponível',
+    );
   }
 
   async load(

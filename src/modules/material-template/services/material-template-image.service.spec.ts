@@ -1,5 +1,11 @@
 import { readFileSync } from 'node:fs';
-import { MaterialTemplateImageService } from './material-template-image.service';
+import {
+  MATERIAL_TEMPLATE_IMAGE_MAX_BYTES,
+  MATERIAL_TEMPLATE_IMAGE_MAX_SIDE,
+  MATERIAL_TEMPLATE_IMAGE_MAX_SIZE_MESSAGE,
+  MATERIAL_TEMPLATE_IMAGE_RESOLUTION_MESSAGE,
+  MaterialTemplateImageService,
+} from './material-template-image.service';
 
 jest.mock('node:fs', () => {
   const actual = jest.requireActual('node:fs');
@@ -59,28 +65,50 @@ describe('MaterialTemplateImageService', () => {
   });
 
   it('rejeita lado e área acima dos limites', () => {
-    expect(() => service.validate(file(png(6001, 100)))).toThrow(
-      'A imagem base deve ter no máximo 6000 px por lado e 30 megapixels',
-    );
-    expect(() => service.validate(file(png(5500, 5500)))).toThrow(
-      'A imagem base deve ter no máximo 6000 px por lado e 30 megapixels',
-    );
-  });
-
-  it('aplica o limite efetivo de 5 MB', () => {
     expect(() =>
-      service.validate(file(png(100, 100), { size: 5 * 1024 * 1024 + 1 })),
-    ).toThrow('A imagem base deve ter no máximo 5 MB');
+      service.validate(
+        file(png(MATERIAL_TEMPLATE_IMAGE_MAX_SIDE + 1, 100)),
+      ),
+    ).toThrow(MATERIAL_TEMPLATE_IMAGE_RESOLUTION_MESSAGE);
+    expect(() =>
+      service.validate(file(png(11000, 11000))),
+    ).toThrow(MATERIAL_TEMPLATE_IMAGE_RESOLUTION_MESSAGE);
   });
 
-  it('rejeita conteúdo acima de 5 MB mesmo com tamanho declarado menor', () => {
-    const buffer = Buffer.alloc(5 * 1024 * 1024 + 1);
+  it('aceita imagens de grande formato para impressão de alta qualidade', () => {
+    expect(service.validate(file(png(8000, 10000)))).toEqual({
+      width: 8000,
+      height: 10000,
+      mimeType: 'image/png',
+    });
+  });
+
+  it('aplica o limite efetivo de 30 MB', () => {
+    expect(() =>
+      service.validate(
+        file(png(100, 100), { size: MATERIAL_TEMPLATE_IMAGE_MAX_BYTES + 1 }),
+      ),
+    ).toThrow(MATERIAL_TEMPLATE_IMAGE_MAX_SIZE_MESSAGE);
+  });
+
+  it('aceita imagens pesadas de alta qualidade dentro de 30 MB', () => {
+    expect(
+      service.validate(file(png(3000, 4000), { size: 25 * 1024 * 1024 })),
+    ).toEqual({
+      width: 3000,
+      height: 4000,
+      mimeType: 'image/png',
+    });
+  });
+
+  it('rejeita conteúdo acima do limite mesmo com tamanho declarado menor', () => {
+    const buffer = Buffer.alloc(MATERIAL_TEMPLATE_IMAGE_MAX_BYTES + 1);
     Buffer.from('89504e470d0a1a0a', 'hex').copy(buffer);
     buffer.writeUInt32BE(100, 16);
     buffer.writeUInt32BE(100, 20);
 
     expect(() => service.validate(file(buffer, { size: 24 }))).toThrow(
-      'A imagem base deve ter no máximo 5 MB',
+      MATERIAL_TEMPLATE_IMAGE_MAX_SIZE_MESSAGE,
     );
   });
 

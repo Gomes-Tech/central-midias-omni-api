@@ -23,6 +23,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { PaginatedResponse } from '../../types';
+import { MATERIAL_TEMPLATE_IMAGE_MAX_BYTES } from '@modules/material-template/services/material-template-image.service';
 import {
   AcceptMaterialDTO,
   CreateMaterialDTO,
@@ -278,7 +279,7 @@ export class MaterialController {
     await this.updateMaterialUseCase.execute(id, organizationId, dto, userId);
   }
 
-  @MaxFileSize(undefined, 5)
+  @MaxFileSize(MATERIAL_TEMPLATE_IMAGE_MAX_BYTES)
   @AllowedFileTypes({
     extensions: ['png', 'jpg', 'jpeg'],
     mimeTypes: ['image/png', 'image/jpeg', 'image/jpg'],

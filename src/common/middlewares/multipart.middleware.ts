@@ -8,6 +8,7 @@ import { UnauthorizedException } from '@common/filters';
 import {
   MAX_IMAGE_PLACEHOLDERS,
   PRINT_IMAGE_MAX_BYTES,
+  PRINT_IMAGE_MAX_MB,
   PRINT_MULTIPART_FIELD_BYTES,
   PRINT_MULTIPART_MAX_BYTES,
 } from '@common/constants/print-image-limits';
@@ -22,9 +23,30 @@ import { extname, join } from 'node:path';
 
 const memoryStorage = multer.memoryStorage();
 const materialUploadDir = join(tmpdir(), 'omni-material-uploads');
+const printUploadDir = join(tmpdir(), 'omni-print-uploads');
 
+function createUploadDiskStorage(
+  directory: string,
+): multer.StorageEngine {
+  return multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      try {
+        mkdirSync(directory, { recursive: true });
+        cb(null, directory);
+      } catch (error) {
+        cb(error as Error, directory);
+      }
+    },
+    filename: (_req, file, cb) => {
+      cb(null, `${randomUUID()}${extname(file.originalname)}`);
+    },
+  });
+}
+
+// As fotos de impressão vão a disco em streaming: o lote pode chegar a
+// 20 × 30 MiB e não pode ficar inteiro em memória durante o parse.
 const parsePrintMultipart = multer({
-  storage: memoryStorage,
+  storage: createUploadDiskStorage(printUploadDir),
   limits: {
     fileSize: PRINT_IMAGE_MAX_BYTES,
     files: MAX_IMAGE_PLACEHOLDERS,
@@ -47,19 +69,7 @@ const parseLimitedMultipart = multer({
 ) => void;
 
 const parseMaterialMultipart = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => {
-      try {
-        mkdirSync(materialUploadDir, { recursive: true });
-        cb(null, materialUploadDir);
-      } catch (error) {
-        cb(error as Error, materialUploadDir);
-      }
-    },
-    filename: (_req, file, cb) => {
-      cb(null, `${randomUUID()}${extname(file.originalname)}`);
-    },
-  }),
+  storage: createUploadDiskStorage(materialUploadDir),
   limits: {
     files: MULTIPART_MAX_FILES,
   },
@@ -169,7 +179,7 @@ function toUploadError(err: unknown, printUpload = false): unknown {
 
   if (err.code === 'LIMIT_FILE_SIZE') {
     return new PayloadTooLargeException(
-      `Arquivo excede o tamanho máximo permitido de ${printUpload ? 5 : MULTIPART_MAX_FILE_MB}MB.`,
+      `Arquivo excede o tamanho máximo permitido de ${printUpload ? PRINT_IMAGE_MAX_MB : MULTIPART_MAX_FILE_MB}MB.`,
     );
   }
 
@@ -186,7 +196,9 @@ function toUploadError(err: unknown, printUpload = false): unknown {
  * Parseia multipart/form-data em todas as rotas que enviarem esse Content-Type.
  *
  * Materiais (qualquer MIME permitido) vão a disco em streaming — sem teto de MB —
- * e o storage lê o stream. Demais rotas continuam em memória com teto de 100 MB.
+ * e o storage lê o stream. Exportações de impressão seguem o mesmo caminho:
+ * o lote pode chegar a 20 × 30 MiB e não cabe em memória. Demais rotas
+ * continuam em memória com teto de 100 MB por arquivo.
  *
  * Não use `FileInterceptor` nas rotas: o body já foi consumido e o segundo parse
  * quebraria o upload.
@@ -241,7 +253,7 @@ export function multipartMiddleware(
       req.file = files[0];
     }
 
-    if (materialUpload) {
+    if (materialUpload || printUpload) {
       registerTempCleanup(req, res);
     }
 

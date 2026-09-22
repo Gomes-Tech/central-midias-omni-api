@@ -29,6 +29,9 @@ jest.mock('node:fs', () => {
 });
 
 jest.mock('multer', () => {
+  const {
+    PRINT_IMAGE_MAX_BYTES: printImageMaxBytes,
+  } = jest.requireActual('@common/constants/print-image-limits');
   const memoryStorage = jest.fn(() => 'memory-storage');
   const diskStorage = jest.fn(
     (opts: {
@@ -58,7 +61,7 @@ jest.mock('multer', () => {
     }) => {
       mockMulterOptionsList.push(opts);
       const parser =
-        opts.limits?.fileSize === 5 * 1024 * 1024
+        opts.limits?.fileSize === printImageMaxBytes
           ? mockParsePrintMultipart
           : opts.limits?.fileSize
             ? mockParseLimitedMultipart
@@ -75,6 +78,11 @@ import {
   MULTIPART_MAX_FILE_BYTES,
   MULTIPART_MAX_FILES,
 } from '@common/constants/multipart-limits';
+import {
+  PRINT_IMAGE_MAX_BYTES,
+  PRINT_IMAGE_MAX_MB,
+  PRINT_MULTIPART_MAX_BYTES,
+} from '@common/constants/print-image-limits';
 import { UnauthorizedException } from '@common/filters';
 import { unlinkUploadTemp } from '@infrastructure/providers/storage/upload-body';
 import { PayloadTooLargeException } from '@nestjs/common';
@@ -191,7 +199,7 @@ describe('multipartMiddleware', () => {
     );
     expect(mockMulterOptionsList[2]?.limits?.fileSize).toBeUndefined();
     expect(mockMulterOptionsList[0]?.limits).toMatchObject({
-      fileSize: 5 * 1024 * 1024,
+      fileSize: PRINT_IMAGE_MAX_BYTES,
       files: 20,
       fields: 3,
       parts: 23,
@@ -203,7 +211,7 @@ describe('multipartMiddleware', () => {
     mockParsePrintMultipart.mockImplementation((_req, _res, cb) => cb());
     multipartMiddleware(
       materialReq('/api/materials/mat/print-exports?x=1') as Request,
-      {} as Response,
+      new EventEmitter() as unknown as Response,
       next,
     );
     expect(mockParsePrintMultipart).toHaveBeenCalledTimes(1);
@@ -215,7 +223,7 @@ describe('multipartMiddleware', () => {
     const req = materialReq('/api/materials/mat/print-exports', {
       headers: {
         ...MULTIPART_HEADERS,
-        'content-length': String(110 * 1024 * 1024),
+        'content-length': String(PRINT_MULTIPART_MAX_BYTES + 1),
       },
     });
     multipartMiddleware(req as Request, {} as Response, next);
@@ -223,7 +231,7 @@ describe('multipartMiddleware', () => {
     expect(next).toHaveBeenCalledWith(expect.any(PayloadTooLargeException));
   });
 
-  it('informa o limite de 5 MiB nos erros de arquivos para impressão', () => {
+  it('informa o limite de MiB nos erros de arquivos para impressão', () => {
     mockParsePrintMultipart.mockImplementation((_req, _res, cb) =>
       cb(new MulterError('LIMIT_FILE_SIZE')),
     );
@@ -233,7 +241,9 @@ describe('multipartMiddleware', () => {
       next,
     );
     expect(next).toHaveBeenCalledWith(
-      expect.objectContaining({ message: expect.stringContaining('5MB') }),
+      expect.objectContaining({
+        message: expect.stringContaining(`${PRINT_IMAGE_MAX_MB}MB`),
+      }),
     );
   });
 
@@ -468,6 +478,33 @@ describe('multipartMiddleware', () => {
       },
     );
     const req = materialReq('/api/materials') as Request;
+    const res = new EventEmitter() as unknown as Response;
+
+    multipartMiddleware(req, res, next);
+
+    res.emit('finish');
+
+    expect(unlinkUploadTemp).toHaveBeenCalledWith(tempFile);
+  });
+
+  it('deve limpar temporários de impressão ao finalizar a resposta', () => {
+    const tempFile = {
+      originalname: 'photo.png',
+      mimetype: 'image/png',
+      path: '/tmp/omni-print-uploads/abc.png',
+    };
+    mockParsePrintMultipart.mockImplementation(
+      (
+        req: { files?: unknown; file?: unknown },
+        _res: unknown,
+        cb: () => void,
+      ) => {
+        req.files = [tempFile];
+        cb();
+      },
+    );
+
+    const req = materialReq('/api/materials/mat/print-exports') as Request;
     const res = new EventEmitter() as unknown as Response;
 
     multipartMiddleware(req, res, next);

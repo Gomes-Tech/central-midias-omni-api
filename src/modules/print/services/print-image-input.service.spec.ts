@@ -1,7 +1,11 @@
 import {
+  getPreparedImageBuffer,
   PrintImageInputService,
   printImageKey,
 } from './print-image-input.service';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   placeholder,
   placeholderDocument,
@@ -12,7 +16,10 @@ import {
   printPng,
   printJpegExif,
 } from '../../../test-utils/print-image-fixtures';
-import { PRINT_IMAGE_MAX_BYTES } from '@common/constants/print-image-limits';
+import {
+  PRINT_IMAGE_MAX_BYTES,
+  PRINT_IMAGE_MAX_SIDE,
+} from '@common/constants/print-image-limits';
 
 describe('PrintImageInputService', () => {
   const owner = { id: 'export', organizationId: 'org', userId: 'user' };
@@ -87,6 +94,54 @@ describe('PrintImageInputService', () => {
     });
     expect(image.checksum).toMatch(/^[a-f0-9]{64}$/);
     expect(() => service.prepare(placeholderDocument)).toThrow('photo');
+  });
+
+  it('processa imagens em disco sem reter o lote em memória', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'print-input-'));
+    const bytes = printPng(120, 80);
+    const filePath = join(dir, 'photo.png');
+    writeFileSync(filePath, bytes);
+
+    const [image] = service.prepare(placeholderDocument, [binding], [
+      {
+        fieldname: 'photo_file',
+        originalname: 'photo.png',
+        mimetype: 'image/png',
+        size: bytes.length,
+        path: filePath,
+      } as Express.Multer.File,
+    ]);
+
+    // O caminho da requisição guarda só o temporário em disco.
+    expect(image.buffer).toBeUndefined();
+    expect(image.path).toBe(filePath);
+    expect(image).toMatchObject({
+      width: 120,
+      height: 80,
+      mimeType: 'image/png',
+    });
+
+    const inputIds = await service.stage(owner, [image]);
+    expect(objects.get(rows[0].storageKey)).toEqual(bytes);
+    expect(getPreparedImageBuffer(image)).toEqual(bytes);
+
+    const loaded = await service.load(owner, placeholderDocument, inputIds);
+    expect(loaded.get('photo')).toMatchObject({ width: 120, height: 80 });
+    expect(getPreparedImageBuffer(loaded.get('photo')!)).toEqual(bytes);
+  });
+
+  it('recusa imagem em disco ilegível', () => {
+    expect(() =>
+      service.prepare(placeholderDocument, [binding], [
+        {
+          fieldname: 'photo_file',
+          originalname: 'photo.png',
+          mimetype: 'image/png',
+          size: 10,
+          path: join(tmpdir(), 'print-input-inexistente.png'),
+        } as Express.Multer.File,
+      ]),
+    ).toThrow('Marcador photo');
   });
 
   it('ignora marcadores ocultos, mas rejeita imagem vinculada a eles', () => {
@@ -324,7 +379,7 @@ describe('PrintImageInputService', () => {
       'resolução excessiva',
       () => {
         const buffer = printPng();
-        buffer.writeUInt32BE(6001, 16);
+        buffer.writeUInt32BE(PRINT_IMAGE_MAX_SIDE + 1, 16);
         return printImageFile(buffer);
       },
     ],
@@ -332,8 +387,8 @@ describe('PrintImageInputService', () => {
       'pixels excessivos',
       () => {
         const buffer = printPng();
-        buffer.writeUInt32BE(6000, 16);
-        buffer.writeUInt32BE(6000, 20);
+        buffer.writeUInt32BE(11000, 16);
+        buffer.writeUInt32BE(11000, 20);
         return printImageFile(buffer);
       },
     ],
@@ -360,7 +415,7 @@ describe('PrintImageInputService', () => {
     expect(prisma.printExportInput.createMany).not.toHaveBeenCalled();
   });
 
-  it('retorna 413 acima de 5 MiB', () => {
+  it('retorna 413 acima do limite de MiB', () => {
     try {
       service.prepare(
         placeholderDocument,

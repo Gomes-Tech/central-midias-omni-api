@@ -51,7 +51,7 @@ Regras da camada:
 - `x`, `y` e `rotation` são números finitos. `width` e `height` são finitos e maiores que zero. As coordenadas usam as unidades do canvas; `rotation` usa graus.
 - `x` e `y` representam o canto superior esquerdo do retângulo sem rotação. A rotação da imagem ocorre ao redor do centro do retângulo, como nas camadas de asset.
 - `editableProperties` é exatamente `["image"]`. O agente substitui a foto; posição, tamanho, rotação, visibilidade e ordem pertencem ao admin.
-- Até 20 marcadores, incluindo ocultos, dentro do limite existente de 200 camadas. O canvas mantém seus limites de 6000 px por lado e 30 megapixels.
+- Até 20 marcadores, incluindo ocultos, dentro do limite existente de 200 camadas. O canvas mantém seus limites de 12000 px por lado e 120 megapixels.
 - Um template pode ser publicado sem texto editável e sem marcador visível: basta o documento salvo, com as páginas correspondendo às imagens atuais.
 
 Salvar retorna o template em `DRAFT` e incrementa `revision`. Publicar usa a revisão retornada pelo salvamento:
@@ -140,7 +140,7 @@ Esse exemplo representa o formato da requisição; o documento enviado deve corr
 ### Limites e resolução
 
 - PNG e JPEG, com MIME correspondente (`image/png`, `image/jpeg`; `image/jpg` também é normalizado).
-- Até 5 MiB por arquivo, 20 arquivos, 6000 pixels por lado e 30 megapixels por foto.
+- Até 30 MiB por arquivo, 20 arquivos, 12000 pixels por lado e 120 megapixels por foto.
 - Cada campo textual do multipart aceita até 3 MiB; somente os três campos acima são necessários.
 - A API verifica arquivos e associações antes de armazenar ou enfileirar.
 - O preflight administrativo valida a estrutura do template e não exige fotos do agente. Cada exportação valida também a resolução das fotos conforme `minimumDpi` do preset.
@@ -164,7 +164,7 @@ A criação mantém a resposta existente: `id`, `materialId`, `status`, `progres
 Os erros usam o envelope atual da API, com `statusCode`, `message`, `path` e `timestamp`.
 
 - `400`: documento alterado além das permissões, JSON inválido, associação inválida/duplicada, imagem ausente ou inválida, DPI insuficiente, preset/preflight indisponível.
-- `413`: arquivo acima de 5 MiB ou multipart acima do limite total.
+- `413`: arquivo acima de 30 MiB ou multipart acima do limite total.
 - `403`: usuário sem acesso ao material ou sem permissão administrativa para salvar/publicar.
 - `404`: template publicado indisponível, material de outra organização ou exportação não pertencente ao usuário.
 - `409`: revisão administrativa desatualizada ou chave de idempotência usada com conteúdo diferente.

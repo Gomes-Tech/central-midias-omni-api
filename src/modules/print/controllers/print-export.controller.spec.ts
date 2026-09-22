@@ -2,7 +2,9 @@ import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { json } from 'express';
+import { readFileSync } from 'node:fs';
 import { multipartMiddleware } from '@common/middlewares/multipart.middleware';
+import { PRINT_IMAGE_MAX_BYTES } from '@common/constants/print-image-limits';
 import { PrintExportController } from './print-export.controller';
 import { PrintExportService } from '../services/print-export.service';
 import {
@@ -12,9 +14,24 @@ import {
 
 describe('PrintExportController multipart contract', () => {
   let app: INestApplication;
-  const create = jest
-    .fn()
-    .mockResolvedValue({ id: 'export', status: 'QUEUED' });
+  let receivedFiles: Express.Multer.File[] = [];
+  // As imagens chegam em disco (streaming); os bytes são lidos ainda dentro do
+  // handler porque o temporário é removido quando a resposta termina.
+  const create = jest.fn(
+    async (
+      _materialId: string,
+      _organizationId: string,
+      _userId: string,
+      _dto: unknown,
+      files: Express.Multer.File[] = [],
+    ) => {
+      receivedFiles = files.map((file) => ({
+        ...file,
+        buffer: file.path ? readFileSync(file.path) : file.buffer,
+      }));
+      return { id: 'export', status: 'QUEUED' };
+    },
+  );
   const headers = { authorization: 'Bearer test', 'x-api-key': 'test' };
   const path = '/api/materials/material/print-exports';
 
@@ -36,7 +53,10 @@ describe('PrintExportController multipart contract', () => {
     );
     await app.init();
   });
-  beforeEach(() => create.mockClear());
+  beforeEach(() => {
+    create.mockClear();
+    receivedFiles = [];
+  });
   afterAll(async () => {
     await app.close();
   });
@@ -87,7 +107,7 @@ describe('PrintExportController multipart contract', () => {
         },
       ],
     });
-    expect(create.mock.calls[1][4][0]).toMatchObject({
+    expect(receivedFiles[0]).toMatchObject({
       fieldname: 'photo_file',
       mimetype: 'image/png',
       buffer: printPng(),
@@ -114,13 +134,27 @@ describe('PrintExportController multipart contract', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
-  it('barra arquivos acima de 5 MiB durante o parse', async () => {
+  it('declara o teto por foto no interceptor global de tamanho', () => {
+    // Sem isso o interceptor aplicaria o padrão de 5 MiB e barraria as fotos.
+    expect(
+      Reflect.getMetadata(
+        'maxFileSize',
+        PrintExportController.prototype.create,
+      ),
+    ).toBe(PRINT_IMAGE_MAX_BYTES);
+  });
+
+  it('barra arquivos acima do limite durante o parse', async () => {
     await request(app.getHttpServer())
       .post(path)
       .set(headers)
       .field('document', JSON.stringify(placeholderDocument))
       .field('idempotencyKey', 'key')
-      .attach('photo_file', Buffer.alloc(5 * 1024 * 1024 + 1), 'photo.png')
+      .attach(
+        'photo_file',
+        Buffer.alloc(PRINT_IMAGE_MAX_BYTES + 1),
+        'photo.png',
+      )
       .expect(413);
     expect(create).not.toHaveBeenCalled();
   });

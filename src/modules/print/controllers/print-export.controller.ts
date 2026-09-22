@@ -1,4 +1,5 @@
-import { OrgId, UserId } from '@common/decorators';
+import { MaxFileSize, OrgId, UserId } from '@common/decorators';
+import { PRINT_IMAGE_MAX_BYTES } from '@common/constants/print-image-limits';
 import {
   Body,
   Controller,
@@ -14,6 +15,9 @@ import { PrintExportService } from '../services/print-export.service';
 export class PrintExportController {
   constructor(private readonly service: PrintExportService) {}
 
+  // O interceptor global usaria 5 MiB por padrão e barraria as fotos de
+  // impressão, que agora podem chegar a 30 MiB.
+  @MaxFileSize(PRINT_IMAGE_MAX_BYTES)
   @Post('materials/:id/print-exports')
   create(
     @Param('id') materialId: string,

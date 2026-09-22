@@ -2,9 +2,13 @@ import { BadRequestException } from '@common/filters';
 import { Injectable } from '@nestjs/common';
 import { readFileSync } from 'node:fs';
 
-export const MATERIAL_TEMPLATE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
-const MAX_SIDE = 6000;
-const MAX_PIXELS = 30_000_000;
+export const MATERIAL_TEMPLATE_IMAGE_MAX_MB = 30;
+export const MATERIAL_TEMPLATE_IMAGE_MAX_BYTES =
+  MATERIAL_TEMPLATE_IMAGE_MAX_MB * 1024 * 1024;
+export const MATERIAL_TEMPLATE_IMAGE_MAX_SIZE_MESSAGE = `A imagem base deve ter no máximo ${MATERIAL_TEMPLATE_IMAGE_MAX_MB} MB`;
+export const MATERIAL_TEMPLATE_IMAGE_MAX_SIDE = 12000;
+export const MATERIAL_TEMPLATE_IMAGE_MAX_PIXELS = 120_000_000;
+export const MATERIAL_TEMPLATE_IMAGE_RESOLUTION_MESSAGE = `A imagem base deve ter no máximo ${MATERIAL_TEMPLATE_IMAGE_MAX_SIDE} px por lado e ${MATERIAL_TEMPLATE_IMAGE_MAX_PIXELS / 1_000_000} megapixels`;
 
 function readPngDimensions(buffer: Buffer) {
   const signature = '89504e470d0a1a0a';
@@ -72,11 +76,11 @@ export function validateMaterialTemplateImage(
   mimeType: 'image/png' | 'image/jpeg';
 } {
   if (!file || file.size > MATERIAL_TEMPLATE_IMAGE_MAX_BYTES) {
-    throw new BadRequestException('A imagem base deve ter no máximo 5 MB');
+    throw new BadRequestException(MATERIAL_TEMPLATE_IMAGE_MAX_SIZE_MESSAGE);
   }
   const buffer = resolveTemplateImageBuffer(file);
   if (buffer.length > MATERIAL_TEMPLATE_IMAGE_MAX_BYTES) {
-    throw new BadRequestException('A imagem base deve ter no máximo 5 MB');
+    throw new BadRequestException(MATERIAL_TEMPLATE_IMAGE_MAX_SIZE_MESSAGE);
   }
   const png = readPngDimensions(buffer);
   const jpeg = png ? null : readJpegDimensions(buffer);
@@ -88,11 +92,13 @@ export function validateMaterialTemplateImage(
   if (
     dimensions.width <= 0 ||
     dimensions.height <= 0 ||
-    Math.max(dimensions.width, dimensions.height) > MAX_SIDE ||
-    dimensions.width * dimensions.height > MAX_PIXELS
+    Math.max(dimensions.width, dimensions.height) >
+      MATERIAL_TEMPLATE_IMAGE_MAX_SIDE ||
+    dimensions.width * dimensions.height >
+      MATERIAL_TEMPLATE_IMAGE_MAX_PIXELS
   ) {
     throw new BadRequestException(
-      'A imagem base deve ter no máximo 6000 px por lado e 30 megapixels',
+      MATERIAL_TEMPLATE_IMAGE_RESOLUTION_MESSAGE,
     );
   }
   return { ...dimensions, mimeType };

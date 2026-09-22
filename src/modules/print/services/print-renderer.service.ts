@@ -21,6 +21,7 @@ import {
   resolvePrintFontFamily,
 } from './print-fonts';
 import {
+  getPreparedImageBuffer,
   PreparedPrintImage,
   PrintImageInputService,
   printImageKey,
@@ -397,7 +398,7 @@ export class PrintRendererService {
           pdf.rect(-width / 2, -height / 2, width, height).clip();
           const placement = getPrintImagePlacement(width, height, image);
           pdf.image(
-            image.buffer,
+            getPreparedImageBuffer(image),
             -width / 2 + placement.x,
             -height / 2 + placement.y,
             {

@@ -3,6 +3,7 @@ import { StorageService } from '@infrastructure/providers';
 import { FindCategoryByIdUseCase } from '@modules/category/use-cases';
 import {
   MATERIAL_TEMPLATE_IMAGE_MAX_BYTES,
+  MATERIAL_TEMPLATE_IMAGE_MAX_SIZE_MESSAGE,
   validateMaterialTemplateImage,
 } from '@modules/material-template/services/material-template-image.service';
 import { Inject, Injectable } from '@nestjs/common';
@@ -76,7 +77,7 @@ export class UpdateMaterialUseCase {
       for (const file of files) {
         if (file.size > MATERIAL_TEMPLATE_IMAGE_MAX_BYTES) {
           throw new BadRequestException(
-            'A imagem base deve ter no máximo 5 MB',
+            MATERIAL_TEMPLATE_IMAGE_MAX_SIZE_MESSAGE,
           );
         }
         const buffer = await this.storageService.readFile(file.fileKey);
