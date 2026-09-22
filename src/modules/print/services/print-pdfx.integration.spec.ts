@@ -53,6 +53,10 @@ describeWithTools('PrintRendererService PDF/X integration', () => {
           iccPath: string,
           preset: PrintPresetSnapshot,
         ) => string;
+        applyPageBoxes: (
+          path: string,
+          preset: PrintPresetSnapshot,
+        ) => Promise<void>;
       };
       const preset: PrintPresetSnapshot = {
         id: 'preset-id',
@@ -133,6 +137,7 @@ describeWithTools('PrintRendererService PDF/X integration', () => {
         definitionPath,
         intermediatePath,
       ]);
+      await internals.applyPageBoxes(outputPath, preset);
 
       const info = execFileSync('pdfinfo', ['-box', outputPath], {
         encoding: 'utf8',
@@ -144,8 +149,9 @@ describeWithTools('PrintRendererService PDF/X integration', () => {
       );
       const outputSource = readFileSync(outputPath, 'latin1');
       expect(info).toContain('PDF version:     1.3');
-      expect(info).toContain('TrimBox:');
-      expect(info).toContain('BleedBox:');
+      expect(info).toMatch(/TrimBox:\s+34\.02\s+34\.02\s+629\.29\s+875\.91/);
+      expect(info).toMatch(/BleedBox:\s+25\.51\s+25\.51\s+637\.80\s+884\.41/);
+      expect(outputSource).not.toContain('/ArtBox');
       expect(outputSource).toContain('/OutputIntents');
       expect(outputSource).toContain('/DestOutputProfile');
       expect(outputSource).toContain('/GTS_PDFXVersion');
@@ -177,6 +183,12 @@ describeWithTools('PrintRendererService PDF/X integration', () => {
       };
       const preset: PrintPresetSnapshot = {
         ...printImagePreset,
+        bleedTopMm: 3,
+        bleedRightMm: 3,
+        bleedBottomMm: 3,
+        bleedLeftMm: 3,
+        includeCropMarks: true,
+        cropMarkOffsetMm: 3,
         colorProfile: {
           ...printImagePreset.colorProfile,
           storageKey: 'profile',
@@ -248,8 +260,12 @@ describeWithTools('PrintRendererService PDF/X integration', () => {
         { encoding: 'utf8' },
       );
       expect(info).toMatch(/Pages:\s+2\b/);
-      expect(info.match(/TrimBox:/g)).toHaveLength(2);
-      expect(info.match(/BleedBox:/g)).toHaveLength(2);
+      expect(
+        info.match(/TrimBox:\s+34\.02\s+34\.02\s+317\.48\s+317\.48/g),
+      ).toHaveLength(2);
+      expect(
+        info.match(/BleedBox:\s+25\.51\s+25\.51\s+325\.98\s+325\.98/g),
+      ).toHaveLength(2);
       const inspectedPath = join(workspace, 'multipage.qdf.pdf');
       execFileSync('qpdf', [
         '--qdf',

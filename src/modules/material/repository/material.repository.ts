@@ -103,6 +103,7 @@ const buildMaterialDetailsSelect = (organizationId: string) =>
         id: true,
         mimeType: true,
       },
+      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
     },
   }) satisfies Prisma.MaterialSelect;
 
@@ -129,6 +130,7 @@ const materialMostAccessedSelect = {
   categoryId: true,
   materialFiles: {
     select: materialFileSelect,
+    orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
   },
 } satisfies Prisma.MaterialSelect;
 
@@ -367,6 +369,7 @@ export class MaterialRepository {
                 mimeType: true,
                 size: true,
               },
+              orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
               take: 1,
             },
           },
@@ -487,6 +490,7 @@ export class MaterialRepository {
                 mimeType: true,
                 size: true,
               },
+              orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
               take: 1,
             },
             materialTemplate: { select: { status: true } },

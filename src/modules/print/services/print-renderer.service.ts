@@ -68,6 +68,44 @@ export function getPrintImagePlacement(
   };
 }
 
+type PdfBox = [number, number, number, number];
+
+function getPrintPageGeometry(preset: PrintPresetSnapshot) {
+  const bleedWidthMm =
+    preset.trimWidthMm + preset.bleedLeftMm + preset.bleedRightMm;
+  const bleedHeightMm =
+    preset.trimHeightMm + preset.bleedTopMm + preset.bleedBottomMm;
+  const marksMarginMm = preset.includeCropMarks
+    ? preset.cropMarkOffsetMm + 6
+    : 0;
+  const canvasX = marksMarginMm * MM_TO_POINTS;
+  const canvasY = marksMarginMm * MM_TO_POINTS;
+  const bleedWidthPt = bleedWidthMm * MM_TO_POINTS;
+  const bleedHeightPt = bleedHeightMm * MM_TO_POINTS;
+  const bleedBox: PdfBox = [
+    canvasX,
+    canvasY,
+    canvasX + bleedWidthPt,
+    canvasY + bleedHeightPt,
+  ];
+  const trimBox: PdfBox = [
+    canvasX + preset.bleedLeftMm * MM_TO_POINTS,
+    canvasY + preset.bleedBottomMm * MM_TO_POINTS,
+    canvasX + (preset.bleedLeftMm + preset.trimWidthMm) * MM_TO_POINTS,
+    canvasY + (preset.bleedBottomMm + preset.trimHeightMm) * MM_TO_POINTS,
+  ];
+  return {
+    pageWidth: (bleedWidthMm + marksMarginMm * 2) * MM_TO_POINTS,
+    pageHeight: (bleedHeightMm + marksMarginMm * 2) * MM_TO_POINTS,
+    canvasX,
+    canvasY,
+    bleedWidthPt,
+    bleedHeightPt,
+    bleedBox,
+    trimBox,
+  };
+}
+
 const RENDERING_INTENTS: Record<
   PrintPresetSnapshot['renderingIntent'],
   number
@@ -236,6 +274,7 @@ export class PrintRendererService {
         definitionPath,
         intermediatePath,
       ]);
+      await this.applyPageBoxes(outputPath, preset);
       await onProgress(75);
       await this.validateOutput(outputPath, pages.length);
       await onProgress(90);
@@ -268,17 +307,16 @@ export class PrintRendererService {
     assets: Map<string, { mimeType: string; name: string; buffer: Buffer }>,
     images: Map<string, PreparedPrintImage> = new Map(),
   ): Promise<Buffer> {
-    const bleedWidthMm =
-      preset.trimWidthMm + preset.bleedLeftMm + preset.bleedRightMm;
-    const bleedHeightMm =
-      preset.trimHeightMm + preset.bleedTopMm + preset.bleedBottomMm;
-    const marksMarginMm = preset.includeCropMarks
-      ? preset.cropMarkOffsetMm + 6
-      : 0;
-    const pageWidth = (bleedWidthMm + marksMarginMm * 2) * MM_TO_POINTS;
-    const pageHeight = (bleedHeightMm + marksMarginMm * 2) * MM_TO_POINTS;
-    const canvasX = marksMarginMm * MM_TO_POINTS;
-    const canvasY = marksMarginMm * MM_TO_POINTS;
+    const {
+      pageWidth,
+      pageHeight,
+      canvasX,
+      canvasY,
+      bleedWidthPt,
+      bleedHeightPt,
+      bleedBox,
+      trimBox,
+    } = getPrintPageGeometry(preset);
 
     const pdf = new PDFDocument({
       autoFirstPage: false,
@@ -301,24 +339,10 @@ export class PrintRendererService {
       );
     }
 
-    const bleedWidthPt = bleedWidthMm * MM_TO_POINTS;
-    const bleedHeightPt = bleedHeightMm * MM_TO_POINTS;
     for (const document of pages) {
       const scaleX = bleedWidthPt / document.canvas.width;
       const scaleY = bleedHeightPt / document.canvas.height;
       pdf.addPage({ size: [pageWidth, pageHeight], margin: 0 });
-      const bleedBox = [
-        canvasX,
-        canvasY,
-        canvasX + bleedWidthPt,
-        canvasY + bleedHeightPt,
-      ];
-      const trimBox = [
-        canvasX + preset.bleedLeftMm * MM_TO_POINTS,
-        canvasY + preset.bleedBottomMm * MM_TO_POINTS,
-        canvasX + (preset.bleedLeftMm + preset.trimWidthMm) * MM_TO_POINTS,
-        canvasY + (preset.bleedBottomMm + preset.trimHeightMm) * MM_TO_POINTS,
-      ];
       (pdf.page as any).dictionary.data.BleedBox = bleedBox;
       (pdf.page as any).dictionary.data.TrimBox = trimBox;
 
@@ -551,17 +575,15 @@ export class PrintRendererService {
     ) {
       throw new Error('PDF contém perfil ICC vazio ou inválido');
     }
-    const { stdout: info } = await this.run('pdfinfo', [
-      '-box',
-      '-f',
-      '1',
-      '-l',
-      String(expectedPages),
-      path,
-    ]);
-    const trimBoxes = info.match(/TrimBox:/g)?.length ?? 0;
-    const bleedBoxes = info.match(/BleedBox:/g)?.length ?? 0;
-    if (trimBoxes < expectedPages || bleedBoxes < expectedPages) {
+    const { objects: pageObjects } = await this.readPageObjects(path);
+    if (
+      Object.keys(pageObjects).length !== expectedPages ||
+      Object.values(pageObjects).some(
+        ({ value }) =>
+          !Array.isArray(value['/TrimBox']) ||
+          !Array.isArray(value['/BleedBox']),
+      )
+    ) {
       throw new Error('PDF sem caixas de corte e sangria em todas as páginas');
     }
     const { stdout: fonts } = await this.run('pdffonts', [path]);
@@ -590,6 +612,71 @@ export class PrintRendererService {
       throw new Error('Não foi possível validar as separações CMYK');
     }
     await this.run('gs', ['-dBATCH', '-dNOPAUSE', '-sDEVICE=nullpage', path]);
+  }
+
+  private async readPageObjects(path: string) {
+    const { stdout: pagesJson } = await this.run('qpdf', [
+      '--json=2',
+      '--json-key=pages',
+      path,
+    ]);
+    const { pages } = JSON.parse(pagesJson) as {
+      pages: Array<{ object: string }>;
+    };
+    const { stdout: objectsJson } = await this.run('qpdf', [
+      '--json=2',
+      '--json-key=qpdf',
+      ...pages.map(
+        ({ object }) =>
+          `--json-object=${object.replace(/\s+R$/, '').replace(/\s+/, ',')}`,
+      ),
+      path,
+    ]);
+    const {
+      qpdf: [header, objects],
+    } = JSON.parse(objectsJson) as {
+      qpdf: [
+        Record<string, unknown>,
+        Record<string, { value: Record<string, unknown> }>,
+      ];
+    };
+    return { header, objects };
+  }
+
+  // Ghostscript's PDF/X mode drops input TrimBox/BleedBox and writes an
+  // ArtBox equal to the MediaBox, so the boxes are restored afterwards.
+  private async applyPageBoxes(path: string, preset: PrintPresetSnapshot) {
+    const { bleedBox, trimBox } = getPrintPageGeometry(preset);
+    const round = (box: PdfBox) =>
+      box.map((value) => Math.round(value * 1000) / 1000);
+    const { header, objects } = await this.readPageObjects(path);
+    const updates = Object.fromEntries(
+      Object.entries(objects).map(([key, { value }]) => {
+        const page = { ...value };
+        delete page['/ArtBox'];
+        return [
+          key,
+          {
+            value: {
+              ...page,
+              '/BleedBox': round(bleedBox),
+              '/TrimBox': round(trimBox),
+            },
+          },
+        ];
+      }),
+    );
+    const updatePath = `${path}.boxes.json`;
+    await fs.writeFile(
+      updatePath,
+      JSON.stringify({ qpdf: [header, updates] }),
+      'utf8',
+    );
+    await this.run('qpdf', [
+      path,
+      '--replace-input',
+      `--update-from-json=${updatePath}`,
+    ]);
   }
 
   private run(command: string, args: string[]) {

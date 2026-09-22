@@ -363,12 +363,14 @@ describe('MaterialRepository', () => {
           textCopy: true,
           isCustomizable: true,
           requiresAcceptance: true,
+          onlyView: true,
           materialFiles: {
             select: {
               imageKey: true,
               mimeType: true,
               size: true,
             },
+            orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
             take: 1,
           },
           materialTemplate: { select: { status: true } },
@@ -3422,6 +3424,24 @@ describe('MaterialRepository', () => {
           skip: 0,
           take: 24,
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        }),
+      );
+    });
+
+    it('deve usar a imagem de menor sortOrder como capa do card', async () => {
+      prisma.material.findMany.mockResolvedValue([]);
+      prisma.material.count.mockResolvedValue(0);
+
+      await repository.findByCategorySlugPath('org-id', 'cat');
+
+      expect(prisma.material.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({
+            materialFiles: expect.objectContaining({
+              orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+              take: 1,
+            }),
+          }),
         }),
       );
     });

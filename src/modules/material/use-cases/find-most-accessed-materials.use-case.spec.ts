@@ -19,8 +19,12 @@ describe('FindMostAccessedMaterialsUseCase', () => {
         id: 'file-1',
         materialId: 'material-1',
         imageKey: 'materials/material-1/preview.png',
+        originalName: null,
         mimeType: 'image/png',
         size: 1024,
+        width: 800,
+        height: 600,
+        sortOrder: 0,
       },
     ],
   };
@@ -35,8 +39,12 @@ describe('FindMostAccessedMaterialsUseCase', () => {
         id: 'file-2',
         materialId: 'material-2',
         imageKey: 'materials/material-2/image.jpeg',
+        originalName: null,
         mimeType: 'image/jpeg',
         size: 2048,
+        width: 800,
+        height: 600,
+        sortOrder: 0,
       },
     ],
   };
@@ -62,7 +70,9 @@ describe('FindMostAccessedMaterialsUseCase', () => {
       { ...viewedMaterial, id: 'material-4' },
     ];
     materialRepository.findMostViewedMaterials.mockResolvedValue(materials);
-    storageService.getPublicUrl.mockResolvedValue('https://cdn.test/preview.png');
+    storageService.getPublicUrl.mockResolvedValue(
+      'https://cdn.test/preview.png',
+    );
 
     const result = await useCase.execute('org-id', 'user-id');
 

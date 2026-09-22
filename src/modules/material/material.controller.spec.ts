@@ -445,12 +445,7 @@ describe('MaterialController', () => {
     const file = makeUploadFile();
     uploadMaterialFilesUseCase.execute.mockResolvedValue([makeMaterialFile()]);
 
-    await controller.uploadFiles(
-      'material-id',
-      'org-id',
-      { file },
-      'user-id',
-    );
+    await controller.uploadFiles('material-id', 'org-id', { file }, 'user-id');
 
     expect(uploadMaterialFilesUseCase.execute).toHaveBeenCalledWith(
       'material-id',

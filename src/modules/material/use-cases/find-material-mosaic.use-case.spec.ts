@@ -19,15 +19,23 @@ describe('FindMaterialMosaicUseCase', () => {
         id: 'file-1',
         materialId: 'material-1',
         imageKey: 'materials/material-1/preview.png',
+        originalName: null,
         mimeType: 'application/pdf',
         size: 2048,
+        width: null,
+        height: null,
+        sortOrder: 0,
       },
       {
         id: 'file-2',
         materialId: 'material-1',
         imageKey: 'materials/material-1/preview.png',
+        originalName: null,
         mimeType: 'image/png',
         size: 1024,
+        width: 800,
+        height: 600,
+        sortOrder: 1,
       },
     ],
   };
@@ -50,7 +58,9 @@ describe('FindMaterialMosaicUseCase', () => {
     materialRepository.findLatestImageMaterialsPerCategory.mockResolvedValue([
       materialWithImage,
     ]);
-    storageService.getPublicUrl.mockResolvedValue('https://cdn.test/preview.png');
+    storageService.getPublicUrl.mockResolvedValue(
+      'https://cdn.test/preview.png',
+    );
 
     const result = await useCase.execute('org-id', 'user-id');
 
@@ -79,8 +89,12 @@ describe('FindMaterialMosaicUseCase', () => {
             id: 'file-1',
             materialId: 'material-1',
             imageKey: 'materials/material-1/doc.pdf',
+            originalName: null,
             mimeType: 'application/pdf',
             size: 2048,
+            width: null,
+            height: null,
+            sortOrder: 0,
           },
         ],
       },
