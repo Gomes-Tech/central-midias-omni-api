@@ -337,4 +337,98 @@ describe('MaterialTemplateRepository', () => {
       },
     });
   });
+
+  describe('assertMaterialCanPublish', () => {
+    function customizableTemplate(
+      files: Array<{
+        id: string;
+        mimeType: string;
+        sortOrder: number;
+      }>,
+      baseFileId = files[0]?.id ?? null,
+    ) {
+      const materialFiles = files.map((file) => ({
+        id: file.id,
+        imageKey: `materials/material-id/${file.id}`,
+        originalName: `${file.id}.png`,
+        mimeType: file.mimeType,
+        size: 100,
+        width: 1080,
+        height: 1080,
+        sortOrder: file.sortOrder,
+      }));
+      return template({
+        baseFile: baseFileId
+          ? {
+              id: baseFileId,
+              imageKey: `materials/material-id/${baseFileId}`,
+              originalName: `${baseFileId}.png`,
+              mimeType: 'image/png',
+              size: 100,
+              width: 1080,
+              height: 1080,
+              sortOrder: 0,
+            }
+          : null,
+        material: {
+          id: 'material-id',
+          categoryId: 'category-id',
+          isCustomizable: true,
+          deletedAt: null,
+          materialFiles,
+        },
+      });
+    }
+
+    it('aceita de uma a vinte imagens PNG ou JPEG', () => {
+      const files = Array.from({ length: 20 }, (_, index) => ({
+        id: `file-${index}`,
+        mimeType: index % 2 === 0 ? 'image/png' : 'image/jpeg',
+        sortOrder: index,
+      }));
+
+      expect(() =>
+        repository.assertMaterialCanPublish(customizableTemplate(files)),
+      ).not.toThrow();
+    });
+
+    it('rejeita material sem imagens e acima de vinte', () => {
+      const tooMany = Array.from({ length: 21 }, (_, index) => ({
+        id: `file-${index}`,
+        mimeType: 'image/png',
+        sortOrder: index,
+      }));
+
+      expect(() =>
+        repository.assertMaterialCanPublish(customizableTemplate([])),
+      ).toThrow('de 1 a 20 imagens');
+      expect(() =>
+        repository.assertMaterialCanPublish(customizableTemplate(tooMany)),
+      ).toThrow('de 1 a 20 imagens');
+    });
+
+    it('rejeita quando a âncora não é a primeira imagem', () => {
+      const files = [
+        { id: 'file-0', mimeType: 'image/png', sortOrder: 0 },
+        { id: 'file-1', mimeType: 'image/png', sortOrder: 1 },
+      ];
+
+      expect(() =>
+        repository.assertMaterialCanPublish(
+          customizableTemplate(files, 'file-1'),
+        ),
+      ).toThrow('primeira imagem do material');
+    });
+
+    it('rejeita imagem que não seja PNG ou JPEG', () => {
+      const files = [
+        { id: 'file-0', mimeType: 'image/png', sortOrder: 0 },
+        { id: 'file-1', mimeType: 'application/pdf', sortOrder: 1 },
+      ];
+
+      expect(() =>
+        repository.assertMaterialCanPublish(customizableTemplate(files)),
+      ).toThrow('devem ser PNG ou JPEG');
+    });
+  });
 });

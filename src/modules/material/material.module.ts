@@ -26,6 +26,7 @@ import {
   FindMaterialMosaicUseCase,
   FindMaterialsByCategorySlugUseCase,
   FindMostAccessedMaterialsUseCase,
+  ReplaceMaterialFileUseCase,
   ResolveMaterialTagIdsUseCase,
   ResolveMaterialTagsUseCase,
   SearchMaterialsUseCase,
@@ -67,6 +68,7 @@ import {
     UploadMaterialFilesUseCase,
     FindMaterialFilesUseCase,
     DeleteMaterialFileUseCase,
+    ReplaceMaterialFileUseCase,
     AcceptMaterialUseCase,
     ExportMaterialAcceptanceReportUseCase,
     EnqueueMaterialAcceptanceExportUseCase,
@@ -96,6 +98,7 @@ import {
     UploadMaterialFilesUseCase,
     FindMaterialFilesUseCase,
     DeleteMaterialFileUseCase,
+    ReplaceMaterialFileUseCase,
     {
       provide: 'MaterialRepository',
       useExisting: MaterialRepository,

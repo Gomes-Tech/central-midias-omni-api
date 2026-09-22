@@ -52,7 +52,7 @@ Regras da camada:
 - `x` e `y` representam o canto superior esquerdo do retângulo sem rotação. A rotação da imagem ocorre ao redor do centro do retângulo, como nas camadas de asset.
 - `editableProperties` é exatamente `["image"]`. O agente substitui a foto; posição, tamanho, rotação, visibilidade e ordem pertencem ao admin.
 - Até 20 marcadores, incluindo ocultos, dentro do limite existente de 200 camadas. O canvas mantém seus limites de 6000 px por lado e 30 megapixels.
-- Um template pode ser publicado com apenas um marcador visível, sem texto editável. Marcadores ocultos não satisfazem sozinhos essa condição.
+- Um template pode ser publicado sem texto editável e sem marcador visível: basta o documento salvo, com as páginas correspondendo às imagens atuais.
 
 Salvar retorna o template em `DRAFT` e incrementa `revision`. Publicar usa a revisão retornada pelo salvamento:
 

@@ -6,6 +6,11 @@ import {
 import { generateId } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
+import {
+  CUSTOMIZABLE_IMAGE_COUNT_MESSAGE,
+  MAX_CUSTOMIZABLE_MATERIAL_IMAGES,
+  MIN_CUSTOMIZABLE_MATERIAL_IMAGES,
+} from '@modules/material/material.constants';
 import { Injectable } from '@nestjs/common';
 import { MaterialTemplateStatus, Prisma } from '@prisma/client';
 import { MaterialTemplateDocument } from '../entities';
@@ -374,17 +379,30 @@ export class MaterialTemplateRepository {
         'O material não está marcado como customizável',
       );
     }
-    if (!template.baseFile || template.material.materialFiles.length !== 1) {
+    const files = template.material.materialFiles;
+    if (
+      !template.baseFile ||
+      files.length < MIN_CUSTOMIZABLE_MATERIAL_IMAGES ||
+      files.length > MAX_CUSTOMIZABLE_MATERIAL_IMAGES
+    ) {
+      throw new BadRequestException(CUSTOMIZABLE_IMAGE_COUNT_MESSAGE);
+    }
+    if (files[0]?.id !== template.baseFile.id) {
       throw new BadRequestException(
-        'O material customizável deve possuir exatamente uma imagem base',
+        'A imagem base deve ser a primeira imagem do material',
       );
     }
     if (
-      !['image/png', 'image/jpeg', 'image/jpg'].includes(
-        template.baseFile.mimeType.toLowerCase(),
+      files.some(
+        (file) =>
+          !['image/png', 'image/jpeg', 'image/jpg'].includes(
+            file.mimeType.toLowerCase(),
+          ),
       )
     ) {
-      throw new BadRequestException('A imagem base deve ser PNG ou JPEG');
+      throw new BadRequestException(
+        'As imagens do material devem ser PNG ou JPEG',
+      );
     }
   }
 }

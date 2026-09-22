@@ -6,6 +6,7 @@ import {
 import { generateId } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
+import type { MaterialTemplateDocument } from '@modules/material-template/entities';
 import { Injectable } from '@nestjs/common';
 import {
   MaterialTemplateStatus,
@@ -34,6 +35,7 @@ import {
   CUSTOMIZABLE_IMAGE_COUNT_MESSAGE,
   CUSTOMIZABLE_LAST_IMAGE_MESSAGE,
   CUSTOMIZABLE_PRINT_EXPORT_IN_PROGRESS_MESSAGE,
+  CUSTOMIZABLE_REPLACE_PRINT_EXPORT_MESSAGE,
   MAX_CUSTOMIZABLE_MATERIAL_IMAGES,
 } from '../material.constants';
 import type { ResolvedMaterialTags } from '../use-cases/resolve-material-tags.use-case';
@@ -169,6 +171,7 @@ export interface CustomizableUploadContext {
   templateId: string;
   revision: number;
   document: unknown;
+  printPresetId: string | null;
   files: Array<{
     id: string;
     width: number | null;
@@ -191,6 +194,18 @@ export interface DeleteCustomizableFileOptions {
   document: unknown;
   assetIds: string[];
   existingFileIds: string[];
+}
+
+export interface ReplaceCustomizableFileOptions {
+  templateId: string;
+  revision: number;
+  document: MaterialTemplateDocument | null;
+  fileKey: string;
+  originalName: string;
+  mimeType: 'image/png' | 'image/jpeg';
+  size: number;
+  width: number;
+  height: number;
 }
 
 export interface CreateMaterialOptions {
@@ -1452,6 +1467,7 @@ export class MaterialRepository {
           id: true,
           revision: true,
           document: true,
+          printPresetId: true,
           material: {
             select: {
               materialFiles: {
@@ -1481,6 +1497,7 @@ export class MaterialRepository {
         templateId: template.id,
         revision: template.revision,
         document: template.document,
+        printPresetId: template.printPresetId,
         files: template.material.materialFiles,
         activePrintExportCount,
       };
@@ -1770,6 +1787,124 @@ export class MaterialRepository {
         },
       );
       throw new BadRequestException('Erro ao remover arquivo do material');
+    }
+  }
+
+  async replaceCustomizableFile(
+    materialId: string,
+    fileId: string,
+    organizationId: string,
+    options: ReplaceCustomizableFileOptions,
+    userId: string,
+  ): Promise<{ file: MaterialFileItem; previousFileKey: string }> {
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        const activePrintExportCount = await tx.printExport.count({
+          where: {
+            materialId,
+            organizationId,
+            status: {
+              in: [PrintExportStatus.QUEUED, PrintExportStatus.PROCESSING],
+            },
+          },
+        });
+        if (activePrintExportCount > 0) {
+          throw new BadRequestException(
+            CUSTOMIZABLE_REPLACE_PRINT_EXPORT_MESSAGE,
+          );
+        }
+
+        const currentFile = await tx.materialFile.findFirst({
+          where: {
+            id: fileId,
+            materialId,
+            material: {
+              deletedAt: null,
+              category: { organizationId, isDeleted: false },
+            },
+          },
+          select: { imageKey: true },
+        });
+        if (!currentFile) {
+          throw new NotFoundException('Arquivo do material não encontrado');
+        }
+
+        const updatedFile = await tx.materialFile.update({
+          where: { id: fileId },
+          data: {
+            imageKey: options.fileKey,
+            originalName: options.originalName,
+            mimeType: options.mimeType,
+            size: options.size,
+            width: options.width,
+            height: options.height,
+          },
+          select: materialFileSelect,
+        });
+
+        const updatedTemplate = await tx.materialTemplate.updateMany({
+          where: {
+            id: options.templateId,
+            materialId,
+            organizationId,
+            revision: options.revision,
+            material: {
+              deletedAt: null,
+              isCustomizable: true,
+              category: { organizationId, isDeleted: false },
+            },
+          },
+          data: {
+            ...(options.document && {
+              document: options.document as unknown as Prisma.InputJsonValue,
+              schemaVersion: options.document.version,
+            }),
+            status: MaterialTemplateStatus.DRAFT,
+            publishedAt: null,
+            revision: { increment: 1 },
+          },
+        });
+        if (updatedTemplate.count !== 1) {
+          throw new ConflictException(
+            'O template foi alterado em outra sessão. Recarregue para continuar.',
+          );
+        }
+        await tx.printPreflight.deleteMany({
+          where: { templateId: options.templateId },
+        });
+
+        return {
+          file: this.mapMaterialFile(updatedFile),
+          previousFileKey: currentFile.imageKey,
+        };
+      });
+
+      void this.logger.info('Imagem de material customizável substituída', {
+        materialId,
+        fileId,
+        organizationId,
+        userId,
+      });
+      return result;
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ConflictException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+      void this.logger.error(
+        'MaterialRepository.replaceCustomizableFile falhou',
+        {
+          error: String(error),
+          materialId,
+          fileId,
+          organizationId,
+          userId,
+        },
+      );
+      throw new BadRequestException('Erro ao substituir arquivo do material');
     }
   }
 

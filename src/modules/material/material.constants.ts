@@ -7,3 +7,9 @@ export const CUSTOMIZABLE_DELETE_PRINT_EXPORT_MESSAGE =
   'Não é possível excluir imagens enquanto houver uma exportação de impressão em andamento';
 export const CUSTOMIZABLE_LAST_IMAGE_MESSAGE =
   'Não é possível excluir a última imagem do material customizável';
+export const CUSTOMIZABLE_REPLACE_PRINT_EXPORT_MESSAGE =
+  'Não é possível substituir imagens enquanto houver uma exportação de impressão em andamento';
+export const CUSTOMIZABLE_REPLACE_NOT_CUSTOMIZABLE_MESSAGE =
+  'Somente materiais customizáveis possuem páginas para substituir';
+export const CUSTOMIZABLE_REPLACE_SINGLE_FILE_MESSAGE =
+  'Envie uma única imagem para substituir';

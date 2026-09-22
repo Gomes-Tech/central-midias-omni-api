@@ -1,5 +1,9 @@
 import { StorageService } from '@infrastructure/providers';
-import { MaterialTemplateDocumentV1 } from '../entities';
+import { PrintPreflightService } from '@modules/print/services/print-preflight.service';
+import {
+  MaterialTemplateDocumentV1,
+  MaterialTemplateDocumentV3,
+} from '../entities';
 import { MaterialTemplateRepository } from '../repository';
 import {
   MaterialTemplateDocumentService,
@@ -45,23 +49,33 @@ const document: MaterialTemplateDocumentV1 = {
   ],
 };
 
+const baseFile = {
+  id: 'file-id',
+  imageKey: 'materials/material-id/base.png',
+  size: 1024,
+  mimeType: 'image/png',
+  sortOrder: 0,
+};
+
+const template = {
+  id: 'template-id',
+  organizationId: 'org-id',
+  materialId: 'material-id',
+  document,
+  baseFile,
+  printPresetId: null,
+  material: {
+    isCustomizable: true,
+    materialFiles: [baseFile],
+  },
+};
+
 describe('PublishMaterialTemplateUseCase', () => {
   let repository: jest.Mocked<MaterialTemplateRepository>;
   let responseService: { resolve: jest.Mock };
   let imageService: { validate: jest.Mock };
   let storageService: { readFile: jest.Mock };
   let useCase: PublishMaterialTemplateUseCase;
-  const template = {
-    id: 'template-id',
-    organizationId: 'org-id',
-    materialId: 'material-id',
-    document,
-    baseFile: {
-      imageKey: 'materials/material-id/base.png',
-      size: 1024,
-      mimeType: 'image/png',
-    },
-  };
 
   beforeEach(() => {
     repository = {
@@ -98,7 +112,19 @@ describe('PublishMaterialTemplateUseCase', () => {
     expect(repository.publish).toHaveBeenCalledWith(template, 7, 'user-id');
   });
 
-  it('bloqueia publicação sem pelo menos um texto editável', async () => {
+  it('bloqueia publicação quando o documento não foi salvo', async () => {
+    repository.findOrThrow.mockResolvedValue({
+      ...template,
+      document: null,
+    } as never);
+
+    await expect(
+      useCase.execute('material-id', 'org-id', 'user-id', { revision: 7 }),
+    ).rejects.toThrow('Salve o template antes de publicar');
+    expect(repository.publish).not.toHaveBeenCalled();
+  });
+
+  it('publica template apenas com imagem de fundo, sem texto ou marcador', async () => {
     repository.findOrThrow.mockResolvedValue({
       ...template,
       document: {
@@ -113,8 +139,8 @@ describe('PublishMaterialTemplateUseCase', () => {
 
     await expect(
       useCase.execute('material-id', 'org-id', 'user-id', { revision: 7 }),
-    ).rejects.toThrow('ao menos um texto editável');
-    expect(repository.publish).not.toHaveBeenCalled();
+    ).resolves.toEqual({ ok: true });
+    expect(repository.publish).toHaveBeenCalled();
   });
 
   it('bloqueia publicação com dependência ausente', async () => {
@@ -136,5 +162,123 @@ describe('PublishMaterialTemplateUseCase', () => {
     ).resolves.toEqual({ ok: true });
     expect(repository.findAssets).toHaveBeenCalledWith([], 'org-id');
     expect(repository.publish).toHaveBeenCalled();
+  });
+
+  it('recusa publicar quando uma página aponta para arquivo inexistente', async () => {
+    const secondFile = {
+      id: 'file-two',
+      imageKey: 'materials/material-id/two.png',
+      size: 2048,
+      mimeType: 'image/png',
+      sortOrder: 1,
+    };
+    const multipageDocument: MaterialTemplateDocumentV3 = {
+      version: 3,
+      pages: [
+        {
+          materialFileId: 'file-id',
+          canvas: { width: 1080, height: 1080 },
+          layerOrder: [],
+          layers: [],
+        },
+        {
+          materialFileId: 'arquivo-inexistente',
+          canvas: { width: 1080, height: 1080 },
+          layerOrder: [],
+          layers: [],
+        },
+      ],
+    };
+    repository.findOrThrow.mockResolvedValue({
+      ...template,
+      document: multipageDocument,
+      material: {
+        isCustomizable: true,
+        materialFiles: [baseFile, secondFile],
+      },
+    } as never);
+    repository.findAssets.mockResolvedValue([]);
+
+    await expect(
+      useCase.execute('material-id', 'org-id', 'user-id', { revision: 7 }),
+    ).rejects.toThrow('não correspondem às imagens atuais');
+    expect(repository.publish).not.toHaveBeenCalled();
+  });
+
+  it('valida a imagem de cada página do documento', async () => {
+    const secondFile = {
+      id: 'file-two',
+      imageKey: 'materials/material-id/two.png',
+      size: 2048,
+      mimeType: 'image/png',
+      sortOrder: 1,
+    };
+    const multipageDocument: MaterialTemplateDocumentV3 = {
+      version: 3,
+      pages: [
+        {
+          materialFileId: 'file-id',
+          canvas: { width: 1080, height: 1080 },
+          layerOrder: [],
+          layers: [],
+        },
+        {
+          materialFileId: 'file-two',
+          canvas: { width: 1080, height: 1080 },
+          layerOrder: [],
+          layers: [],
+        },
+      ],
+    };
+    repository.findOrThrow.mockResolvedValue({
+      ...template,
+      document: multipageDocument,
+      material: {
+        isCustomizable: true,
+        materialFiles: [baseFile, secondFile],
+      },
+    } as never);
+    repository.findAssets.mockResolvedValue([]);
+
+    await expect(
+      useCase.execute('material-id', 'org-id', 'user-id', { revision: 7 }),
+    ).resolves.toEqual({ ok: true });
+    expect(storageService.readFile).toHaveBeenCalledWith(
+      'materials/material-id/base.png',
+    );
+    expect(storageService.readFile).toHaveBeenCalledWith(
+      'materials/material-id/two.png',
+    );
+    expect(imageService.validate).toHaveBeenCalledTimes(2);
+  });
+
+  it('não publica quando o preflight do preset não está pronto', async () => {
+    const printPreflight = {
+      run: jest.fn().mockResolvedValue({
+        status: 'FAILED',
+        issues: [
+          { code: 'CANVAS_ASPECT_RATIO', message: 'Proporção inválida' },
+        ],
+      }),
+    };
+    const useCaseWithPreset = new PublishMaterialTemplateUseCase(
+      repository,
+      new MaterialTemplateDocumentService(),
+      imageService as unknown as MaterialTemplateImageService,
+      responseService as unknown as MaterialTemplateResponseService,
+      storageService as unknown as StorageService,
+      printPreflight as unknown as PrintPreflightService,
+    );
+    repository.findOrThrow.mockResolvedValue({
+      ...template,
+      printPresetId: 'preset-id',
+    } as never);
+
+    await expect(
+      useCaseWithPreset.execute('material-id', 'org-id', 'user-id', {
+        revision: 7,
+      }),
+    ).rejects.toThrow('Proporção inválida');
+    expect(repository.publish).not.toHaveBeenCalled();
   });
 });

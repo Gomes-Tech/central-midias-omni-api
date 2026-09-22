@@ -35,6 +35,11 @@ export class ReplaceMaterialTemplateBaseUseCase {
       materialId,
       organizationId,
     );
+    if (template.material.materialFiles.length > 1) {
+      throw new BadRequestException(
+        'Material com mais de uma imagem deve usar PUT /materials/:id/files/:fileId',
+      );
+    }
     const currentDocument = template.document
       ? this.documentService.validate(template.document)
       : null;

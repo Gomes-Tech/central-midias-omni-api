@@ -1,4 +1,6 @@
 import {
+  AllowedFileTypes,
+  MaxFileSize,
   OrgId,
   RequirePermission,
   UnlimitedFileSize,
@@ -15,6 +17,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFiles,
   UseGuards,
@@ -44,6 +47,7 @@ import {
   FindMaterialFilesUseCase,
   FindMaterialMosaicUseCase,
   FindMostAccessedMaterialsUseCase,
+  ReplaceMaterialFileUseCase,
   SearchMaterialsUseCase,
   UpdateMaterialUseCase,
   UploadMaterialFilesUseCase,
@@ -74,6 +78,7 @@ export class MaterialController {
     private readonly findMaterialFilesUseCase: FindMaterialFilesUseCase,
     private readonly viewMaterialFilesUseCase: ViewMaterialFilesUseCase,
     private readonly deleteMaterialFileUseCase: DeleteMaterialFileUseCase,
+    private readonly replaceMaterialFileUseCase: ReplaceMaterialFileUseCase,
     private readonly acceptMaterialUseCase: AcceptMaterialUseCase,
     private readonly enqueueMaterialAcceptanceExportUseCase: EnqueueMaterialAcceptanceExportUseCase,
   ) {}
@@ -271,6 +276,30 @@ export class MaterialController {
     @UserId() userId: string,
   ) {
     await this.updateMaterialUseCase.execute(id, organizationId, dto, userId);
+  }
+
+  @MaxFileSize(undefined, 5)
+  @AllowedFileTypes({
+    extensions: ['png', 'jpg', 'jpeg'],
+    mimeTypes: ['image/png', 'image/jpeg', 'image/jpg'],
+    description: 'PNG e JPG/JPEG',
+  })
+  @RequirePermission('materials', 'update')
+  @Put(':id/files/:fileId')
+  async replaceFile(
+    @Param('id') id: string,
+    @Param('fileId') fileId: string,
+    @OrgId() organizationId: string,
+    @UserId() userId: string,
+    @UploadedFiles() files: UploadedMaterialFiles,
+  ) {
+    return await this.replaceMaterialFileUseCase.execute(
+      id,
+      fileId,
+      organizationId,
+      this.getFiles(files),
+      userId,
+    );
   }
 
   @RequirePermission('materials', 'delete')

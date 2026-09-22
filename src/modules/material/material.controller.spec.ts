@@ -15,6 +15,7 @@ import {
   DownloadMaterialUseCase,
   FindMostAccessedMaterialsUseCase,
   FindMaterialMosaicUseCase,
+  ReplaceMaterialFileUseCase,
   SearchMaterialsUseCase,
   UploadMaterialFilesUseCase,
   UpdateMaterialUseCase,
@@ -46,6 +47,7 @@ describe('MaterialController', () => {
   let uploadMaterialFilesUseCase: { execute: jest.Mock };
   let updateMaterialUseCase: { execute: jest.Mock };
   let deleteMaterialFileUseCase: { execute: jest.Mock };
+  let replaceMaterialFileUseCase: { execute: jest.Mock };
   let acceptMaterialUseCase: { execute: jest.Mock };
   let enqueueMaterialAcceptanceExportUseCase: { execute: jest.Mock };
 
@@ -64,6 +66,7 @@ describe('MaterialController', () => {
     uploadMaterialFilesUseCase = { execute: jest.fn() };
     updateMaterialUseCase = { execute: jest.fn() };
     deleteMaterialFileUseCase = { execute: jest.fn() };
+    replaceMaterialFileUseCase = { execute: jest.fn() };
     acceptMaterialUseCase = { execute: jest.fn() };
     enqueueMaterialAcceptanceExportUseCase = { execute: jest.fn() };
 
@@ -115,6 +118,10 @@ describe('MaterialController', () => {
         {
           provide: DeleteMaterialFileUseCase,
           useValue: deleteMaterialFileUseCase,
+        },
+        {
+          provide: ReplaceMaterialFileUseCase,
+          useValue: replaceMaterialFileUseCase,
         },
         { provide: UpdateMaterialUseCase, useValue: updateMaterialUseCase },
         { provide: AcceptMaterialUseCase, useValue: acceptMaterialUseCase },
@@ -488,6 +495,55 @@ describe('MaterialController', () => {
       'material-id',
       'file-id',
       'org-id',
+      'user-id',
+    );
+  });
+
+  it('deve delegar replaceFile com array de arquivos', async () => {
+    const file = makeUploadFile();
+    const payload = { ...makeMaterialFile(), url: 'https://cdn.test/file.png' };
+    replaceMaterialFileUseCase.execute.mockResolvedValue(payload);
+
+    const result = await controller.replaceFile(
+      'material-id',
+      'file-id',
+      'org-id',
+      'user-id',
+      [file],
+    );
+
+    expect(result).toBe(payload);
+    expect(replaceMaterialFileUseCase.execute).toHaveBeenCalledWith(
+      'material-id',
+      'file-id',
+      'org-id',
+      [file],
+      'user-id',
+    );
+  });
+
+  it('deve delegar replaceFile normalizando objeto de arquivos', async () => {
+    const file = makeUploadFile();
+    replaceMaterialFileUseCase.execute.mockResolvedValue({
+      ...makeMaterialFile(),
+      url: 'https://cdn.test/file.png',
+    });
+
+    await controller.replaceFile(
+      'material-id',
+      'file-id',
+      'org-id',
+      'user-id',
+      {
+        files: [file],
+      },
+    );
+
+    expect(replaceMaterialFileUseCase.execute).toHaveBeenCalledWith(
+      'material-id',
+      'file-id',
+      'org-id',
+      [file],
       'user-id',
     );
   });

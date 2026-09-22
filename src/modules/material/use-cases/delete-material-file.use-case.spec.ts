@@ -121,6 +121,7 @@ describe('DeleteMaterialFileUseCase', () => {
       templateId: 'template-id',
       revision: 4,
       document,
+      printPresetId: null,
       files: customizableFiles,
       activePrintExportCount: 0,
     });
@@ -206,6 +207,7 @@ describe('DeleteMaterialFileUseCase', () => {
       templateId: 'template-id',
       revision: 1,
       document: null,
+      printPresetId: null,
       files: [{ id: 'file-1', width: 100, height: 80, sortOrder: 0 }],
       activePrintExportCount: 0,
     });
@@ -229,6 +231,7 @@ describe('DeleteMaterialFileUseCase', () => {
       templateId: 'template-id',
       revision: 1,
       document: v3Document,
+      printPresetId: null,
       files: customizableFiles,
       activePrintExportCount: 1,
     });

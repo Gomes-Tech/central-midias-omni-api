@@ -1636,6 +1636,7 @@ describe('MaterialRepository', () => {
         id: 'template-id',
         revision: 3,
         document: { version: 2 },
+        printPresetId: 'preset-id',
         material: {
           materialFiles: [
             { id: 'file-1', width: 100, height: 80, sortOrder: 0 },
@@ -1650,6 +1651,7 @@ describe('MaterialRepository', () => {
         templateId: 'template-id',
         revision: 3,
         document: { version: 2 },
+        printPresetId: 'preset-id',
         files: [{ id: 'file-1', width: 100, height: 80, sortOrder: 0 }],
         activePrintExportCount: 1,
       });
@@ -2192,6 +2194,184 @@ describe('MaterialRepository', () => {
 
       expect(prisma.materialTemplateAsset.deleteMany).toHaveBeenCalled();
       expect(prisma.materialTemplateAsset.createMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('replaceCustomizableFile', () => {
+    const document = {
+      version: 3 as const,
+      pages: [
+        {
+          materialFileId: 'file-1',
+          canvas: { width: 100, height: 80 },
+          layerOrder: [],
+          layers: [],
+        },
+        {
+          materialFileId: 'file-2',
+          canvas: { width: 400, height: 180 },
+          layerOrder: [],
+          layers: [],
+        },
+      ],
+    };
+    const options = {
+      templateId: 'template-id',
+      revision: 4,
+      document,
+      fileKey: 'materials/material-id/novo.png',
+      originalName: 'nova.png',
+      mimeType: 'image/png' as const,
+      size: 24,
+      width: 400,
+      height: 180,
+    };
+    const updatedRow = {
+      id: 'file-2',
+      materialId: 'material-id',
+      imageKey: 'materials/material-id/novo.png',
+      originalName: 'nova.png',
+      mimeType: 'image/png',
+      size: 24,
+      width: 400,
+      height: 180,
+      sortOrder: 2,
+    };
+
+    function mockReady() {
+      prisma.printExport.count.mockResolvedValue(0);
+      prisma.materialFile.findFirst.mockResolvedValue({
+        imageKey: 'materials/material-id/antigo.png',
+      });
+      prisma.materialFile.update.mockResolvedValue(updatedRow);
+      prisma.materialTemplate.updateMany.mockResolvedValue({ count: 1 });
+      prisma.printPreflight.deleteMany.mockResolvedValue({ count: 1 });
+    }
+
+    it('preserva id e sortOrder, troca metadados e invalida publicação e preflight', async () => {
+      mockReady();
+
+      await expect(
+        repository.replaceCustomizableFile(
+          'material-id',
+          'file-2',
+          'org-id',
+          options,
+          'user-id',
+        ),
+      ).resolves.toEqual({
+        file: {
+          id: 'file-2',
+          materialId: 'material-id',
+          fileKey: 'materials/material-id/novo.png',
+          originalName: 'nova.png',
+          mimeType: 'image/png',
+          size: 24,
+          width: 400,
+          height: 180,
+          sortOrder: 2,
+        },
+        previousFileKey: 'materials/material-id/antigo.png',
+      });
+
+      expect(prisma.materialFile.update).toHaveBeenCalledWith({
+        where: { id: 'file-2' },
+        data: {
+          imageKey: 'materials/material-id/novo.png',
+          originalName: 'nova.png',
+          mimeType: 'image/png',
+          size: 24,
+          width: 400,
+          height: 180,
+        },
+        select: expect.any(Object),
+      });
+      expect(prisma.materialTemplate.updateMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          id: 'template-id',
+          materialId: 'material-id',
+          organizationId: 'org-id',
+          revision: 4,
+        }),
+        data: {
+          document,
+          schemaVersion: 3,
+          status: 'DRAFT',
+          publishedAt: null,
+          revision: { increment: 1 },
+        },
+      });
+      expect(prisma.printPreflight.deleteMany).toHaveBeenCalledWith({
+        where: { templateId: 'template-id' },
+      });
+    });
+
+    it('não reescreve o documento quando ele é nulo', async () => {
+      mockReady();
+
+      await repository.replaceCustomizableFile(
+        'material-id',
+        'file-2',
+        'org-id',
+        { ...options, document: null },
+        'user-id',
+      );
+
+      const updateArgs = prisma.materialTemplate.updateMany.mock.calls[0][0];
+      expect(updateArgs.data).not.toHaveProperty('document');
+      expect(updateArgs.data).not.toHaveProperty('schemaVersion');
+    });
+
+    it('recusa substituição quando há exportação de impressão em andamento', async () => {
+      prisma.printExport.count.mockResolvedValue(1);
+
+      await expect(
+        repository.replaceCustomizableFile(
+          'material-id',
+          'file-2',
+          'org-id',
+          options,
+          'user-id',
+        ),
+      ).rejects.toThrow(
+        'Não é possível substituir imagens enquanto houver uma exportação de impressão em andamento',
+      );
+      expect(prisma.materialFile.update).not.toHaveBeenCalled();
+      expect(prisma.materialTemplate.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('não troca o arquivo quando ele não pertence ao material', async () => {
+      mockReady();
+      prisma.materialFile.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.replaceCustomizableFile(
+          'material-id',
+          'file-2',
+          'org-id',
+          options,
+          'user-id',
+        ),
+      ).rejects.toThrow('Arquivo do material não encontrado');
+      expect(prisma.materialFile.update).not.toHaveBeenCalled();
+    });
+
+    it('não troca o arquivo quando a revisão não confere', async () => {
+      mockReady();
+      prisma.materialTemplate.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        repository.replaceCustomizableFile(
+          'material-id',
+          'file-2',
+          'org-id',
+          options,
+          'user-id',
+        ),
+      ).rejects.toThrow(
+        'O template foi alterado em outra sessão. Recarregue para continuar.',
+      );
+      expect(prisma.printPreflight.deleteMany).not.toHaveBeenCalled();
     });
   });
 

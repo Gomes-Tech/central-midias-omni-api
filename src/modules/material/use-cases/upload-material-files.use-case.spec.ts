@@ -304,6 +304,7 @@ describe('UploadMaterialFilesUseCase', () => {
       templateId: 'template-id',
       revision: 4,
       document: v2Document,
+      printPresetId: null,
       files: [
         {
           id: 'file-id-1',
@@ -397,6 +398,7 @@ describe('UploadMaterialFilesUseCase', () => {
       templateId: 'template-id',
       revision: 0,
       document: null,
+      printPresetId: null,
       files: [{ id: 'file-id-1', width: 640, height: 480, sortOrder: 0 }],
       activePrintExportCount: 0,
     });
@@ -446,6 +448,7 @@ describe('UploadMaterialFilesUseCase', () => {
       templateId: 'template-id',
       revision: 1,
       document: null,
+      printPresetId: null,
       files: Array.from({ length: 20 }, (_, index) => ({
         id: `file-${index}`,
         width: 100,
@@ -477,6 +480,7 @@ describe('UploadMaterialFilesUseCase', () => {
       templateId: 'template-id',
       revision: 1,
       document: null,
+      printPresetId: null,
       files: [{ id: 'file-id-1', width: 100, height: 100, sortOrder: 0 }],
       activePrintExportCount: 1,
     });
@@ -499,6 +503,7 @@ describe('UploadMaterialFilesUseCase', () => {
       templateId: 'template-id',
       revision: 1,
       document: null,
+      printPresetId: null,
       files: [{ id: 'file-id-1', width: 100, height: 100, sortOrder: 0 }],
       activePrintExportCount: 0,
     });

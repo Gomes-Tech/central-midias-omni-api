@@ -3,7 +3,8 @@ import { StorageService } from '@infrastructure/providers';
 import { PrintPreflightService } from '@modules/print/services/print-preflight.service';
 import { Inject, Injectable, Optional, forwardRef } from '@nestjs/common';
 import { PublishMaterialTemplateDTO } from '../dto';
-import { MaterialTemplateRepository } from '../repository';
+import { MaterialTemplateDocument } from '../entities';
+import { MaterialTemplateRepository, MaterialTemplateRow } from '../repository';
 import {
   MaterialTemplateDocumentService,
   MaterialTemplateImageService,
@@ -34,18 +35,11 @@ export class PublishMaterialTemplateUseCase {
       organizationId,
     );
     this.repository.assertMaterialCanPublish(template);
-    const baseFile = template.baseFile!;
-    const baseBuffer = await this.storageService.readFile(baseFile.imageKey);
-    this.imageService.validate({ buffer: baseBuffer, size: baseFile.size });
     if (!template.document) {
       throw new BadRequestException('Salve o template antes de publicar');
     }
     const document = this.documentService.validate(template.document);
-    if (!this.documentService.hasEditableContent(document)) {
-      throw new BadRequestException(
-        'O template precisa possuir ao menos um texto editável ou marcador de imagem visível',
-      );
-    }
+    await this.assertPagesMatchImages(template, document);
     const assetIds = this.documentService.getAssetIds(document);
     const assets = await this.repository.findAssets(assetIds, organizationId);
     if (assets.length !== assetIds.length) {
@@ -76,5 +70,29 @@ export class PublishMaterialTemplateUseCase {
       userId,
     );
     return await this.responseService.resolve(published);
+  }
+
+  private async assertPagesMatchImages(
+    template: MaterialTemplateRow,
+    document: MaterialTemplateDocument,
+  ): Promise<void> {
+    const files = template.material.materialFiles;
+    const fileIds = new Set(files.map((file) => file.id));
+    const pageFileIds =
+      document.version === 3
+        ? document.pages.map((page) => page.materialFileId)
+        : [template.baseFile!.id];
+    if (
+      pageFileIds.length !== files.length ||
+      pageFileIds.some((fileId) => !fileIds.has(fileId))
+    ) {
+      throw new BadRequestException(
+        'As páginas do template não correspondem às imagens atuais',
+      );
+    }
+    for (const file of files) {
+      const buffer = await this.storageService.readFile(file.imageKey);
+      this.imageService.validate({ buffer, size: file.size });
+    }
   }
 }
