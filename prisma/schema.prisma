@@ -729,6 +729,7 @@ model PrintExportInput {
   exportId       String   @map("export_id")
   organizationId String   @map("organization_id")
   userId         String   @map("user_id")
+  materialFileId String?  @map("material_file_id")
   layerId        String   @map("layer_id")
   storageKey     String   @unique @map("storage_key")
   checksum       String
@@ -827,17 +828,20 @@ model MaterialEmailDispatchRecipient {
 }
 
 model MaterialFile {
-  id         String @id @default(uuid())
-  materialId String @map("material_id")
-  imageKey   String @map("image_key")
-  mimeType   String @map("mime_type")
-  size       Int    @map("size")
-  width      Int?
-  height     Int?
+  id           String  @id @default(uuid())
+  materialId   String  @map("material_id")
+  imageKey     String  @map("image_key")
+  originalName String? @map("original_name")
+  mimeType     String  @map("mime_type")
+  size         Int     @map("size")
+  width        Int?
+  height       Int?
+  sortOrder    Int     @map("sort_order")
 
   material Material          @relation(fields: [materialId], references: [id])
   template MaterialTemplate?
 
+  @@unique([materialId, sortOrder])
   @@map("material_files")
 }
 
