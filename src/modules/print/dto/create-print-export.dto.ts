@@ -1,4 +1,7 @@
-import type { MaterialTemplateDocumentV2 } from '@modules/material-template/entities';
+import type {
+  MaterialTemplateDocumentV2,
+  MaterialTemplateDocumentV3,
+} from '@modules/material-template/entities';
 import { BadRequestException } from '@common/filters';
 import { MAX_IMAGE_PLACEHOLDERS } from '@common/constants/print-image-limits';
 import { Transform, plainToInstance } from 'class-transformer';
@@ -63,7 +66,7 @@ export class PrintImageBindingDTO {
 export class CreatePrintExportDTO {
   @Transform(({ value }) => parseJson(value, 'document'))
   @IsObject()
-  document: MaterialTemplateDocumentV2;
+  document: MaterialTemplateDocumentV2 | MaterialTemplateDocumentV3;
 
   @IsString()
   @IsNotEmpty()

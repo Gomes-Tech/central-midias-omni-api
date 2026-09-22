@@ -199,6 +199,18 @@ describe('PrintExportService', () => {
     expect(imageInputs.stage).not.toHaveBeenCalled();
   });
 
+  it('recusa documento V3 enquanto a impressão multipágina não existe', async () => {
+    documents.validateCustomizedDocument.mockReturnValue({
+      version: 3,
+      pages: [],
+    });
+    await expect(
+      service.create('mat-1', 'org-1', 'user-1', dto),
+    ).rejects.toThrow('multipágina');
+    expect(imageInputs.prepare).not.toHaveBeenCalled();
+    expect(prisma.printExport.create).not.toHaveBeenCalled();
+  });
+
   it('limpa arquivos após falha confirmada de enfileiramento', async () => {
     prisma.printExport.create.mockResolvedValue(queuedRecord);
     imageInputs.stage.mockResolvedValue(['input-1']);

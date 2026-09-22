@@ -88,6 +88,11 @@ export class PrintExportService {
       template.document,
       dto.document,
     );
+    if (document.version === 3) {
+      throw new BadRequestException(
+        'A impressão multipágina ainda não está disponível',
+      );
+    }
     const images = this.imageInputs.prepare(
       document,
       dto.imageBindings ?? [],

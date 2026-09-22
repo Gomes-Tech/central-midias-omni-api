@@ -1,4 +1,7 @@
-import type { MaterialTemplateDocumentV2 } from '@modules/material-template';
+import type {
+  MaterialTemplateDocumentV2,
+  MaterialTemplateDocumentV3,
+} from '@modules/material-template';
 import { MaterialTemplateDocumentService } from '@modules/material-template';
 import { PrintDocumentService } from './print-document.service';
 import {
@@ -157,5 +160,150 @@ describe('PrintDocumentService', () => {
     expect(service.hash(document)).toBe(
       service.hash(structuredClone(document)),
     );
+  });
+
+  it('rejeita template V1 publicado', () => {
+    const v1 = {
+      version: 1,
+      canvas: { width: 100, height: 100 },
+      layerOrder: [],
+      layers: [],
+    };
+    expect(() => service.validateCustomizedDocument(v1, v1)).toThrow(
+      'template V2 ou V3',
+    );
+  });
+
+  const page = {
+    canvas: document.canvas,
+    layerOrder: document.layerOrder,
+    layers: document.layers,
+  };
+
+  it('rejeita troca de versão entre publicado e personalizado', () => {
+    const v3 = { version: 3, pages: [{ materialFileId: 'file-1', ...page }] };
+    expect(() => service.validateCustomizedDocument(document, v3)).toThrow(
+      'estrutura do template foi alterada',
+    );
+  });
+
+  describe('V3', () => {
+    const multipage: MaterialTemplateDocumentV3 = {
+      version: 3,
+      pages: [
+        { materialFileId: 'file-1', ...structuredClone(page) },
+        {
+          materialFileId: 'file-2',
+          canvas: placeholderDocument.canvas,
+          layerOrder: ['editable', 'photo'],
+          layers: [structuredClone(page.layers[1]), { ...placeholder }],
+        },
+      ],
+    };
+
+    function editText(value: MaterialTemplateDocumentV3, pageIndex: number) {
+      const layer = value.pages[pageIndex].layers.find(
+        (candidate) => candidate.id === 'editable',
+      );
+      if (layer?.type !== 'text') throw new Error('Fixture inválida');
+      layer.runs = [{ ...layer.runs[0], text: `Maria ${pageIndex}` }];
+    }
+
+    it('aceita troca dos runs liberados em qualquer página', () => {
+      const customized = structuredClone(multipage);
+      editText(customized, 0);
+      editText(customized, 1);
+      expect(service.validateCustomizedDocument(multipage, customized)).toEqual(
+        customized,
+      );
+    });
+
+    it.each<[string, (value: MaterialTemplateDocumentV3) => void]>([
+      ['mover camada', (value) => (value.pages[1].layers[0].x = 1)],
+      [
+        'ocultar camada',
+        (value) => (value.pages[1].layers[1].isVisible = false),
+      ],
+      ['reordenar camadas', (value) => value.pages[1].layerOrder.reverse()],
+      ['redimensionar canvas', (value) => (value.pages[0].canvas.width = 10)],
+      ['reordenar páginas', (value) => value.pages.reverse()],
+      [
+        'texto bloqueado',
+        (value) => {
+          const layer = value.pages[0].layers[2];
+          if (layer.type === 'text') layer.runs[0].text = 'Alterado';
+        },
+      ],
+    ])('rejeita %s', (_label, mutate) => {
+      const customized = structuredClone(multipage);
+      editText(customized, 1);
+      mutate(customized);
+      expect(() =>
+        service.validateCustomizedDocument(multipage, customized),
+      ).toThrow('alterações não permitidas');
+    });
+
+    it.each<[string, (value: MaterialTemplateDocumentV3) => void]>([
+      [
+        'trocar materialFileId',
+        (value) => (value.pages[1].materialFileId = 'file-3'),
+      ],
+      ['remover página', (value) => value.pages.pop()],
+      [
+        'remover camada',
+        (value) => {
+          value.pages[0].layers.pop();
+          value.pages[0].layerOrder.pop();
+        },
+      ],
+      [
+        'trocar camada de página',
+        (value) => {
+          const [text, photo] = value.pages[1].layers;
+          value.pages[1].layers = [text, { ...photo, id: 'asset' }];
+          value.pages[1].layerOrder = ['editable', 'asset'];
+        },
+      ],
+    ])('rejeita estrutura ao %s', (_label, mutate) => {
+      const customized = structuredClone(multipage);
+      mutate(customized);
+      expect(() =>
+        service.validateCustomizedDocument(multipage, customized),
+      ).toThrow('estrutura do template foi alterada');
+    });
+
+    it('ordena fotos do hash por materialFileId e depois por layerId', () => {
+      const images = [
+        { materialFileId: 'file-2', layerId: 'photo', checksum: '1' },
+        { materialFileId: 'file-1', layerId: 'photo', checksum: '2' },
+        { materialFileId: 'file-1', layerId: 'another', checksum: '3' },
+      ];
+      expect(service.hash(multipage, images)).toBe(
+        service.hash(multipage, [images[2], images[0], images[1]]),
+      );
+      expect(service.hash(multipage, images)).not.toBe(
+        service.hash(multipage, [
+          { ...images[0], materialFileId: 'file-1' },
+          { ...images[1], materialFileId: 'file-2' },
+          images[2],
+        ]),
+      );
+      expect(service.hash(multipage, images)).not.toBe(
+        service.hash(multipage, [
+          { ...images[0], fit: 'contain', positionY: 0.2, zoom: 2 },
+          images[1],
+          images[2],
+        ]),
+      );
+    });
+  });
+
+  it('mantém o hash V2 legado de fotos sem materialFileId', () => {
+    expect(
+      service.hash(placeholderDocument, [
+        { layerId: 'photo', checksum: 'abc' },
+        { layerId: 'another', checksum: 'def', fit: 'contain', zoom: 2 },
+      ]),
+    ).toBe('16e421054c7d0f41bf9c0dd34d8a739097e57414e1ce0c452f89777f59a6e0bd');
   });
 });
