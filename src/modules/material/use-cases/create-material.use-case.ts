@@ -7,6 +7,7 @@ import { EnqueueInAppNotificationsUseCase } from '@modules/notification/use-case
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateMaterialDTO } from '../dto';
 import { MaterialRepository } from '../repository';
+import { normalizeMaterialFileName } from '../utils/normalize-material-file-name';
 import { EnqueueMaterialAcceptanceEmailsUseCase } from './enqueue-material-acceptance-emails.use-case';
 import { EnqueueMaterialNotificationEmailsUseCase } from './enqueue-material-notification-emails.use-case';
 import { ResolveMaterialTagIdsUseCase } from './resolve-material-tag-ids.use-case';
@@ -30,16 +31,18 @@ export class CreateMaterialUseCase {
     userId: string,
     files: Express.Multer.File[] = [],
   ): Promise<{ id: string }> {
-    let customizableImage:
-      | ReturnType<typeof validateMaterialTemplateImage>
-      | undefined;
+    let customizableImages: Array<
+      ReturnType<typeof validateMaterialTemplateImage>
+    > = [];
     if (data.isCustomizable === true) {
       if (files.length !== 1) {
         throw new BadRequestException(
           'Material customizável deve possuir exatamente uma imagem base',
         );
       }
-      customizableImage = validateMaterialTemplateImage(files[0]);
+      customizableImages = files.map((file) =>
+        validateMaterialTemplateImage(file),
+      );
       await this.assertExportConfig(
         organizationId,
         data.exportTypes ?? [],
@@ -86,46 +89,27 @@ export class CreateMaterialUseCase {
         });
       }
 
-      const materialFileId = customizableImage ? generateId() : undefined;
       await this.materialRepository.create(organizationId, data, userId, {
         id: materialId,
-        files: uploadedFiles.map(({ file, upload }) => ({
-          ...(materialFileId && { id: materialFileId }),
-          fileKey: upload.path,
-          mimeType:
-            customizableImage?.mimeType ||
-            file.mimetype ||
-            'application/octet-stream',
-          size: Number.isFinite(file.size) ? file.size : 0,
-          width: customizableImage?.width,
-          height: customizableImage?.height,
-        })),
+        files: uploadedFiles.map(({ file, upload }, index) => {
+          const validatedImage = customizableImages[index];
+
+          return {
+            id: generateId(),
+            fileKey: upload.path,
+            originalName: normalizeMaterialFileName(file.originalname),
+            mimeType:
+              validatedImage?.mimeType ||
+              file.mimetype ||
+              'application/octet-stream',
+            size: Number.isFinite(file.size) ? file.size : 0,
+            width: validatedImage?.width,
+            height: validatedImage?.height,
+            sortOrder: index,
+          };
+        }),
         tags: resolvedTags,
       });
-
-      if (data.requiresAcceptance === true) {
-        void this.enqueueMaterialAcceptanceEmailsUseCase
-          .execute(materialId, organizationId)
-          .catch(() => undefined);
-      }
-
-      try {
-        await this.enqueueInAppNotificationsUseCase.execute({
-          materialId,
-          organizationId,
-          type: 'MATERIAL_CREATED',
-          actorUserId: userId,
-        });
-      } catch {
-        // A inbox não deve impedir a criação do material.
-      }
-
-      if (data.notifyUsers === true) {
-        void this.enqueueMaterialNotificationEmailsUseCase
-          .execute(materialId, organizationId, data.roleId)
-          .catch(() => undefined);
-      }
-      return { id: materialId };
     } catch (error) {
       if (uploadedFiles.length) {
         await this.storageService.deleteFile(
@@ -134,6 +118,30 @@ export class CreateMaterialUseCase {
       }
       throw error;
     }
+
+    if (data.requiresAcceptance === true) {
+      void this.enqueueMaterialAcceptanceEmailsUseCase
+        .execute(materialId, organizationId)
+        .catch(() => undefined);
+    }
+
+    try {
+      await this.enqueueInAppNotificationsUseCase.execute({
+        materialId,
+        organizationId,
+        type: 'MATERIAL_CREATED',
+        actorUserId: userId,
+      });
+    } catch {
+      // A inbox não deve impedir a criação do material.
+    }
+
+    if (data.notifyUsers === true) {
+      void this.enqueueMaterialNotificationEmailsUseCase
+        .execute(materialId, organizationId, data.roleId)
+        .catch(() => undefined);
+    }
+    return { id: materialId };
   }
 
   private async assertExportConfig(

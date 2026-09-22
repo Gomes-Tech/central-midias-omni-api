@@ -25,8 +25,12 @@ export interface MaterialFileItem {
   id: string;
   materialId: string;
   fileKey: string;
+  originalName: string | null;
   mimeType: string;
   size: number;
+  width: number | null;
+  height: number | null;
+  sortOrder: number;
 }
 
 export interface MaterialFileWithUrl extends Omit<MaterialFileItem, 'fileKey'> {

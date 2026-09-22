@@ -941,9 +941,12 @@ describe('MaterialRepository', () => {
             id: 'material-id',
             files: [
               {
+                id: 'file-id',
                 fileKey: 'materials/material-id/file.pdf',
+                originalName: 'file.pdf',
                 mimeType: 'application/pdf',
                 size: 1024,
+                sortOrder: 0,
               },
             ],
             tags: {
@@ -986,10 +989,14 @@ describe('MaterialRepository', () => {
           materialFiles: {
             create: [
               {
-                id: 'mocked-uuid',
+                id: 'file-id',
                 imageKey: 'materials/material-id/file.pdf',
+                originalName: 'file.pdf',
                 mimeType: 'application/pdf',
                 size: 1024,
+                width: undefined,
+                height: undefined,
+                sortOrder: 0,
               },
             ],
           },
@@ -1016,8 +1023,10 @@ describe('MaterialRepository', () => {
             {
               id: 'base-file-id',
               fileKey: 'materials/material-id/base.png',
+              originalName: 'base.png',
               mimeType: 'image/png',
               size: 1024,
+              sortOrder: 0,
             },
           ],
         },
@@ -1040,8 +1049,12 @@ describe('MaterialRepository', () => {
               {
                 id: 'base-file-id',
                 imageKey: 'materials/material-id/base.png',
+                originalName: 'base.png',
                 mimeType: 'image/png',
                 size: 1024,
+                width: undefined,
+                height: undefined,
+                sortOrder: 0,
               },
             ],
           },
@@ -1338,9 +1351,14 @@ describe('MaterialRepository', () => {
         id: 'file-id',
         materialId: 'material-id',
         imageKey: 'materials/material-id/file.pdf',
+        originalName: 'file.pdf',
         mimeType: 'application/pdf',
         size: 1024,
+        width: null,
+        height: null,
+        sortOrder: 3,
       });
+      prisma.materialFile.findFirst.mockResolvedValue({ sortOrder: 2 });
 
       await expect(
         repository.createFiles(
@@ -1348,9 +1366,12 @@ describe('MaterialRepository', () => {
           'org-id',
           [
             {
+              id: 'file-id',
               fileKey: 'materials/material-id/file.pdf',
+              originalName: 'file.pdf',
               mimeType: 'application/pdf',
               size: 1024,
+              sortOrder: 0,
             },
           ],
           'user-id',
@@ -1360,29 +1381,44 @@ describe('MaterialRepository', () => {
           id: 'file-id',
           materialId: 'material-id',
           fileKey: 'materials/material-id/file.pdf',
+          originalName: 'file.pdf',
           mimeType: 'application/pdf',
           size: 1024,
+          width: null,
+          height: null,
+          sortOrder: 3,
         },
       ]);
 
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(prisma.materialFile.findFirst).toHaveBeenCalledWith({
+        where: { materialId: 'material-id' },
+        select: { sortOrder: true },
+        orderBy: { sortOrder: 'desc' },
+      });
+
       expect(prisma.materialFile.create).toHaveBeenCalledWith({
         data: {
-          id: 'mocked-uuid',
+          id: 'file-id',
           materialId: 'material-id',
           imageKey: 'materials/material-id/file.pdf',
+          originalName: 'file.pdf',
           mimeType: 'application/pdf',
           size: 1024,
           width: undefined,
           height: undefined,
+          sortOrder: 3,
         },
         select: {
           id: true,
           materialId: true,
           imageKey: true,
+          originalName: true,
           mimeType: true,
           size: true,
           width: true,
           height: true,
+          sortOrder: true,
         },
       });
       expect(logger.info).toHaveBeenCalledWith(
@@ -1403,14 +1439,87 @@ describe('MaterialRepository', () => {
           'org-id',
           [
             {
+              id: 'file-id',
               fileKey: 'materials/material-id/file.pdf',
+              originalName: 'file.pdf',
               mimeType: 'application/pdf',
               size: 1024,
+              sortOrder: 0,
             },
           ],
           'user-id',
         ),
       ).rejects.toThrow('Erro ao salvar arquivos do material');
+    });
+
+    it('deve persistir o lote inteiro na mesma transação e preservar sua ordem', async () => {
+      prisma.materialFile.findFirst.mockResolvedValue({ sortOrder: 4 });
+      prisma.materialFile.create
+        .mockResolvedValueOnce({
+          id: 'file-a',
+          materialId: 'material-id',
+          imageKey: 'materials/material-id/a.pdf',
+          originalName: 'a.pdf',
+          mimeType: 'application/pdf',
+          size: 10,
+          width: null,
+          height: null,
+          sortOrder: 5,
+        })
+        .mockResolvedValueOnce({
+          id: 'file-b',
+          materialId: 'material-id',
+          imageKey: 'materials/material-id/b.pdf',
+          originalName: 'b.pdf',
+          mimeType: 'application/pdf',
+          size: 20,
+          width: null,
+          height: null,
+          sortOrder: 6,
+        });
+
+      await expect(
+        repository.createFiles(
+          'material-id',
+          'org-id',
+          [
+            {
+              id: 'file-a',
+              fileKey: 'materials/material-id/a.pdf',
+              originalName: 'a.pdf',
+              mimeType: 'application/pdf',
+              size: 10,
+              sortOrder: 0,
+            },
+            {
+              id: 'file-b',
+              fileKey: 'materials/material-id/b.pdf',
+              originalName: 'b.pdf',
+              mimeType: 'application/pdf',
+              size: 20,
+              sortOrder: 1,
+            },
+          ],
+          'user-id',
+        ),
+      ).resolves.toEqual([
+        expect.objectContaining({ id: 'file-a', sortOrder: 5 }),
+        expect.objectContaining({ id: 'file-b', sortOrder: 6 }),
+      ]);
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(prisma.materialFile.create).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          data: expect.objectContaining({ id: 'file-a', sortOrder: 5 }),
+        }),
+      );
+      expect(prisma.materialFile.create).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          data: expect.objectContaining({ id: 'file-b', sortOrder: 6 }),
+        }),
+      );
     });
   });
 
@@ -1421,8 +1530,12 @@ describe('MaterialRepository', () => {
           id: 'file-id',
           materialId: 'material-id',
           imageKey: 'materials/material-id/file.pdf',
+          originalName: 'file.pdf',
           mimeType: 'application/pdf',
           size: 1024,
+          width: null,
+          height: null,
+          sortOrder: 0,
         },
       ]);
 
@@ -1433,8 +1546,12 @@ describe('MaterialRepository', () => {
           id: 'file-id',
           materialId: 'material-id',
           fileKey: 'materials/material-id/file.pdf',
+          originalName: 'file.pdf',
           mimeType: 'application/pdf',
           size: 1024,
+          width: null,
+          height: null,
+          sortOrder: 0,
         },
       ]);
 
@@ -1450,9 +1567,7 @@ describe('MaterialRepository', () => {
           },
         },
         select: expect.any(Object),
-        orderBy: {
-          id: 'asc',
-        },
+        orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
       });
     });
 
@@ -1696,10 +1811,12 @@ describe('MaterialRepository', () => {
                 id: 'file-1',
                 materialId: 'fallback-1',
                 imageKey: 'materials/fallback-1/a.png',
+                originalName: 'a.png',
                 mimeType: 'image/png',
                 size: 1024,
                 width: null,
                 height: null,
+                sortOrder: 0,
               },
             ],
           },
@@ -1718,10 +1835,12 @@ describe('MaterialRepository', () => {
               id: 'file-1',
               materialId: 'fallback-1',
               imageKey: 'materials/fallback-1/a.png',
+              originalName: 'a.png',
               mimeType: 'image/png',
               size: 1024,
               width: null,
               height: null,
+              sortOrder: 0,
             },
           ],
         },
@@ -1754,10 +1873,12 @@ describe('MaterialRepository', () => {
             id: 'file-1',
             materialId: 'fallback-1',
             imageKey: 'materials/fallback-1/a.png',
+            originalName: 'a.png',
             mimeType: 'image/png',
             size: 1024,
             width: null,
             height: null,
+            sortOrder: 0,
           },
         ],
       };
@@ -2331,7 +2452,9 @@ describe('MaterialRepository', () => {
 
   describe('createMaterialEmailDispatch', () => {
     it('deve criar o disparo com destinatários', async () => {
-      prisma.materialEmailDispatch.create.mockResolvedValue({ id: 'dispatch-id' });
+      prisma.materialEmailDispatch.create.mockResolvedValue({
+        id: 'dispatch-id',
+      });
 
       await expect(
         repository.createMaterialEmailDispatch({

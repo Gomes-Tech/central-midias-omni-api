@@ -1,7 +1,6 @@
 import { ForbiddenException } from '@common/filters';
 import { StorageService } from '@infrastructure/providers';
 import { Inject, Injectable } from '@nestjs/common';
-import { posix } from 'node:path';
 import { MaterialFileWithUrl } from '../entities';
 import { MaterialRepository } from '../repository';
 import { FindMaterialByIdUseCase } from './find-material-by-id.use-case';
@@ -46,17 +45,13 @@ export class DownloadMaterialUseCase {
     }
 
     return await Promise.all(
-      files.map(async (file) => {
-        const filename = posix.basename(file.fileKey);
-
-        return {
-          id: file.id,
-          materialId: file.materialId,
-          mimeType: file.mimeType,
-          size: file.size,
-          url: await this.storageService.getDownloadUrl(file.fileKey, filename),
-        };
-      }),
+      files.map(async ({ fileKey, ...file }) => ({
+        ...file,
+        url: await this.storageService.getDownloadUrl(
+          fileKey,
+          file.originalName ?? 'arquivo',
+        ),
+      })),
     );
   }
 }

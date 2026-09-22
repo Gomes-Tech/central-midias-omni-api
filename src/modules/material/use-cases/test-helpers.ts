@@ -106,8 +106,12 @@ export function makeMaterialFile(
     id: 'material-file-id',
     materialId: 'material-id',
     fileKey: 'materials/material-id/file.pdf',
+    originalName: 'arquivo.pdf',
     mimeType: 'application/pdf',
     size: 1024,
+    width: null,
+    height: null,
+    sortOrder: 0,
     ...overrides,
   };
 }

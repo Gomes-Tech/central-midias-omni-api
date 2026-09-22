@@ -93,10 +93,12 @@ const materialFileSelect = {
   id: true,
   materialId: true,
   imageKey: true,
+  originalName: true,
   mimeType: true,
   size: true,
   width: true,
   height: true,
+  sortOrder: true,
 } satisfies Prisma.MaterialFileSelect;
 
 type MaterialFileRow = Prisma.MaterialFileGetPayload<{
@@ -138,12 +140,14 @@ const buildImageMaterialWhere = (
 });
 
 export interface CreateMaterialFileInput {
-  id?: string;
+  id: string;
   fileKey: string;
+  originalName: string;
   mimeType: string;
   size: number;
   width?: number | null;
   height?: number | null;
+  sortOrder: number;
 }
 
 export interface CreateMaterialOptions {
@@ -1001,12 +1005,14 @@ export class MaterialRepository {
       if (options.files?.length) {
         createData.materialFiles = {
           create: options.files.map((file) => ({
-            id: file.id ?? generateId(),
+            id: file.id,
             imageKey: file.fileKey,
+            originalName: file.originalName,
             mimeType: file.mimeType,
             size: file.size,
             width: file.width,
             height: file.height,
+            sortOrder: file.sortOrder,
           })),
         };
       }
@@ -1158,7 +1164,8 @@ export class MaterialRepository {
         const exportConfig = resolveTemplateExportConfig({
           exportTypes:
             data.exportTypes ??
-            (material.materialTemplate.allowedExportTypes as MaterialExportType[]),
+            (material.materialTemplate
+              .allowedExportTypes as MaterialExportType[]),
           printPresetId:
             data.printPresetId !== undefined
               ? data.printPresetId
@@ -1316,22 +1323,36 @@ export class MaterialRepository {
     userId: string,
   ): Promise<MaterialFileItem[]> {
     try {
-      const createdFiles = await Promise.all(
-        files.map((file) =>
-          this.prisma.materialFile.create({
-            data: {
-              id: generateId(),
-              materialId,
-              imageKey: file.fileKey,
-              mimeType: file.mimeType,
-              size: file.size,
-              width: file.width,
-              height: file.height,
-            },
-            select: materialFileSelect,
-          }),
-        ),
-      );
+      const createdFiles = await this.prisma.$transaction(async (tx) => {
+        const lastFile = await tx.materialFile.findFirst({
+          where: { materialId },
+          select: { sortOrder: true },
+          orderBy: { sortOrder: 'desc' },
+        });
+        const firstSortOrder = (lastFile?.sortOrder ?? -1) + 1;
+        const created: MaterialFileRow[] = [];
+
+        for (const file of files) {
+          created.push(
+            await tx.materialFile.create({
+              data: {
+                id: file.id,
+                materialId,
+                imageKey: file.fileKey,
+                originalName: file.originalName,
+                mimeType: file.mimeType,
+                size: file.size,
+                width: file.width,
+                height: file.height,
+                sortOrder: firstSortOrder + file.sortOrder,
+              },
+              select: materialFileSelect,
+            }),
+          );
+        }
+
+        return created;
+      });
 
       void this.logger.info('Arquivos de material criados', {
         materialId,
@@ -1370,9 +1391,7 @@ export class MaterialRepository {
           },
         },
         select: materialFileSelect,
-        orderBy: {
-          id: 'asc',
-        },
+        orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
       });
 
       return files.map((file) => this.mapMaterialFile(file));
@@ -1487,8 +1506,12 @@ export class MaterialRepository {
       id: file.id,
       materialId: file.materialId,
       fileKey: file.imageKey,
+      originalName: file.originalName,
       mimeType: file.mimeType,
       size: file.size,
+      width: file.width,
+      height: file.height,
+      sortOrder: file.sortOrder,
     };
   }
 

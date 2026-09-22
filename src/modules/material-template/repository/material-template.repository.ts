@@ -29,10 +29,12 @@ const templateSelect = {
     select: {
       id: true,
       imageKey: true,
+      originalName: true,
       mimeType: true,
       size: true,
       width: true,
       height: true,
+      sortOrder: true,
     },
   },
   material: {
@@ -266,6 +268,7 @@ export class MaterialTemplateRepository {
   async replaceBaseFile(options: {
     template: MaterialTemplateRow;
     fileKey: string;
+    originalName: string;
     mimeType: string;
     size: number;
     width: number;
@@ -279,6 +282,7 @@ export class MaterialTemplateRepository {
     const {
       template,
       fileKey,
+      originalName,
       mimeType,
       size,
       width,
@@ -290,15 +294,31 @@ export class MaterialTemplateRepository {
     const newFileId = generateId();
 
     await this.prisma.$transaction(async (tx) => {
+      const originalSortOrder = template.baseFile?.sortOrder ?? 0;
+
+      if (template.baseFile) {
+        const lastFile = await tx.materialFile.findFirst({
+          where: { materialId: template.materialId },
+          select: { sortOrder: true },
+          orderBy: { sortOrder: 'desc' },
+        });
+        await tx.materialFile.update({
+          where: { id: template.baseFile.id },
+          data: { sortOrder: (lastFile?.sortOrder ?? originalSortOrder) + 1 },
+        });
+      }
+
       await tx.materialFile.create({
         data: {
           id: newFileId,
           materialId: template.materialId,
           imageKey: fileKey,
+          originalName,
           mimeType,
           size,
           width,
           height,
+          sortOrder: originalSortOrder,
         },
       });
       await tx.materialTemplate.update({

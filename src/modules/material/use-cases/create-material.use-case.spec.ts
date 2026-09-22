@@ -2,6 +2,7 @@ import { BadRequestException } from '@common/filters';
 import { StorageService } from '@infrastructure/providers';
 import { FindCategoryByIdUseCase } from '@modules/category';
 import { EnqueueInAppNotificationsUseCase } from '@modules/notification/use-cases';
+import { v4 as uuidv4 } from 'uuid';
 import { MaterialRepository } from '../repository';
 import { CreateMaterialUseCase } from './create-material.use-case';
 import { EnqueueMaterialAcceptanceEmailsUseCase } from './enqueue-material-acceptance-emails.use-case';
@@ -34,6 +35,7 @@ describe('CreateMaterialUseCase', () => {
   let useCase: CreateMaterialUseCase;
 
   beforeEach(() => {
+    (uuidv4 as jest.Mock).mockReturnValue('mocked-uuid');
     materialRepository = {
       findByName: jest.fn(),
       create: jest.fn(),
@@ -156,7 +158,11 @@ describe('CreateMaterialUseCase', () => {
         files: [
           expect.objectContaining({
             id: 'mocked-uuid',
+            originalName: 'base.png',
             mimeType: 'image/png',
+            width: 1080,
+            height: 1080,
+            sortOrder: 0,
           }),
         ],
       }),
@@ -307,11 +313,13 @@ describe('CreateMaterialUseCase', () => {
       'user-id',
       expect.objectContaining({
         files: [
-          {
+          expect.objectContaining({
             fileKey: 'materials/mocked-uuid/arquivo.bin',
+            originalName: 'arquivo.pdf',
             mimeType: 'application/octet-stream',
             size: 0,
-          },
+            sortOrder: 0,
+          }),
         ],
       }),
     );
@@ -350,9 +358,14 @@ describe('CreateMaterialUseCase', () => {
         id: 'mocked-uuid',
         files: [
           {
+            id: 'mocked-uuid',
             fileKey: 'materials/mocked-uuid/arquivo.pdf',
+            originalName: 'arquivo.pdf',
             mimeType: 'application/pdf',
             size: 4096,
+            width: undefined,
+            height: undefined,
+            sortOrder: 0,
           },
         ],
         tags: {
@@ -360,6 +373,60 @@ describe('CreateMaterialUseCase', () => {
           newTagNames: ['Lancamento'],
         },
       },
+    );
+  });
+
+  it('deve atribuir id, nome, MIME e posição próprios para cada arquivo', async () => {
+    const dto = makeCreateMaterialDTO();
+    const pdf = makeUploadFile({
+      originalname: '  documentos\\primeiro.pdf ',
+      mimetype: 'application/pdf',
+    });
+    const image = makeUploadFile({
+      originalname: 'segundo.png',
+      mimetype: 'image/png',
+    });
+    (uuidv4 as jest.Mock)
+      .mockReturnValueOnce('material-id')
+      .mockReturnValueOnce('file-id-1')
+      .mockReturnValueOnce('file-id-2');
+    findCategoryByIdUseCase.execute.mockResolvedValue({
+      id: dto.categoryId,
+      isActive: true,
+    });
+    materialRepository.findByName.mockResolvedValue(null);
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue({
+      existingTagIds: [],
+      newTagNames: [],
+    });
+    storageService.uploadFile
+      .mockResolvedValueOnce({ path: 'materials/material-id/first.pdf' })
+      .mockResolvedValueOnce({ path: 'materials/material-id/second.png' });
+    materialRepository.create.mockResolvedValue('material-id');
+
+    await useCase.execute('org-id', dto, 'user-id', [pdf, image]);
+
+    expect(materialRepository.create).toHaveBeenCalledWith(
+      'org-id',
+      dto,
+      'user-id',
+      expect.objectContaining({
+        id: 'material-id',
+        files: [
+          expect.objectContaining({
+            id: 'file-id-1',
+            originalName: 'primeiro.pdf',
+            mimeType: 'application/pdf',
+            sortOrder: 0,
+          }),
+          expect.objectContaining({
+            id: 'file-id-2',
+            originalName: 'segundo.png',
+            mimeType: 'image/png',
+            sortOrder: 1,
+          }),
+        ],
+      }),
     );
   });
 

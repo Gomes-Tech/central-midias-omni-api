@@ -1,5 +1,6 @@
 import { BadRequestException } from '@common/filters';
 import { StorageService } from '@infrastructure/providers';
+import { normalizeMaterialFileName } from '@modules/material/utils/normalize-material-file-name';
 import { Injectable } from '@nestjs/common';
 import { MaterialTemplateDocument } from '../entities';
 import { MaterialTemplateRepository } from '../repository';
@@ -52,6 +53,7 @@ export class ReplaceMaterialTemplateBaseUseCase {
       const result = await this.repository.replaceBaseFile({
         template,
         fileKey: uploaded.path,
+        originalName: normalizeMaterialFileName(file.originalname),
         mimeType: image.mimeType,
         size: file.size,
         width: image.width,

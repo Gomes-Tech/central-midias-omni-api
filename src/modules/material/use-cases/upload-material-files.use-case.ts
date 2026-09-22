@@ -1,8 +1,10 @@
 import { BadRequestException } from '@common/filters';
+import { generateId } from '@common/utils';
 import { StorageService } from '@infrastructure/providers';
 import { Injectable } from '@nestjs/common';
-import { MaterialFileWithUrl } from '../entities';
+import { MaterialFileItem, MaterialFileWithUrl } from '../entities';
 import { MaterialRepository } from '../repository';
+import { normalizeMaterialFileName } from '../utils/normalize-material-file-name';
 import { FindMaterialByIdUseCase } from './find-material-by-id.use-case';
 
 @Injectable()
@@ -42,6 +44,8 @@ export class UploadMaterialFilesUseCase {
       upload: { path: string };
     }> = [];
 
+    let materialFiles: MaterialFileItem[];
+
     try {
       for (const file of files) {
         uploadedFiles.push({
@@ -50,22 +54,18 @@ export class UploadMaterialFilesUseCase {
         });
       }
 
-      const materialFiles = await this.materialRepository.createFiles(
+      materialFiles = await this.materialRepository.createFiles(
         materialId,
         organizationId,
-        uploadedFiles.map(({ file, upload }) => ({
+        uploadedFiles.map(({ file, upload }, index) => ({
+          id: generateId(),
           fileKey: upload.path,
+          originalName: normalizeMaterialFileName(file.originalname),
           mimeType: file.mimetype || 'application/octet-stream',
           size: Number.isFinite(file.size) ? file.size : 0,
+          sortOrder: index,
         })),
         userId,
-      );
-
-      return await Promise.all(
-        materialFiles.map(async ({ fileKey, ...file }) => ({
-          ...file,
-          url: await this.storageService.getPublicUrl(fileKey),
-        })),
       );
     } catch (error) {
       await this.storageService.deleteFile(
@@ -73,5 +73,12 @@ export class UploadMaterialFilesUseCase {
       );
       throw error;
     }
+
+    return await Promise.all(
+      materialFiles.map(async ({ fileKey, ...file }) => ({
+        ...file,
+        url: await this.storageService.getPublicUrl(fileKey),
+      })),
+    );
   }
 }

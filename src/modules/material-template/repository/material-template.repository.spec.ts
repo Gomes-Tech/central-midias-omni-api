@@ -179,6 +179,62 @@ describe('MaterialTemplateRepository', () => {
     });
   });
 
+  it('substitui a imagem base preservando a posição sem colidir na unicidade', async () => {
+    const currentTemplate = template({
+      baseFile: {
+        id: 'file-id',
+        imageKey: 'materials/material-id/base.png',
+        originalName: 'base.png',
+        mimeType: 'image/png',
+        size: 100,
+        width: 1080,
+        height: 1080,
+        sortOrder: 2,
+      },
+    });
+    const tx = {
+      materialFile: {
+        findFirst: jest.fn().mockResolvedValue({ sortOrder: 7 }),
+        update: jest.fn(),
+        create: jest.fn(),
+        deleteMany: jest.fn(),
+      },
+      materialTemplate: { update: jest.fn() },
+    };
+    prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+    prisma.materialTemplate.findFirst.mockResolvedValue(currentTemplate);
+
+    await repository.replaceBaseFile({
+      template: currentTemplate,
+      fileKey: 'materials/material-id/new.png',
+      originalName: 'nova arte.png',
+      mimeType: 'image/png',
+      size: 200,
+      width: 1200,
+      height: 1200,
+      document: null,
+      userId: 'user-id',
+    });
+
+    expect(tx.materialFile.update).toHaveBeenCalledWith({
+      where: { id: 'file-id' },
+      data: { sortOrder: 8 },
+    });
+    expect(tx.materialFile.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        materialId: 'material-id',
+        originalName: 'nova arte.png',
+        sortOrder: 2,
+      }),
+    });
+    expect(tx.materialFile.deleteMany).toHaveBeenCalledWith({
+      where: {
+        materialId: 'material-id',
+        id: { not: 'mocked-uuid' },
+      },
+    });
+  });
+
   it('persiste a versão do schema do documento V2', async () => {
     const richDocument: MaterialTemplateDocumentV2 = {
       version: 2,
