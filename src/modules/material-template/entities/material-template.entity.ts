@@ -143,8 +143,11 @@ export interface MaterialTemplateResolvedAsset {
   height: number | null;
 }
 
-export interface MaterialTemplateBaseImage {
+export interface MaterialTemplateImage {
   id: string;
+  originalName: string | null;
+  displayName: string;
+  sortOrder: number;
   url: string;
   mimeType: string;
   size: number;
@@ -152,11 +155,16 @@ export interface MaterialTemplateBaseImage {
   height: number | null;
 }
 
+export type MaterialTemplateBaseImage = MaterialTemplateImage;
+
 export type MaterialExportType = 'png' | 'jpg' | 'pdf' | 'print_pdf';
 
 export interface MaterialTemplateDelivery {
   exportTypes: MaterialExportType[];
-  digital: null | { mimeTypes: Array<'image/png' | 'image/jpeg'> };
+  digital: {
+    mode: 'original' | 'configured';
+    mimeTypes: Array<'image/png' | 'image/jpeg'>;
+  };
   print: null | { presetId: string };
 }
 
@@ -209,6 +217,7 @@ export interface MaterialTemplateResponse {
   delivery: MaterialTemplateDelivery;
   printPreset: MaterialTemplatePrintPreset | null;
   printPreflight: MaterialTemplatePrintPreflight | null;
+  images: MaterialTemplateImage[];
   baseImage: MaterialTemplateBaseImage | null;
   assets: MaterialTemplateResolvedAsset[];
   missingAssetIds: string[];

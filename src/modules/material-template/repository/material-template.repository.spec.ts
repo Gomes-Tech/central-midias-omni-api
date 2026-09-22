@@ -107,6 +107,25 @@ describe('MaterialTemplateRepository', () => {
     );
   });
 
+  it('carrega os arquivos do material na ordem de exibição', async () => {
+    prisma.materialTemplate.findFirst.mockResolvedValue(null);
+    await repository.findByMaterialId('material-id', 'org-id');
+
+    expect(prisma.materialTemplate.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          material: expect.objectContaining({
+            select: expect.objectContaining({
+              materialFiles: expect.objectContaining({
+                orderBy: { sortOrder: 'asc' },
+              }),
+            }),
+          }),
+        }),
+      }),
+    );
+  });
+
   it('retorna 409 quando a revisão do salvamento está desatualizada', async () => {
     prisma.$transaction.mockImplementation(async (callback) =>
       callback({

@@ -6,6 +6,7 @@ import { Injectable } from '@nestjs/common';
 import {
   LegacyMaterialTemplateImport,
   MaterialTemplateDocument,
+  MaterialTemplateImage,
   MaterialTemplateResponse,
 } from '../entities';
 import { MaterialTemplateRepository, MaterialTemplateRow } from '../repository';
@@ -37,10 +38,34 @@ export class MaterialTemplateResponseService {
     const missingAssetIds = requestedAssetIds.filter((id) => !foundIds.has(id));
     const exportTypes = (template.allowedExportTypes ??
       []) as MaterialExportType[];
-    const mimeTypes = toDigitalMimeTypes(
-      exportTypes,
-      template.baseFile?.mimeType,
+    const images = await Promise.all(
+      template.material.materialFiles.map(
+        async (file, index): Promise<MaterialTemplateImage> => ({
+          id: file.id,
+          originalName: file.originalName,
+          displayName: file.originalName ?? `Imagem ${index + 1}`,
+          sortOrder: file.sortOrder,
+          url: await this.storageService.getPublicUrl(file.imageKey, 840),
+          mimeType: file.mimeType,
+          size: file.size,
+          width: file.width,
+          height: file.height,
+        }),
+      ),
     );
+    const digitalMode = exportTypes.some(
+      (type) => type === 'png' || type === 'jpg',
+    )
+      ? 'configured'
+      : 'original';
+    const mimeTypes =
+      digitalMode === 'configured'
+        ? toDigitalMimeTypes(exportTypes, images[0]?.mimeType)
+        : [
+            ...new Set(
+              images.flatMap((image) => toDigitalMimeTypes([], image.mimeType)),
+            ),
+          ];
 
     return {
       id: template.id,
@@ -56,7 +81,7 @@ export class MaterialTemplateResponseService {
       updatedAt: template.updatedAt,
       delivery: {
         exportTypes,
-        digital: mimeTypes.length > 0 ? { mimeTypes } : null,
+        digital: { mode: digitalMode, mimeTypes },
         print: template.printPresetId
           ? { presetId: template.printPresetId }
           : null,
@@ -77,19 +102,8 @@ export class MaterialTemplateResponseService {
             presetUpdatedAt: template.printPreflight.presetUpdatedAt,
           }
         : null,
-      baseImage: template.baseFile
-        ? {
-            id: template.baseFile.id,
-            url: await this.storageService.getPublicUrl(
-              template.baseFile.imageKey,
-              840,
-            ),
-            mimeType: template.baseFile.mimeType,
-            size: template.baseFile.size,
-            width: template.baseFile.width,
-            height: template.baseFile.height,
-          }
-        : null,
+      images,
+      baseImage: images[0] ?? null,
       assets: assets.map((asset) => ({
         id: asset.id,
         name: asset.name,
