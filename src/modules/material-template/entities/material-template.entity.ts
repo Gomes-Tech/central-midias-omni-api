@@ -198,7 +198,12 @@ export interface MaterialTemplatePrintPreset {
 
 export interface MaterialTemplatePrintPreflight {
   status: 'PENDING' | 'READY' | 'FAILED';
-  issues: Array<{ code: string; message: string; layerId?: string }>;
+  issues: Array<{
+    code: string;
+    message: string;
+    layerId?: string;
+    materialFileId?: string;
+  }>;
   checkedAt: Date | null;
   templateRevision: number;
   presetUpdatedAt: Date;

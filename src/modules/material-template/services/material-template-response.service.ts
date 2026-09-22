@@ -96,6 +96,7 @@ export class MaterialTemplateResponseService {
               code: string;
               message: string;
               layerId?: string;
+              materialFileId?: string;
             }>,
             checkedAt: template.printPreflight.checkedAt,
             templateRevision: template.printPreflight.templateRevision,

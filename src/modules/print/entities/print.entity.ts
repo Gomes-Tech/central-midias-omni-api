@@ -35,6 +35,7 @@ export interface PrintPreflightIssue {
   code: string;
   message: string;
   layerId?: string;
+  materialFileId?: string;
 }
 
 export interface PrintPreflightResult {
