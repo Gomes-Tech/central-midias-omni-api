@@ -5,6 +5,8 @@ import {
   MaterialTemplateDocument,
   MaterialTemplateDocumentV1,
   MaterialTemplateDocumentV2,
+  MaterialTemplateDocumentV3,
+  MaterialTemplatePageV3,
   MaterialTemplateProfileBinding,
 } from '../entities';
 
@@ -13,6 +15,7 @@ import {
 const MAX_CANVAS_SIDE = 6000;
 const MAX_CANVAS_PIXELS = 30_000_000;
 const MAX_LAYERS = 200;
+const MAX_PAGES = 20;
 const MAX_TEXT_LENGTH = 2000;
 const MAX_TEXT_RUNS = 500;
 // O editor aplica o limite proporcional; este teto protege o contrato persistido.
@@ -196,9 +199,60 @@ function validateImagePlaceholder(layer: Record<string, unknown>): void {
 @Injectable()
 export class MaterialTemplateDocumentService {
   validate(value: unknown): MaterialTemplateDocument {
-    if (!isRecord(value) || (value.version !== 1 && value.version !== 2)) {
+    if (
+      !isRecord(value) ||
+      (value.version !== 1 && value.version !== 2 && value.version !== 3)
+    ) {
       throw new BadRequestException('Versão do template inválida');
     }
+
+    if (value.version === 3) {
+      return this.validateV3(value);
+    }
+
+    this.validatePage(value, value.version);
+    return value as unknown as MaterialTemplateDocument;
+  }
+
+  private validateV3(value: Record<string, unknown>): MaterialTemplateDocument {
+    if (
+      !Array.isArray(value.pages) ||
+      value.pages.length === 0 ||
+      value.pages.length > MAX_PAGES
+    ) {
+      throw new BadRequestException('Páginas do template inválidas');
+    }
+
+    const materialFileIds = new Set<string>();
+    let visiblePlaceholders = 0;
+    for (const candidate of value.pages) {
+      if (!isRecord(candidate)) {
+        throw new BadRequestException('Página do template inválida');
+      }
+      const materialFileId = readString(
+        candidate.materialFileId,
+        'Arquivo da página',
+        100,
+      );
+      if (materialFileIds.has(materialFileId)) {
+        throw new BadRequestException('Arquivo de página duplicado');
+      }
+      materialFileIds.add(materialFileId);
+      visiblePlaceholders += this.validatePage(candidate, 3);
+      if (visiblePlaceholders > MAX_IMAGE_PLACEHOLDERS) {
+        throw new BadRequestException(
+          'O template permite até 20 marcadores de imagem visíveis',
+        );
+      }
+    }
+
+    return value as unknown as MaterialTemplateDocumentV3;
+  }
+
+  private validatePage(
+    value: Record<string, unknown>,
+    version: 1 | 2 | 3,
+  ): number {
     if (!isRecord(value.canvas)) {
       throw new BadRequestException('Canvas do template inválido');
     }
@@ -233,12 +287,13 @@ export class MaterialTemplateDocumentService {
       }
       ids.add(candidate.id as string);
       if (candidate.type === 'text') {
-        if (value.version === 1) validateTextLayerV1(candidate);
+        if (version === 1) validateTextLayerV1(candidate);
         else validateTextLayerV2(candidate);
       } else if (candidate.type === 'asset') validateAssetLayer(candidate);
-      else if (candidate.type === 'image-placeholder' && value.version === 2) {
+      else if (candidate.type === 'image-placeholder' && version !== 1) {
         validateImagePlaceholder(candidate);
-        if (++placeholders > MAX_IMAGE_PLACEHOLDERS) {
+        if (version === 2 || candidate.isVisible) placeholders++;
+        if (version === 2 && placeholders > MAX_IMAGE_PLACEHOLDERS) {
           throw new BadRequestException(
             'O template permite até 20 marcadores de imagem',
           );
@@ -253,14 +308,15 @@ export class MaterialTemplateDocumentService {
     ) {
       throw new BadRequestException('Ordem das camadas inválida');
     }
-
-    return value as unknown as MaterialTemplateDocument;
+    return placeholders;
   }
 
   getAssetIds(document: MaterialTemplateDocument): string[] {
     const assetIds = new Set<string>();
-    for (const layer of document.layers) {
-      if (layer.type === 'asset') assetIds.add(layer.assetId);
+    for (const page of this.getPages(document)) {
+      for (const layer of page.layers) {
+        if (layer.type === 'asset') assetIds.add(layer.assetId);
+      }
     }
     return [...assetIds];
   }
@@ -272,26 +328,47 @@ export class MaterialTemplateDocumentService {
           layer.type === 'text' && layer.editableProperties.includes('value'),
       );
     }
-    return document.layers.some(
-      (layer) =>
-        layer.type === 'text' && layer.editableProperties.includes('content'),
+    return this.getPages(document).some((page) =>
+      page.layers.some(
+        (layer) =>
+          layer.type === 'text' && layer.editableProperties.includes('content'),
+      ),
     );
   }
 
   hasEditableContent(document: MaterialTemplateDocument): boolean {
     return (
       this.hasEditableText(document) ||
-      document.layers.some(
-        (layer) => layer.type === 'image-placeholder' && layer.isVisible,
+      this.getPages(document).some((page) =>
+        page.layers.some(
+          (layer) => layer.type === 'image-placeholder' && layer.isVisible,
+        ),
       )
     );
   }
 
-  scaleForBaseReplacement(
+  private getPages(
     document: MaterialTemplateDocument,
+  ): Array<
+    | MaterialTemplateDocumentV1
+    | MaterialTemplateDocumentV2
+    | MaterialTemplatePageV3
+  > {
+    return document.version === 3 ? document.pages : [document];
+  }
+
+  scaleForBaseReplacement<T extends MaterialTemplateDocument>(
+    document: T,
     width: number,
     height: number,
-  ): MaterialTemplateDocument {
+    materialFileId?: string,
+  ): T {
+    if (document.version === 3) {
+      if (!materialFileId) {
+        throw new BadRequestException('Arquivo da página não informado');
+      }
+      return this.scaleV3Page(document, materialFileId, width, height) as T;
+    }
     const scaleX = width / document.canvas.width;
     const scaleY = height / document.canvas.height;
     const uniformScale = Math.min(scaleX, scaleY);
@@ -304,9 +381,52 @@ export class MaterialTemplateDocumentService {
         scaleX,
         scaleY,
         uniformScale,
-      );
+      ) as T;
     }
-    return this.scaleV2(document, width, height, scaleX, scaleY, uniformScale);
+    return this.scaleV2(
+      document,
+      width,
+      height,
+      scaleX,
+      scaleY,
+      uniformScale,
+    ) as T;
+  }
+
+  private scaleV3Page(
+    document: MaterialTemplateDocumentV3,
+    materialFileId: string,
+    width: number,
+    height: number,
+  ): MaterialTemplateDocumentV3 {
+    const page = document.pages.find(
+      (candidate) => candidate.materialFileId === materialFileId,
+    );
+    if (!page) {
+      throw new BadRequestException('Página do arquivo não encontrada');
+    }
+    const scaleX = width / page.canvas.width;
+    const scaleY = height / page.canvas.height;
+    const uniformScale = Math.min(scaleX, scaleY);
+    const scaled = this.scaleV2(
+      { version: 2, ...page },
+      width,
+      height,
+      scaleX,
+      scaleY,
+      uniformScale,
+    );
+    const scaledPage: MaterialTemplatePageV3 = {
+      ...page,
+      canvas: scaled.canvas,
+      layers: scaled.layers,
+    };
+    return {
+      ...document,
+      pages: document.pages.map((candidate) =>
+        candidate.materialFileId === materialFileId ? scaledPage : candidate,
+      ),
+    };
   }
 
   private scaleV1(

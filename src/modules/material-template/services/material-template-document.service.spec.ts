@@ -2,6 +2,7 @@ import { BadRequestException } from '@common/filters';
 import {
   MaterialTemplateDocumentV1,
   MaterialTemplateDocumentV2,
+  MaterialTemplateDocumentV3,
 } from '../entities';
 import { MaterialTemplateDocumentService } from './material-template-document.service';
 import {
@@ -151,6 +152,37 @@ describe('MaterialTemplateDocumentService', () => {
       },
     ],
   };
+  const multipageDocument: MaterialTemplateDocumentV3 = {
+    version: 3,
+    pages: [
+      {
+        materialFileId: 'material-file-1',
+        canvas: { width: 1080, height: 1080 },
+        layerOrder: ['asset-1'],
+        layers: [
+          {
+            id: 'asset-1',
+            type: 'asset',
+            name: 'Logo',
+            assetId: 'library-asset-1',
+            x: 100,
+            y: 200,
+            width: 300,
+            height: 150,
+            rotation: 0,
+            isVisible: true,
+            editableProperties: [],
+          },
+        ],
+      },
+      {
+        materialFileId: 'material-file-2',
+        canvas: { width: 1000, height: 1000 },
+        layerOrder: ['text-1', 'photo-1'],
+        layers: [richDocument.layers[0], { ...placeholder, id: 'photo-1' }],
+      },
+    ],
+  };
 
   it('valida o documento V1 e extrai dependências', () => {
     expect(service.validate(document)).toBe(document);
@@ -167,6 +199,92 @@ describe('MaterialTemplateDocumentService', () => {
   it('valida rich text V2 e reconhece permissão de conteúdo', () => {
     expect(service.validate(richDocument)).toBe(richDocument);
     expect(service.hasEditableText(richDocument)).toBe(true);
+  });
+
+  it('valida V3 e percorre todas as páginas para assets e conteúdo editável', () => {
+    expect(service.validate(multipageDocument)).toBe(multipageDocument);
+    expect(service.getAssetIds(multipageDocument)).toEqual(['library-asset-1']);
+    expect(service.hasEditableText(multipageDocument)).toBe(true);
+    expect(service.hasEditableContent(multipageDocument)).toBe(true);
+  });
+
+  it.each([
+    ['sem páginas', { ...multipageDocument, pages: [] }],
+    [
+      'com mais de 20 páginas',
+      {
+        ...multipageDocument,
+        pages: Array.from({ length: 21 }, (_, index) => ({
+          ...multipageDocument.pages[0],
+          materialFileId: `material-file-${index}`,
+        })),
+      },
+    ],
+    [
+      'com arquivo repetido',
+      {
+        ...multipageDocument,
+        pages: [
+          multipageDocument.pages[0],
+          {
+            ...multipageDocument.pages[1],
+            materialFileId: 'material-file-1',
+          },
+        ],
+      },
+    ],
+    [
+      'com ordem inválida em uma página',
+      {
+        ...multipageDocument,
+        pages: [
+          multipageDocument.pages[0],
+          { ...multipageDocument.pages[1], layerOrder: [] },
+        ],
+      },
+    ],
+    [
+      'com mais de 200 camadas em uma página',
+      {
+        ...multipageDocument,
+        pages: [
+          {
+            ...multipageDocument.pages[0],
+            layers: Array.from({ length: 201 }, (_, index) => ({
+              ...multipageDocument.pages[0].layers[0],
+              id: `asset-${index}`,
+            })),
+            layerOrder: Array.from(
+              { length: 201 },
+              (_, index) => `asset-${index}`,
+            ),
+          },
+        ],
+      },
+    ],
+  ])('rejeita V3 %s', (_case, value) => {
+    expect(() => service.validate(value)).toThrow(BadRequestException);
+  });
+
+  it('limita a 20 os marcadores visíveis no documento V3 inteiro', () => {
+    const pages = [0, 1].map((pageIndex) => {
+      const layers = Array.from({ length: 11 }, (_, layerIndex) => ({
+        ...placeholder,
+        id: `photo-${pageIndex}-${layerIndex}`,
+        isVisible: !(pageIndex === 1 && layerIndex >= 9),
+      }));
+      return {
+        materialFileId: `material-file-${pageIndex}`,
+        canvas: { width: 1000, height: 1000 },
+        layerOrder: layers.map((layer) => layer.id),
+        layers,
+      };
+    });
+    const value: MaterialTemplateDocumentV3 = { version: 3, pages };
+
+    expect(service.validate(value)).toBe(value);
+    pages[1].layers[9].isVisible = true;
+    expect(() => service.validate(value)).toThrow('20 marcadores');
   });
 
   it('aceita os tamanhos proporcionais usados em canvases grandes', () => {
@@ -242,5 +360,39 @@ describe('MaterialTemplateDocumentService', () => {
       expect.objectContaining({ x: 200, y: 100 }),
     );
     expect(scaled.layers[0].runs.map((run) => run.fontSize)).toEqual([20, 24]);
+  });
+
+  it('redimensiona somente a página V3 indicada', () => {
+    const scaled = service.scaleForBaseReplacement(
+      multipageDocument,
+      2000,
+      500,
+      'material-file-2',
+    );
+
+    expect(scaled.version).toBe(3);
+    if (scaled.version !== 3) return;
+    expect(scaled.pages[0]).toBe(multipageDocument.pages[0]);
+    expect(scaled.pages[1].canvas).toEqual({ width: 2000, height: 500 });
+    expect(scaled.pages[1].layers[0]).toEqual(
+      expect.objectContaining({ x: 200, y: 100 }),
+    );
+    expect(scaled.pages[1].layers[1]).toEqual(
+      expect.objectContaining({ x: 200, y: 50, width: 50, height: 50 }),
+    );
+  });
+
+  it('rejeita redimensionamento V3 sem uma página válida', () => {
+    expect(() =>
+      service.scaleForBaseReplacement(multipageDocument, 2000, 500),
+    ).toThrow('Arquivo da página não informado');
+    expect(() =>
+      service.scaleForBaseReplacement(
+        multipageDocument,
+        2000,
+        500,
+        'inexistente',
+      ),
+    ).toThrow('Página do arquivo não encontrada');
   });
 });

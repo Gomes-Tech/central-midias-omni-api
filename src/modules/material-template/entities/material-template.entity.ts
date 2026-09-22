@@ -108,9 +108,22 @@ export interface MaterialTemplateDocumentV2 {
   layers: MaterialTemplateLayerV2[];
 }
 
+export interface MaterialTemplatePageV3 {
+  materialFileId: string;
+  canvas: MaterialTemplateCanvas;
+  layerOrder: string[];
+  layers: MaterialTemplateLayerV2[];
+}
+
+export interface MaterialTemplateDocumentV3 {
+  version: 3;
+  pages: MaterialTemplatePageV3[];
+}
+
 export type MaterialTemplateDocument =
   | MaterialTemplateDocumentV1
-  | MaterialTemplateDocumentV2;
+  | MaterialTemplateDocumentV2
+  | MaterialTemplateDocumentV3;
 
 export interface LegacyMaterialTemplateImport {
   position: 'TOP' | 'FOOTER';

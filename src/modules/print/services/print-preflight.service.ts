@@ -114,6 +114,13 @@ export class PrintPreflightService {
     document: MaterialTemplateDocument,
   ) {
     const issues: PrintPreflightIssue[] = [];
+    if (document.version === 3) {
+      issues.push({
+        code: 'DOCUMENT_VERSION_UNSUPPORTED',
+        message: 'A impressão multipágina ainda não está disponível.',
+      });
+      return issues;
+    }
     const preset = template.printPreset!;
     if (!preset.isActive || !preset.colorProfile.isActive) {
       issues.push({

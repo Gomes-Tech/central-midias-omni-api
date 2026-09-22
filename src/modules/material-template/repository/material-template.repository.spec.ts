@@ -4,6 +4,7 @@ import { PrismaService } from '@infrastructure/prisma';
 import {
   MaterialTemplateDocumentV1,
   MaterialTemplateDocumentV2,
+  MaterialTemplateDocumentV3,
 } from '../entities';
 import {
   MaterialTemplateRepository,
@@ -260,6 +261,40 @@ describe('MaterialTemplateRepository', () => {
     expect(tx.materialTemplate.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ schemaVersion: 2 }),
+      }),
+    );
+  });
+
+  it('persiste a versão do schema do documento V3', async () => {
+    const multipageDocument: MaterialTemplateDocumentV3 = {
+      version: 3,
+      pages: [
+        {
+          materialFileId: 'file-id',
+          canvas: { width: 100, height: 100 },
+          layerOrder: [],
+          layers: [],
+        },
+      ],
+    };
+    const tx = {
+      materialTemplate: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      materialTemplateAsset: {
+        deleteMany: jest.fn(),
+        createMany: jest.fn(),
+      },
+      printPreflight: { deleteMany: jest.fn() },
+    };
+    prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+    prisma.materialTemplate.findFirst.mockResolvedValue(template());
+
+    await repository.save(template(), 3, multipageDocument, [], 'user-id');
+
+    expect(tx.materialTemplate.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ schemaVersion: 3 }),
       }),
     );
   });
