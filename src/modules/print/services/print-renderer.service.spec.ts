@@ -139,11 +139,15 @@ describe('PrintRendererService', () => {
     const createIntermediatePdf = (
       service as unknown as {
         createIntermediatePdf: (
-          document: MaterialTemplateDocumentV2,
+          pages: Array<{
+            canvas: MaterialTemplateDocumentV2['canvas'];
+            layerOrder: string[];
+            layers: MaterialTemplateDocumentV2['layers'];
+            baseBuffer: Buffer;
+            baseMimeType: string;
+            baseSize: { width: number | null; height: number | null };
+          }>,
           preset: PrintPresetSnapshot,
-          base: Buffer,
-          baseMimeType: string,
-          baseSize: { width: number | null; height: number | null },
           assets: Map<
             string,
             { mimeType: string; name: string; buffer: Buffer }
@@ -153,11 +157,17 @@ describe('PrintRendererService', () => {
     ).createIntermediatePdf.bind(service);
 
     const result = await createIntermediatePdf(
-      document,
+      [
+        {
+          canvas: document.canvas,
+          layerOrder: document.layerOrder,
+          layers: document.layers,
+          baseBuffer: png,
+          baseMimeType: 'image/png',
+          baseSize: { width: null, height: null },
+        },
+      ],
       preset,
-      png,
-      'image/png',
-      { width: null, height: null },
       new Map([
         [
           'bitmap-asset',

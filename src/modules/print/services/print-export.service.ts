@@ -12,7 +12,6 @@ import { PRINT_EXPORT_JOB, PRINT_EXPORT_QUEUE } from '@infrastructure/queue';
 import { MaterialRepository } from '@modules/material/repository';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
-import type { MaterialTemplateDocumentV2 } from '@modules/material-template';
 import {
   MaterialTemplateStatus,
   Prisma,
@@ -23,7 +22,10 @@ import { posix } from 'node:path';
 import type { CreatePrintExportDTO } from '../dto';
 import type { PrintExportResponse } from '../entities';
 import type { PrintExportJobPayload } from '../queue/print-export.job';
-import { PrintDocumentService } from './print-document.service';
+import {
+  PrintableDocument,
+  PrintDocumentService,
+} from './print-document.service';
 import { PrintPreflightService } from './print-preflight.service';
 import { toPrintPresetSnapshot } from './print-preset-snapshot';
 import {
@@ -88,11 +90,6 @@ export class PrintExportService {
       template.document,
       dto.document,
     );
-    if (document.version === 3) {
-      throw new BadRequestException(
-        'A impressão multipágina ainda não está disponível',
-      );
-    }
     const images = this.imageInputs.prepare(
       document,
       dto.imageBindings ?? [],
@@ -273,7 +270,7 @@ export class PrintExportService {
       userId: string;
       presetSnapshot: Prisma.JsonValue;
     },
-    document: MaterialTemplateDocumentV2,
+    document: PrintableDocument,
     images: PreparedPrintImage[],
   ) {
     if (!this.isRecoverableStatus(record.status)) {
@@ -311,7 +308,7 @@ export class PrintExportService {
 
   private async enqueueExportJob(
     record: { id: string; organizationId: string; userId: string },
-    document: MaterialTemplateDocumentV2,
+    document: PrintableDocument,
     images: PreparedPrintImage[],
   ): Promise<void> {
     const exportId = record.id;

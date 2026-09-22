@@ -11,6 +11,7 @@ import { PrintPreflightService } from './print-preflight.service';
 import { PrintImageInputService } from './print-image-input.service';
 import {
   placeholderDocument,
+  placeholderDocumentV3,
   printImagePreset,
 } from '../../../test-utils/print-image-fixtures';
 
@@ -199,16 +200,22 @@ describe('PrintExportService', () => {
     expect(imageInputs.stage).not.toHaveBeenCalled();
   });
 
-  it('recusa documento V3 enquanto a impressão multipágina não existe', async () => {
-    documents.validateCustomizedDocument.mockReturnValue({
-      version: 3,
-      pages: [],
-    });
-    await expect(
-      service.create('mat-1', 'org-1', 'user-1', dto),
-    ).rejects.toThrow('multipágina');
-    expect(imageInputs.prepare).not.toHaveBeenCalled();
-    expect(prisma.printExport.create).not.toHaveBeenCalled();
+  it('enfileira documento V3 preservando todas as páginas', async () => {
+    prisma.printExport.create.mockResolvedValue(queuedRecord);
+    documents.validateCustomizedDocument.mockReturnValue(placeholderDocumentV3);
+
+    await service.create('mat-1', 'org-1', 'user-1', dto);
+
+    expect(imageInputs.prepare).toHaveBeenCalledWith(
+      placeholderDocumentV3,
+      [],
+      [],
+    );
+    expect(queue.add).toHaveBeenCalledWith(
+      PRINT_EXPORT_JOB,
+      { exportId: 'export-1', document: placeholderDocumentV3 },
+      { jobId: 'export-1' },
+    );
   });
 
   it('limpa arquivos após falha confirmada de enfileiramento', async () => {

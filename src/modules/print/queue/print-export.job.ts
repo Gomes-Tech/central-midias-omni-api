@@ -1,8 +1,11 @@
-import type { MaterialTemplateDocumentV2 } from '@modules/material-template';
+import type {
+  MaterialTemplateDocumentV2,
+  MaterialTemplateDocumentV3,
+} from '@modules/material-template';
 
 export interface PrintExportJobPayload {
   exportId: string;
-  document: MaterialTemplateDocumentV2;
+  document: MaterialTemplateDocumentV2 | MaterialTemplateDocumentV3;
   inputIds?: string[];
 }
 
