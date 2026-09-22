@@ -528,4 +528,89 @@ describe('MaterialTemplateDocumentService', () => {
       ),
     ).toThrow('Imagem sem dimensões não pode virar página');
   });
+
+  it('remove a página do meio de um V3 e preserva a ordem das demais', () => {
+    const thirdPage = {
+      materialFileId: 'material-file-3',
+      canvas: { width: 640, height: 480 },
+      layerOrder: [],
+      layers: [],
+    };
+    const next = service.withoutFile(
+      {
+        version: 3,
+        pages: [...multipageDocument.pages, thirdPage],
+      },
+      [
+        { id: 'material-file-1', width: 1080, height: 1080 },
+        { id: 'material-file-2', width: 1000, height: 1000 },
+        { id: 'material-file-3', width: 640, height: 480 },
+      ],
+      'material-file-2',
+    );
+
+    expect(next.pages.map((page) => page.materialFileId)).toEqual([
+      'material-file-1',
+      'material-file-3',
+    ]);
+    expect(next.pages[0]).toEqual(multipageDocument.pages[0]);
+    expect(next.pages[1]).toEqual(thirdPage);
+    expect(service.getAssetIds(next)).toEqual(['library-asset-1']);
+  });
+
+  it('remove a segunda página de um V2 e mantém as camadas na primeira', () => {
+    const next = service.withoutFile(
+      richDocument,
+      [
+        { id: 'frente', width: 1080, height: 1080 },
+        { id: 'verso', width: 800, height: 600 },
+      ],
+      'verso',
+    );
+
+    expect(next.pages).toEqual([
+      {
+        materialFileId: 'frente',
+        canvas: richDocument.canvas,
+        layerOrder: richDocument.layerOrder,
+        layers: richDocument.layers,
+      },
+    ]);
+  });
+
+  it('descarta as camadas da página única quando a imagem removida é a primeira', () => {
+    const next = service.withoutFile(
+      richDocument,
+      [
+        { id: 'frente', width: 1080, height: 1080 },
+        { id: 'verso', width: 800, height: 600 },
+      ],
+      'frente',
+    );
+
+    expect(next.pages).toEqual([
+      {
+        materialFileId: 'verso',
+        canvas: { width: 800, height: 600 },
+        layerOrder: [],
+        layers: [],
+      },
+    ]);
+  });
+
+  it('remove a imagem do meio de um documento nulo e preserva as páginas vizinhas', () => {
+    const next = service.withoutFile(
+      null,
+      [
+        { id: 'a', width: 100, height: 80 },
+        { id: 'b', width: 200, height: 90 },
+        { id: 'c', width: 300, height: 100 },
+      ],
+      'b',
+    );
+
+    expect(next.pages.map((page) => page.materialFileId)).toEqual(['a', 'c']);
+    expect(next.pages[0].canvas).toEqual({ width: 100, height: 80 });
+    expect(next.pages[1].canvas).toEqual({ width: 300, height: 100 });
+  });
 });

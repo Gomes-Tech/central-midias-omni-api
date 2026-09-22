@@ -1,4 +1,8 @@
-import { BadRequestException, ConflictException } from '@common/filters';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@common/filters';
 import { generateId } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
@@ -26,7 +30,9 @@ import {
   MaterialListItem,
 } from '../entities';
 import {
+  CUSTOMIZABLE_DELETE_PRINT_EXPORT_MESSAGE,
   CUSTOMIZABLE_IMAGE_COUNT_MESSAGE,
+  CUSTOMIZABLE_LAST_IMAGE_MESSAGE,
   CUSTOMIZABLE_PRINT_EXPORT_IN_PROGRESS_MESSAGE,
   MAX_CUSTOMIZABLE_MATERIAL_IMAGES,
 } from '../material.constants';
@@ -176,6 +182,14 @@ export interface AddCustomizableFilesOptions {
   templateId: string;
   revision: number;
   document: unknown;
+  existingFileIds: string[];
+}
+
+export interface DeleteCustomizableFileOptions {
+  templateId: string;
+  revision: number;
+  document: unknown;
+  assetIds: string[];
   existingFileIds: string[];
 }
 
@@ -1605,6 +1619,157 @@ export class MaterialRepository {
         userId,
       });
       throw new BadRequestException('Erro ao salvar arquivos do material');
+    }
+  }
+
+  async deleteCustomizableFile(
+    materialId: string,
+    fileId: string,
+    organizationId: string,
+    options: DeleteCustomizableFileOptions,
+    userId: string,
+  ): Promise<void> {
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        const activePrintExportCount = await tx.printExport.count({
+          where: {
+            materialId,
+            organizationId,
+            status: {
+              in: [PrintExportStatus.QUEUED, PrintExportStatus.PROCESSING],
+            },
+          },
+        });
+        if (activePrintExportCount > 0) {
+          throw new BadRequestException(
+            CUSTOMIZABLE_DELETE_PRINT_EXPORT_MESSAGE,
+          );
+        }
+
+        const currentFiles = await tx.materialFile.findMany({
+          where: { materialId },
+          select: { id: true, sortOrder: true },
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        });
+        const currentIds = currentFiles.map((file) => file.id);
+        if (
+          currentIds.length !== options.existingFileIds.length ||
+          currentIds.some((id, index) => id !== options.existingFileIds[index])
+        ) {
+          throw new ConflictException(
+            'O template foi alterado em outra sessão. Recarregue para continuar.',
+          );
+        }
+        if (currentFiles.length <= 1) {
+          throw new BadRequestException(CUSTOMIZABLE_LAST_IMAGE_MESSAGE);
+        }
+        const remaining = currentFiles.filter((file) => file.id !== fileId);
+        if (remaining.length === currentFiles.length) {
+          throw new NotFoundException('Arquivo do material não encontrado');
+        }
+        const nextAnchor = remaining.reduce((best, file) =>
+          file.sortOrder < best.sortOrder ||
+          (file.sortOrder === best.sortOrder && file.id < best.id)
+            ? file
+            : best,
+        );
+        const template = await tx.materialTemplate.findFirst({
+          where: {
+            id: options.templateId,
+            materialId,
+            organizationId,
+          },
+          select: { baseMaterialFileId: true },
+        });
+        if (!template) {
+          throw new NotFoundException('Template não encontrado');
+        }
+
+        const updated = await tx.materialTemplate.updateMany({
+          where: {
+            id: options.templateId,
+            materialId,
+            organizationId,
+            revision: options.revision,
+            material: {
+              deletedAt: null,
+              isCustomizable: true,
+              category: { organizationId, isDeleted: false },
+            },
+          },
+          data: {
+            document: options.document as Prisma.InputJsonValue,
+            schemaVersion: 3,
+            status: MaterialTemplateStatus.DRAFT,
+            publishedAt: null,
+            revision: { increment: 1 },
+            ...(template.baseMaterialFileId === fileId && {
+              baseMaterialFileId: nextAnchor.id,
+            }),
+          },
+        });
+        if (updated.count !== 1) {
+          throw new ConflictException(
+            'O template foi alterado em outra sessão. Recarregue para continuar.',
+          );
+        }
+
+        await tx.materialTemplateAsset.deleteMany({
+          where: { templateId: options.templateId },
+        });
+        if (options.assetIds.length) {
+          await tx.materialTemplateAsset.createMany({
+            data: options.assetIds.map((assetId) => ({
+              templateId: options.templateId,
+              assetId,
+            })),
+            skipDuplicates: true,
+          });
+        }
+        await tx.printPreflight.deleteMany({
+          where: { templateId: options.templateId },
+        });
+
+        const deleted = await tx.materialFile.deleteMany({
+          where: {
+            id: fileId,
+            materialId,
+            material: {
+              deletedAt: null,
+              category: { organizationId, isDeleted: false },
+            },
+          },
+        });
+        if (deleted.count !== 1) {
+          throw new NotFoundException('Arquivo do material não encontrado');
+        }
+      });
+
+      void this.logger.info('Imagem de material customizável removida', {
+        materialId,
+        fileId,
+        organizationId,
+        userId,
+      });
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ConflictException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+      void this.logger.error(
+        'MaterialRepository.deleteCustomizableFile falhou',
+        {
+          error: String(error),
+          materialId,
+          fileId,
+          organizationId,
+          userId,
+        },
+      );
+      throw new BadRequestException('Erro ao remover arquivo do material');
     }
   }
 

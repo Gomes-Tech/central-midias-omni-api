@@ -369,6 +369,40 @@ export class MaterialTemplateDocumentService {
     for (const file of addedFiles) {
       pages.push(this.emptyPage(file.id, file.width, file.height));
     }
+    return this.asV3(pages);
+  }
+
+  withoutFile(
+    document: unknown,
+    existingFiles: Array<{
+      id: string;
+      width: number | null;
+      height: number | null;
+    }>,
+    materialFileId: string,
+  ): MaterialTemplateDocumentV3 {
+    const current = document == null ? null : this.validate(document);
+    if (current?.version === 3) {
+      return this.asV3(
+        structuredClone(current.pages).filter(
+          (page) => page.materialFileId !== materialFileId,
+        ),
+      );
+    }
+    const remainingFiles = existingFiles.filter(
+      (file) => file.id !== materialFileId,
+    );
+    const removedWasFirstPage = existingFiles[0]?.id === materialFileId;
+    const singleDocument =
+      !removedWasFirstPage && (current?.version === 1 || current?.version === 2)
+        ? current
+        : null;
+    return this.asV3(
+      this.pagesFromSingleDocument(singleDocument, remainingFiles),
+    );
+  }
+
+  private asV3(pages: MaterialTemplatePageV3[]): MaterialTemplateDocumentV3 {
     const next = this.validate({ version: 3, pages });
     if (next.version !== 3) {
       throw new BadRequestException('Versão do template inválida');

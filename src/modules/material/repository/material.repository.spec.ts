@@ -19,6 +19,7 @@ function createPrismaMock() {
       create: jest.fn(),
       findMany: jest.fn(),
       findFirst: jest.fn(),
+      update: jest.fn(),
       deleteMany: jest.fn(),
     },
     materialTemplate: {
@@ -34,6 +35,10 @@ function createPrismaMock() {
     },
     printPreflight: {
       deleteMany: jest.fn(),
+    },
+    materialTemplateAsset: {
+      deleteMany: jest.fn(),
+      createMany: jest.fn(),
     },
     member: {
       findFirst: jest.fn(),
@@ -2006,6 +2011,187 @@ describe('MaterialRepository', () => {
       await expect(
         repository.deleteFile('file-id', 'material-id', 'org-id', 'user-id'),
       ).rejects.toThrow('Erro ao remover arquivo do material');
+    });
+  });
+
+  describe('deleteCustomizableFile', () => {
+    const files = [
+      { id: 'file-1', sortOrder: 0 },
+      { id: 'file-2', sortOrder: 2 },
+      { id: 'file-3', sortOrder: 5 },
+    ];
+    const document = {
+      version: 3,
+      pages: [
+        {
+          materialFileId: 'file-1',
+          canvas: { width: 100, height: 80 },
+          layerOrder: [],
+          layers: [],
+        },
+        {
+          materialFileId: 'file-3',
+          canvas: { width: 300, height: 100 },
+          layerOrder: [],
+          layers: [],
+        },
+      ],
+    };
+    const options = {
+      templateId: 'template-id',
+      revision: 4,
+      document,
+      assetIds: ['library-asset-1'],
+      existingFileIds: ['file-1', 'file-2', 'file-3'],
+    };
+
+    function mockReady(baseMaterialFileId = 'file-1') {
+      prisma.printExport.count.mockResolvedValue(0);
+      prisma.materialFile.findMany.mockResolvedValue(files);
+      prisma.materialTemplate.findFirst.mockResolvedValue({
+        baseMaterialFileId,
+      });
+      prisma.materialTemplate.updateMany.mockResolvedValue({ count: 1 });
+      prisma.materialTemplateAsset.deleteMany.mockResolvedValue({ count: 1 });
+      prisma.materialTemplateAsset.createMany.mockResolvedValue({ count: 1 });
+      prisma.printPreflight.deleteMany.mockResolvedValue({ count: 1 });
+      prisma.materialFile.deleteMany.mockResolvedValue({ count: 1 });
+    }
+
+    it('exclui a imagem do meio sem renumerar e invalida publicação e preflight', async () => {
+      mockReady();
+
+      await repository.deleteCustomizableFile(
+        'material-id',
+        'file-2',
+        'org-id',
+        options,
+        'user-id',
+      );
+
+      expect(prisma.materialFile.update).not.toHaveBeenCalled();
+      expect(prisma.materialTemplate.updateMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          id: 'template-id',
+          revision: 4,
+        }),
+        data: {
+          document,
+          schemaVersion: 3,
+          status: 'DRAFT',
+          publishedAt: null,
+          revision: { increment: 1 },
+        },
+      });
+      expect(prisma.materialTemplateAsset.deleteMany).toHaveBeenCalledWith({
+        where: { templateId: 'template-id' },
+      });
+      expect(prisma.materialTemplateAsset.createMany).toHaveBeenCalledWith({
+        data: [{ templateId: 'template-id', assetId: 'library-asset-1' }],
+        skipDuplicates: true,
+      });
+      expect(prisma.printPreflight.deleteMany).toHaveBeenCalledWith({
+        where: { templateId: 'template-id' },
+      });
+      expect(prisma.materialFile.deleteMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          id: 'file-2',
+          materialId: 'material-id',
+        }),
+      });
+      expect(
+        prisma.materialTemplate.updateMany.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        prisma.materialFile.deleteMany.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('move a âncora para a menor sortOrder restante ao excluir a primeira imagem', async () => {
+      mockReady('file-1');
+
+      await repository.deleteCustomizableFile(
+        'material-id',
+        'file-1',
+        'org-id',
+        options,
+        'user-id',
+      );
+
+      expect(prisma.materialFile.update).not.toHaveBeenCalled();
+      expect(prisma.materialTemplate.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ baseMaterialFileId: 'file-2' }),
+        }),
+      );
+    });
+
+    it('recusa excluir a única imagem e exportação em andamento', async () => {
+      prisma.printExport.count.mockResolvedValue(0);
+      prisma.materialFile.findMany.mockResolvedValue([
+        { id: 'file-1', sortOrder: 0 },
+      ]);
+
+      await expect(
+        repository.deleteCustomizableFile(
+          'material-id',
+          'file-1',
+          'org-id',
+          { ...options, existingFileIds: ['file-1'] },
+          'user-id',
+        ),
+      ).rejects.toThrow(
+        'Não é possível excluir a última imagem do material customizável',
+      );
+
+      prisma.printExport.count.mockResolvedValue(1);
+      prisma.materialFile.findMany.mockResolvedValue(files);
+
+      await expect(
+        repository.deleteCustomizableFile(
+          'material-id',
+          'file-2',
+          'org-id',
+          options,
+          'user-id',
+        ),
+      ).rejects.toThrow(
+        'Não é possível excluir imagens enquanto houver uma exportação de impressão em andamento',
+      );
+      expect(prisma.materialFile.deleteMany).not.toHaveBeenCalled();
+      expect(prisma.materialTemplate.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('não remove o arquivo quando a revisão não confere', async () => {
+      mockReady();
+      prisma.materialTemplate.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        repository.deleteCustomizableFile(
+          'material-id',
+          'file-2',
+          'org-id',
+          options,
+          'user-id',
+        ),
+      ).rejects.toThrow(
+        'O template foi alterado em outra sessão. Recarregue para continuar.',
+      );
+      expect(prisma.materialFile.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('limpa assets quando a página removida era a única referência', async () => {
+      mockReady();
+
+      await repository.deleteCustomizableFile(
+        'material-id',
+        'file-2',
+        'org-id',
+        { ...options, assetIds: [] },
+        'user-id',
+      );
+
+      expect(prisma.materialTemplateAsset.deleteMany).toHaveBeenCalled();
+      expect(prisma.materialTemplateAsset.createMany).not.toHaveBeenCalled();
     });
   });
 
