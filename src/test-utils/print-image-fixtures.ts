@@ -1,7 +1,9 @@
 import { deflateSync } from 'node:zlib';
 import type {
   MaterialTemplateDocumentV2,
+  MaterialTemplateDocumentV3,
   MaterialTemplateImagePlaceholderLayer,
+  MaterialTemplatePageV3,
 } from '@modules/material-template/entities';
 import type { PrintPresetSnapshot } from '@modules/print/entities';
 
@@ -63,6 +65,21 @@ export const placeholderDocument: MaterialTemplateDocumentV2 = {
   canvas: { width: 1000, height: 1000 },
   layers: [placeholder],
   layerOrder: [placeholder.id],
+};
+export function placeholderPage(
+  materialFileId: string,
+  layers: MaterialTemplateImagePlaceholderLayer[] = [placeholder],
+): MaterialTemplatePageV3 {
+  return {
+    materialFileId,
+    canvas: { width: 1000, height: 1000 },
+    layers: layers.map((layer) => ({ ...layer })),
+    layerOrder: layers.map((layer) => layer.id),
+  };
+}
+export const placeholderDocumentV3: MaterialTemplateDocumentV3 = {
+  version: 3,
+  pages: [placeholderPage('file-a'), placeholderPage('file-b')],
 };
 export const printImagePreset: PrintPresetSnapshot = {
   id: 'preset',

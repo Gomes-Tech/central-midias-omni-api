@@ -1,6 +1,9 @@
 import { ValidationPipe } from '@nestjs/common';
 import { CreatePrintExportDTO } from './create-print-export.dto';
-import { placeholderDocument } from '../../../test-utils/print-image-fixtures';
+import {
+  placeholderDocument,
+  placeholderDocumentV3,
+} from '../../../test-utils/print-image-fixtures';
 
 describe('CreatePrintExportDTO', () => {
   const pipe = new ValidationPipe({
@@ -44,6 +47,21 @@ describe('CreatePrintExportDTO', () => {
     });
   });
 
+  it('aceita binding composto por materialFileId e layerId', async () => {
+    const dto = {
+      document: placeholderDocumentV3,
+      idempotencyKey: 'key',
+      imageBindings: [
+        {
+          materialFileId: 'file-a',
+          layerId: 'photo',
+          fileField: 'photo_0',
+        },
+      ],
+    };
+    expect(await parse(dto)).toEqual(dto);
+  });
+
   it.each([
     { document: '{invalid' },
     { imageBindings: '{invalid' },
@@ -54,6 +72,14 @@ describe('CreatePrintExportDTO', () => {
         '[{"layerId":"photo","fileField":"photo_0","url":"https://example.com"}]',
     },
     { imageBindings: '[{"layerId":"photo","fileField":"../photo"}]' },
+    {
+      imageBindings:
+        '[{"materialFileId":"","layerId":"photo","fileField":"photo"}]',
+    },
+    {
+      imageBindings:
+        '[{"materialFileId":7,"layerId":"photo","fileField":"photo"}]',
+    },
     { imageBindings: '[{"layerId":"photo","fileField":"photo","fit":"fill"}]' },
     {
       imageBindings: '[{"layerId":"photo","fileField":"photo","positionX":-1}]',

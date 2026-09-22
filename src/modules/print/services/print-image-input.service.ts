@@ -8,7 +8,11 @@ import {
 import { BadRequestException } from '@common/filters';
 import { PrismaService } from '@infrastructure/prisma';
 import { StorageService } from '@infrastructure/providers';
-import type { MaterialTemplateDocumentV2 } from '@modules/material-template';
+import type {
+  MaterialTemplateCanvas,
+  MaterialTemplateImagePlaceholderLayer,
+  MaterialTemplateLayerV2,
+} from '@modules/material-template';
 import { validateMaterialTemplateImage } from '@modules/material-template/services/material-template-image.service';
 import { Injectable, PayloadTooLargeException } from '@nestjs/common';
 import { randomUUID, createHash } from 'node:crypto';
@@ -16,8 +20,10 @@ import { inflateSync } from 'node:zlib';
 import PDFDocument from 'pdfkit';
 import type { PrintImageBindingDTO } from '../dto/create-print-export.dto';
 import type { PrintPresetSnapshot } from '../entities';
+import type { PrintableDocument } from './print-document.service';
 
 export interface PreparedPrintImage {
+  materialFileId?: string;
   layerId: string;
   buffer: Buffer;
   checksum: string;
@@ -29,6 +35,32 @@ export interface PreparedPrintImage {
   positionX: number;
   positionY: number;
   zoom: number;
+}
+
+interface PrintImagePage {
+  materialFileId?: string;
+  canvas: MaterialTemplateCanvas;
+  layers: MaterialTemplateLayerV2[];
+}
+
+/**
+ * Composite key for a photo binding. V2 documents keep the bare `layerId` so
+ * existing maps and hashes stay stable; V3 prefixes the page identity so the
+ * same layer id on different pages cannot collide.
+ */
+export function printImageKey(
+  materialFileId: string | undefined,
+  layerId: string,
+): string {
+  return materialFileId === undefined
+    ? layerId
+    : `${materialFileId}\u0000${layerId}`;
+}
+
+function bindingLabel(materialFileId: string | undefined, layerId: string) {
+  return materialFileId === undefined
+    ? layerId
+    : `${materialFileId}/${layerId}`;
 }
 
 // PDFKit's parser also provides EXIF orientation and PNG scanline metadata.
@@ -53,14 +85,16 @@ export class PrintImageInputService {
   ) {}
 
   prepare(
-    document: MaterialTemplateDocumentV2,
+    document: PrintableDocument,
     bindings: PrintImageBindingDTO[] = [],
     files: Express.Multer.File[] = [],
   ): PreparedPrintImage[] {
-    const placeholders = document.layers.filter(
-      (layer) => layer.type === 'image-placeholder' && layer.isVisible,
+    const placeholders = this.visiblePlaceholders(document);
+    const visibleKeys = new Set(
+      placeholders.map(({ materialFileId, layer }) =>
+        printImageKey(materialFileId, layer.id),
+      ),
     );
-    const visibleIds = new Set(placeholders.map((layer) => layer.id));
     if (
       files.length > MAX_IMAGE_PLACEHOLDERS ||
       bindings.length > MAX_IMAGE_PLACEHOLDERS
@@ -76,34 +110,41 @@ export class PrintImageInputService {
       }
       filesByField.set(file.fieldname, file);
     }
-    const seenLayers = new Set<string>();
+    const seenBindings = new Set<string>();
     const seenFields = new Set<string>();
     for (const binding of bindings) {
-      if (!binding || !visibleIds.has(binding.layerId)) {
+      if (!binding) {
+        throw new BadRequestException('Marcador : associação não permitida');
+      }
+      const key = printImageKey(binding.materialFileId, binding.layerId);
+      const label = bindingLabel(binding.materialFileId, binding.layerId);
+      if (!visibleKeys.has(key)) {
         throw new BadRequestException(
-          `Marcador ${binding?.layerId ?? ''}: associação não permitida`,
+          `Marcador ${label}: associação não permitida`,
         );
       }
-      if (
-        seenLayers.has(binding.layerId) ||
-        seenFields.has(binding.fileField)
-      ) {
+      if (seenBindings.has(key) || seenFields.has(binding.fileField)) {
         throw new BadRequestException(
-          `Marcador ${binding.layerId}: associação duplicada`,
+          `Marcador ${label}: associação duplicada`,
         );
       }
       if (!filesByField.has(binding.fileField)) {
-        throw new BadRequestException(
-          `Marcador ${binding.layerId}: imagem obrigatória`,
-        );
+        throw new BadRequestException(`Marcador ${label}: imagem obrigatória`);
       }
-      seenLayers.add(binding.layerId);
+      seenBindings.add(key);
       seenFields.add(binding.fileField);
     }
-    const missing = placeholders.filter((layer) => !seenLayers.has(layer.id));
+    const missing = placeholders.filter(
+      ({ materialFileId, layer }) =>
+        !seenBindings.has(printImageKey(materialFileId, layer.id)),
+    );
     if (missing.length) {
       throw new BadRequestException(
-        `Imagens obrigatórias nos marcadores: ${missing.map((layer) => layer.id).join(', ')}`,
+        `Imagens obrigatórias nos marcadores: ${missing
+          .map(({ materialFileId, layer }) =>
+            bindingLabel(materialFileId, layer.id),
+          )
+          .join(', ')}`,
       );
     }
     if (seenFields.size !== files.length) {
@@ -111,6 +152,7 @@ export class PrintImageInputService {
     }
     return bindings.map(
       ({
+        materialFileId,
         layerId,
         fileField,
         fit = 'cover',
@@ -119,6 +161,7 @@ export class PrintImageInputService {
         zoom = 1,
       }) => {
         const file = filesByField.get(fileField)!;
+        const label = bindingLabel(materialFileId, layerId);
         if (
           (fit !== 'cover' && fit !== 'contain') ||
           !Number.isFinite(positionX) ||
@@ -132,7 +175,7 @@ export class PrintImageInputService {
           zoom > 3
         ) {
           throw new BadRequestException(
-            `Marcador ${layerId}: enquadramento inválido`,
+            `Marcador ${label}: enquadramento inválido`,
           );
         }
         if (
@@ -140,7 +183,7 @@ export class PrintImageInputService {
           file.buffer?.length > PRINT_IMAGE_MAX_BYTES
         ) {
           throw new PayloadTooLargeException(
-            `Marcador ${layerId}: imagem deve ter até 5 MiB`,
+            `Marcador ${label}: imagem deve ter até 5 MiB`,
           );
         }
         try {
@@ -152,6 +195,7 @@ export class PrintImageInputService {
           if (mime !== metadata.mimeType) throw new Error();
           const dimensions = this.inspectImage(file.buffer, metadata.mimeType);
           return {
+            ...(materialFileId === undefined ? {} : { materialFileId }),
             layerId,
             buffer: file.buffer,
             size: file.buffer.length,
@@ -165,7 +209,7 @@ export class PrintImageInputService {
           };
         } catch {
           throw new BadRequestException(
-            `Marcador ${layerId}: PNG/JPEG inválido ou acima de 6000 px por lado e 30 megapixels`,
+            `Marcador ${label}: PNG/JPEG inválido ou acima de 6000 px por lado e 30 megapixels`,
           );
         }
       },
@@ -173,7 +217,7 @@ export class PrintImageInputService {
   }
 
   validateDpi(
-    document: MaterialTemplateDocumentV2,
+    document: PrintableDocument,
     images: PreparedPrintImage[],
     preset: PrintPresetSnapshot,
   ) {
@@ -182,15 +226,16 @@ export class PrintImageInputService {
     const bleedHeight =
       preset.trimHeightMm + preset.bleedTopMm + preset.bleedBottomMm;
     for (const image of images) {
-      const layer = document.layers.find(
-        (candidate) => candidate.id === image.layerId,
+      const placeholder = this.findPlaceholder(
+        document,
+        image.materialFileId,
+        image.layerId,
       );
-      if (layer?.type !== 'image-placeholder')
-        throw new BadRequestException('Marcador inválido');
-      const widthInches =
-        ((layer.width / document.canvas.width) * bleedWidth) / 25.4;
+      if (!placeholder) throw new BadRequestException('Marcador inválido');
+      const { layer, canvas } = placeholder;
+      const widthInches = ((layer.width / canvas.width) * bleedWidth) / 25.4;
       const heightInches =
-        ((layer.height / document.canvas.height) * bleedHeight) / 25.4;
+        ((layer.height / canvas.height) * bleedHeight) / 25.4;
       const dpiByWidth = image.width / widthInches;
       const dpiByHeight = image.height / heightInches;
       const dpi =
@@ -199,7 +244,7 @@ export class PrintImageInputService {
           : Math.min(dpiByWidth, dpiByHeight)) / image.zoom;
       if (dpi + 0.01 < preset.minimumDpi) {
         throw new BadRequestException(
-          `Marcador ${layer.id}: resolução de ${Math.floor(dpi)} DPI; mínimo de ${preset.minimumDpi} DPI`,
+          `Marcador ${bindingLabel(image.materialFileId, layer.id)}: resolução de ${Math.floor(dpi)} DPI; mínimo de ${preset.minimumDpi} DPI`,
         );
       }
     }
@@ -213,6 +258,7 @@ export class PrintImageInputService {
     const records = images.map((image) => {
       const id = randomUUID();
       return {
+        materialFileId: image.materialFileId ?? null,
         layerId: image.layerId,
         checksum: image.checksum,
         mimeType: image.mimeType,
@@ -251,7 +297,7 @@ export class PrintImageInputService {
 
   async load(
     owner: { id: string; organizationId: string; userId: string },
-    document: MaterialTemplateDocumentV2,
+    document: PrintableDocument,
     inputIds: string[] = [],
   ) {
     const rows = inputIds.length
@@ -281,7 +327,7 @@ export class PrintImageInputService {
         createHash('sha256').update(buffer).digest('hex') !== row.checksum
       ) {
         throw new BadRequestException(
-          `Marcador ${row.layerId}: imagem temporária inconsistente`,
+          `Marcador ${bindingLabel(row.materialFileId ?? undefined, row.layerId)}: imagem temporária inconsistente`,
         );
       }
       files.push({
@@ -294,6 +340,7 @@ export class PrintImageInputService {
     const prepared = this.prepare(
       document,
       rows.map((row) => ({
+        materialFileId: row.materialFileId ?? undefined,
         layerId: row.layerId,
         fileField: row.id,
         fit: row.fitMode as 'cover' | 'contain',
@@ -303,7 +350,44 @@ export class PrintImageInputService {
       })),
       files,
     );
-    return new Map(prepared.map((image) => [image.layerId, image]));
+    return new Map(
+      prepared.map((image) => [
+        printImageKey(image.materialFileId, image.layerId),
+        image,
+      ]),
+    );
+  }
+
+  private pages(document: PrintableDocument): PrintImagePage[] {
+    return document.version === 3
+      ? document.pages
+      : [{ canvas: document.canvas, layers: document.layers }];
+  }
+
+  private visiblePlaceholders(document: PrintableDocument) {
+    return this.pages(document).flatMap((page) =>
+      page.layers
+        .filter(
+          (layer): layer is MaterialTemplateImagePlaceholderLayer =>
+            layer.type === 'image-placeholder' && layer.isVisible,
+        )
+        .map((layer) => ({ materialFileId: page.materialFileId, layer })),
+    );
+  }
+
+  private findPlaceholder(
+    document: PrintableDocument,
+    materialFileId: string | undefined,
+    layerId: string,
+  ) {
+    for (const page of this.pages(document)) {
+      if ((page.materialFileId ?? undefined) !== materialFileId) continue;
+      const layer = page.layers.find((candidate) => candidate.id === layerId);
+      if (layer?.type === 'image-placeholder') {
+        return { layer, canvas: page.canvas };
+      }
+    }
+    return null;
   }
 
   async cleanup(ids: string[]) {

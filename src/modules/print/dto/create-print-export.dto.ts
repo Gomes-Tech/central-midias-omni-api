@@ -31,6 +31,13 @@ function parseJson(value: unknown, field: string): unknown {
 }
 
 export class PrintImageBindingDTO {
+  // Omitted for V2 documents, whose single page has no materialFileId.
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  materialFileId?: string;
+
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)

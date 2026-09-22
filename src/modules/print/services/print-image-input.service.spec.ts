@@ -1,7 +1,12 @@
-import { PrintImageInputService } from './print-image-input.service';
+import {
+  PrintImageInputService,
+  printImageKey,
+} from './print-image-input.service';
 import {
   placeholder,
   placeholderDocument,
+  placeholderDocumentV3,
+  placeholderPage,
   printImageFile,
   printImagePreset,
   printPng,
@@ -93,6 +98,146 @@ describe('PrintImageInputService', () => {
     expect(() =>
       service.prepare(document, [binding], [printImageFile()]),
     ).toThrow('associação não permitida');
+  });
+
+  describe('bindings por página (V3)', () => {
+    const twoPageBindings = [
+      { materialFileId: 'file-a', layerId: 'photo', fileField: 'file_a' },
+      { materialFileId: 'file-b', layerId: 'photo', fileField: 'file_b' },
+    ];
+    const twoPageFiles = [
+      printImageFile(
+        printPng(100, 100, () => [220, 30, 40]),
+        'file_a',
+      ),
+      printImageFile(
+        printPng(100, 100, () => [30, 30, 220]),
+        'file_b',
+      ),
+    ];
+
+    it('entrega arquivos distintos ao mesmo marcador em páginas diferentes', () => {
+      const images = service.prepare(
+        placeholderDocumentV3,
+        twoPageBindings,
+        twoPageFiles,
+      );
+      expect(images).toHaveLength(2);
+      expect(images.map((image) => image.materialFileId)).toEqual([
+        'file-a',
+        'file-b',
+      ]);
+      expect(images[0].checksum).not.toBe(images[1].checksum);
+    });
+
+    it('rejeita binding duplicado na mesma página', () => {
+      expect(() =>
+        service.prepare(
+          placeholderDocumentV3,
+          [
+            { materialFileId: 'file-a', layerId: 'photo', fileField: 'file_a' },
+            { materialFileId: 'file-a', layerId: 'photo', fileField: 'file_b' },
+          ],
+          twoPageFiles,
+        ),
+      ).toThrow('associação duplicada');
+    });
+
+    it('rejeita binding para camada invisível', () => {
+      const document = {
+        ...placeholderDocumentV3,
+        pages: [
+          placeholderPage('file-a', [{ ...placeholder, isVisible: false }]),
+        ],
+      };
+      expect(() =>
+        service.prepare(
+          document,
+          [{ materialFileId: 'file-a', layerId: 'photo', fileField: 'file_a' }],
+          [printImageFile(undefined, 'file_a')],
+        ),
+      ).toThrow('associação não permitida');
+    });
+
+    const invalidBindings: Array<
+      [string, { materialFileId?: string; layerId: string; fileField: string }]
+    > = [
+      [
+        'camada inexistente',
+        { materialFileId: 'file-a', layerId: 'missing', fileField: 'file_a' },
+      ],
+      [
+        'página inexistente',
+        { materialFileId: 'file-c', layerId: 'photo', fileField: 'file_a' },
+      ],
+      ['V3 sem materialFileId', { layerId: 'photo', fileField: 'file_a' }],
+    ];
+    it.each(invalidBindings)('rejeita binding para %s', (_label, item) => {
+      expect(() =>
+        service.prepare(
+          placeholderDocumentV3,
+          [item],
+          [printImageFile(undefined, 'file_a')],
+        ),
+      ).toThrow('associação não permitida');
+    });
+
+    it('exige binding para o marcador visível de cada página', () => {
+      expect(() =>
+        service.prepare(placeholderDocumentV3, twoPageBindings, twoPageFiles),
+      ).not.toThrow();
+      expect(() =>
+        service.prepare(
+          placeholderDocumentV3,
+          [twoPageBindings[0]],
+          [twoPageFiles[0]],
+        ),
+      ).toThrow('file-b/photo');
+    });
+
+    it('carrega as imagens temporárias sem colidir o mesmo layerId', async () => {
+      const images = service.prepare(
+        placeholderDocumentV3,
+        twoPageBindings,
+        twoPageFiles,
+      );
+      const ids = await service.stage(owner, images);
+      expect(rows.map((row) => row.materialFileId)).toEqual([
+        'file-a',
+        'file-b',
+      ]);
+      const loaded = await service.load(owner, placeholderDocumentV3, ids);
+      expect(loaded.size).toBe(2);
+      expect(loaded.get(printImageKey('file-a', 'photo'))).toMatchObject({
+        materialFileId: 'file-a',
+        checksum: images[0].checksum,
+      });
+      expect(loaded.get(printImageKey('file-b', 'photo'))).toMatchObject({
+        materialFileId: 'file-b',
+        checksum: images[1].checksum,
+      });
+      expect(loaded.get('photo')).toBeUndefined();
+    });
+
+    it('calcula o DPI do marcador na página correta', () => {
+      const images = service.prepare(
+        placeholderDocumentV3,
+        twoPageBindings,
+        twoPageFiles,
+      );
+      expect(() =>
+        service.validateDpi(placeholderDocumentV3, images, {
+          ...printImagePreset,
+          minimumDpi: 72,
+        }),
+      ).not.toThrow();
+      expect(() =>
+        service.validateDpi(placeholderDocumentV3, images, {
+          ...printImagePreset,
+          minimumDpi: 100_000,
+        }),
+      ).toThrow('file-a/photo');
+    });
   });
 
   it('aceita JPEG e considera EXIF na resolução para impressão', () => {
