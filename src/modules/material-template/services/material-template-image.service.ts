@@ -2,7 +2,7 @@ import { BadRequestException } from '@common/filters';
 import { Injectable } from '@nestjs/common';
 import { readFileSync } from 'node:fs';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+export const MATERIAL_TEMPLATE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const MAX_SIDE = 6000;
 const MAX_PIXELS = 30_000_000;
 
@@ -71,10 +71,13 @@ export function validateMaterialTemplateImage(
   height: number;
   mimeType: 'image/png' | 'image/jpeg';
 } {
-  if (!file || file.size > MAX_FILE_SIZE) {
+  if (!file || file.size > MATERIAL_TEMPLATE_IMAGE_MAX_BYTES) {
     throw new BadRequestException('A imagem base deve ter no máximo 5 MB');
   }
   const buffer = resolveTemplateImageBuffer(file);
+  if (buffer.length > MATERIAL_TEMPLATE_IMAGE_MAX_BYTES) {
+    throw new BadRequestException('A imagem base deve ter no máximo 5 MB');
+  }
   const png = readPngDimensions(buffer);
   const jpeg = png ? null : readJpegDimensions(buffer);
   const dimensions = png ?? jpeg;

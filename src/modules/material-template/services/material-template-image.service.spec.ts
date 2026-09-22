@@ -73,6 +73,17 @@ describe('MaterialTemplateImageService', () => {
     ).toThrow('A imagem base deve ter no máximo 5 MB');
   });
 
+  it('rejeita conteúdo acima de 5 MB mesmo com tamanho declarado menor', () => {
+    const buffer = Buffer.alloc(5 * 1024 * 1024 + 1);
+    Buffer.from('89504e470d0a1a0a', 'hex').copy(buffer);
+    buffer.writeUInt32BE(100, 16);
+    buffer.writeUInt32BE(100, 20);
+
+    expect(() => service.validate(file(buffer, { size: 24 }))).toThrow(
+      'A imagem base deve ter no máximo 5 MB',
+    );
+  });
+
   it('lê a imagem do path quando não houver buffer', () => {
     const buffer = png(320, 240);
     jest.mocked(readFileSync).mockReturnValue(buffer);

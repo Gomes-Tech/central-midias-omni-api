@@ -1073,6 +1073,69 @@ describe('MaterialRepository', () => {
         select: { id: true },
       });
     });
+
+    it('deve ancorar template de várias imagens no primeiro arquivo', async () => {
+      prisma.material.create.mockResolvedValue({ id: 'material-id' });
+
+      await repository.create(
+        'org-id',
+        {
+          name: 'Material frente e verso',
+          categoryId: 'category-id',
+          isCustomizable: true,
+        },
+        'user-id',
+        {
+          files: [
+            {
+              id: 'front-file-id',
+              fileKey: 'materials/material-id/front.png',
+              originalName: 'front.png',
+              mimeType: 'image/png',
+              size: 1024,
+              width: 1080,
+              height: 1080,
+              sortOrder: 0,
+            },
+            {
+              id: 'back-file-id',
+              fileKey: 'materials/material-id/back.jpg',
+              originalName: 'back.jpg',
+              mimeType: 'image/jpeg',
+              size: 2048,
+              width: 1280,
+              height: 720,
+              sortOrder: 1,
+            },
+          ],
+        },
+      );
+
+      expect(prisma.material.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          isCustomizable: true,
+          materialFiles: {
+            create: [
+              expect.objectContaining({
+                id: 'front-file-id',
+                sortOrder: 0,
+              }),
+              expect.objectContaining({
+                id: 'back-file-id',
+                sortOrder: 1,
+              }),
+            ],
+          },
+          materialTemplate: {
+            create: expect.objectContaining({
+              baseMaterialFileId: 'front-file-id',
+              status: 'DRAFT',
+            }),
+          },
+        }),
+        select: { id: true },
+      });
+    });
   });
 
   describe('update', () => {
@@ -1241,6 +1304,20 @@ describe('MaterialRepository', () => {
           activateTemplate: {
             baseMaterialFileId: 'base-file-id',
             baseMimeType: 'image/png',
+            validatedFiles: [
+              {
+                id: 'base-file-id',
+                mimeType: 'image/png',
+                width: 1080,
+                height: 1080,
+              },
+              {
+                id: 'second-file-id',
+                mimeType: 'image/jpeg',
+                width: 1280,
+                height: 720,
+              },
+            ],
           },
         },
       );
@@ -1270,6 +1347,26 @@ describe('MaterialRepository', () => {
                 revision: { increment: 1 },
               },
             },
+          },
+          materialFiles: {
+            update: [
+              {
+                where: { id: 'base-file-id' },
+                data: {
+                  mimeType: 'image/png',
+                  width: 1080,
+                  height: 1080,
+                },
+              },
+              {
+                where: { id: 'second-file-id' },
+                data: {
+                  mimeType: 'image/jpeg',
+                  width: 1280,
+                  height: 720,
+                },
+              },
+            ],
           },
         },
       });

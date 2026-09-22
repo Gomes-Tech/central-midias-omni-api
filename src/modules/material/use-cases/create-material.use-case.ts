@@ -6,6 +6,10 @@ import { validateMaterialTemplateImage } from '@modules/material-template/servic
 import { EnqueueInAppNotificationsUseCase } from '@modules/notification/use-cases';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateMaterialDTO } from '../dto';
+import {
+  MAX_CUSTOMIZABLE_MATERIAL_IMAGES,
+  MIN_CUSTOMIZABLE_MATERIAL_IMAGES,
+} from '../material.constants';
 import { MaterialRepository } from '../repository';
 import { normalizeMaterialFileName } from '../utils/normalize-material-file-name';
 import { EnqueueMaterialAcceptanceEmailsUseCase } from './enqueue-material-acceptance-emails.use-case';
@@ -35,9 +39,12 @@ export class CreateMaterialUseCase {
       ReturnType<typeof validateMaterialTemplateImage>
     > = [];
     if (data.isCustomizable === true) {
-      if (files.length !== 1) {
+      if (
+        files.length < MIN_CUSTOMIZABLE_MATERIAL_IMAGES ||
+        files.length > MAX_CUSTOMIZABLE_MATERIAL_IMAGES
+      ) {
         throw new BadRequestException(
-          'Material customizável deve possuir exatamente uma imagem base',
+          `Material customizável deve possuir de ${MIN_CUSTOMIZABLE_MATERIAL_IMAGES} a ${MAX_CUSTOMIZABLE_MATERIAL_IMAGES} imagens`,
         );
       }
       customizableImages = files.map((file) =>

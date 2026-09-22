@@ -1,9 +1,16 @@
 import { BadRequestException } from '@common/filters';
 import { StorageService } from '@infrastructure/providers';
 import { FindCategoryByIdUseCase } from '@modules/category/use-cases';
-import { validateMaterialTemplateImage } from '@modules/material-template/services/material-template-image.service';
+import {
+  MATERIAL_TEMPLATE_IMAGE_MAX_BYTES,
+  validateMaterialTemplateImage,
+} from '@modules/material-template/services/material-template-image.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { UpdateMaterialDTO } from '../dto';
+import {
+  MAX_CUSTOMIZABLE_MATERIAL_IMAGES,
+  MIN_CUSTOMIZABLE_MATERIAL_IMAGES,
+} from '../material.constants';
 import { MaterialRepository } from '../repository';
 import { EnqueueMaterialAcceptanceEmailsUseCase } from './enqueue-material-acceptance-emails.use-case';
 import { EnqueueMaterialNotificationEmailsUseCase } from './enqueue-material-notification-emails.use-case';
@@ -39,6 +46,12 @@ export class UpdateMaterialUseCase {
       | {
           baseMaterialFileId: string;
           baseMimeType: string;
+          validatedFiles: Array<{
+            id: string;
+            mimeType: 'image/png' | 'image/jpeg';
+            width: number;
+            height: number;
+          }>;
         }
       | undefined;
     if (data.isCustomizable === true && !material.isCustomizable) {
@@ -48,21 +61,36 @@ export class UpdateMaterialUseCase {
       );
       const base = files[0];
       if (
-        files.length !== 1 ||
-        !base ||
-        !['image/png', 'image/jpeg', 'image/jpg'].includes(
-          base.mimeType.toLowerCase(),
-        )
+        files.length < MIN_CUSTOMIZABLE_MATERIAL_IMAGES ||
+        files.length > MAX_CUSTOMIZABLE_MATERIAL_IMAGES ||
+        !base
       ) {
         throw new BadRequestException(
-          'Material customizável deve possuir exatamente uma imagem PNG ou JPEG',
+          `Material customizável deve possuir de ${MIN_CUSTOMIZABLE_MATERIAL_IMAGES} a ${MAX_CUSTOMIZABLE_MATERIAL_IMAGES} imagens PNG ou JPEG`,
         );
       }
-      const buffer = await this.storageService.readFile(base.fileKey);
-      validateMaterialTemplateImage({ buffer, size: base.size });
+
+      const validatedFiles: NonNullable<
+        typeof activateTemplate
+      >['validatedFiles'] = [];
+      for (const file of files) {
+        if (file.size > MATERIAL_TEMPLATE_IMAGE_MAX_BYTES) {
+          throw new BadRequestException(
+            'A imagem base deve ter no máximo 5 MB',
+          );
+        }
+        const buffer = await this.storageService.readFile(file.fileKey);
+        const metadata = validateMaterialTemplateImage({
+          buffer,
+          size: file.size,
+        });
+        validatedFiles.push({ id: file.id, ...metadata });
+      }
+
       activateTemplate = {
         baseMaterialFileId: base.id,
-        baseMimeType: base.mimeType,
+        baseMimeType: validatedFiles[0].mimeType,
+        validatedFiles,
       };
     }
 

@@ -23,6 +23,23 @@ describe('CreateMaterialUseCase', () => {
       buffer,
     });
   };
+  const makeJpegFile = () => {
+    const buffer = Buffer.alloc(12);
+    buffer[0] = 0xff;
+    buffer[1] = 0xd8;
+    buffer[2] = 0xff;
+    buffer[3] = 0xc0;
+    buffer.writeUInt16BE(8, 4);
+    buffer[6] = 8;
+    buffer.writeUInt16BE(720, 7);
+    buffer.writeUInt16BE(1280, 9);
+    return makeUploadFile({
+      originalname: 'base.jpg',
+      mimetype: 'image/jpeg',
+      size: buffer.length,
+      buffer,
+    });
+  };
   let materialRepository: jest.Mocked<MaterialRepository>;
   let findCategoryByIdUseCase: { execute: jest.Mock };
   let resolveMaterialTagIdsUseCase: { execute: jest.Mock };
@@ -169,6 +186,64 @@ describe('CreateMaterialUseCase', () => {
     );
   });
 
+  it('deve criar material personalizável com PNG e JPEG na ordem do lote', async () => {
+    const dto = makeCreateMaterialDTO({ isCustomizable: true });
+    const files = [makePngFile(), makePngFile(), makeJpegFile()];
+    (uuidv4 as jest.Mock)
+      .mockReturnValueOnce('material-id')
+      .mockReturnValueOnce('file-id-1')
+      .mockReturnValueOnce('file-id-2')
+      .mockReturnValueOnce('file-id-3');
+    findCategoryByIdUseCase.execute.mockResolvedValue({
+      id: dto.categoryId,
+      isActive: true,
+    });
+    materialRepository.findByName.mockResolvedValue(null);
+    resolveMaterialTagIdsUseCase.execute.mockResolvedValue({
+      existingTagIds: [],
+      newTagNames: [],
+    });
+    storageService.uploadFile
+      .mockResolvedValueOnce({ path: 'materials/material-id/front.png' })
+      .mockResolvedValueOnce({ path: 'materials/material-id/back.png' })
+      .mockResolvedValueOnce({ path: 'materials/material-id/detail.jpg' });
+    materialRepository.create.mockResolvedValue('material-id');
+
+    await expect(
+      useCase.execute('org-id', dto, 'user-id', files),
+    ).resolves.toEqual({ id: 'material-id' });
+
+    expect(materialRepository.create).toHaveBeenCalledWith(
+      'org-id',
+      dto,
+      'user-id',
+      expect.objectContaining({
+        id: 'material-id',
+        files: [
+          expect.objectContaining({
+            id: 'file-id-1',
+            mimeType: 'image/png',
+            width: 1080,
+            height: 1080,
+            sortOrder: 0,
+          }),
+          expect.objectContaining({
+            id: 'file-id-2',
+            mimeType: 'image/png',
+            sortOrder: 1,
+          }),
+          expect.objectContaining({
+            id: 'file-id-3',
+            mimeType: 'image/jpeg',
+            width: 1280,
+            height: 720,
+            sortOrder: 2,
+          }),
+        ],
+      }),
+    );
+  });
+
   it('deve exigir preset quando exportação for PDF para impressão', async () => {
     const dto = makeCreateMaterialDTO({
       isCustomizable: true,
@@ -182,14 +257,43 @@ describe('CreateMaterialUseCase', () => {
     expect(materialRepository.create).not.toHaveBeenCalled();
   });
 
-  it('deve exigir exatamente uma imagem base para material personalizável', async () => {
+  it('deve exigir ao menos uma imagem para material personalizável', async () => {
     const dto = makeCreateMaterialDTO({ isCustomizable: true });
 
     await expect(useCase.execute('org-id', dto, 'user-id')).rejects.toThrow(
-      'Material customizável deve possuir exatamente uma imagem base',
+      'Material customizável deve possuir de 1 a 20 imagens',
     );
 
     expect(findCategoryByIdUseCase.execute).not.toHaveBeenCalled();
+    expect(materialRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('deve rejeitar a 21ª imagem de material personalizável', async () => {
+    const dto = makeCreateMaterialDTO({ isCustomizable: true });
+    const files = Array.from({ length: 21 }, () => makePngFile());
+
+    await expect(
+      useCase.execute('org-id', dto, 'user-id', files),
+    ).rejects.toThrow('Material customizável deve possuir de 1 a 20 imagens');
+
+    expect(storageService.uploadFile).not.toHaveBeenCalled();
+    expect(materialRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('deve rejeitar PDF com MIME de imagem forjado', async () => {
+    const dto = makeCreateMaterialDTO({ isCustomizable: true });
+    const file = makeUploadFile({
+      originalname: 'falso.png',
+      mimetype: 'image/png',
+      buffer: Buffer.from('%PDF-1.7'),
+      size: 8,
+    });
+
+    await expect(
+      useCase.execute('org-id', dto, 'user-id', [file]),
+    ).rejects.toThrow('A imagem base deve ser PNG ou JPEG válido');
+
+    expect(storageService.uploadFile).not.toHaveBeenCalled();
     expect(materialRepository.create).not.toHaveBeenCalled();
   });
 

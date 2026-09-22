@@ -161,6 +161,12 @@ export interface UpdateMaterialOptions {
   activateTemplate?: {
     baseMaterialFileId: string;
     baseMimeType: string;
+    validatedFiles: Array<{
+      id: string;
+      mimeType: 'image/png' | 'image/jpeg';
+      width: number;
+      height: number;
+    }>;
   };
 }
 
@@ -1155,6 +1161,16 @@ export class MaterialRepository {
               revision: { increment: 1 },
             },
           },
+        };
+        updateData.materialFiles = {
+          update: options.activateTemplate.validatedFiles.map((file) => ({
+            where: { id: file.id },
+            data: {
+              mimeType: file.mimeType,
+              width: file.width,
+              height: file.height,
+            },
+          })),
         };
       } else if (
         data.isCustomizable !== false &&
