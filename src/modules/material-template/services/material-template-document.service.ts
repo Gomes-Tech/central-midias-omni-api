@@ -6,6 +6,8 @@ import {
   MaterialTemplateDocumentV1,
   MaterialTemplateDocumentV2,
   MaterialTemplateDocumentV3,
+  MaterialTemplateLayer,
+  MaterialTemplateLayerV2,
   MaterialTemplatePageV3,
   MaterialTemplateProfileBinding,
 } from '../entities';
@@ -347,6 +349,33 @@ export class MaterialTemplateDocumentService {
     );
   }
 
+  withAddedFiles(
+    document: unknown,
+    existingFiles: Array<{
+      id: string;
+      width: number | null;
+      height: number | null;
+    }>,
+    addedFiles: Array<{ id: string; width: number; height: number }>,
+  ): MaterialTemplateDocumentV3 {
+    const current = document == null ? null : this.validate(document);
+    const pages =
+      current?.version === 3
+        ? structuredClone(current.pages)
+        : this.pagesFromSingleDocument(
+            current?.version === 1 || current?.version === 2 ? current : null,
+            existingFiles,
+          );
+    for (const file of addedFiles) {
+      pages.push(this.emptyPage(file.id, file.width, file.height));
+    }
+    const next = this.validate({ version: 3, pages });
+    if (next.version !== 3) {
+      throw new BadRequestException('Versão do template inválida');
+    }
+    return next;
+  }
+
   private getPages(
     document: MaterialTemplateDocument,
   ): Array<
@@ -489,6 +518,88 @@ export class MaterialTemplateDocumentService {
               height: layer.height * uniformScale,
             },
       ),
+    };
+  }
+
+  private pagesFromSingleDocument(
+    document: MaterialTemplateDocumentV1 | MaterialTemplateDocumentV2 | null,
+    existingFiles: Array<{
+      id: string;
+      width: number | null;
+      height: number | null;
+    }>,
+  ): MaterialTemplatePageV3[] {
+    if (document && existingFiles.length === 0) {
+      throw new BadRequestException(
+        'O material customizável precisa de ao menos uma imagem',
+      );
+    }
+    return existingFiles.map((file, index) => {
+      if (!document || index > 0) {
+        return this.emptyPage(file.id, file.width, file.height);
+      }
+      return {
+        materialFileId: file.id,
+        canvas: { ...document.canvas },
+        layerOrder: [...document.layerOrder],
+        layers:
+          document.version === 1
+            ? document.layers.map((layer) => this.layerV1ToV2(layer))
+            : structuredClone(document.layers),
+      };
+    });
+  }
+
+  private layerV1ToV2(layer: MaterialTemplateLayer): MaterialTemplateLayerV2 {
+    if (layer.type === 'asset') {
+      return { ...layer };
+    }
+    return {
+      id: layer.id,
+      type: 'text',
+      name: layer.name,
+      x: layer.x,
+      y: layer.y,
+      rotation: layer.rotation,
+      isVisible: layer.isVisible,
+      editableProperties: layer.editableProperties.includes('value')
+        ? ['content']
+        : [],
+      profileBinding: layer.profileBinding,
+      runs: [
+        {
+          text: layer.value,
+          fontSize: layer.fontSize,
+          fontFamily: layer.fontFamily,
+          fill: layer.fill,
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+      ],
+    };
+  }
+
+  private emptyPage(
+    materialFileId: string,
+    width: number | null,
+    height: number | null,
+  ): MaterialTemplatePageV3 {
+    if (
+      !Number.isInteger(width) ||
+      !Number.isInteger(height) ||
+      (width as number) <= 0 ||
+      (height as number) <= 0
+    ) {
+      throw new BadRequestException(
+        'Imagem sem dimensões não pode virar página',
+      );
+    }
+    return {
+      materialFileId,
+      canvas: { width: width as number, height: height as number },
+      layerOrder: [],
+      layers: [],
     };
   }
 }

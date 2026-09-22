@@ -1,5 +1,6 @@
 import { PlatformPermissionGuard } from '@common/guards';
 import { CategoryModule } from '@modules/category/category.module';
+import { MaterialTemplateDocumentService } from '@modules/material-template/services/material-template-document.service';
 import { NotificationModule } from '@modules/notification';
 import { TagModule } from '@modules/tag';
 import { UserModule } from '@modules/user';
@@ -48,6 +49,7 @@ import {
   providers: [
     PlatformPermissionGuard,
     MaterialRepository,
+    MaterialTemplateDocumentService,
     FindAllMaterialsUseCase,
     FindMaterialByIdUseCase,
     FindMaterialsByCategorySlugUseCase,

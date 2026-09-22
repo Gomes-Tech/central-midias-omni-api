@@ -1,9 +1,13 @@
-import { BadRequestException } from '@common/filters';
+import { BadRequestException, ConflictException } from '@common/filters';
 import { generateId } from '@common/utils';
 import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
 import { Injectable } from '@nestjs/common';
-import { MaterialTemplateStatus, Prisma } from '@prisma/client';
+import {
+  MaterialTemplateStatus,
+  PrintExportStatus,
+  Prisma,
+} from '@prisma/client';
 import { PaginatedResponse } from '../../../types';
 import {
   CreateMaterialDTO,
@@ -21,6 +25,11 @@ import {
   MaterialFileItem,
   MaterialListItem,
 } from '../entities';
+import {
+  CUSTOMIZABLE_IMAGE_COUNT_MESSAGE,
+  CUSTOMIZABLE_PRINT_EXPORT_IN_PROGRESS_MESSAGE,
+  MAX_CUSTOMIZABLE_MATERIAL_IMAGES,
+} from '../material.constants';
 import type { ResolvedMaterialTags } from '../use-cases/resolve-material-tags.use-case';
 import { normalizeSearchTerm } from '../utils/normalize-search-term';
 
@@ -148,6 +157,26 @@ export interface CreateMaterialFileInput {
   width?: number | null;
   height?: number | null;
   sortOrder: number;
+}
+
+export interface CustomizableUploadContext {
+  templateId: string;
+  revision: number;
+  document: unknown;
+  files: Array<{
+    id: string;
+    width: number | null;
+    height: number | null;
+    sortOrder: number;
+  }>;
+  activePrintExportCount: number;
+}
+
+export interface AddCustomizableFilesOptions {
+  templateId: string;
+  revision: number;
+  document: unknown;
+  existingFileIds: string[];
 }
 
 export interface CreateMaterialOptions {
@@ -1386,6 +1415,195 @@ export class MaterialRepository {
         userId,
       });
 
+      throw new BadRequestException('Erro ao salvar arquivos do material');
+    }
+  }
+
+  async findCustomizableUploadContext(
+    materialId: string,
+    organizationId: string,
+  ): Promise<CustomizableUploadContext | null> {
+    try {
+      const template = await this.prisma.materialTemplate.findFirst({
+        where: {
+          materialId,
+          organizationId,
+          material: {
+            deletedAt: null,
+            isCustomizable: true,
+            category: { organizationId, isDeleted: false },
+          },
+        },
+        select: {
+          id: true,
+          revision: true,
+          document: true,
+          material: {
+            select: {
+              materialFiles: {
+                select: {
+                  id: true,
+                  width: true,
+                  height: true,
+                  sortOrder: true,
+                },
+                orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+              },
+            },
+          },
+        },
+      });
+      if (!template) return null;
+      const activePrintExportCount = await this.prisma.printExport.count({
+        where: {
+          materialId,
+          organizationId,
+          status: {
+            in: [PrintExportStatus.QUEUED, PrintExportStatus.PROCESSING],
+          },
+        },
+      });
+      return {
+        templateId: template.id,
+        revision: template.revision,
+        document: template.document,
+        files: template.material.materialFiles,
+        activePrintExportCount,
+      };
+    } catch (error) {
+      void this.logger.error(
+        'MaterialRepository.findCustomizableUploadContext falhou',
+        {
+          error: String(error),
+          materialId,
+          organizationId,
+        },
+      );
+      throw new BadRequestException('Erro ao buscar template do material');
+    }
+  }
+
+  async addCustomizableFiles(
+    materialId: string,
+    organizationId: string,
+    files: CreateMaterialFileInput[],
+    options: AddCustomizableFilesOptions,
+    userId: string,
+  ): Promise<MaterialFileItem[]> {
+    try {
+      const createdFiles = await this.prisma.$transaction(async (tx) => {
+        const activePrintExportCount = await tx.printExport.count({
+          where: {
+            materialId,
+            organizationId,
+            status: {
+              in: [PrintExportStatus.QUEUED, PrintExportStatus.PROCESSING],
+            },
+          },
+        });
+        if (activePrintExportCount > 0) {
+          throw new BadRequestException(
+            CUSTOMIZABLE_PRINT_EXPORT_IN_PROGRESS_MESSAGE,
+          );
+        }
+
+        const currentFiles = await tx.materialFile.findMany({
+          where: { materialId },
+          select: { id: true, sortOrder: true },
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        });
+        const currentIds = currentFiles.map((file) => file.id);
+        if (
+          currentIds.length !== options.existingFileIds.length ||
+          currentIds.some((id, index) => id !== options.existingFileIds[index])
+        ) {
+          throw new ConflictException(
+            'O template foi alterado em outra sessão. Recarregue para continuar.',
+          );
+        }
+        if (
+          currentFiles.length + files.length >
+          MAX_CUSTOMIZABLE_MATERIAL_IMAGES
+        ) {
+          throw new BadRequestException(CUSTOMIZABLE_IMAGE_COUNT_MESSAGE);
+        }
+
+        const firstSortOrder =
+          currentFiles.reduce(
+            (max, file) => Math.max(max, file.sortOrder),
+            -1,
+          ) + 1;
+        const created: MaterialFileRow[] = [];
+        for (const file of files) {
+          created.push(
+            await tx.materialFile.create({
+              data: {
+                id: file.id,
+                materialId,
+                imageKey: file.fileKey,
+                originalName: file.originalName,
+                mimeType: file.mimeType,
+                size: file.size,
+                width: file.width,
+                height: file.height,
+                sortOrder: firstSortOrder + file.sortOrder,
+              },
+              select: materialFileSelect,
+            }),
+          );
+        }
+
+        const updated = await tx.materialTemplate.updateMany({
+          where: {
+            id: options.templateId,
+            materialId,
+            organizationId,
+            revision: options.revision,
+            material: {
+              deletedAt: null,
+              isCustomizable: true,
+              category: { organizationId, isDeleted: false },
+            },
+          },
+          data: {
+            document: options.document as Prisma.InputJsonValue,
+            schemaVersion: 3,
+            status: MaterialTemplateStatus.DRAFT,
+            publishedAt: null,
+            revision: { increment: 1 },
+          },
+        });
+        if (updated.count !== 1) {
+          throw new ConflictException(
+            'O template foi alterado em outra sessão. Recarregue para continuar.',
+          );
+        }
+        await tx.printPreflight.deleteMany({
+          where: { templateId: options.templateId },
+        });
+        return created;
+      });
+
+      void this.logger.info('Imagens incluídas no material customizável', {
+        materialId,
+        organizationId,
+        filesCount: createdFiles.length,
+        userId,
+      });
+      return createdFiles.map((file) => this.mapMaterialFile(file));
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ConflictException
+      ) {
+        throw error;
+      }
+      void this.logger.error('MaterialRepository.addCustomizableFiles falhou', {
+        error: String(error),
+        materialId,
+        organizationId,
+        userId,
+      });
       throw new BadRequestException('Erro ao salvar arquivos do material');
     }
   }

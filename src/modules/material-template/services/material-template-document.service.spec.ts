@@ -395,4 +395,137 @@ describe('MaterialTemplateDocumentService', () => {
       ),
     ).toThrow('Página do arquivo não encontrada');
   });
+
+  it('normaliza V2 publicado para V3 ao incluir outra imagem', () => {
+    const next = service.withAddedFiles(
+      richDocument,
+      [{ id: 'material-file-1', width: 800, height: 600 }],
+      [{ id: 'material-file-2', width: 1200, height: 800 }],
+    );
+
+    expect(next.version).toBe(3);
+    expect(next.pages).toHaveLength(2);
+    expect(next.pages[0]).toEqual({
+      materialFileId: 'material-file-1',
+      canvas: richDocument.canvas,
+      layerOrder: richDocument.layerOrder,
+      layers: richDocument.layers,
+    });
+    expect(next.pages[1]).toEqual({
+      materialFileId: 'material-file-2',
+      canvas: { width: 1200, height: 800 },
+      layerOrder: [],
+      layers: [],
+    });
+  });
+
+  it('normaliza documento nulo para uma página por imagem atual e nova', () => {
+    const next = service.withAddedFiles(
+      null,
+      [
+        { id: 'frente', width: 1000, height: 500 },
+        { id: 'verso', width: 900, height: 400 },
+      ],
+      [{ id: 'extra', width: 640, height: 480 }],
+    );
+
+    expect(next).toEqual({
+      version: 3,
+      pages: [
+        {
+          materialFileId: 'frente',
+          canvas: { width: 1000, height: 500 },
+          layerOrder: [],
+          layers: [],
+        },
+        {
+          materialFileId: 'verso',
+          canvas: { width: 900, height: 400 },
+          layerOrder: [],
+          layers: [],
+        },
+        {
+          materialFileId: 'extra',
+          canvas: { width: 640, height: 480 },
+          layerOrder: [],
+          layers: [],
+        },
+      ],
+    });
+  });
+
+  it('preserva canvas e camadas V1 na primeira página ao incluir imagem', () => {
+    const next = service.withAddedFiles(
+      document,
+      [
+        { id: 'material-file-1', width: 1080, height: 1080 },
+        { id: 'material-file-2', width: 500, height: 700 },
+      ],
+      [{ id: 'material-file-3', width: 400, height: 400 }],
+    );
+
+    expect(next.pages[0]).toEqual({
+      materialFileId: 'material-file-1',
+      canvas: document.canvas,
+      layerOrder: ['asset-1', 'text-1'],
+      layers: [
+        document.layers[0],
+        {
+          id: 'text-1',
+          type: 'text',
+          name: 'Nome',
+          x: 100,
+          y: 900,
+          rotation: 0,
+          isVisible: true,
+          editableProperties: ['content'],
+          profileBinding: 'NAME',
+          runs: [
+            {
+              text: 'Nome do agente',
+              fontSize: 40,
+              fontFamily: 'Arial',
+              fill: '#111111',
+              bold: false,
+              italic: false,
+              underline: false,
+            },
+          ],
+        },
+      ],
+    });
+    expect(next.pages[1].layers).toEqual([]);
+    expect(next.pages[1].canvas).toEqual({ width: 500, height: 700 });
+    expect(next.pages[2].layers).toEqual([]);
+  });
+
+  it('acrescenta página vazia sem reescrever um documento V3', () => {
+    const next = service.withAddedFiles(
+      multipageDocument,
+      [
+        { id: 'material-file-1', width: 1080, height: 1080 },
+        { id: 'material-file-2', width: 1000, height: 1000 },
+      ],
+      [{ id: 'material-file-3', width: 320, height: 240 }],
+    );
+
+    expect(next.pages[0]).toEqual(multipageDocument.pages[0]);
+    expect(next.pages[1]).toEqual(multipageDocument.pages[1]);
+    expect(next.pages[2]).toEqual({
+      materialFileId: 'material-file-3',
+      canvas: { width: 320, height: 240 },
+      layerOrder: [],
+      layers: [],
+    });
+  });
+
+  it('rejeita imagem atual sem dimensões quando o documento não define o canvas', () => {
+    expect(() =>
+      service.withAddedFiles(
+        null,
+        [{ id: 'material-file-1', width: null, height: null }],
+        [{ id: 'material-file-2', width: 100, height: 100 }],
+      ),
+    ).toThrow('Imagem sem dimensões não pode virar página');
+  });
 });
