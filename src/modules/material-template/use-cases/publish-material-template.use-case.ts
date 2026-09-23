@@ -39,6 +39,10 @@ export class PublishMaterialTemplateUseCase {
       throw new BadRequestException('Salve o template antes de publicar');
     }
     const document = this.documentService.validate(template.document);
+    this.documentService.assertLinksPublishable(
+      document,
+      template.allowedExportTypes,
+    );
     await this.assertPagesMatchImages(template, document);
     const assetIds = this.documentService.getAssetIds(document);
     const assets = await this.repository.findAssets(assetIds, organizationId);

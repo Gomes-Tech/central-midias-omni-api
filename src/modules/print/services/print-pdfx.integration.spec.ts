@@ -155,6 +155,8 @@ describeWithTools('PrintRendererService PDF/X integration', () => {
       expect(outputSource).toContain('/OutputIntents');
       expect(outputSource).toContain('/DestOutputProfile');
       expect(outputSource).toContain('/GTS_PDFXVersion');
+      expect(outputSource).not.toContain('/Subtype /Link');
+      expect(outputSource).not.toContain('/URI');
       expect(inkCoverage).toMatch(/\sCMYK\b/);
     } finally {
       rmSync(workspace, { recursive: true, force: true });
@@ -275,6 +277,8 @@ describeWithTools('PrintRendererService PDF/X integration', () => {
       ]);
       const inspected = readFileSync(inspectedPath, 'latin1');
       expect(inspected).toContain('/DestOutputProfile');
+      expect(inspected).not.toContain('/Subtype /Link');
+      expect(inspected).not.toContain('/URI');
 
       const centerPixel = (page: number) => {
         const rasterBase = join(workspace, `page-${page}`);

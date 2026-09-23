@@ -218,6 +218,99 @@ describe('PrintDocumentService', () => {
       );
     });
 
+    it('aceita somente href editável e remove todos os links antes da impressão', () => {
+      const published = structuredClone(multipage);
+      published.pages[0].links = [
+        {
+          id: 'static',
+          name: 'Site',
+          href: 'https://example.com',
+          editableProperties: [],
+          target: { kind: 'layer', layerId: 'asset' },
+        },
+        {
+          id: 'agent',
+          name: 'WhatsApp',
+          href: null,
+          editableProperties: ['href'],
+          target: { kind: 'area', x: 10, y: 20, width: 100, height: 50 },
+        },
+      ];
+      const customized = structuredClone(published);
+      customized.pages[0].links![1].href = 'https://wa.me/5511999999999';
+
+      const printable = service.validateCustomizedDocument(
+        published,
+        customized,
+      );
+      expect(printable.version).toBe(3);
+      if (printable.version !== 3) return;
+      expect(printable.pages.every((candidate) => !candidate.links)).toBe(true);
+      expect(JSON.stringify(printable)).not.toContain('wa.me');
+
+      const another = structuredClone(customized);
+      another.pages[0].links![1].href = 'https://example.com/agent';
+      const anotherPrintable = service.validateCustomizedDocument(
+        published,
+        another,
+      );
+      expect(service.hash(printable)).toBe(service.hash(anotherPrintable));
+    });
+
+    it.each([
+      [
+        'href estático',
+        (value: MaterialTemplateDocumentV3) => {
+          value.pages[0].links![0].href = 'https://attacker.example';
+        },
+      ],
+      [
+        'alvo',
+        (value: MaterialTemplateDocumentV3) => {
+          value.pages[0].links![1].target = {
+            kind: 'area',
+            x: 20,
+            y: 20,
+            width: 100,
+            height: 50,
+          };
+        },
+      ],
+      [
+        'permissão',
+        (value: MaterialTemplateDocumentV3) => {
+          value.pages[0].links![1].editableProperties = [];
+        },
+      ],
+    ] as Array<[string, (value: MaterialTemplateDocumentV3) => void]>)(
+      'rejeita alteração de %s em link pelo agente',
+      (_label, mutate) => {
+        const published = structuredClone(multipage);
+        published.pages[0].links = [
+          {
+            id: 'static',
+            name: 'Site',
+            href: 'https://example.com',
+            editableProperties: [],
+            target: { kind: 'layer', layerId: 'asset' },
+          },
+          {
+            id: 'agent',
+            name: 'Agente',
+            href: null,
+            editableProperties: ['href'],
+            target: { kind: 'area', x: 10, y: 20, width: 100, height: 50 },
+          },
+        ];
+        const customized = structuredClone(published);
+        customized.pages[0].links![1].href = 'https://example.com/agent';
+        mutate(customized);
+        expect(() =>
+          service.validateCustomizedDocument(published, customized),
+        ).toThrow('alterações não permitidas');
+      },
+    );
+
     it.each<[string, (value: MaterialTemplateDocumentV3) => void]>([
       ['mover camada', (value) => (value.pages[1].layers[0].x = 1)],
       [

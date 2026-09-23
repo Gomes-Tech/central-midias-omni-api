@@ -101,6 +101,31 @@ export type MaterialTemplateLayerV2 =
   | MaterialTemplateAssetLayerV2
   | MaterialTemplateImagePlaceholderLayer;
 
+export interface MaterialTemplateLayerLinkTarget {
+  kind: 'layer';
+  layerId: string;
+}
+
+export interface MaterialTemplateAreaLinkTarget {
+  kind: 'area';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export type MaterialTemplateLinkTarget =
+  | MaterialTemplateLayerLinkTarget
+  | MaterialTemplateAreaLinkTarget;
+
+export interface MaterialTemplateLink {
+  id: string;
+  name: string;
+  href: string | null;
+  editableProperties: [] | ['href'];
+  target: MaterialTemplateLinkTarget;
+}
+
 export interface MaterialTemplateDocumentV2 {
   version: 2;
   canvas: MaterialTemplateCanvas;
@@ -113,6 +138,7 @@ export interface MaterialTemplatePageV3 {
   canvas: MaterialTemplateCanvas;
   layerOrder: string[];
   layers: MaterialTemplateLayerV2[];
+  links?: MaterialTemplateLink[];
 }
 
 export interface MaterialTemplateDocumentV3 {

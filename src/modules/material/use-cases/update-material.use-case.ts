@@ -98,6 +98,18 @@ export class UpdateMaterialUseCase {
     const willBeCustomizable =
       data.isCustomizable === true ||
       (data.isCustomizable !== false && material.isCustomizable);
+    if (
+      data.exportTypes !== undefined &&
+      !data.exportTypes.includes('pdf') &&
+      (await this.materialRepository.hasPublishedTemplateLinks(
+        id,
+        organizationId,
+      ))
+    ) {
+      throw new BadRequestException(
+        'Remova os links do template antes de desabilitar o PDF digital',
+      );
+    }
     if (willBeCustomizable) {
       await this.assertExportConfig(
         organizationId,

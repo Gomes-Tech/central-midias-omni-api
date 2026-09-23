@@ -37,6 +37,7 @@ describe('UpdateMaterialUseCase', () => {
       findFilesByMaterialId: jest.fn(),
       update: jest.fn(),
       isActivePrintPreset: jest.fn(),
+      hasPublishedTemplateLinks: jest.fn().mockResolvedValue(false),
     } as unknown as jest.Mocked<MaterialRepository>;
 
     findMaterialByIdUseCase = { execute: jest.fn() };
@@ -329,6 +330,20 @@ describe('UpdateMaterialUseCase', () => {
     await expect(
       useCase.execute(material.id, 'org-id', dto, 'user-id'),
     ).rejects.toThrow('Selecione um preset de impressão');
+    expect(materialRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('impede remover o PDF digital enquanto o template publicado mantiver links', async () => {
+    const material = makeMaterialDetails({ isCustomizable: true });
+    const dto = makeUpdateMaterialDTO({ exportTypes: ['png'] });
+    findMaterialByIdUseCase.execute.mockResolvedValue(material);
+    materialRepository.hasPublishedTemplateLinks.mockResolvedValue(true);
+
+    await expect(
+      useCase.execute(material.id, 'org-id', dto, 'user-id'),
+    ).rejects.toThrow(
+      'Remova os links do template antes de desabilitar o PDF digital',
+    );
     expect(materialRepository.update).not.toHaveBeenCalled();
   });
 

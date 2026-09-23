@@ -19,8 +19,10 @@ const MAX_CANVAS_SIDE = 12000;
 const MAX_CANVAS_PIXELS = 120_000_000;
 const MAX_LAYERS = 200;
 const MAX_PAGES = 20;
+const MAX_LINKS = 100;
 const MAX_TEXT_LENGTH = 2000;
 const MAX_TEXT_RUNS = 500;
+const MAX_LINK_HREF_LENGTH = 2048;
 // O editor aplica o limite proporcional; este teto protege o contrato persistido.
 const MAX_TEXT_FONT_SIZE = 1800;
 const PROFILE_BINDINGS = new Set<MaterialTemplateProfileBinding>([
@@ -199,6 +201,130 @@ function validateImagePlaceholder(layer: Record<string, unknown>): void {
   }
 }
 
+function validateHttpsHref(value: unknown, label: string): void {
+  if (value === null) return;
+  if (
+    typeof value !== 'string' ||
+    !value.trim() ||
+    value !== value.trim() ||
+    value.length > MAX_LINK_HREF_LENGTH ||
+    /[\u0000-\u001f\u007f]/.test(value)
+  ) {
+    throw new BadRequestException(`${label}: URL inválida`);
+  }
+  try {
+    const parsed = new URL(value.trim());
+    if (
+      parsed.protocol !== 'https:' ||
+      !parsed.hostname ||
+      parsed.username ||
+      parsed.password
+    ) {
+      throw new Error('unsafe-url');
+    }
+  } catch {
+    throw new BadRequestException(`${label}: use uma URL HTTPS válida`);
+  }
+}
+
+function validateLinks(
+  value: Record<string, unknown>,
+  layerIds: Set<string>,
+  canvasWidth: number,
+  canvasHeight: number,
+  documentLinkIds: Set<string>,
+): number {
+  if (value.links === undefined) return 0;
+  if (!Array.isArray(value.links)) {
+    throw new BadRequestException('Links da página inválidos');
+  }
+
+  const linkedLayerIds = new Set<string>();
+  for (const candidate of value.links) {
+    if (!isRecord(candidate)) {
+      throw new BadRequestException('Link da página inválido');
+    }
+    const allowed = new Set([
+      'id',
+      'name',
+      'href',
+      'editableProperties',
+      'target',
+    ]);
+    if (Object.keys(candidate).some((key) => !allowed.has(key))) {
+      throw new BadRequestException(
+        `Link ${candidate.id}: campo não permitido`,
+      );
+    }
+
+    const id = readString(candidate.id, 'Identificador do link', 100);
+    readString(candidate.name, 'Nome do link', 150);
+    if (documentLinkIds.has(id)) {
+      throw new BadRequestException('Identificador de link duplicado');
+    }
+    documentLinkIds.add(id);
+    validateHttpsHref(candidate.href, `Link ${id}`);
+
+    if (!Array.isArray(candidate.editableProperties)) {
+      throw new BadRequestException(`Link ${id}: permissões inválidas`);
+    }
+    const editable = candidate.editableProperties as unknown[];
+    if (
+      editable.length > 1 ||
+      editable.some((property) => property !== 'href') ||
+      new Set(editable).size !== editable.length
+    ) {
+      throw new BadRequestException(`Link ${id}: permissões inválidas`);
+    }
+
+    if (!isRecord(candidate.target)) {
+      throw new BadRequestException(`Link ${id}: alvo inválido`);
+    }
+    const target = candidate.target;
+    if (target.kind === 'layer') {
+      const targetAllowed = new Set(['kind', 'layerId']);
+      if (Object.keys(target).some((key) => !targetAllowed.has(key))) {
+        throw new BadRequestException(`Link ${id}: alvo inválido`);
+      }
+      const layerId = readString(target.layerId, `Link ${id}: camada`, 100);
+      if (!layerIds.has(layerId)) {
+        throw new BadRequestException(`Link ${id}: camada não encontrada`);
+      }
+      if (linkedLayerIds.has(layerId)) {
+        throw new BadRequestException(
+          `A camada ${layerId} possui mais de um link`,
+        );
+      }
+      linkedLayerIds.add(layerId);
+      continue;
+    }
+
+    if (target.kind !== 'area') {
+      throw new BadRequestException(`Link ${id}: tipo de alvo inválido`);
+    }
+    const targetAllowed = new Set(['kind', 'x', 'y', 'width', 'height']);
+    if (Object.keys(target).some((key) => !targetAllowed.has(key))) {
+      throw new BadRequestException(`Link ${id}: alvo inválido`);
+    }
+    const { x, y, width, height } = target;
+    if (
+      !isFiniteNumber(x) ||
+      !isFiniteNumber(y) ||
+      !isFiniteNumber(width) ||
+      !isFiniteNumber(height) ||
+      x < 0 ||
+      y < 0 ||
+      width <= 0 ||
+      height <= 0 ||
+      x + width > canvasWidth ||
+      y + height > canvasHeight
+    ) {
+      throw new BadRequestException(`Link ${id}: área inválida`);
+    }
+  }
+  return value.links.length;
+}
+
 @Injectable()
 export class MaterialTemplateDocumentService {
   validate(value: unknown): MaterialTemplateDocument {
@@ -228,6 +354,8 @@ export class MaterialTemplateDocumentService {
 
     const materialFileIds = new Set<string>();
     let visiblePlaceholders = 0;
+    let linkCount = 0;
+    const linkIds = new Set<string>();
     for (const candidate of value.pages) {
       if (!isRecord(candidate)) {
         throw new BadRequestException('Página do template inválida');
@@ -241,10 +369,17 @@ export class MaterialTemplateDocumentService {
         throw new BadRequestException('Arquivo de página duplicado');
       }
       materialFileIds.add(materialFileId);
-      visiblePlaceholders += this.validatePage(candidate, 3);
+      const counts = this.validatePage(candidate, 3, linkIds);
+      visiblePlaceholders += counts.placeholders;
+      linkCount += counts.links;
       if (visiblePlaceholders > MAX_IMAGE_PLACEHOLDERS) {
         throw new BadRequestException(
           'O template permite até 20 marcadores de imagem visíveis',
+        );
+      }
+      if (linkCount > MAX_LINKS) {
+        throw new BadRequestException(
+          `O template permite até ${MAX_LINKS} links`,
         );
       }
     }
@@ -255,7 +390,8 @@ export class MaterialTemplateDocumentService {
   private validatePage(
     value: Record<string, unknown>,
     version: 1 | 2 | 3,
-  ): number {
+    documentLinkIds: Set<string> = new Set(),
+  ): { placeholders: number; links: number } {
     if (!isRecord(value.canvas)) {
       throw new BadRequestException('Canvas do template inválido');
     }
@@ -311,7 +447,17 @@ export class MaterialTemplateDocumentService {
     ) {
       throw new BadRequestException('Ordem das camadas inválida');
     }
-    return placeholders;
+    const links =
+      version === 3
+        ? validateLinks(
+            value,
+            ids,
+            width as number,
+            height as number,
+            documentLinkIds,
+          )
+        : 0;
+    return { placeholders, links };
   }
 
   getAssetIds(document: MaterialTemplateDocument): string[] {
@@ -348,6 +494,34 @@ export class MaterialTemplateDocumentService {
         ),
       )
     );
+  }
+
+  hasLinks(document: MaterialTemplateDocument): boolean {
+    return (
+      document.version === 3 &&
+      document.pages.some((page) => (page.links?.length ?? 0) > 0)
+    );
+  }
+
+  assertLinksPublishable(
+    document: MaterialTemplateDocument,
+    exportTypes: string[],
+  ): void {
+    if (!this.hasLinks(document)) return;
+    if (!exportTypes.includes('pdf')) {
+      throw new BadRequestException(
+        'Habilite o PDF digital antes de publicar um template com links',
+      );
+    }
+    for (const page of document.version === 3 ? document.pages : []) {
+      for (const link of page.links ?? []) {
+        if (link.editableProperties.length === 0 && link.href === null) {
+          throw new BadRequestException(
+            `Preencha o link estático "${link.name}" antes de publicar`,
+          );
+        }
+      }
+    }
   }
 
   withAddedFiles(
@@ -484,6 +658,24 @@ export class MaterialTemplateDocumentService {
       ...page,
       canvas: scaled.canvas,
       layers: scaled.layers,
+      ...(page.links
+        ? {
+            links: page.links.map((link) =>
+              link.target.kind === 'area'
+                ? {
+                    ...link,
+                    target: {
+                      ...link.target,
+                      x: link.target.x * scaleX,
+                      y: link.target.y * scaleY,
+                      width: link.target.width * scaleX,
+                      height: link.target.height * scaleY,
+                    },
+                  }
+                : structuredClone(link),
+            ),
+          }
+        : {}),
     };
     return {
       ...document,

@@ -1042,6 +1042,28 @@ export class MaterialRepository {
     return Boolean(preset);
   }
 
+  async hasPublishedTemplateLinks(
+    materialId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    const template = await this.prisma.materialTemplate.findFirst({
+      where: {
+        materialId,
+        organizationId,
+        status: MaterialTemplateStatus.PUBLISHED,
+      },
+      select: { document: true },
+    });
+    if (!template?.document || typeof template.document !== 'object') {
+      return false;
+    }
+    const document = template.document as unknown as MaterialTemplateDocument;
+    return (
+      document.version === 3 &&
+      document.pages.some((page) => (page.links?.length ?? 0) > 0)
+    );
+  }
+
   async create(
     organizationId: string,
     data: CreateMaterialDTO,

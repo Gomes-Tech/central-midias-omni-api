@@ -2,6 +2,7 @@ import { BadRequestException } from '@common/filters';
 import type {
   MaterialTemplateDocumentV2,
   MaterialTemplateDocumentV3,
+  MaterialTemplateLink,
   MaterialTemplatePageV3,
 } from '@modules/material-template/entities';
 import { MaterialTemplateDocumentService } from '@modules/material-template/services/material-template-document.service';
@@ -85,7 +86,7 @@ export class PrintDocumentService {
         'A personalização contém alterações não permitidas',
       );
     }
-    return customized as PrintableDocument;
+    return this.withoutLinks(customized as PrintableDocument);
   }
 
   hash(document: PrintableDocument, images: PrintDocumentHashImage[] = []) {
@@ -151,6 +152,46 @@ export class PrintDocumentService {
         }
         return layer;
       }),
+      ...('links' in published && published.links
+        ? {
+            links: this.expectedLinks(
+              published.links,
+              'links' in customized ? customized.links : undefined,
+            ),
+          }
+        : {}),
+    };
+  }
+
+  private expectedLinks(
+    published: MaterialTemplateLink[],
+    customized: MaterialTemplateLink[] | undefined,
+  ): MaterialTemplateLink[] {
+    if (!customized || published.length !== customized.length) {
+      throw new BadRequestException('A estrutura do template foi alterada');
+    }
+    const customizedById = new Map(customized.map((link) => [link.id, link]));
+    return published.map((link) => {
+      const candidate = customizedById.get(link.id);
+      if (!candidate) {
+        throw new BadRequestException('A estrutura do template foi alterada');
+      }
+      return link.editableProperties.length > 0
+        ? { ...link, href: candidate.href }
+        : link;
+    });
+  }
+
+  private withoutLinks(document: PrintableDocument): PrintableDocument {
+    if (document.version === 2) return document;
+    return {
+      ...document,
+      pages: document.pages.map((page) => ({
+        materialFileId: page.materialFileId,
+        canvas: page.canvas,
+        layerOrder: page.layerOrder,
+        layers: page.layers,
+      })),
     };
   }
 

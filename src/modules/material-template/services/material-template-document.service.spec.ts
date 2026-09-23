@@ -208,6 +208,131 @@ describe('MaterialTemplateDocumentService', () => {
     expect(service.hasEditableContent(multipageDocument)).toBe(true);
   });
 
+  it('valida links HTTPS estáticos, editáveis, de camada e de área', () => {
+    const linked = structuredClone(multipageDocument);
+    linked.pages[0].links = [
+      {
+        id: 'site',
+        name: 'Site institucional',
+        href: 'https://example.com/path?ref=card',
+        editableProperties: [],
+        target: { kind: 'layer', layerId: 'asset-1' },
+      },
+      {
+        id: 'whatsapp',
+        name: 'WhatsApp do agente',
+        href: null,
+        editableProperties: ['href'],
+        target: { kind: 'area', x: 10, y: 20, width: 100, height: 80 },
+      },
+    ];
+
+    expect(service.validate(linked)).toBe(linked);
+    expect(service.hasLinks(linked)).toBe(true);
+  });
+
+  it.each([
+    'http://example.com',
+    'javascript:alert(1)',
+    'data:text/plain,oi',
+    'file:///tmp/teste',
+    'tel:+5511999999999',
+    'mailto:agent@example.com',
+    'https://user:secret@example.com',
+    ' https://example.com',
+  ])('rejeita URL de link insegura: %s', (href) => {
+    const linked = structuredClone(multipageDocument);
+    linked.pages[0].links = [
+      {
+        id: 'unsafe',
+        name: 'Link inseguro',
+        href,
+        editableProperties: [],
+        target: { kind: 'layer', layerId: 'asset-1' },
+      },
+    ];
+    expect(() => service.validate(linked)).toThrow(BadRequestException);
+  });
+
+  it('rejeita links longos, alvos inválidos, áreas externas e duplicidades', () => {
+    const makeLinked = () => {
+      const linked = structuredClone(multipageDocument);
+      linked.pages[0].links = [
+        {
+          id: 'link-1',
+          name: 'Link',
+          href: 'https://example.com',
+          editableProperties: [] as [],
+          target: { kind: 'layer' as const, layerId: 'asset-1' },
+        },
+      ];
+      return linked;
+    };
+
+    const long = makeLinked();
+    long.pages[0].links![0].href = `https://example.com/${'x'.repeat(2049)}`;
+    expect(() => service.validate(long)).toThrow();
+
+    const missing = makeLinked();
+    if (missing.pages[0].links![0].target.kind === 'layer') {
+      missing.pages[0].links![0].target.layerId = 'missing';
+    }
+    expect(() => service.validate(missing)).toThrow('camada não encontrada');
+
+    const outside = makeLinked();
+    outside.pages[0].links![0].target = {
+      kind: 'area',
+      x: 1000,
+      y: 1000,
+      width: 100,
+      height: 100,
+    };
+    expect(() => service.validate(outside)).toThrow('área inválida');
+
+    const duplicate = makeLinked();
+    duplicate.pages[1].links = [
+      {
+        id: 'link-1',
+        name: 'Duplicado',
+        href: 'https://example.com/other',
+        editableProperties: [],
+        target: { kind: 'area', x: 1, y: 1, width: 10, height: 10 },
+      },
+    ];
+    expect(() => service.validate(duplicate)).toThrow(
+      'Identificador de link duplicado',
+    );
+
+    const sameLayer = makeLinked();
+    sameLayer.pages[0].links!.push({
+      ...sameLayer.pages[0].links![0],
+      id: 'link-2',
+    });
+    expect(() => service.validate(sameLayer)).toThrow('mais de um link');
+  });
+
+  it('limita a 100 links no documento V3', () => {
+    const linked = structuredClone(multipageDocument);
+    linked.pages[0].links = Array.from({ length: 100 }, (_, index) => ({
+      id: `link-${index}`,
+      name: `Link ${index}`,
+      href: 'https://example.com',
+      editableProperties: [] as [],
+      target: { kind: 'area' as const, x: index, y: 0, width: 1, height: 1 },
+    }));
+    expect(service.validate(linked)).toBe(linked);
+    linked.pages[1].links = [
+      {
+        id: 'extra',
+        name: 'Extra',
+        href: 'https://example.com',
+        editableProperties: [],
+        target: { kind: 'area', x: 0, y: 0, width: 1, height: 1 },
+      },
+    ];
+    expect(() => service.validate(linked)).toThrow('100 links');
+  });
+
   it.each([
     ['sem páginas', { ...multipageDocument, pages: [] }],
     [
@@ -363,6 +488,15 @@ describe('MaterialTemplateDocumentService', () => {
   });
 
   it('redimensiona somente a página V3 indicada', () => {
+    multipageDocument.pages[1].links = [
+      {
+        id: 'area-link',
+        name: 'Área',
+        href: 'https://example.com',
+        editableProperties: [],
+        target: { kind: 'area', x: 10, y: 20, width: 100, height: 200 },
+      },
+    ];
     const scaled = service.scaleForBaseReplacement(
       multipageDocument,
       2000,
@@ -380,6 +514,14 @@ describe('MaterialTemplateDocumentService', () => {
     expect(scaled.pages[1].layers[1]).toEqual(
       expect.objectContaining({ x: 200, y: 50, width: 50, height: 50 }),
     );
+    expect(scaled.pages[1].links?.[0].target).toEqual({
+      kind: 'area',
+      x: 20,
+      y: 10,
+      width: 200,
+      height: 100,
+    });
+    delete multipageDocument.pages[1].links;
   });
 
   it('rejeita redimensionamento V3 sem uma página válida', () => {

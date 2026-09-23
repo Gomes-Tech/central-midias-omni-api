@@ -143,6 +143,83 @@ describe('PublishMaterialTemplateUseCase', () => {
     expect(repository.publish).toHaveBeenCalled();
   });
 
+  const linkedDocument: MaterialTemplateDocumentV3 = {
+    version: 3,
+    pages: [
+      {
+        materialFileId: 'file-id',
+        canvas: { width: 1080, height: 1080 },
+        layerOrder: ['asset'],
+        layers: [
+          {
+            id: 'asset',
+            type: 'asset',
+            name: 'Logo',
+            assetId: 'asset-id',
+            x: 10,
+            y: 20,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            isVisible: true,
+            editableProperties: [],
+          },
+        ],
+        links: [
+          {
+            id: 'site',
+            name: 'Site',
+            href: 'https://example.com',
+            editableProperties: [],
+            target: { kind: 'layer', layerId: 'asset' },
+          },
+        ],
+      },
+    ],
+  };
+
+  it('exige PDF digital para publicar links', async () => {
+    repository.findOrThrow.mockResolvedValue({
+      ...template,
+      document: linkedDocument,
+      allowedExportTypes: ['png'],
+    } as never);
+
+    await expect(
+      useCase.execute('material-id', 'org-id', 'user-id', { revision: 7 }),
+    ).rejects.toThrow('Habilite o PDF digital');
+    expect(repository.publish).not.toHaveBeenCalled();
+  });
+
+  it('exige URL dos links estáticos na publicação', async () => {
+    const value = structuredClone(linkedDocument);
+    value.pages[0].links![0].href = null;
+    repository.findOrThrow.mockResolvedValue({
+      ...template,
+      document: value,
+      allowedExportTypes: ['pdf'],
+    } as never);
+
+    await expect(
+      useCase.execute('material-id', 'org-id', 'user-id', { revision: 7 }),
+    ).rejects.toThrow('Preencha o link estático');
+  });
+
+  it('permite publicar link editável vazio para preenchimento pelo agente', async () => {
+    const value = structuredClone(linkedDocument);
+    value.pages[0].links![0].href = null;
+    value.pages[0].links![0].editableProperties = ['href'];
+    repository.findOrThrow.mockResolvedValue({
+      ...template,
+      document: value,
+      allowedExportTypes: ['pdf'],
+    } as never);
+
+    await expect(
+      useCase.execute('material-id', 'org-id', 'user-id', { revision: 7 }),
+    ).resolves.toEqual({ ok: true });
+  });
+
   it('bloqueia publicação com dependência ausente', async () => {
     repository.findAssets.mockResolvedValue([]);
 
