@@ -9,9 +9,11 @@ import { CreateOrganizationDTO, UpdateOrganizationDTO } from '../dto';
 import { OrganizationEntity } from '../entities';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { seedHolidaysForOrganization } = require(
-  require('path').join(process.cwd(), 'prisma/lib/brazilian-holidays'),
-);
+// const { seedHolidaysForOrganization } = require(
+//   require('path').join(process.cwd(), 'prisma/lib/brazilian-holidays'),
+// );
+
+import { seedHolidaysForOrganization } from '../../../../prisma/lib/brazilian-holidays';
 
 @Injectable()
 export class OrganizationRepository {

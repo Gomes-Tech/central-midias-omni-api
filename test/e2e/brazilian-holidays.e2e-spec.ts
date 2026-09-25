@@ -4,7 +4,7 @@ import { createE2eApp } from '../helpers/create-e2e-app';
 import { e2eAuthHeaders, e2eRequest, e2eSignIn } from '../helpers/e2e-http';
 import { E2ePrismaService } from '../helpers/e2e-prisma.service';
 
-const { seedHolidaysForOrganization } = require('../../prisma/lib/brazilian-holidays');
+import { seedHolidaysForOrganization } from '../../prisma/lib/brazilian-holidays';
 
 describe('Brazilian holidays seed (e2e)', () => {
   let app: INestApplication;
@@ -58,8 +58,7 @@ describe('Brazilian holidays seed (e2e)', () => {
       .expect(200);
 
     const holidayEvents = eventsResponse.body.filter(
-      (event: { eventTypeId: string }) =>
-        event.eventTypeId === holidayType.id,
+      (event: { eventTypeId: string }) => event.eventTypeId === holidayType.id,
     );
 
     expect(holidayEvents.length).toBe(275);
