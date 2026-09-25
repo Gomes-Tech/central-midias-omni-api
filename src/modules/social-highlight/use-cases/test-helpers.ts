@@ -15,7 +15,8 @@ export function makeSocialHighlight(
   return {
     id: 'social-highlight-id',
     organizationId: 'organization-id',
-    mobileImageKey: '/storage/social-highlights/mobile/social-highlight-mobile.png',
+    mobileImageKey:
+      '/storage/social-highlights/mobile/social-highlight-mobile.png',
     desktopImageKey: '/storage/social-highlights/social-highlight-desktop.png',
     mobileImageUrl: null,
     desktopImageUrl: null,

@@ -38,7 +38,9 @@ describe('GetAssetContentUseCase', () => {
     findAssetByIdUseCase.execute.mockResolvedValue(asset);
     assetStorageService.read.mockResolvedValue(Buffer.from('png'));
 
-    await expect(useCase.execute(asset.id, asset.organizationId)).resolves.toEqual({
+    await expect(
+      useCase.execute(asset.id, asset.organizationId),
+    ).resolves.toEqual({
       buffer: Buffer.from('png'),
       mimeType: 'image/png',
     });

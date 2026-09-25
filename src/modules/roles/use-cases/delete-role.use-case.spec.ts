@@ -1,9 +1,8 @@
-import { BadRequestException } from '@common/filters';
 import { PrismaService } from '@infrastructure/prisma';
 import { RolesRepository } from '../repository';
-import { makeRole } from './test-helpers';
-import { FindRoleByIdUseCase } from './find-role-by-id.use-case';
 import { DeleteRoleUseCase } from './delete-role.use-case';
+import { FindRoleByIdUseCase } from './find-role-by-id.use-case';
+import { makeRole } from './test-helpers';
 
 function createPrismaMock() {
   return {

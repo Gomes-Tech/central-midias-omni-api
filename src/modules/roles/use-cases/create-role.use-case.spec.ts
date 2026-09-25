@@ -1,8 +1,7 @@
-import { BadRequestException } from '@common/filters';
 import { CreateCategoryRoleAccessUseCase } from '@modules/category-role-access/use-cases/create-category-role-access.use-case';
 import { RolesRepository } from '../repository';
-import { makeCreateRoleDTO } from './test-helpers';
 import { CreateRoleUseCase } from './create-role.use-case';
+import { makeCreateRoleDTO } from './test-helpers';
 
 describe('CreateRoleUseCase', () => {
   let rolesRepository: jest.Mocked<
@@ -35,7 +34,10 @@ describe('CreateRoleUseCase', () => {
     const orgId = 'org-1';
 
     rolesRepository.findByName.mockResolvedValue(null);
-    rolesRepository.create.mockResolvedValue({ id: 'new-role', name: dto.name });
+    rolesRepository.create.mockResolvedValue({
+      id: 'new-role',
+      name: dto.name,
+    });
 
     await expect(useCase.execute(dto, orgId)).resolves.toBeUndefined();
 
@@ -56,7 +58,10 @@ describe('CreateRoleUseCase', () => {
 
   it('deve lançar BadRequest quando o nome já existir', async () => {
     const dto = makeCreateRoleDTO({ name: 'EXISTING' });
-    rolesRepository.findByName.mockResolvedValue({ id: 'r1', name: 'EXISTING' } as never);
+    rolesRepository.findByName.mockResolvedValue({
+      id: 'r1',
+      name: 'EXISTING',
+    } as never);
 
     await expect(useCase.execute(dto, 'org-1')).rejects.toThrow(
       'Já existe um perfil com este nome',

@@ -1,4 +1,9 @@
-export const MATERIAL_EXPORT_TYPES = ['png', 'jpg', 'pdf', 'print_pdf'] as const;
+export const MATERIAL_EXPORT_TYPES = [
+  'png',
+  'jpg',
+  'pdf',
+  'print_pdf',
+] as const;
 
 export type MaterialExportType = (typeof MATERIAL_EXPORT_TYPES)[number];
 

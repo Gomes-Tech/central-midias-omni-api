@@ -33,8 +33,10 @@ describe('DeleteSocialHighlightUseCase', () => {
   it('deve validar o banner antes de excluir e remover os arquivos associados', async () => {
     getSocialHighlightUseCase.execute.mockResolvedValue(
       makeSocialHighlight({
-        mobileImageKey: '/storage/social-highlights/mobile/social-highlight-mobile.png',
-        desktopImageKey: 'https://cdn.test/social-highlights/social-highlight-desktop.png',
+        mobileImageKey:
+          '/storage/social-highlights/mobile/social-highlight-mobile.png',
+        desktopImageKey:
+          'https://cdn.test/social-highlights/social-highlight-desktop.png',
       }),
     );
     socialHighlightRepository.softDelete.mockResolvedValue();

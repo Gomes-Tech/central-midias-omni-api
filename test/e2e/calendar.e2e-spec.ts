@@ -1,11 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { E2E_IDS, E2E_PASSWORD } from '../fixtures/e2e-seed';
 import { createE2eApp } from '../helpers/create-e2e-app';
-import {
-  e2eAuthHeaders,
-  e2eRequest,
-  e2eSignIn,
-} from '../helpers/e2e-http';
+import { e2eAuthHeaders, e2eRequest, e2eSignIn } from '../helpers/e2e-http';
 import { getE2eStore } from '../helpers/e2e-prisma.store';
 
 describe('Calendar (e2e)', () => {

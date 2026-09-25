@@ -52,9 +52,9 @@ describe('FileSizeValidationInterceptor', () => {
     const next = { handle: () => of('ok') };
     const ctx = createContext({});
 
-    await expect(
-      lastValueFrom(interceptor.intercept(ctx, next)),
-    ).resolves.toBe('ok');
+    await expect(lastValueFrom(interceptor.intercept(ctx, next))).resolves.toBe(
+      'ok',
+    );
     expect(reflector.getAllAndOverride).toHaveBeenCalledWith(
       MAX_FILE_SIZE_KEY,
       expect.any(Array),
@@ -67,9 +67,9 @@ describe('FileSizeValidationInterceptor', () => {
     const next = { handle: () => of(1) };
     const ctx = createContext({ file });
 
-    await expect(
-      lastValueFrom(interceptor.intercept(ctx, next)),
-    ).resolves.toBe(1);
+    await expect(lastValueFrom(interceptor.intercept(ctx, next))).resolves.toBe(
+      1,
+    );
   });
 
   it('deve respeitar limite vindo do Reflector', async () => {
@@ -78,9 +78,7 @@ describe('FileSizeValidationInterceptor', () => {
     const next = { handle: () => of(1) };
 
     await expect(
-      lastValueFrom(
-        interceptor.intercept(createContext({ file }), next),
-      ),
+      lastValueFrom(interceptor.intercept(createContext({ file }), next)),
     ).resolves.toBe(1);
   });
 
@@ -89,9 +87,9 @@ describe('FileSizeValidationInterceptor', () => {
     const file = multerFile({ size: MB + 100, originalname: 'grande.bin' });
     const next = { handle: () => of(1) };
 
-    expect(() =>
-      interceptor.intercept(createContext({ file }), next),
-    ).toThrow(BadRequestException);
+    expect(() => interceptor.intercept(createContext({ file }), next)).toThrow(
+      BadRequestException,
+    );
   });
 
   it('deve validar array de arquivos', () => {
@@ -102,9 +100,9 @@ describe('FileSizeValidationInterceptor', () => {
     ];
     const next = { handle: () => of(1) };
 
-    expect(() =>
-      interceptor.intercept(createContext({ files }), next),
-    ).toThrow(BadRequestException);
+    expect(() => interceptor.intercept(createContext({ files }), next)).toThrow(
+      BadRequestException,
+    );
   });
 
   it('deve validar arquivos em objeto por campo', () => {
@@ -114,9 +112,9 @@ describe('FileSizeValidationInterceptor', () => {
     };
     const next = { handle: () => of(1) };
 
-    expect(() =>
-      interceptor.intercept(createContext({ files }), next),
-    ).toThrow(BadRequestException);
+    expect(() => interceptor.intercept(createContext({ files }), next)).toThrow(
+      BadRequestException,
+    );
   });
 
   it('deve validar arquivo único dentro de objeto (campo não-array)', () => {
@@ -126,9 +124,9 @@ describe('FileSizeValidationInterceptor', () => {
     };
     const next = { handle: () => of(1) };
 
-    expect(() =>
-      interceptor.intercept(createContext({ files }), next),
-    ).toThrow(BadRequestException);
+    expect(() => interceptor.intercept(createContext({ files }), next)).toThrow(
+      BadRequestException,
+    );
   });
 
   it('deve ignorar tamanho quando a rota marca UnlimitedFileSize', async () => {

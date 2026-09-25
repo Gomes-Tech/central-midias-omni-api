@@ -29,9 +29,9 @@ jest.mock('node:fs', () => {
 });
 
 jest.mock('multer', () => {
-  const {
-    PRINT_IMAGE_MAX_BYTES: printImageMaxBytes,
-  } = jest.requireActual('@common/constants/print-image-limits');
+  const { PRINT_IMAGE_MAX_BYTES: printImageMaxBytes } = jest.requireActual(
+    '@common/constants/print-image-limits',
+  );
   const memoryStorage = jest.fn(() => 'memory-storage');
   const diskStorage = jest.fn(
     (opts: {

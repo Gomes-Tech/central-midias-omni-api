@@ -101,9 +101,7 @@ export class CreateGlobalUserUseCase {
         );
 
       if (existingIds.length !== organizationIds.length) {
-        throw new BadRequestException(
-          'Organização não encontrada ou inativa.',
-        );
+        throw new BadRequestException('Organização não encontrada ou inativa.');
       }
 
       return organizationIds;

@@ -31,9 +31,9 @@ describe('MaterialAcceptanceExportProcessor', () => {
       data: payload,
     } as Job);
 
-    expect(sendMaterialAcceptanceExportEmailUseCase.execute).toHaveBeenCalledWith(
-      payload,
-    );
+    expect(
+      sendMaterialAcceptanceExportEmailUseCase.execute,
+    ).toHaveBeenCalledWith(payload);
   });
 
   it('deve propagar erro para BullMQ retry', async () => {
@@ -54,6 +54,8 @@ describe('MaterialAcceptanceExportProcessor', () => {
       data: {},
     } as Job);
 
-    expect(sendMaterialAcceptanceExportEmailUseCase.execute).not.toHaveBeenCalled();
+    expect(
+      sendMaterialAcceptanceExportEmailUseCase.execute,
+    ).not.toHaveBeenCalled();
   });
 });

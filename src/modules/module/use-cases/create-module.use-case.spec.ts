@@ -33,7 +33,9 @@ describe('CreateModuleUseCase', () => {
 
   it('deve lançar BadRequest quando já existir módulo com mesmo nome', async () => {
     const dto = makeCreateModuleDTO({ name: 'roles' });
-    moduleRepository.findByName.mockResolvedValue(makeModule({ name: 'roles' }));
+    moduleRepository.findByName.mockResolvedValue(
+      makeModule({ name: 'roles' }),
+    );
 
     await expect(useCase.execute(dto)).rejects.toBeInstanceOf(
       BadRequestException,

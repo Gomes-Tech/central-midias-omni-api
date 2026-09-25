@@ -52,9 +52,7 @@ export class EnqueueInAppNotificationsUseCase {
     }
 
     const isUpdate = input.type === 'MATERIAL_UPDATED';
-    const title = isUpdate
-      ? 'Material atualizado'
-      : 'Novo material disponível';
+    const title = isUpdate ? 'Material atualizado' : 'Novo material disponível';
     const body = `${material.name} · ${material.category.name}`;
     const href = `/material/${material.id}`;
     const dedupeSuffix = isUpdate

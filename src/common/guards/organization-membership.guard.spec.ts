@@ -17,7 +17,10 @@ function fakeAuthorizationHeader(userId: string): string {
 }
 
 function createExecutionContext(
-  request: Partial<Request> & { organizationId?: string; user?: { id: string } },
+  request: Partial<Request> & {
+    organizationId?: string;
+    user?: { id: string };
+  },
   type: string = 'http',
 ): ExecutionContext {
   return {

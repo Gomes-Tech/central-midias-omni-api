@@ -155,9 +155,9 @@ describe('ModuleRepository', () => {
     it('deve lançar BadRequest quando create falhar', async () => {
       prisma.module.create.mockRejectedValue(new Error('db'));
 
-      await expect(
-        repository.create(makeCreateModuleDTO()),
-      ).rejects.toThrow('Erro ao criar módulo');
+      await expect(repository.create(makeCreateModuleDTO())).rejects.toThrow(
+        'Erro ao criar módulo',
+      );
     });
   });
 

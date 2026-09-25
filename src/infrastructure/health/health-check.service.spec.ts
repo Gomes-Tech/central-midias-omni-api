@@ -102,7 +102,10 @@ describe('HealthCheckService', () => {
 
   it('checkHealth deve tratar rejeição de checkDatabase via Promise.allSettled', async () => {
     jest
-      .spyOn(service as unknown as { checkDatabase: () => Promise<unknown> }, 'checkDatabase')
+      .spyOn(
+        service as unknown as { checkDatabase: () => Promise<unknown> },
+        'checkDatabase',
+      )
       .mockRejectedValue(new Error('db rejected'));
 
     const result = await service.checkHealth();
@@ -113,7 +116,10 @@ describe('HealthCheckService', () => {
 
   it('checkHealth deve tratar rejeição de checkCache via Promise.allSettled', async () => {
     jest
-      .spyOn(service as unknown as { checkCache: () => Promise<unknown> }, 'checkCache')
+      .spyOn(
+        service as unknown as { checkCache: () => Promise<unknown> },
+        'checkCache',
+      )
       .mockRejectedValue('cache rejected');
 
     const result = await service.checkHealth();
@@ -141,7 +147,10 @@ describe('HealthCheckService', () => {
 
   it('checkHealth deve usar mensagem padrão quando checkDatabase rejeitar sem Error', async () => {
     jest
-      .spyOn(service as unknown as { checkDatabase: () => Promise<unknown> }, 'checkDatabase')
+      .spyOn(
+        service as unknown as { checkDatabase: () => Promise<unknown> },
+        'checkDatabase',
+      )
       .mockRejectedValue('raw-db-fail');
 
     const result = await service.checkHealth();
@@ -151,7 +160,10 @@ describe('HealthCheckService', () => {
 
   it('checkReadiness deve retornar error quando database check retornar status error', async () => {
     jest
-      .spyOn(service as unknown as { checkDatabase: () => Promise<unknown> }, 'checkDatabase')
+      .spyOn(
+        service as unknown as { checkDatabase: () => Promise<unknown> },
+        'checkDatabase',
+      )
       .mockResolvedValue({ status: 'error' });
 
     const result = await service.checkReadiness();
@@ -162,7 +174,10 @@ describe('HealthCheckService', () => {
 
   it('checkReadiness deve tratar rejeição de checkCache', async () => {
     jest
-      .spyOn(service as unknown as { checkCache: () => Promise<unknown> }, 'checkCache')
+      .spyOn(
+        service as unknown as { checkCache: () => Promise<unknown> },
+        'checkCache',
+      )
       .mockRejectedValue(new Error('cache down'));
 
     const result = await service.checkReadiness();

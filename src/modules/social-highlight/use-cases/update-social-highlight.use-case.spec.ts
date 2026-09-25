@@ -144,8 +144,10 @@ describe('UpdateSocialHighlightUseCase', () => {
 
     getSocialHighlightUseCase.execute.mockResolvedValue(
       makeSocialHighlight({
-        mobileImageKey: '/storage/social-highlights/mobile/social-highlight-old-mobile.png',
-        desktopImageKey: '/storage/social-highlights/social-highlight-old-desktop.png',
+        mobileImageKey:
+          '/storage/social-highlights/mobile/social-highlight-old-mobile.png',
+        desktopImageKey:
+          '/storage/social-highlights/social-highlight-old-desktop.png',
       }),
     );
     storageService.uploadFile
@@ -153,7 +155,8 @@ describe('UpdateSocialHighlightUseCase', () => {
         makeStorageFile({
           path: 'social-highlights/social-highlight-new-mobile.png',
           fullPath: '/tmp/social-highlights/social-highlight-new-mobile.png',
-          publicUrl: '/storage/social-highlights/social-highlight-new-mobile.png',
+          publicUrl:
+            '/storage/social-highlights/social-highlight-new-mobile.png',
         }),
       )
       .mockResolvedValueOnce(
@@ -161,7 +164,8 @@ describe('UpdateSocialHighlightUseCase', () => {
           id: 'desktop-file-id',
           path: 'social-highlights/social-highlight-new-desktop.png',
           fullPath: '/tmp/social-highlights/social-highlight-new-desktop.png',
-          publicUrl: '/storage/social-highlights/social-highlight-new-desktop.png',
+          publicUrl:
+            '/storage/social-highlights/social-highlight-new-desktop.png',
         }),
       );
     storageService.deleteFile.mockResolvedValue();
@@ -207,14 +211,18 @@ describe('UpdateSocialHighlightUseCase', () => {
 
   it('deve atualizar banner quando somente uma nova mobileImage for enviada', async () => {
     const files = {
-      mobileImage: makeSocialHighlightFile({ originalname: 'social-highlight-mobile.png' }),
+      mobileImage: makeSocialHighlightFile({
+        originalname: 'social-highlight-mobile.png',
+      }),
       desktopImage: undefined as unknown as Express.Multer.File,
     };
 
     getSocialHighlightUseCase.execute.mockResolvedValue(
       makeSocialHighlight({
-        mobileImageKey: '/storage/social-highlights/mobile/social-highlight-old-mobile.png',
-        desktopImageKey: '/storage/social-highlights/social-highlight-old-desktop.png',
+        mobileImageKey:
+          '/storage/social-highlights/mobile/social-highlight-old-mobile.png',
+        desktopImageKey:
+          '/storage/social-highlights/social-highlight-old-desktop.png',
       }),
     );
     storageService.uploadFile.mockResolvedValue(
@@ -260,20 +268,25 @@ describe('UpdateSocialHighlightUseCase', () => {
   it('deve atualizar banner quando somente uma nova desktopImage for enviada', async () => {
     const files = {
       mobileImage: undefined as unknown as Express.Multer.File,
-      desktopImage: makeSocialHighlightFile({ originalname: 'social-highlight-desktop.png' }),
+      desktopImage: makeSocialHighlightFile({
+        originalname: 'social-highlight-desktop.png',
+      }),
     };
 
     getSocialHighlightUseCase.execute.mockResolvedValue(
       makeSocialHighlight({
-        mobileImageKey: '/storage/social-highlights/mobile/social-highlight-old-mobile.png',
-        desktopImageKey: '/storage/social-highlights/social-highlight-old-desktop.png',
+        mobileImageKey:
+          '/storage/social-highlights/mobile/social-highlight-old-mobile.png',
+        desktopImageKey:
+          '/storage/social-highlights/social-highlight-old-desktop.png',
       }),
     );
     storageService.uploadFile.mockResolvedValue(
       makeStorageFile({
         path: 'social-highlights/social-highlight-new-desktop.png',
         fullPath: '/tmp/social-highlights/social-highlight-new-desktop.png',
-        publicUrl: '/storage/social-highlights/social-highlight-new-desktop.png',
+        publicUrl:
+          '/storage/social-highlights/social-highlight-new-desktop.png',
       }),
     );
     storageService.deleteFile.mockResolvedValue();
@@ -351,13 +364,16 @@ describe('UpdateSocialHighlightUseCase', () => {
   it('deve propagar erro quando storageService.deleteFile falhar', async () => {
     const error = new Error('Erro ao remover arquivo anterior');
     const files = {
-      mobileImage: makeSocialHighlightFile({ originalname: 'social-highlight-mobile.png' }),
+      mobileImage: makeSocialHighlightFile({
+        originalname: 'social-highlight-mobile.png',
+      }),
       desktopImage: undefined as unknown as Express.Multer.File,
     };
 
     getSocialHighlightUseCase.execute.mockResolvedValue(
       makeSocialHighlight({
-        mobileImageKey: '/storage/social-highlights/mobile/social-highlight-old-mobile.png',
+        mobileImageKey:
+          '/storage/social-highlights/mobile/social-highlight-old-mobile.png',
       }),
     );
     storageService.uploadFile.mockResolvedValue(
@@ -515,7 +531,9 @@ describe('UpdateSocialHighlightUseCase', () => {
   it('deve manter path absoluto ao remover desktop antigo sem prefixo /storage/', async () => {
     const files = {
       mobileImage: undefined as unknown as Express.Multer.File,
-      desktopImage: makeSocialHighlightFile({ originalname: 'social-highlight-desktop.png' }),
+      desktopImage: makeSocialHighlightFile({
+        originalname: 'social-highlight-desktop.png',
+      }),
     };
 
     getSocialHighlightUseCase.execute.mockResolvedValue(
@@ -557,7 +575,9 @@ describe('UpdateSocialHighlightUseCase', () => {
 
   it('deve manter path absoluto ao remover imagem antiga sem prefixo /storage/', async () => {
     const files = {
-      mobileImage: makeSocialHighlightFile({ originalname: 'social-highlight-mobile.png' }),
+      mobileImage: makeSocialHighlightFile({
+        originalname: 'social-highlight-mobile.png',
+      }),
       desktopImage: undefined as unknown as Express.Multer.File,
     };
 

@@ -1,5 +1,9 @@
 import { HttpExceptionFilter } from '@common/filters';
-import { AuthGuard, CategoryPermissionGuard, OrganizationMembershipGuard } from '@common/guards';
+import {
+  AuthGuard,
+  CategoryPermissionGuard,
+  OrganizationMembershipGuard,
+} from '@common/guards';
 import {
   FileSizeValidationInterceptor,
   FileTypeValidationInterceptor,

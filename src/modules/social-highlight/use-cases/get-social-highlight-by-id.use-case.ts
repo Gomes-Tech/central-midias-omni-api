@@ -14,7 +14,10 @@ export class GetSocialHighlightUseCase {
   ) {}
 
   async execute(id: string, organizationId: string): Promise<SocialHighlight> {
-    const banner = await this.socialHighlightRepository.findById(id, organizationId);
+    const banner = await this.socialHighlightRepository.findById(
+      id,
+      organizationId,
+    );
 
     if (!banner) {
       throw new NotFoundException('Destaque social não encontrado');

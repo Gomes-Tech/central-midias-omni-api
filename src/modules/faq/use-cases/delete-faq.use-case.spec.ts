@@ -48,8 +48,8 @@ describe('DeleteFaqUseCase', () => {
     faqRepository.existsById.mockResolvedValue({ id: 'faq-1' });
     faqRepository.softDelete.mockRejectedValue(error);
 
-    await expect(
-      useCase.execute('faq-1', 'org-1', 'user-1'),
-    ).rejects.toBe(error);
+    await expect(useCase.execute('faq-1', 'org-1', 'user-1')).rejects.toBe(
+      error,
+    );
   });
 });

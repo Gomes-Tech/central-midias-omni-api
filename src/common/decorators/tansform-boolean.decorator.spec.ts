@@ -9,10 +9,9 @@ const transformMock = jest.fn(
     }) => unknown,
     options?: object,
   ) => {
-    return jest.requireActual('class-transformer').Transform(
-      transformFn,
-      options,
-    );
+    return jest
+      .requireActual('class-transformer')
+      .Transform(transformFn, options);
   },
 );
 

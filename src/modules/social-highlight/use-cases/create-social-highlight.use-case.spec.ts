@@ -22,7 +22,10 @@ describe('CreateSocialHighlightUseCase', () => {
       uploadFile: jest.fn(),
     } as unknown as jest.Mocked<StorageService>;
 
-    useCase = new CreateSocialHighlightUseCase(socialHighlightRepository, storageService);
+    useCase = new CreateSocialHighlightUseCase(
+      socialHighlightRepository,
+      storageService,
+    );
   });
 
   it('deve impedir criação quando a data inicial for maior que a data final', async () => {
@@ -122,7 +125,8 @@ describe('CreateSocialHighlightUseCase', () => {
         makeStorageFile({
           path: 'social-highlights/mobile/social-highlight-mobile.png',
           fullPath: '/tmp/social-highlights/mobile/social-highlight-mobile.png',
-          publicUrl: '/storage/social-highlights/mobile/social-highlight-mobile.png',
+          publicUrl:
+            '/storage/social-highlights/mobile/social-highlight-mobile.png',
         }),
       )
       .mockResolvedValueOnce(
@@ -199,7 +203,8 @@ describe('CreateSocialHighlightUseCase', () => {
     storageService.uploadFile
       .mockResolvedValueOnce(
         makeStorageFile({
-          publicUrl: '/storage/social-highlights/mobile/social-highlight-mobile.png',
+          publicUrl:
+            '/storage/social-highlights/mobile/social-highlight-mobile.png',
         }),
       )
       .mockResolvedValueOnce(

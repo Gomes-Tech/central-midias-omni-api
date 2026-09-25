@@ -15,7 +15,9 @@ function createPrismaMock() {
 
 describe('DeleteModuleUseCase', () => {
   let moduleRepository: jest.Mocked<Pick<ModuleRepository, 'delete'>>;
-  let findModuleByIdUseCase: jest.Mocked<Pick<FindModuleByIdUseCase, 'execute'>>;
+  let findModuleByIdUseCase: jest.Mocked<
+    Pick<FindModuleByIdUseCase, 'execute'>
+  >;
   let prisma: ReturnType<typeof createPrismaMock>;
   let useCase: DeleteModuleUseCase;
 

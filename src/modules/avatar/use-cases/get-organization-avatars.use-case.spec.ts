@@ -5,7 +5,9 @@ import { GetOrganizationAvatarsUseCase } from './get-organization-avatars.use-ca
 
 describe('GetOrganizationAvatarsUseCase', () => {
   let avatarRepository: jest.Mocked<Pick<AvatarRepository, 'findAvatarKeys'>>;
-  let findMemberRoleUseCase: jest.Mocked<Pick<FindMemberRoleUseCase, 'execute'>>;
+  let findMemberRoleUseCase: jest.Mocked<
+    Pick<FindMemberRoleUseCase, 'execute'>
+  >;
   let storageService: jest.Mocked<Pick<StorageService, 'getPublicUrl'>>;
   let useCase: GetOrganizationAvatarsUseCase;
 

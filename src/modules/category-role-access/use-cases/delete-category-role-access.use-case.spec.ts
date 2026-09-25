@@ -4,10 +4,7 @@ import { DeleteCategoryRoleAccessUseCase } from './delete-category-role-access.u
 
 describe('DeleteCategoryRoleAccessUseCase', () => {
   let repository: jest.Mocked<
-    Pick<
-      CategoryRoleAccessRepository,
-      'findByIdAndOrganization' | 'deleteById'
-    >
+    Pick<CategoryRoleAccessRepository, 'findByIdAndOrganization' | 'deleteById'>
   >;
   let useCase: DeleteCategoryRoleAccessUseCase;
 
@@ -23,12 +20,12 @@ describe('DeleteCategoryRoleAccessUseCase', () => {
   });
 
   it('deve excluir quando o vínculo existir na organização', async () => {
-    repository.findByIdAndOrganization.mockResolvedValue({ id: 'cra-1' } as never);
+    repository.findByIdAndOrganization.mockResolvedValue({
+      id: 'cra-1',
+    } as never);
     repository.deleteById.mockResolvedValue(undefined);
 
-    await expect(
-      useCase.execute('cra-1', 'org-1'),
-    ).resolves.toBeUndefined();
+    await expect(useCase.execute('cra-1', 'org-1')).resolves.toBeUndefined();
 
     expect(repository.findByIdAndOrganization).toHaveBeenCalledWith(
       'cra-1',

@@ -28,9 +28,7 @@ describe('GetFaqItemByIdUseCase', () => {
   it('deve retornar o item quando ele existir', async () => {
     faqRepository.findItemByIdOnly.mockResolvedValue(item);
 
-    await expect(
-      useCase.execute('item-1', 'org-1'),
-    ).resolves.toEqual(item);
+    await expect(useCase.execute('item-1', 'org-1')).resolves.toEqual(item);
 
     expect(faqRepository.findItemByIdOnly).toHaveBeenCalledWith(
       'item-1',
@@ -41,12 +39,12 @@ describe('GetFaqItemByIdUseCase', () => {
   it('deve lançar NotFound quando o item não existir', async () => {
     faqRepository.findItemByIdOnly.mockResolvedValue(null);
 
-    await expect(
-      useCase.execute('item-1', 'org-1'),
-    ).rejects.toBeInstanceOf(NotFoundException);
-    await expect(
-      useCase.execute('item-1', 'org-1'),
-    ).rejects.toThrow('Item do FAQ não encontrado');
+    await expect(useCase.execute('item-1', 'org-1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    await expect(useCase.execute('item-1', 'org-1')).rejects.toThrow(
+      'Item do FAQ não encontrado',
+    );
   });
 
   it('deve propagar erro quando o repositório falhar', async () => {

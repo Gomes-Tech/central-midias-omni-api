@@ -66,13 +66,11 @@ describe('MaterialTemplateImageService', () => {
 
   it('rejeita lado e área acima dos limites', () => {
     expect(() =>
-      service.validate(
-        file(png(MATERIAL_TEMPLATE_IMAGE_MAX_SIDE + 1, 100)),
-      ),
+      service.validate(file(png(MATERIAL_TEMPLATE_IMAGE_MAX_SIDE + 1, 100))),
     ).toThrow(MATERIAL_TEMPLATE_IMAGE_RESOLUTION_MESSAGE);
-    expect(() =>
-      service.validate(file(png(11000, 11000))),
-    ).toThrow(MATERIAL_TEMPLATE_IMAGE_RESOLUTION_MESSAGE);
+    expect(() => service.validate(file(png(11000, 11000)))).toThrow(
+      MATERIAL_TEMPLATE_IMAGE_RESOLUTION_MESSAGE,
+    );
   });
 
   it('aceita imagens de grande formato para impressão de alta qualidade', () => {

@@ -74,6 +74,8 @@ export class UpsertOrganizationAvatarUseCase {
       return true;
     }
 
-    return mime === 'image/png' || mime === 'image/jpeg' || mime === 'image/jpg';
+    return (
+      mime === 'image/png' || mime === 'image/jpeg' || mime === 'image/jpg'
+    );
   }
 }

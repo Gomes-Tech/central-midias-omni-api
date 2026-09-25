@@ -113,9 +113,7 @@ export class NotificationGateway
         return;
       }
 
-      await client.join(
-        buildNotificationRoom(payload.id, auth.organizationId),
-      );
+      await client.join(buildNotificationRoom(payload.id, auth.organizationId));
     } catch {
       client.disconnect();
     }

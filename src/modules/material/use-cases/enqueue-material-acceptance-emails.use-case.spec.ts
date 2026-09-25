@@ -1,7 +1,5 @@
 import { LoggerService } from '@infrastructure/log';
-import {
-  MATERIAL_ACCEPTANCE_EMAIL_JOB,
-} from '@infrastructure/queue';
+import { MATERIAL_ACCEPTANCE_EMAIL_JOB } from '@infrastructure/queue';
 import { MaterialRepository } from '../repository';
 import { EnqueueMaterialAcceptanceEmailsUseCase } from './enqueue-material-acceptance-emails.use-case';
 import { makeMaterialDetails } from './test-helpers';
@@ -50,9 +48,9 @@ describe('EnqueueMaterialAcceptanceEmailsUseCase', () => {
       },
     ]);
 
-    await expect(
-      useCase.execute(material.id, 'org-id'),
-    ).resolves.toEqual({ enqueued: 2 });
+    await expect(useCase.execute(material.id, 'org-id')).resolves.toEqual({
+      enqueued: 2,
+    });
 
     expect(materialAcceptanceEmailQueue.add).toHaveBeenCalledTimes(2);
     expect(materialAcceptanceEmailQueue.add).toHaveBeenCalledWith(
@@ -73,9 +71,9 @@ describe('EnqueueMaterialAcceptanceEmailsUseCase', () => {
   it('não deve enfileirar quando material não exigir aceite', async () => {
     materialRepository.findById.mockResolvedValue(makeMaterialDetails());
 
-    await expect(
-      useCase.execute('material-id', 'org-id'),
-    ).resolves.toEqual({ enqueued: 0 });
+    await expect(useCase.execute('material-id', 'org-id')).resolves.toEqual({
+      enqueued: 0,
+    });
 
     expect(materialAcceptanceEmailQueue.add).not.toHaveBeenCalled();
   });
@@ -83,9 +81,9 @@ describe('EnqueueMaterialAcceptanceEmailsUseCase', () => {
   it('não deve enfileirar quando material não existir', async () => {
     materialRepository.findById.mockResolvedValue(null);
 
-    await expect(
-      useCase.execute('material-id', 'org-id'),
-    ).resolves.toEqual({ enqueued: 0 });
+    await expect(useCase.execute('material-id', 'org-id')).resolves.toEqual({
+      enqueued: 0,
+    });
 
     expect(materialAcceptanceEmailQueue.add).not.toHaveBeenCalled();
   });
@@ -96,9 +94,9 @@ describe('EnqueueMaterialAcceptanceEmailsUseCase', () => {
     );
     materialRepository.findEligibleMembersForCategory.mockResolvedValue([]);
 
-    await expect(
-      useCase.execute('material-id', 'org-id'),
-    ).resolves.toEqual({ enqueued: 0 });
+    await expect(useCase.execute('material-id', 'org-id')).resolves.toEqual({
+      enqueued: 0,
+    });
 
     expect(materialAcceptanceEmailQueue.add).not.toHaveBeenCalled();
     expect(logger.info).toHaveBeenCalledWith(
@@ -124,9 +122,9 @@ describe('EnqueueMaterialAcceptanceEmailsUseCase', () => {
       },
     ]);
 
-    await expect(
-      useCase.execute(material.id, 'org-id'),
-    ).resolves.toEqual({ enqueued: 1 });
+    await expect(useCase.execute(material.id, 'org-id')).resolves.toEqual({
+      enqueued: 1,
+    });
 
     expect(materialAcceptanceEmailQueue.add).toHaveBeenCalledWith(
       MATERIAL_ACCEPTANCE_EMAIL_JOB,

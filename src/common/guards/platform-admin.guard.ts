@@ -29,10 +29,7 @@ export class PlatformAdminGuard implements CanActivate {
       throw new UnauthorizedException('Usuário não autenticado.');
     }
 
-    const isPlatformAdmin = await userHasPlatformAdminRole(
-      this.prisma,
-      userId,
-    );
+    const isPlatformAdmin = await userHasPlatformAdminRole(this.prisma, userId);
 
     if (!isPlatformAdmin) {
       throw new ForbiddenException(

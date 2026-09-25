@@ -118,11 +118,7 @@ describe('AuthController', () => {
 
       await controller.signIn(dto, req);
 
-      expect(signInUser.execute).toHaveBeenCalledWith(
-        dto,
-        '10.0.0.5',
-        'jest',
-      );
+      expect(signInUser.execute).toHaveBeenCalledWith(dto, '10.0.0.5', 'jest');
     });
   });
 
@@ -143,9 +139,9 @@ describe('AuthController', () => {
     });
 
     it('deve lançar UnauthorizedException quando refreshToken estiver ausente', async () => {
-      await expect(controller.refresh({} as { refreshToken: string })).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        controller.refresh({} as { refreshToken: string }),
+      ).rejects.toThrow(UnauthorizedException);
       expect(refreshTokenUseCase.execute).not.toHaveBeenCalled();
     });
   });
@@ -159,10 +155,7 @@ describe('AuthController', () => {
 
       const result = await controller.logout(req, { refreshToken: 'r' });
 
-      expect(logoutUserUseCase.execute).toHaveBeenCalledWith(
-        'access-jwt',
-        'r',
-      );
+      expect(logoutUserUseCase.execute).toHaveBeenCalledWith('access-jwt', 'r');
       expect(result).toEqual({ success: true });
     });
 

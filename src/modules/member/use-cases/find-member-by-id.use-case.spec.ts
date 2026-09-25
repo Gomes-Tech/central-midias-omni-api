@@ -35,9 +35,9 @@ describe('FindMemberByIdUseCase', () => {
 
     memberRepository.findById.mockResolvedValue(member);
 
-    await expect(
-      useCase.execute('member-id', 'org-id'),
-    ).resolves.toEqual(member);
+    await expect(useCase.execute('member-id', 'org-id')).resolves.toEqual(
+      member,
+    );
     expect(memberRepository.findById).toHaveBeenCalledWith(
       'member-id',
       'org-id',

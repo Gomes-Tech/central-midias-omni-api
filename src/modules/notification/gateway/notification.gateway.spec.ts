@@ -55,7 +55,11 @@ describe('NotificationGateway', () => {
   });
 
   it('deve desconectar quando a API key for inválida', async () => {
-    const client = makeClient({ apiKey: 'wrong', token: 't', organizationId: 'org-1' });
+    const client = makeClient({
+      apiKey: 'wrong',
+      token: 't',
+      organizationId: 'org-1',
+    });
 
     await gateway.handleConnection(client);
 

@@ -29,7 +29,9 @@ describe('UpsertOrganizationAvatarUseCase', () => {
   let avatarRepository: jest.Mocked<
     Pick<AvatarRepository, 'findAvatarKey' | 'updateAvatarKey'>
   >;
-  let findMemberRoleUseCase: jest.Mocked<Pick<FindMemberRoleUseCase, 'execute'>>;
+  let findMemberRoleUseCase: jest.Mocked<
+    Pick<FindMemberRoleUseCase, 'execute'>
+  >;
   let storageService: jest.Mocked<
     Pick<StorageService, 'uploadFile' | 'deleteFile'>
   >;
@@ -77,7 +79,10 @@ describe('UpsertOrganizationAvatarUseCase', () => {
         'org-1',
         'user-1',
         'standard',
-        makeImageFile({ originalname: 'avatar.pdf', mimetype: 'application/pdf' }),
+        makeImageFile({
+          originalname: 'avatar.pdf',
+          mimetype: 'application/pdf',
+        }),
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(storageService.uploadFile).not.toHaveBeenCalled();

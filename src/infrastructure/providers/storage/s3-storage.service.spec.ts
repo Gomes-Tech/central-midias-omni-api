@@ -147,7 +147,7 @@ describe('S3StorageService', () => {
     );
   });
 
-  it("getSignedUrl deve gerar URL assinada", async () => {
+  it('getSignedUrl deve gerar URL assinada', async () => {
     const service = new S3StorageService();
 
     await expect(service.getSignedUrl('organizations/file.pdf')).resolves.toBe(
@@ -160,10 +160,10 @@ describe('S3StorageService', () => {
     );
     expect(GetObjectCommand).toHaveBeenCalledWith(
       expect.objectContaining({
-        Bucket: "test-bucket",
-        Key: "organizations/file.pdf",
-        ResponseContentDisposition: "inline",
-        ResponseContentType: "application/pdf",
+        Bucket: 'test-bucket',
+        Key: 'organizations/file.pdf',
+        ResponseContentDisposition: 'inline',
+        ResponseContentType: 'application/pdf',
       }),
     );
   });

@@ -18,7 +18,10 @@ describe('FirstAccessUserUseCase', () => {
       execute: jest.fn(),
     } as unknown as jest.Mocked<UpdateUserUseCase>;
 
-    useCase = new FirstAccessUserUseCase(findUserByIdUseCase, updateUserUseCase);
+    useCase = new FirstAccessUserUseCase(
+      findUserByIdUseCase,
+      updateUserUseCase,
+    );
   });
 
   it('deve definir senha e encerrar primeiro acesso quando isFirstAccess for true', async () => {
@@ -28,7 +31,9 @@ describe('FirstAccessUserUseCase', () => {
     findUserByIdUseCase.execute.mockResolvedValue(user);
     updateUserUseCase.execute.mockResolvedValue(undefined);
 
-    await expect(useCase.execute(user.id, newPassword)).resolves.toBeUndefined();
+    await expect(
+      useCase.execute(user.id, newPassword),
+    ).resolves.toBeUndefined();
 
     expect(updateUserUseCase.execute).toHaveBeenCalledWith(
       user.id,

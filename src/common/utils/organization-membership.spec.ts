@@ -1,4 +1,7 @@
-import { userCanAccessOrganization, userHasPlatformAdminRole } from './organization-membership';
+import {
+  userCanAccessOrganization,
+  userHasPlatformAdminRole,
+} from './organization-membership';
 
 describe('userCanAccessOrganization', () => {
   const prisma = {

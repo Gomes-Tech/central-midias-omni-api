@@ -21,14 +21,15 @@ describe('MetricsInterceptor', () => {
             path: '/',
             ...req,
           }) as import('express').Request,
-        getResponse: () =>
-          ({ statusCode: 200 }) as import('express').Response,
+        getResponse: () => ({ statusCode: 200 }) as import('express').Response,
       }),
     } as ExecutionContext;
   }
 
   it('deve registrar métricas em resposta bem-sucedida', (done) => {
-    const context = makeContext({ path: '/api/users/550e8400-e29b-41d4-a716-446655440000' });
+    const context = makeContext({
+      path: '/api/users/550e8400-e29b-41d4-a716-446655440000',
+    });
     const next = { handle: () => of('ok') };
 
     interceptor.intercept(context, next).subscribe({
@@ -46,7 +47,9 @@ describe('MetricsInterceptor', () => {
 
   it('deve usar request.route.path quando existir', (done) => {
     const context = makeContext({
-      route: { path: '/defined' } as NonNullable<import('express').Request['route']>,
+      route: { path: '/defined' } as NonNullable<
+        import('express').Request['route']
+      >,
       path: '/ignored',
     });
     const next = { handle: () => of(1) };

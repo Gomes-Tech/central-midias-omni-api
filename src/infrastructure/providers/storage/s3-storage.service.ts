@@ -138,12 +138,12 @@ export class S3StorageService implements StorageProvider {
 
   // ✅ GERAR URL (VIEW)
   async getSignedUrl(key: string, expieresIn?: number): Promise<string> {
-    const isPdf = key.toLowerCase().split("?")[0].endsWith(".pdf");
+    const isPdf = key.toLowerCase().split('?')[0].endsWith('.pdf');
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
-      ResponseContentDisposition: "inline",
-      ...(isPdf ? { ResponseContentType: "application/pdf" } : {}),
+      ResponseContentDisposition: 'inline',
+      ...(isPdf ? { ResponseContentType: 'application/pdf' } : {}),
     });
 
     return getSignedUrl(this.s3, command, {

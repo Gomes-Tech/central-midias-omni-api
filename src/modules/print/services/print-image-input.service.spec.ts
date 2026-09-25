@@ -102,15 +102,19 @@ describe('PrintImageInputService', () => {
     const filePath = join(dir, 'photo.png');
     writeFileSync(filePath, bytes);
 
-    const [image] = service.prepare(placeholderDocument, [binding], [
-      {
-        fieldname: 'photo_file',
-        originalname: 'photo.png',
-        mimetype: 'image/png',
-        size: bytes.length,
-        path: filePath,
-      } as Express.Multer.File,
-    ]);
+    const [image] = service.prepare(
+      placeholderDocument,
+      [binding],
+      [
+        {
+          fieldname: 'photo_file',
+          originalname: 'photo.png',
+          mimetype: 'image/png',
+          size: bytes.length,
+          path: filePath,
+        } as Express.Multer.File,
+      ],
+    );
 
     // O caminho da requisição guarda só o temporário em disco.
     expect(image.buffer).toBeUndefined();
@@ -132,15 +136,19 @@ describe('PrintImageInputService', () => {
 
   it('recusa imagem em disco ilegível', () => {
     expect(() =>
-      service.prepare(placeholderDocument, [binding], [
-        {
-          fieldname: 'photo_file',
-          originalname: 'photo.png',
-          mimetype: 'image/png',
-          size: 10,
-          path: join(tmpdir(), 'print-input-inexistente.png'),
-        } as Express.Multer.File,
-      ]),
+      service.prepare(
+        placeholderDocument,
+        [binding],
+        [
+          {
+            fieldname: 'photo_file',
+            originalname: 'photo.png',
+            mimetype: 'image/png',
+            size: 10,
+            path: join(tmpdir(), 'print-input-inexistente.png'),
+          } as Express.Multer.File,
+        ],
+      ),
     ).toThrow('Marcador photo');
   });
 

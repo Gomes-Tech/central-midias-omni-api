@@ -34,11 +34,7 @@ describe('CreateEventUseCase', () => {
 
     await useCase.execute('org-1', dto, 'user-1');
 
-    expect(eventRepository.create).toHaveBeenCalledWith(
-      'org-1',
-      dto,
-      'user-1',
-    );
+    expect(eventRepository.create).toHaveBeenCalledWith('org-1', dto, 'user-1');
   });
 
   it('deve lançar BadRequest quando startDate for em dia anterior a hoje', async () => {
@@ -101,11 +97,7 @@ describe('CreateEventUseCase', () => {
 
     await useCase.execute('org-1', dto, 'user-1');
 
-    expect(eventRepository.create).toHaveBeenCalledWith(
-      'org-1',
-      dto,
-      'user-1',
-    );
+    expect(eventRepository.create).toHaveBeenCalledWith('org-1', dto, 'user-1');
   });
 
   it('deve lançar BadRequest quando materialId for inválido', async () => {

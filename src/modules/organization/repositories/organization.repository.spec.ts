@@ -323,16 +323,20 @@ describe('OrganizationRepository', () => {
   });
 
   describe('create', () => {
-    function createTransactionMock(overrides: {
-      txOrgCreate?: jest.Mock;
-      txRoleFind?: jest.Mock;
-      txMemberCreate?: jest.Mock;
-      txFaqCreate?: jest.Mock;
-    } = {}) {
+    function createTransactionMock(
+      overrides: {
+        txOrgCreate?: jest.Mock;
+        txRoleFind?: jest.Mock;
+        txMemberCreate?: jest.Mock;
+        txFaqCreate?: jest.Mock;
+      } = {},
+    ) {
       const txOrgCreate =
-        overrides.txOrgCreate ?? jest.fn().mockResolvedValue({ id: 'new-org-id' });
+        overrides.txOrgCreate ??
+        jest.fn().mockResolvedValue({ id: 'new-org-id' });
       const txRoleFind =
-        overrides.txRoleFind ?? jest.fn().mockResolvedValue({ id: 'admin-role-id' });
+        overrides.txRoleFind ??
+        jest.fn().mockResolvedValue({ id: 'admin-role-id' });
       const txMemberCreate =
         overrides.txMemberCreate ?? jest.fn().mockResolvedValue({});
       const txFaqCreate =

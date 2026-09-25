@@ -43,10 +43,9 @@ describe('EnqueueInAppNotificationsUseCase', () => {
       }),
     ).resolves.toEqual({ enqueued: 2 });
 
-    expect(materialRepository.findEligibleMembersForCategory).toHaveBeenCalledWith(
-      'org-id',
-      material.categoryId,
-    );
+    expect(
+      materialRepository.findEligibleMembersForCategory,
+    ).toHaveBeenCalledWith('org-id', material.categoryId);
     expect(createInAppNotificationUseCase.execute).toHaveBeenCalledTimes(2);
     expect(createInAppNotificationUseCase.execute).toHaveBeenCalledWith(
       expect.objectContaining({

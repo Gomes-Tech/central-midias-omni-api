@@ -25,9 +25,7 @@ const memoryStorage = multer.memoryStorage();
 const materialUploadDir = join(tmpdir(), 'omni-material-uploads');
 const printUploadDir = join(tmpdir(), 'omni-print-uploads');
 
-function createUploadDiskStorage(
-  directory: string,
-): multer.StorageEngine {
+function createUploadDiskStorage(directory: string): multer.StorageEngine {
   return multer.diskStorage({
     destination: (_req, _file, cb) => {
       try {

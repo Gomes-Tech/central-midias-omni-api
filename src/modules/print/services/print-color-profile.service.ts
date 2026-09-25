@@ -5,10 +5,7 @@ import { PrismaService } from '@infrastructure/prisma';
 import { StorageService } from '@infrastructure/providers';
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
-import {
-  CreatePrintColorProfileDTO,
-  UpdatePrintColorProfileDTO,
-} from '../dto';
+import { CreatePrintColorProfileDTO, UpdatePrintColorProfileDTO } from '../dto';
 
 const profilePublicSelect = {
   id: true,

@@ -38,15 +38,17 @@ describe('PlatformAdminGuard', () => {
   });
 
   it('deve ignorar contextos que não são HTTP', async () => {
-    await expect(guard.canActivate(createExecutionContext({}, 'ws'))).resolves.toBe(
-      true,
-    );
+    await expect(
+      guard.canActivate(createExecutionContext({}, 'ws')),
+    ).resolves.toBe(true);
     expect(prisma.user.findFirst).not.toHaveBeenCalled();
   });
 
   it('deve negar sem usuário autenticado', async () => {
     await expect(
-      guard.canActivate(createExecutionContext({ method: 'POST', headers: {} })),
+      guard.canActivate(
+        createExecutionContext({ method: 'POST', headers: {} }),
+      ),
     ).rejects.toThrow(UnauthorizedException);
   });
 

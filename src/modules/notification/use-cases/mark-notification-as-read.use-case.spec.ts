@@ -39,8 +39,8 @@ describe('MarkNotificationAsReadUseCase', () => {
   it('deve lançar NotFound quando a notificação não for do usuário/org', async () => {
     repository.findOwnedById.mockResolvedValue(null);
 
-    await expect(useCase.execute('n1', 'user-1', 'org-1')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      useCase.execute('n1', 'user-1', 'org-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

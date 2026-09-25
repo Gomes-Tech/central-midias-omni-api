@@ -30,7 +30,10 @@ export class UpdateSocialHighlightUseCase {
       mobileImage: Express.Multer.File;
     },
   ) {
-    const banner = await this.getSocialHighlightUseCase.execute(id, organizationId);
+    const banner = await this.getSocialHighlightUseCase.execute(
+      id,
+      organizationId,
+    );
 
     const mobileImage = files?.mobileImage;
     const desktopImage = files?.desktopImage;

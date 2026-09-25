@@ -9,10 +9,7 @@ import {
   FindAllEventsFiltersDTO,
   UpdateEventDTO,
 } from '../dto';
-import {
-  CalendarEventEntity,
-  CalendarEventMaterialSummary,
-} from '../entities';
+import { CalendarEventEntity, CalendarEventMaterialSummary } from '../entities';
 
 const materialSummarySelect = {
   id: true,
@@ -103,10 +100,7 @@ type RawEventRow = Prisma.CalendarEventGetPayload<{
   select: typeof eventSelect;
 }>;
 
-function mapEventRow(
-  row: RawEventRow,
-  roleId?: string,
-): CalendarEventEntity {
+function mapEventRow(row: RawEventRow, roleId?: string): CalendarEventEntity {
   const rawMaterials = row.materials.map((link) => link.material);
   const materials =
     roleId !== undefined

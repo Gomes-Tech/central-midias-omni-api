@@ -70,10 +70,15 @@ describe('FindMaterialsByCategorySlugUseCase', () => {
       'https://cdn.test/preview.png',
     );
 
-    const result = await useCase.execute('org-id', 'categoria/slug', 'user-id', {
-      page: 1,
-      limit: 24,
-    });
+    const result = await useCase.execute(
+      'org-id',
+      'categoria/slug',
+      'user-id',
+      {
+        page: 1,
+        limit: 24,
+      },
+    );
 
     expect(categoryRepository.findBySlugPath).toHaveBeenCalledWith(
       'categoria/slug',
@@ -148,11 +153,7 @@ describe('FindMaterialsByCategorySlugUseCase', () => {
       totalPages: 1,
     });
 
-    const result = await useCase.execute(
-      'org-id',
-      'categoria/slug',
-      'user-id',
-    );
+    const result = await useCase.execute('org-id', 'categoria/slug', 'user-id');
 
     expect(result.data[0].imageUrl).toBeNull();
     expect(storageService.getPublicUrl).not.toHaveBeenCalled();
@@ -166,11 +167,7 @@ describe('FindMaterialsByCategorySlugUseCase', () => {
       totalPages: 1,
     });
 
-    const result = await useCase.execute(
-      'org-id',
-      'categoria/slug',
-      'user-id',
-    );
+    const result = await useCase.execute('org-id', 'categoria/slug', 'user-id');
 
     expect(result.data[0].imageUrl).toBeNull();
     expect(storageService.getPublicUrl).not.toHaveBeenCalled();
@@ -184,11 +181,7 @@ describe('FindMaterialsByCategorySlugUseCase', () => {
       totalPages: 1,
     });
 
-    const result = await useCase.execute(
-      'org-id',
-      'categoria/slug',
-      'user-id',
-    );
+    const result = await useCase.execute('org-id', 'categoria/slug', 'user-id');
 
     expect(result.data[0].imageUrl).toBeNull();
     expect(storageService.getPublicUrl).not.toHaveBeenCalled();
@@ -203,11 +196,7 @@ describe('FindMaterialsByCategorySlugUseCase', () => {
     });
     storageService.getPublicUrl.mockRejectedValue(new Error('s3 down'));
 
-    const result = await useCase.execute(
-      'org-id',
-      'categoria/slug',
-      'user-id',
-    );
+    const result = await useCase.execute('org-id', 'categoria/slug', 'user-id');
 
     expect(result.data[0].imageUrl).toBeNull();
   });

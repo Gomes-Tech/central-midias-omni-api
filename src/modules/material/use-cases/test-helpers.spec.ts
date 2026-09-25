@@ -33,15 +33,17 @@ describe('material use-cases test-helpers', () => {
   it('makeCreateMaterialDTO e demais helpers aplicam overrides', () => {
     expect(makeCreateMaterialDTO({ name: 'X' }).name).toBe('X');
     expect(makeMaterialListItem({ id: 'm2' }).id).toBe('m2');
-    expect(makeMaterialDetails({ deletedAt: new Date() }).deletedAt).toBeInstanceOf(
-      Date,
-    );
+    expect(
+      makeMaterialDetails({ deletedAt: new Date() }).deletedAt,
+    ).toBeInstanceOf(Date);
     expect(makeMaterialFile({ size: 512 }).size).toBe(512);
     expect(makeMaterialTagSummary()).toEqual({
       id: 'tag-id',
       name: 'Campanha',
     });
     expect(makeMaterialTagSummary({ name: 'T' }).name).toBe('T');
-    expect(makeUploadFile({ originalname: 'a.png' }).originalname).toBe('a.png');
+    expect(makeUploadFile({ originalname: 'a.png' }).originalname).toBe(
+      'a.png',
+    );
   });
 });

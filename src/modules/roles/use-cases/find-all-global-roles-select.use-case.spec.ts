@@ -2,7 +2,9 @@ import { RolesRepository } from '../repository';
 import { FindAllGlobalRolesSelectUseCase } from './find-all-global-roles-select.use-case';
 
 describe('FindAllGlobalRolesSelectUseCase', () => {
-  let repository: jest.Mocked<Pick<RolesRepository, 'findAllGlobalRolesSelect'>>;
+  let repository: jest.Mocked<
+    Pick<RolesRepository, 'findAllGlobalRolesSelect'>
+  >;
   let useCase: FindAllGlobalRolesSelectUseCase;
 
   beforeEach(() => {

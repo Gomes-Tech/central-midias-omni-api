@@ -25,13 +25,16 @@ describe('banner use-cases test-helpers', () => {
     const mobileImage = makeBannerFile({ originalname: 'custom-mobile.png' });
     const desktopImage = makeBannerFile({ originalname: 'custom-desktop.png' });
 
-    expect(makeUpdateBannerFiles({ mobileImage }).mobileImage).toBe(mobileImage);
+    expect(makeUpdateBannerFiles({ mobileImage }).mobileImage).toBe(
+      mobileImage,
+    );
     expect(makeUpdateBannerFiles({ desktopImage }).desktopImage).toBe(
       desktopImage,
     );
-    expect(
-      makeUpdateBannerFiles({ mobileImage, desktopImage }),
-    ).toEqual({ mobileImage, desktopImage });
+    expect(makeUpdateBannerFiles({ mobileImage, desktopImage })).toEqual({
+      mobileImage,
+      desktopImage,
+    });
   });
 
   it('makeBanner, makeCreateBannerDTO e makeBannerFile aplicam defaults e overrides', () => {

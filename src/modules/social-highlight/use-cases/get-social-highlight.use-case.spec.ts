@@ -48,7 +48,9 @@ describe('GetSocialHighlightUseCase', () => {
       mobileImageUrl: 'https://cdn.test/social-highlight.png',
       desktopImageUrl: 'https://cdn.test/social-highlight.png',
     };
-    storageService.getPublicUrl.mockResolvedValue('https://cdn.test/social-highlight.png');
+    storageService.getPublicUrl.mockResolvedValue(
+      'https://cdn.test/social-highlight.png',
+    );
 
     socialHighlightRepository.findById.mockResolvedValue(banner);
 
@@ -65,7 +67,10 @@ describe('GetSocialHighlightUseCase', () => {
   it('deve lançar not found quando o banner não existir', async () => {
     socialHighlightRepository.findById.mockResolvedValue(null);
 
-    const result = useCase.execute('missing-social-highlight-id', 'organization-id');
+    const result = useCase.execute(
+      'missing-social-highlight-id',
+      'organization-id',
+    );
 
     await expect(result).rejects.toBeInstanceOf(NotFoundException);
     await expect(result).rejects.toThrow('Destaque social não encontrado');
@@ -76,8 +81,8 @@ describe('GetSocialHighlightUseCase', () => {
 
     socialHighlightRepository.findById.mockRejectedValue(error);
 
-    await expect(useCase.execute('social-highlight-id', 'organization-id')).rejects.toBe(
-      error,
-    );
+    await expect(
+      useCase.execute('social-highlight-id', 'organization-id'),
+    ).rejects.toBe(error);
   });
 });

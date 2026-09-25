@@ -67,13 +67,12 @@ describe('upload-body', () => {
     expect(
       resolveUploadMimeType({
         originalname: 'planilha.xlsx',
-        mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        mimetype:
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         size: 1,
         buffer: Buffer.from('x'),
       }),
-    ).toBe(
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
+    ).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   });
 
   it('resolveUploadMimeType deve usar octet-stream quando o mime estiver vazio', () => {
@@ -92,9 +91,7 @@ describe('upload-body', () => {
 
     await unlinkUploadTemp({ path: '/tmp/omni-material-uploads/a.mp4' });
 
-    expect(fsp.unlink).toHaveBeenCalledWith(
-      '/tmp/omni-material-uploads/a.mp4',
-    );
+    expect(fsp.unlink).toHaveBeenCalledWith('/tmp/omni-material-uploads/a.mp4');
   });
 
   it('unlinkUploadTemp não deve chamar unlink sem path', async () => {

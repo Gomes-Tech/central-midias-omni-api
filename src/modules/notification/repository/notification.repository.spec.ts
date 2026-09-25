@@ -47,9 +47,7 @@ describe('NotificationRepository', () => {
       prisma.notification.findMany.mockResolvedValue(rows);
       prisma.notification.count.mockResolvedValue(1);
 
-      await expect(
-        repository.findByUser('user-1', 'org-1'),
-      ).resolves.toEqual({
+      await expect(repository.findByUser('user-1', 'org-1')).resolves.toEqual({
         data: rows,
         total: 1,
         page: 1,
@@ -111,9 +109,7 @@ describe('NotificationRepository', () => {
     it('deve contar não lidas do usuário na org', async () => {
       prisma.notification.count.mockResolvedValue(3);
 
-      await expect(
-        repository.countUnread('user-1', 'org-1'),
-      ).resolves.toBe(3);
+      await expect(repository.countUnread('user-1', 'org-1')).resolves.toBe(3);
 
       expect(prisma.notification.count).toHaveBeenCalledWith({
         where: {

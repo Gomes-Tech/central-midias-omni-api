@@ -41,7 +41,9 @@ describe('ExportMaterialAcceptanceReportUseCase', () => {
 
     expect(result.filename).toBe('material-aceite-manual-interno.csv');
     expect(result.content).toContain('nome,email,visualizou,data_aceite');
-    expect(result.content).toContain('João,joao@teste.com,Sim,2024-02-01T10:00:00.000Z');
+    expect(result.content).toContain(
+      'João,joao@teste.com,Sim,2024-02-01T10:00:00.000Z',
+    );
     expect(result.content).toContain('Maria,maria@teste.com,Nao,');
   });
 

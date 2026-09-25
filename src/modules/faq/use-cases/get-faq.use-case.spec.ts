@@ -131,9 +131,7 @@ describe('GetFaqUseCase', () => {
       },
     });
 
-    expect(storageService.getPublicUrl).toHaveBeenCalledWith(
-      'faqs/imagem.png',
-    );
+    expect(storageService.getPublicUrl).toHaveBeenCalledWith('faqs/imagem.png');
   });
 
   it('deve propagar erro quando o repositório falhar', async () => {

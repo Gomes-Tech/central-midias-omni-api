@@ -44,8 +44,10 @@ describe('OrganizationMiddleware', () => {
 
   it('deve chamar next quando a organização for encontrada', async () => {
     findUnique.mockResolvedValue({ id: 'org-1' });
-    const req: { headers: { 'x-organization-id': string }; organizationId?: string } =
-      { headers: { 'x-organization-id': 'org-1' } };
+    const req: {
+      headers: { 'x-organization-id': string };
+      organizationId?: string;
+    } = { headers: { 'x-organization-id': 'org-1' } };
     const next = jest.fn();
 
     await middleware.use(req, {}, next);

@@ -98,11 +98,7 @@ describe('CategoryRoleAccessRepository', () => {
       prisma.categoryRoleAccess.findFirst.mockResolvedValue({ id: 'v1' });
 
       await expect(
-        repository.findByCategoryRoleAndOrganization(
-          'cat',
-          'role',
-          'org',
-        ),
+        repository.findByCategoryRoleAndOrganization('cat', 'role', 'org'),
       ).resolves.toEqual({ id: 'v1' });
 
       expect(prisma.categoryRoleAccess.findFirst).toHaveBeenCalledWith({
@@ -208,9 +204,9 @@ describe('CategoryRoleAccessRepository', () => {
       const rows = [{ id: '1' }];
       prisma.categoryRoleAccess.findMany.mockResolvedValue(rows);
 
-      await expect(
-        repository.findAllByOrganization('org-1'),
-      ).resolves.toEqual(rows);
+      await expect(repository.findAllByOrganization('org-1')).resolves.toEqual(
+        rows,
+      );
 
       expect(prisma.categoryRoleAccess.findMany).toHaveBeenCalledWith({
         where: { organizationId: 'org-1' },
@@ -229,9 +225,9 @@ describe('CategoryRoleAccessRepository', () => {
     it('deve lançar quando findMany falhar', async () => {
       prisma.categoryRoleAccess.findMany.mockRejectedValue(new Error('db'));
 
-      await expect(
-        repository.findAllByOrganization('org'),
-      ).rejects.toThrow('Erro ao listar vínculos');
+      await expect(repository.findAllByOrganization('org')).rejects.toThrow(
+        'Erro ao listar vínculos',
+      );
     });
   });
 
@@ -322,9 +318,10 @@ describe('CategoryRoleAccessRepository', () => {
         { id: 'org-2' },
       ]);
 
-      await expect(
-        repository.findAllActiveOrganizationIds(),
-      ).resolves.toEqual(['org-1', 'org-2']);
+      await expect(repository.findAllActiveOrganizationIds()).resolves.toEqual([
+        'org-1',
+        'org-2',
+      ]);
 
       expect(prisma.organization.findMany).toHaveBeenCalledWith({
         where: { isActive: true, isDeleted: false },
@@ -335,9 +332,9 @@ describe('CategoryRoleAccessRepository', () => {
     it('deve lançar quando findMany falhar', async () => {
       prisma.organization.findMany.mockRejectedValue(new Error('db'));
 
-      await expect(
-        repository.findAllActiveOrganizationIds(),
-      ).rejects.toThrow('Erro ao buscar organizações');
+      await expect(repository.findAllActiveOrganizationIds()).rejects.toThrow(
+        'Erro ao buscar organizações',
+      );
     });
   });
 

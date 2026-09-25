@@ -516,9 +516,9 @@ describe('UserRepository', () => {
     it('deve retornar true quando o usuário tiver perfil ADMIN', async () => {
       prisma.user.findFirst.mockResolvedValue({ id: 'admin-1' });
 
-      await expect(
-        repository.hasPlatformAdminRole('admin-1'),
-      ).resolves.toBe(true);
+      await expect(repository.hasPlatformAdminRole('admin-1')).resolves.toBe(
+        true,
+      );
       expect(prisma.user.findFirst).toHaveBeenCalledWith({
         where: {
           id: 'admin-1',
@@ -536,17 +536,17 @@ describe('UserRepository', () => {
     it('deve retornar false quando o usuário não for ADMIN', async () => {
       prisma.user.findFirst.mockResolvedValue(null);
 
-      await expect(
-        repository.hasPlatformAdminRole('editor-1'),
-      ).resolves.toBe(false);
+      await expect(repository.hasPlatformAdminRole('editor-1')).resolves.toBe(
+        false,
+      );
     });
 
     it('deve retornar false quando a consulta falhar', async () => {
       prisma.user.findFirst.mockRejectedValue(new Error('db'));
 
-      await expect(
-        repository.hasPlatformAdminRole('admin-1'),
-      ).resolves.toBe(false);
+      await expect(repository.hasPlatformAdminRole('admin-1')).resolves.toBe(
+        false,
+      );
       expect(logger.error).toHaveBeenCalled();
     });
   });
@@ -896,7 +896,11 @@ describe('UserRepository', () => {
           }),
       );
 
-      await repository.create({ ...dto, password: 'hash' }, 'creator-id', 'org-id');
+      await repository.create(
+        { ...dto, password: 'hash' },
+        'creator-id',
+        'org-id',
+      );
 
       expect(userHierarchyDeleteMany).toHaveBeenCalledWith({
         where: { subordinateId: 'new-user', organizationId: 'org-id' },
@@ -1066,7 +1070,10 @@ describe('UserRepository', () => {
       const memberUpdate = jest.fn().mockResolvedValue({});
       prisma.$transaction.mockImplementation(
         async (fn: (tx: unknown) => unknown) =>
-          fn({ user: { update: userUpdate }, member: { update: memberUpdate } }),
+          fn({
+            user: { update: userUpdate },
+            member: { update: memberUpdate },
+          }),
       );
 
       await repository.update(

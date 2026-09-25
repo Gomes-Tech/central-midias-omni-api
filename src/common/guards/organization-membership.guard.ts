@@ -1,5 +1,8 @@
 import { IS_PUBLIC_KEY } from '@common/decorators';
-import { authorizationToLoginPayload, userCanAccessOrganization } from '@common/utils';
+import {
+  authorizationToLoginPayload,
+  userCanAccessOrganization,
+} from '@common/utils';
 import { PrismaService } from '@infrastructure/prisma';
 import {
   CanActivate,

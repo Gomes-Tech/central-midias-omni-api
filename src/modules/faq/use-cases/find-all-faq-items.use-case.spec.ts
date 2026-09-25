@@ -36,14 +36,9 @@ describe('FindAllFaqItemsUseCase', () => {
     const filters = { searchTerm: 'termo', page: 2, limit: 10 };
     faqRepository.findAllItems.mockResolvedValue(paginated);
 
-    await expect(
-      useCase.execute('org-1', filters),
-    ).resolves.toEqual(paginated);
+    await expect(useCase.execute('org-1', filters)).resolves.toEqual(paginated);
 
-    expect(faqRepository.findAllItems).toHaveBeenCalledWith(
-      filters,
-      'org-1',
-    );
+    expect(faqRepository.findAllItems).toHaveBeenCalledWith(filters, 'org-1');
   });
 
   it('deve propagar erro quando o repositório falhar', async () => {

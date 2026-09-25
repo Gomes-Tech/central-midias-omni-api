@@ -9,7 +9,10 @@ import {
   FindModuleByIdUseCase,
   UpdateModuleUseCase,
 } from './use-cases';
-import { makeCreateModuleDTO, makeUpdateModuleDTO } from './use-cases/test-helpers';
+import {
+  makeCreateModuleDTO,
+  makeUpdateModuleDTO,
+} from './use-cases/test-helpers';
 
 describe('ModuleController', () => {
   let controller: ModuleController;

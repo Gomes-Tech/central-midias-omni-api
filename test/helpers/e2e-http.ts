@@ -44,7 +44,10 @@ export function e2ePublicHeaders(): Record<string, string> {
   return { 'X-Api-Key': E2E_API_KEY };
 }
 
-export function e2eSignToken(app: INestApplication, userId = E2E_IDS.userId): string {
+export function e2eSignToken(
+  app: INestApplication,
+  userId = E2E_IDS.userId,
+): string {
   const jwt = app.get<JwtService>(JWT_SERVICE);
   return jwt.sign({ id: userId, jti: 'e2e-jti' });
 }

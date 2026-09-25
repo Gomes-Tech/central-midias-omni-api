@@ -12,9 +12,7 @@ describe('FindRoleByIdUseCase', () => {
       findById: jest.fn(),
     };
 
-    useCase = new FindRoleByIdUseCase(
-      repository as unknown as RolesRepository,
-    );
+    useCase = new FindRoleByIdUseCase(repository as unknown as RolesRepository);
   });
 
   it('deve retornar o perfil quando existir', async () => {

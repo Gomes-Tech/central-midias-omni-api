@@ -1,10 +1,7 @@
 import { ConflictException } from '@common/filters';
 import { EventTypeRepository } from '../repository';
 import { CreateEventTypeUseCase } from './create-event-type.use-case';
-import {
-  makeCreateEventTypeDTO,
-  makeEventTypeEntity,
-} from './test-helpers';
+import { makeCreateEventTypeDTO, makeEventTypeEntity } from './test-helpers';
 
 describe('CreateEventTypeUseCase', () => {
   let eventTypeRepository: jest.Mocked<

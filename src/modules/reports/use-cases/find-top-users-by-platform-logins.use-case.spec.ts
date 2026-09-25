@@ -19,29 +19,27 @@ describe('FindTopUsersByPlatformLoginsUseCase', () => {
 
   it('deve delegar a busca para o repositório com os filtros informados', async () => {
     const paginated = { data: [], total: 0, totalPages: 0, page: 2 };
-    reportRepository.findTopUsersByPlatformLogins.mockResolvedValue(
-      paginated,
-    );
+    reportRepository.findTopUsersByPlatformLogins.mockResolvedValue(paginated);
 
     await expect(
       useCase.execute('org-1', { page: 2, limit: 10 }),
     ).resolves.toEqual(paginated);
 
-    expect(
-      reportRepository.findTopUsersByPlatformLogins,
-    ).toHaveBeenCalledWith('org-1', { page: 2, limit: 10 });
+    expect(reportRepository.findTopUsersByPlatformLogins).toHaveBeenCalledWith(
+      'org-1',
+      { page: 2, limit: 10 },
+    );
   });
 
   it('deve usar filtros vazios quando não informados', async () => {
     const paginated = { data: [], total: 0, totalPages: 0, page: 1 };
-    reportRepository.findTopUsersByPlatformLogins.mockResolvedValue(
-      paginated,
-    );
+    reportRepository.findTopUsersByPlatformLogins.mockResolvedValue(paginated);
 
     await expect(useCase.execute('org-1')).resolves.toEqual(paginated);
 
-    expect(
-      reportRepository.findTopUsersByPlatformLogins,
-    ).toHaveBeenCalledWith('org-1', {});
+    expect(reportRepository.findTopUsersByPlatformLogins).toHaveBeenCalledWith(
+      'org-1',
+      {},
+    );
   });
 });

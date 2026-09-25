@@ -1,7 +1,4 @@
-import {
-  REPORT_EXPORT_JOB,
-  REPORT_EXPORT_QUEUE,
-} from '@infrastructure/queue';
+import { REPORT_EXPORT_JOB, REPORT_EXPORT_QUEUE } from '@infrastructure/queue';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { ReportExportJobPayload } from './report-export.job';

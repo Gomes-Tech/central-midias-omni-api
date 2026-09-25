@@ -14,9 +14,7 @@ describe('FindCategoryTreeUseCase', () => {
   });
 
   it('deve retornar a árvore de categorias', async () => {
-    const tree = [] as Awaited<
-      ReturnType<CategoryRepository['findTree']>
-    >;
+    const tree = [] as Awaited<ReturnType<CategoryRepository['findTree']>>;
     const filters = { searchTerm: 'conteudo', isActive: false };
 
     categoryRepository.findTree.mockResolvedValue(tree);
@@ -32,9 +30,7 @@ describe('FindCategoryTreeUseCase', () => {
   });
 
   it('deve usar objeto vazio quando filters não for informado', async () => {
-    const tree = [] as Awaited<
-      ReturnType<CategoryRepository['findTree']>
-    >;
+    const tree = [] as Awaited<ReturnType<CategoryRepository['findTree']>>;
 
     categoryRepository.findTree.mockResolvedValue(tree);
 

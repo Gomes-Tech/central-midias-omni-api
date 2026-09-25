@@ -1,6 +1,9 @@
 ﻿import { LoggerService } from '@infrastructure/log';
 import { PrismaService } from '@infrastructure/prisma';
-import { makeSocialHighlight, makeCreateSocialHighlightDTO } from '../use-cases/test-helpers';
+import {
+  makeSocialHighlight,
+  makeCreateSocialHighlightDTO,
+} from '../use-cases/test-helpers';
 import { SocialHighlightRepository } from './social-highlight.repository';
 
 function toSocialHighlightList(banner: ReturnType<typeof makeSocialHighlight>) {
@@ -265,10 +268,16 @@ describe('SocialHighlightRepository', () => {
           organizationId: 'org-1',
           AND: [
             {
-              OR: [{ initialDate: null }, { initialDate: { lte: expect.any(Date) } }],
+              OR: [
+                { initialDate: null },
+                { initialDate: { lte: expect.any(Date) } },
+              ],
             },
             {
-              OR: [{ finishDate: null }, { finishDate: { gte: expect.any(Date) } }],
+              OR: [
+                { finishDate: null },
+                { finishDate: { gte: expect.any(Date) } },
+              ],
             },
           ],
         },

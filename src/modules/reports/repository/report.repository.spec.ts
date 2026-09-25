@@ -477,10 +477,7 @@ describe('ReportRepository', () => {
           subject: 'Novo material: Campanha ABCDEF',
           content: 'Conteúdo',
           createdAt: new Date('2026-09-19T12:00:00.000Z'),
-          recipients: [
-            { email: 'ana@test.com' },
-            { email: 'bruno@test.com' },
-          ],
+          recipients: [{ email: 'ana@test.com' }, { email: 'bruno@test.com' }],
         },
       ]);
       prisma.materialEmailDispatch.count.mockResolvedValue(1);

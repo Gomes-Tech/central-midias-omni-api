@@ -1,8 +1,7 @@
-import { BadRequestException } from '@common/filters';
 import { SyncGlobalRoleCategoryAccessesUseCase } from '@modules/category-role-access/use-cases/sync-global-role-category-accesses.use-case';
 import { RolesRepository } from '../repository';
-import { makeCreateGlobalRoleDTO } from './test-helpers';
 import { CreateGlobalRoleUseCase } from './create-global-role.use-case';
+import { makeCreateGlobalRoleDTO } from './test-helpers';
 
 describe('CreateGlobalRoleUseCase', () => {
   let repository: jest.Mocked<

@@ -94,12 +94,9 @@ export function validateMaterialTemplateImage(
     dimensions.height <= 0 ||
     Math.max(dimensions.width, dimensions.height) >
       MATERIAL_TEMPLATE_IMAGE_MAX_SIDE ||
-    dimensions.width * dimensions.height >
-      MATERIAL_TEMPLATE_IMAGE_MAX_PIXELS
+    dimensions.width * dimensions.height > MATERIAL_TEMPLATE_IMAGE_MAX_PIXELS
   ) {
-    throw new BadRequestException(
-      MATERIAL_TEMPLATE_IMAGE_RESOLUTION_MESSAGE,
-    );
+    throw new BadRequestException(MATERIAL_TEMPLATE_IMAGE_RESOLUTION_MESSAGE);
   }
   return { ...dimensions, mimeType };
 }

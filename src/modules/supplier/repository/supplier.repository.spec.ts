@@ -49,7 +49,9 @@ describe('SupplierRepository', () => {
     });
 
     it('deve lançar BadRequest quando a consulta falhar', async () => {
-      prisma.supplierDocument.findUnique.mockRejectedValue(new Error('db down'));
+      prisma.supplierDocument.findUnique.mockRejectedValue(
+        new Error('db down'),
+      );
 
       await expect(repository.findDocumentKey('org-1')).rejects.toBeInstanceOf(
         BadRequestException,

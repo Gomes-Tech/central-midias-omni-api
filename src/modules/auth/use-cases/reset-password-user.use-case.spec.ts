@@ -95,7 +95,9 @@ describe('ResetPasswordUseCase', () => {
   });
 
   it('deve registrar falha e relançar erro quando a verificação do token falhar', async () => {
-    verifyTokenPasswordUseCase.execute.mockRejectedValue(new Error('token inválido'));
+    verifyTokenPasswordUseCase.execute.mockRejectedValue(
+      new Error('token inválido'),
+    );
 
     await expect(
       useCase.execute('bad', 'any@test.com', 'pass'),
