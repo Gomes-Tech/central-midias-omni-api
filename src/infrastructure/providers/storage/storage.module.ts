@@ -3,14 +3,9 @@ import { LocalStorageService } from './local-storage.service';
 import { S3StorageService } from './s3-storage.service';
 import { STORAGE_PROVIDER, type StorageProvider } from './storage-provider';
 import { StorageService } from './storage.service';
-import { SupabaseService } from './supabase.service';
 
 function createStorageProvider(): StorageProvider {
-  const provider = (process.env.STORAGE_PROVIDER ?? 'supabase').toLowerCase();
-
-  if (provider === 'supabase') {
-    return new SupabaseService();
-  }
+  const provider = (process.env.STORAGE_PROVIDER ?? 's3').toLowerCase();
 
   if (provider === 's3') {
     return new S3StorageService();

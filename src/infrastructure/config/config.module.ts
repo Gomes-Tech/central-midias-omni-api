@@ -53,12 +53,9 @@ import * as Joi from 'joi';
             password: process.env.REDIS_PASSWORD,
           },
           storage: {
-            provider: process.env.STORAGE_PROVIDER ?? 'supabase',
+            provider: 's3',
             assetsBucket:
-              (process.env.STORAGE_PROVIDER ?? 'supabase') === 's3'
-                ? process.env.S3_ASSETS_BUCKET
-                : (process.env.SUPABASE_ASSETS_BUCKET ??
-                  process.env.SUPABASE_BUCKET),
+              process.env.S3_ASSETS_BUCKET ?? process.env.S3_BUCKET,
           },
           printExportEnabled: process.env.PRINT_EXPORT_ENABLED === 'true',
         }),
@@ -116,33 +113,9 @@ import * as Joi from 'joi';
         REDIS_PORT: Joi.number().default(6379).optional(),
         REDIS_PASSWORD: Joi.string().optional(),
 
-        STORAGE_PROVIDER: Joi.string()
-          .valid('s3', 'supabase')
-          .default('supabase'),
-        S3_ASSETS_BUCKET: Joi.string().when('STORAGE_PROVIDER', {
-          is: 's3',
-          then: Joi.required(),
-          otherwise: Joi.optional(),
-        }),
-        SUPABASE_URL: Joi.string().uri().when('STORAGE_PROVIDER', {
-          is: 'supabase',
-          then: Joi.required(),
-          otherwise: Joi.optional(),
-        }),
-        SUPABASE_KEY: Joi.string().when('STORAGE_PROVIDER', {
-          is: 'supabase',
-          then: Joi.required(),
-          otherwise: Joi.optional(),
-        }),
-        SUPABASE_BUCKET: Joi.string().when('STORAGE_PROVIDER', {
-          is: 'supabase',
-          then: Joi.required(),
-          otherwise: Joi.optional(),
-        }),
-        SUPABASE_ASSETS_BUCKET: Joi.string().optional(),
-        SUPABASE_SIGNED_URL_EXPIRES_SECONDS: Joi.number()
-          .default(300)
-          .optional(),
+        STORAGE_PROVIDER: Joi.string().valid('s3').default('s3'),
+        S3_BUCKET: Joi.string().optional(),
+        S3_ASSETS_BUCKET: Joi.string().optional(),
         PRINT_EXPORT_ENABLED: Joi.boolean()
           .truthy('true')
           .falsy('false')

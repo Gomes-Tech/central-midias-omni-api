@@ -13,9 +13,7 @@ const e2eEnvDefaults: Record<string, string> = {
   AWS_REGION: 'us-east-1',
   S3_BUCKET: 'e2e-bucket',
   S3_ASSETS_BUCKET: 'e2e-assets-bucket',
-  SUPABASE_URL: 'https://e2e.supabase.co',
-  SUPABASE_KEY: 'e2e-supabase-key',
-  SUPABASE_BUCKET: 'e2e-uploads',
+  STORAGE_PROVIDER: 's3',
 };
 
 for (const [key, value] of Object.entries(e2eEnvDefaults)) {
