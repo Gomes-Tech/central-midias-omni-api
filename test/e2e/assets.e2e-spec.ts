@@ -21,6 +21,7 @@ describe('Assets (e2e)', () => {
     e2eAssetStorageMock.getPublicUrl.mockClear();
     e2eAssetStorageMock.deleteFile.mockClear();
     e2eAssetStorageMock.deleteFiles.mockClear();
+    e2eAssetStorageMock.read.mockClear();
   });
 
   afterAll(async () => {
@@ -46,6 +47,26 @@ describe('Assets (e2e)', () => {
       .set(e2eAuthHeaders(accessToken))
       .expect(200);
     expect(detail.body.id).toBe(E2E_IDS.assetId);
+  });
+
+  it('entrega o binário do asset autenticado, sem URL pública', async () => {
+    const response = await e2eRequest(app)
+      .get(`/api/assets/${E2E_IDS.assetId}/content`)
+      .set(e2eAuthHeaders(accessToken))
+      .expect(200);
+
+    expect(response.headers['content-type']).toContain('image/png');
+    expect(e2eAssetStorageMock.read).toHaveBeenCalledWith(
+      `organizations/${E2E_IDS.orgId}/assets/${E2E_IDS.assetId}/logo.png`,
+    );
+  });
+
+  it('não entrega o binário para outra organização', async () => {
+    await e2eRequest(app)
+      .get(`/api/assets/${E2E_IDS.assetId}/content`)
+      .set(e2eAuthHeaders(accessToken, E2E_IDS.otherOrgId))
+      .expect(404);
+    expect(e2eAssetStorageMock.read).not.toHaveBeenCalled();
   });
 
   it('não deve revelar asset para outra organização', async () => {

@@ -6,10 +6,12 @@ describe('AssetStorageService', () => {
   const uploadAsset = jest.fn();
   const deleteAsset = jest.fn();
   const getAssetPublicUrl = jest.fn();
+  const readAsset = jest.fn();
   const storageProvider = {
     uploadAsset,
     deleteAsset,
     getAssetPublicUrl,
+    readAsset,
   } as unknown as StorageProvider;
 
   beforeEach(() => {
@@ -17,6 +19,7 @@ describe('AssetStorageService', () => {
     uploadAsset.mockResolvedValue(undefined);
     deleteAsset.mockResolvedValue(undefined);
     getAssetPublicUrl.mockReturnValue('https://storage.test/asset.png');
+    readAsset.mockResolvedValue(Buffer.from('png'));
   });
 
   it('deve enviar o asset ao provider ativo e retornar a chave', async () => {
@@ -28,6 +31,8 @@ describe('AssetStorageService', () => {
       mimeType: 'image/svg+xml',
       size: 3,
       defaultName: 'logo',
+      width: null,
+      height: null,
     });
 
     expect(result.fileKey).toMatch(
@@ -51,6 +56,14 @@ describe('AssetStorageService', () => {
     expect(deleteAsset).toHaveBeenCalledWith(key);
   });
 
+  it('lê o arquivo pelo provider ativo, sem URL pública', async () => {
+    const service = new AssetStorageService(storageProvider);
+    const key = 'organizations/org-1/assets/a/file.png';
+
+    await expect(service.read(key)).resolves.toEqual(Buffer.from('png'));
+    expect(readAsset).toHaveBeenCalledWith(key);
+  });
+
   it('deve remover vários arquivos', async () => {
     const service = new AssetStorageService(storageProvider);
 
@@ -72,6 +85,8 @@ describe('AssetStorageService', () => {
       mimeType: 'image/png' as const,
       size: 3,
       defaultName: 'logo',
+      width: null,
+      height: null,
     };
 
     await expect(

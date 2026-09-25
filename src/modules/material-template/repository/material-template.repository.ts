@@ -92,6 +92,7 @@ export interface MaterialTemplateAssetRow {
   size: number;
   width: number | null;
   height: number | null;
+  updatedAt: Date;
 }
 
 export interface MaterialTemplateDeliveryInput {
@@ -258,6 +259,7 @@ export class MaterialTemplateRepository {
         size: true,
         width: true,
         height: true,
+        updatedAt: true,
       },
     });
   }

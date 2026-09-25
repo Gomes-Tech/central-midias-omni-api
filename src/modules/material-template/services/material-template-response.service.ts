@@ -112,6 +112,7 @@ export class MaterialTemplateResponseService {
         size: asset.size,
         width: asset.width,
         height: asset.height,
+        updatedAt: asset.updatedAt.toISOString(),
         url: this.assetStorageService.getPublicUrl(asset.fileKey),
       })),
       missingAssetIds,

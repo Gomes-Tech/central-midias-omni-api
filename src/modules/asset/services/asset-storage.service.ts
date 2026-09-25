@@ -53,6 +53,15 @@ export class AssetStorageService {
     await Promise.all(fileKeys.map((fileKey) => this.deleteFile(fileKey)));
   }
 
+  async read(fileKey: string): Promise<Buffer> {
+    try {
+      return await this.storageProvider.readAsset(fileKey);
+    } catch (error) {
+      console.error('Erro: ', error);
+      throw new InternalServerErrorException('Erro ao ler asset no storage');
+    }
+  }
+
   getPublicUrl(fileKey: string): string {
     return this.storageProvider.getAssetPublicUrl(fileKey);
   }

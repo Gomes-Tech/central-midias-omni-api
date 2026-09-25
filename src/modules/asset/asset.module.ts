@@ -8,6 +8,7 @@ import {
   DeleteAssetUseCase,
   FindAllAssetsUseCase,
   FindAssetByIdUseCase,
+  GetAssetContentUseCase,
   GetAssetUseCase,
   UpdateAssetUseCase,
 } from './use-cases';
@@ -21,6 +22,7 @@ import {
     AssetStorageService,
     FindAllAssetsUseCase,
     FindAssetByIdUseCase,
+    GetAssetContentUseCase,
     GetAssetUseCase,
     CreateAssetsUseCase,
     UpdateAssetUseCase,

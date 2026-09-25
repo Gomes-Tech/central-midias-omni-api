@@ -14,9 +14,11 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
+  StreamableFile,
   UploadedFiles,
   UseGuards,
 } from '@nestjs/common';
@@ -29,6 +31,7 @@ import {
   CreateAssetsUseCase,
   DeleteAssetUseCase,
   FindAllAssetsUseCase,
+  GetAssetContentUseCase,
   GetAssetUseCase,
   UpdateAssetUseCase,
 } from './use-cases';
@@ -44,6 +47,7 @@ export class AssetController {
   constructor(
     private readonly findAllAssetsUseCase: FindAllAssetsUseCase,
     private readonly getAssetUseCase: GetAssetUseCase,
+    private readonly getAssetContentUseCase: GetAssetContentUseCase,
     private readonly createAssetsUseCase: CreateAssetsUseCase,
     private readonly updateAssetUseCase: UpdateAssetUseCase,
     private readonly deleteAssetUseCase: DeleteAssetUseCase,
@@ -64,6 +68,24 @@ export class AssetController {
     @Query() filters: FindAllAssetsFiltersDTO = {},
   ) {
     return await this.findAllAssetsUseCase.execute(organizationId, filters);
+  }
+
+  /**
+   * Sem `assets:read`: o agente que customiza um material publicado não tem
+   * essa permissão, mas precisa da imagem. O acesso continua autenticado,
+   * limitado à organização e ao asset dela.
+   */
+  @Get(':id/content')
+  async content(
+    @Param('id', ParseUUIDPipe) id: string,
+    @OrgId() organizationId: string,
+  ) {
+    const file = await this.getAssetContentUseCase.execute(id, organizationId);
+    return new StreamableFile(file.buffer, {
+      type: file.mimeType,
+      disposition: 'inline',
+      length: file.buffer.length,
+    });
   }
 
   @RequirePermission('assets', 'read')

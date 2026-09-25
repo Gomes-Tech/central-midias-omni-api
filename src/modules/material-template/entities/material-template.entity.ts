@@ -167,6 +167,7 @@ export interface MaterialTemplateResolvedAsset {
   size: number;
   width: number | null;
   height: number | null;
+  updatedAt: string;
 }
 
 export interface MaterialTemplateImage {

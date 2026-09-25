@@ -39,6 +39,7 @@ export const e2eAssetStorageMock = {
   ),
   deleteFile: jest.fn().mockResolvedValue(undefined),
   deleteFiles: jest.fn().mockResolvedValue(undefined),
+  read: jest.fn().mockResolvedValue(Buffer.from('png')),
 };
 
 const e2eMailMock = {
