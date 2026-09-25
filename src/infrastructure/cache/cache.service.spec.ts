@@ -1,7 +1,6 @@
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { CacheService } from './cache.service';
 import { CircuitBreakerService } from '../circuit-breaker';
 import { MetricsService } from '../metrics/metrics.service';
+import { CacheService } from './cache.service';
 
 describe('CacheService', () => {
   let cacheManager: {
