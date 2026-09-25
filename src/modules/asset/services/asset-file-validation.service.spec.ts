@@ -32,6 +32,8 @@ describe('AssetFileValidationService', () => {
       mimeType: 'image/png',
       size: png.length,
       defaultName: 'Minha Logo',
+      width: 1,
+      height: 1,
     });
   });
 

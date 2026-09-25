@@ -45,6 +45,7 @@ const MODULE_DEFS = [
   { name: 'faqs', label: 'FAQ' },
   { name: 'calendar', label: 'Calendário' },
   { name: 'assets', label: 'Assets' },
+  { name: 'suppliers', label: 'Fornecedores' },
 ] as const;
 
 const ALL_ACTIONS: Action[] = [

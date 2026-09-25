@@ -55,9 +55,14 @@ describe('CreateEventUseCase', () => {
   });
 
   it('deve lançar BadRequest quando endDate < startDate', async () => {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + 8);
+    startDate.setHours(15, 0, 0, 0);
+    const endDate = new Date(startDate);
+    endDate.setHours(10, 0, 0, 0);
     const dto = makeCreateEventDTO({
-      startDate: new Date('2026-08-10T00:00:00.000Z'),
-      endDate: new Date('2026-08-01T00:00:00.000Z'),
+      startDate,
+      endDate,
     });
 
     await expect(
@@ -68,7 +73,9 @@ describe('CreateEventUseCase', () => {
   });
 
   it('deve lançar BadRequest quando endDate for igual a startDate', async () => {
-    const sameInstant = new Date('2026-08-10T10:00:00.000Z');
+    const sameInstant = new Date();
+    sameInstant.setDate(sameInstant.getDate() + 8);
+    sameInstant.setHours(10, 0, 0, 0);
     const dto = makeCreateEventDTO({
       startDate: sameInstant,
       endDate: sameInstant,
@@ -82,9 +89,14 @@ describe('CreateEventUseCase', () => {
   });
 
   it('deve criar evento no mesmo dia com horário de fim maior', async () => {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + 8);
+    startDate.setHours(10, 0, 0, 0);
+    const endDate = new Date(startDate);
+    endDate.setHours(11, 0, 0, 0);
     const dto = makeCreateEventDTO({
-      startDate: new Date('2026-08-10T10:00:00.000Z'),
-      endDate: new Date('2026-08-10T11:00:00.000Z'),
+      startDate,
+      endDate,
     });
 
     await useCase.execute('org-1', dto, 'user-1');

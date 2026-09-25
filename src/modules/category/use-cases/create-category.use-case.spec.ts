@@ -60,6 +60,7 @@ describe('CreateCategoryUseCase', () => {
         slugPath: 'categoria',
         hasExternalLink: false,
         externalLink: null,
+        showSuppliersList: false,
       },
       'user-id',
     );

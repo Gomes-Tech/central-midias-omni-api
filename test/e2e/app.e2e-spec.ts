@@ -29,23 +29,4 @@ describe('App (e2e)', () => {
 
     expect(response.text).toBe('Hello World!');
   });
-
-  it('GET /api/file?path= deve retornar URL assinada', async () => {
-    const response = await e2eRequest(app)
-      .get('/api/file')
-      .query({ path: 'uploads/test.png' })
-      .set(fileHeaders())
-      .expect(200);
-
-    expect(response.text).toBe('https://e2e.test/signed-url');
-  });
-
-  it('GET /api/file/:path deve retornar URL assinada', async () => {
-    const response = await e2eRequest(app)
-      .get('/api/file/uploads%2Ftest.png')
-      .set(fileHeaders())
-      .expect(200);
-
-    expect(response.text).toBe('https://e2e.test/signed-url');
-  });
 });

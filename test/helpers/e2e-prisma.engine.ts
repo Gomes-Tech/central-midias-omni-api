@@ -238,6 +238,9 @@ function resolveRelation(
   if (relationKey === 'user' && record.userId) {
     return store.users.find((u) => u.id === record.userId) ?? null;
   }
+  if (relationKey === 'managerOf') {
+    return [];
+  }
   if (relationKey === 'categoryRoleAccesses' && record.slugPath !== undefined) {
     return store.categoryRoleAccesses.filter(
       (access) => access.categoryId === record.id,
@@ -361,6 +364,25 @@ export function matchWhere(
   });
 }
 
+function applyNestedList(
+  items: unknown[],
+  value: Record<string, unknown>,
+  store: E2eStore,
+): Record<string, unknown>[] {
+  let rows = items.filter((item): item is Record<string, unknown> =>
+    isPlainObject(item),
+  );
+  const where = value.where;
+  if (isPlainObject(where)) {
+    rows = rows.filter((item) => matchWhere(item, where, store));
+  }
+  if (typeof value.take === 'number') {
+    rows = rows.slice(0, value.take);
+  }
+  const nestedSelect = isPlainObject(value.select) ? value.select : undefined;
+  return rows.map((item) => applySelect(item, nestedSelect, store));
+}
+
 function applySelect(
   record: Record<string, unknown>,
   select: Record<string, unknown> | undefined,
@@ -385,13 +407,11 @@ function applySelect(
     }
     const related = resolveRelation(record, key, store);
     if (isPlainObject(value) && 'select' in value) {
-      if (Array.isArray(related)) {
-        result[key] = related.map((item) =>
-          applySelect(
-            item as Record<string, unknown>,
-            value.select as Record<string, unknown>,
-            store,
-          ),
+      if (Array.isArray(related) || 'where' in value || 'take' in value) {
+        result[key] = applyNestedList(
+          Array.isArray(related) ? related : [],
+          value,
+          store,
         );
       } else if (isPlainObject(related)) {
         result[key] = applySelect(

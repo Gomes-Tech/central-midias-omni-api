@@ -970,6 +970,7 @@ describe('CategoryRepository', () => {
           hasExternalLink: false,
           externalLink: null,
           isActive: true,
+          showSuppliersList: false,
         },
       });
       expect(logger.info).toHaveBeenCalledWith(
