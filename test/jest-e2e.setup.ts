@@ -12,9 +12,8 @@ const e2eEnvDefaults: Record<string, string> = {
   DATABASE_URL: 'postgresql://e2e:e2e@127.0.0.1:5432/e2e',
   AWS_REGION: 'us-east-1',
   S3_BUCKET: 'e2e-bucket',
-  SUPABASE_URL: 'https://e2e.supabase.co',
-  SUPABASE_KEY: 'e2e-supabase-key',
-  SUPABASE_BUCKET: 'e2e-uploads',
+  S3_ASSETS_BUCKET: 'e2e-assets-bucket',
+  STORAGE_PROVIDER: 's3',
 };
 
 for (const [key, value] of Object.entries(e2eEnvDefaults)) {

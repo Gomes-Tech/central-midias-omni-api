@@ -7,7 +7,9 @@ ARG YARN_TIMEOUT=60000
 COPY package.json yarn.lock ./
 RUN if command -v yarn >/dev/null 2>&1; then yarn --frozen-lockfile --network-timeout $YARN_TIMEOUT; else npm install; fi
 COPY . .
-RUN if command -v yarn >/dev/null 2>&1; then yarn prisma:generate && yarn build; else npm run prisma:generate && npm run build; fi
+RUN if command -v yarn >/dev/null 2>&1; then yarn prisma:generate && yarn build; else npm run prisma:generate && npm run build; fi \
+  && test -f dist/src/main.js \
+  && test -f dist/src/worker.js
 RUN npm prune --production
 
 RUN find . -type f -name "*.sh" -exec sed -i 's/\r$//' {} +
@@ -18,7 +20,7 @@ ENV VERSION $VERSION
 ENV NODE_ENV prod
 WORKDIR /home/node/app
 RUN apk add dumb-init
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl ghostscript qpdf poppler-utils fontconfig
 
 USER node
 EXPOSE 4100
@@ -28,6 +30,7 @@ COPY --chown=node:node --from=build /var/app/package.json ./package.json
 COPY --chown=node:node --from=build /var/app/prisma ./prisma
 # Templates .pug: o código compilado usa __dirname em dist/, então precisam estar em dist/.../templates
 COPY --chown=node:node --from=build /var/app/src/infrastructure/providers/mail/templates ./dist/src/infrastructure/providers/mail/templates
+COPY --chown=node:node --from=build /var/app/src/modules/print/resources ./dist/src/modules/print/resources
 COPY --chown=node:node --from=build /var/app/.docker/entrypoint.sh ./.docker/entrypoint.sh
 
 CMD ["sh", "-c", "ls -l ./dist && if command -v yarn >/dev/null 2>&1; then yarn db:deploy; else npm run db:deploy; fi && node dist/src/main.js"]

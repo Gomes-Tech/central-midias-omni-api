@@ -327,9 +327,9 @@ describe('RolesRepository', () => {
     it('deve lançar InternalServerError quando findMany falhar com erro genérico', async () => {
       prisma.role.findMany.mockRejectedValue(new Error('db'));
 
-      await expect(repository.findAllGlobalRolesSelect()).rejects.toBeInstanceOf(
-        InternalServerErrorException,
-      );
+      await expect(
+        repository.findAllGlobalRolesSelect(),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
       expect(logger.error).toHaveBeenCalledWith(
         'RolesRepository.findAllGlobalRolesSelect falhou',
         expect.objectContaining({ error: 'Error: db' }),

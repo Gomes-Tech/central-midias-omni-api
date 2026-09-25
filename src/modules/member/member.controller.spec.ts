@@ -164,10 +164,7 @@ describe('MemberController', () => {
 
       await controller.findById('m1', 'org-1');
 
-      expect(findMemberByIdUseCase.execute).toHaveBeenCalledWith(
-        'm1',
-        'org-1',
-      );
+      expect(findMemberByIdUseCase.execute).toHaveBeenCalledWith('m1', 'org-1');
     });
   });
 

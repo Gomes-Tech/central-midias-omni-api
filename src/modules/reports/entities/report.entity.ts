@@ -33,12 +33,24 @@ export interface TopSearchRow {
   quantity: number;
 }
 
+export interface MaterialEmailDispatchRow {
+  id: string;
+  materialId: string | null;
+  materialName: string;
+  subject: string;
+  content: string;
+  recipientEmails: string;
+  recipientCount: number;
+  sentAt: Date;
+}
+
 export enum ReportType {
   USERS_TOP_LOGINS = 'users-top-logins',
   USERS_TOP_DOWNLOADS = 'users-top-downloads',
   MATERIALS_TOP_VIEWS = 'materials-top-views',
   MATERIALS_TOP_DOWNLOADS = 'materials-top-downloads',
   SEARCHES_TOP = 'searches-top',
+  MATERIALS_EMAIL_DISPATCHES = 'materials-email-dispatches',
 }
 
 export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
@@ -47,4 +59,5 @@ export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   [ReportType.MATERIALS_TOP_VIEWS]: 'Materiais mais acessados',
   [ReportType.MATERIALS_TOP_DOWNLOADS]: 'Materiais com mais downloads',
   [ReportType.SEARCHES_TOP]: 'Termos de busca mais encontrados',
+  [ReportType.MATERIALS_EMAIL_DISPATCHES]: 'Disparos de e-mail de materiais',
 };

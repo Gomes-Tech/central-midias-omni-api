@@ -35,6 +35,15 @@ describe('SocialHighlights (e2e)', () => {
     expect(Array.isArray(response.body)).toBe(true);
   });
 
+  it('GET /api/social-highlights/list não deve aceitar organização sem membership', async () => {
+    const { accessToken: portalToken } = await e2eSignIn(app, 'portal@e2e.com');
+
+    await e2eRequest(app)
+      .get('/api/social-highlights/list')
+      .set(e2eAuthHeaders(portalToken, E2E_IDS.otherOrgId))
+      .expect(403);
+  });
+
   it('GET /api/social-highlights/:id deve retornar destaque social', async () => {
     const response = await e2eRequest(app)
       .get(`/api/social-highlights/${E2E_IDS.socialHighlightId}`)

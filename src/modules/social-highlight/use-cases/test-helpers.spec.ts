@@ -18,14 +18,22 @@ describe('social-highlight use-cases test-helpers', () => {
       initialDate: new Date('2024-02-01T00:00:00.000Z'),
       finishDate: new Date('2024-02-10T00:00:00.000Z'),
     });
-    expect(makeUpdateSocialHighlightDTO({ name: 'Custom' }).name).toBe('Custom');
+    expect(makeUpdateSocialHighlightDTO({ name: 'Custom' }).name).toBe(
+      'Custom',
+    );
   });
 
   it('makeUpdateSocialHighlightFiles usa arquivos customizados quando informados', () => {
-    const mobileImage = makeSocialHighlightFile({ originalname: 'custom-mobile.png' });
-    const desktopImage = makeSocialHighlightFile({ originalname: 'custom-desktop.png' });
+    const mobileImage = makeSocialHighlightFile({
+      originalname: 'custom-mobile.png',
+    });
+    const desktopImage = makeSocialHighlightFile({
+      originalname: 'custom-desktop.png',
+    });
 
-    expect(makeUpdateSocialHighlightFiles({ mobileImage }).mobileImage).toBe(mobileImage);
+    expect(makeUpdateSocialHighlightFiles({ mobileImage }).mobileImage).toBe(
+      mobileImage,
+    );
     expect(makeUpdateSocialHighlightFiles({ desktopImage }).desktopImage).toBe(
       desktopImage,
     );
@@ -37,12 +45,14 @@ describe('social-highlight use-cases test-helpers', () => {
   it('makeSocialHighlight, makeCreateSocialHighlightDTO e makeSocialHighlightFile aplicam defaults e overrides', () => {
     expect(makeSocialHighlight().id).toBe('social-highlight-id');
     expect(makeSocialHighlight({ id: 'x' }).id).toBe('x');
-    expect(makeCreateSocialHighlightDTO().name).toBe('Destaque social principal');
+    expect(makeCreateSocialHighlightDTO().name).toBe(
+      'Destaque social principal',
+    );
     expect(makeCreateSocialHighlightDTO({ name: 'N' }).name).toBe('N');
     expect(makeSocialHighlightFile().originalname).toBe('social-highlight.png');
-    expect(makeSocialHighlightFile({ originalname: 'x.png' }).originalname).toBe(
-      'x.png',
-    );
+    expect(
+      makeSocialHighlightFile({ originalname: 'x.png' }).originalname,
+    ).toBe('x.png');
   });
 
   it('makeCreateSocialHighlightFiles e makeStorageFile aplicam defaults e overrides', () => {
@@ -56,7 +66,9 @@ describe('social-highlight use-cases test-helpers', () => {
       mobile,
       desktop,
     });
-    expect(makeStorageFile().publicUrl).toBe('/storage/social-highlights/social-highlight.png');
+    expect(makeStorageFile().publicUrl).toBe(
+      '/storage/social-highlights/social-highlight.png',
+    );
     expect(makeStorageFile({ publicUrl: '/custom' }).publicUrl).toBe('/custom');
   });
 });

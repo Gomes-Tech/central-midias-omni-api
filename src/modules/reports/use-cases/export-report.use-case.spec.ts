@@ -8,6 +8,7 @@ describe('ExportReportUseCase', () => {
     findAllTopMaterialsByViews: jest.Mock;
     findAllTopMaterialsByDownloads: jest.Mock;
     findAllTopSearches: jest.Mock;
+    findAllMaterialEmailDispatches: jest.Mock;
   };
   let useCase: ExportReportUseCase;
 
@@ -26,6 +27,7 @@ describe('ExportReportUseCase', () => {
       findAllTopMaterialsByViews: jest.fn().mockResolvedValue([]),
       findAllTopMaterialsByDownloads: jest.fn().mockResolvedValue([]),
       findAllTopSearches: jest.fn().mockResolvedValue([]),
+      findAllMaterialEmailDispatches: jest.fn().mockResolvedValue([]),
     };
 
     useCase = new ExportReportUseCase(reportRepository as never);
@@ -121,6 +123,32 @@ describe('ExportReportUseCase', () => {
     expect(result.filename).toBe('relatorio-buscas.csv');
     expect(result.content).toBe('busca,tag,quantidade\nbola,bola,51');
     expect(reportRepository.findAllTopSearches).toHaveBeenCalledWith('org-1');
+  });
+
+  it('deve exportar CSV de disparos de e-mail de materiais', async () => {
+    reportRepository.findAllMaterialEmailDispatches.mockResolvedValue([
+      {
+        id: 'dispatch-1',
+        materialId: 'mat-1',
+        materialName: 'Campanha ABCDEF',
+        subject: 'Novo material: Campanha ABCDEF',
+        content: 'Conteúdo',
+        recipientEmails: 'ana@test.com',
+        recipientCount: 1,
+        sentAt: new Date('2026-09-19T12:00:00.000Z'),
+      },
+    ]);
+
+    const result = await useCase.execute(
+      ReportType.MATERIALS_EMAIL_DISPATCHES,
+      'org-1',
+    );
+
+    expect(result.filename).toBe('relatorio-disparos-email.csv');
+    expect(result.content).toContain('Campanha ABCDEF');
+    expect(
+      reportRepository.findAllMaterialEmailDispatches,
+    ).toHaveBeenCalledWith('org-1');
   });
 
   it('deve lançar BadRequestException para tipo de relatório inválido', async () => {

@@ -43,7 +43,7 @@ describe('EnqueueReportExportUseCase', () => {
         name: 'Admin',
       },
       {
-        jobId: `${ReportType.MATERIALS_TOP_VIEWS}:org-1:user-1:export`,
+        jobId: `${ReportType.MATERIALS_TOP_VIEWS}-org-1-user-1-export`,
       },
     );
   });

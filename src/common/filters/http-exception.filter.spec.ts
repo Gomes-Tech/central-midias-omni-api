@@ -299,10 +299,7 @@ describe('HttpExceptionFilter', () => {
     it('em dev deve sanitizar arrays e campos aninhados no body', () => {
       const response = createMockResponse();
       const request = baseRequest();
-      request.body = [
-        { nested: { authorization: 'tok' } },
-        'plain',
-      ] as never;
+      request.body = [{ nested: { authorization: 'tok' } }, 'plain'] as never;
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'dev';
 

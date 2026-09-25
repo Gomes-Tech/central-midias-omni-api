@@ -52,6 +52,12 @@ import * as Joi from 'joi';
             port: Number(process.env.REDIS_PORT ?? '6379'),
             password: process.env.REDIS_PASSWORD,
           },
+          storage: {
+            provider: 's3',
+            assetsBucket:
+              process.env.S3_ASSETS_BUCKET ?? process.env.S3_BUCKET,
+          },
+          printExportEnabled: process.env.PRINT_EXPORT_ENABLED === 'true',
         }),
       ],
       validationSchema: Joi.object({
@@ -106,6 +112,14 @@ import * as Joi from 'joi';
         REDIS_HOST: Joi.string().optional(),
         REDIS_PORT: Joi.number().default(6379).optional(),
         REDIS_PASSWORD: Joi.string().optional(),
+
+        STORAGE_PROVIDER: Joi.string().valid('s3').default('s3'),
+        S3_BUCKET: Joi.string().optional(),
+        S3_ASSETS_BUCKET: Joi.string().optional(),
+        PRINT_EXPORT_ENABLED: Joi.boolean()
+          .truthy('true')
+          .falsy('false')
+          .default(false),
       }),
     }),
   ],

@@ -23,22 +23,33 @@ import type {
   MulterFile,
   StoredFile,
 } from './local-storage.service';
+import type {
+  AssetUpload,
+  PrivateFileWrite,
+  StorageProvider,
+} from './storage-provider';
+import { resolveUploadBody, resolveUploadMimeType } from './upload-body';
 
 @Injectable()
-export class S3StorageService {
+export class S3StorageService implements StorageProvider {
   private readonly s3: S3Client;
   private readonly bucket: string;
+  private readonly assetsBucket: string;
+  private readonly region: string;
   private readonly expiresIn: number;
 
   constructor() {
     const region = process.env.AWS_REGION;
     this.bucket = process.env.S3_BUCKET ?? '';
+    this.assetsBucket = process.env.S3_ASSETS_BUCKET ?? this.bucket;
 
     if (!region || !this.bucket) {
       throw new InternalServerErrorException(
         'S3: configure AWS_REGION e S3_BUCKET',
       );
     }
+
+    this.region = region;
 
     this.s3 = new S3Client({
       region,
@@ -80,7 +91,7 @@ export class S3StorageService {
     this.assertAllowedUpload(file);
 
     const originalName = file.originalname.trim() || 'arquivo';
-    const mimeType = file.mimetype || 'application/octet-stream';
+    const mimeType = resolveUploadMimeType(file);
 
     const ext = this.extensionDot(originalName);
     const id = randomUUID();
@@ -93,29 +104,46 @@ export class S3StorageService {
         new PutObjectCommand({
           Bucket: this.bucket,
           Key: key,
-          Body: file.buffer,
+          Body: resolveUploadBody(file),
           ContentType: mimeType,
+          ...(Number.isFinite(file.size) && file.size > 0
+            ? { ContentLength: file.size }
+            : {}),
         }),
       );
       return {
         id,
         path: key,
         fullPath: `s3://${this.bucket}/${key}`,
-        publicUrl: `https://assets-editor.s3.us-east-1.amazonaws.com/${key}`,
+        publicUrl: `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`,
       };
     } catch {
       throw new BadRequestException('Erro ao fazer upload no S3');
     }
   }
 
+  async readFile(key: string): Promise<Buffer> {
+    try {
+      const response = await this.s3.send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
+      if (!response.Body) {
+        throw new Error('Arquivo sem conteúdo');
+      }
+      return Buffer.from(await response.Body.transformToByteArray());
+    } catch {
+      throw new BadRequestException('Erro ao ler arquivo no S3');
+    }
+  }
+
   // ✅ GERAR URL (VIEW)
   async getSignedUrl(key: string, expieresIn?: number): Promise<string> {
-    const isPdf = key.toLowerCase().split("?")[0].endsWith(".pdf");
+    const isPdf = key.toLowerCase().split('?')[0].endsWith('.pdf');
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
-      ResponseContentDisposition: "inline",
-      ...(isPdf ? { ResponseContentType: "application/pdf" } : {}),
+      ResponseContentDisposition: 'inline',
+      ...(isPdf ? { ResponseContentType: 'application/pdf' } : {}),
     });
 
     return getSignedUrl(this.s3, command, {
@@ -169,7 +197,7 @@ export class S3StorageService {
     this.assertAllowedUpload(file);
 
     const originalName = file.originalname.trim() || 'arquivo';
-    const mimeType = file.mimetype || 'application/octet-stream';
+    const mimeType = resolveUploadMimeType(file);
     const sizeBytes = Number.isFinite(file.size) ? file.size : 0;
 
     const ext = this.extensionDot(originalName);
@@ -185,8 +213,11 @@ export class S3StorageService {
         new PutObjectCommand({
           Bucket: this.bucket,
           Key: key,
-          Body: file.buffer,
+          Body: resolveUploadBody(file),
           ContentType: mimeType,
+          ...(Number.isFinite(file.size) && file.size > 0
+            ? { ContentLength: file.size }
+            : {}),
         }),
       );
     } catch {
@@ -199,5 +230,65 @@ export class S3StorageService {
       mimeType,
       sizeBytes,
     };
+  }
+
+  async uploadAsset(params: AssetUpload): Promise<void> {
+    await this.s3.send(
+      new PutObjectCommand({
+        Bucket: this.assetsBucket,
+        Key: params.fileKey,
+        Body: params.buffer,
+        ContentType: params.mimeType,
+        CacheControl: 'public, max-age=31536000, immutable',
+      }),
+    );
+  }
+
+  async readAsset(fileKey: string): Promise<Buffer> {
+    try {
+      const response = await this.s3.send(
+        new GetObjectCommand({ Bucket: this.assetsBucket, Key: fileKey }),
+      );
+      if (!response.Body) throw new Error('Arquivo sem conteúdo');
+      return Buffer.from(await response.Body.transformToByteArray());
+    } catch {
+      throw new BadRequestException('Erro ao ler asset no S3');
+    }
+  }
+
+  async writePrivateFile(file: PrivateFileWrite): Promise<void> {
+    if (file.path.includes('..') || file.path.startsWith('/')) {
+      throw new BadRequestException('Caminho privado inválido');
+    }
+    try {
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: file.path,
+          Body: file.buffer,
+          ContentType: file.mimeType,
+        }),
+      );
+    } catch {
+      throw new BadRequestException('Erro ao gravar arquivo privado no S3');
+    }
+  }
+
+  async deleteAsset(fileKey: string): Promise<void> {
+    await this.s3.send(
+      new DeleteObjectCommand({
+        Bucket: this.assetsBucket,
+        Key: fileKey,
+      }),
+    );
+  }
+
+  getAssetPublicUrl(fileKey: string): string {
+    const encodedKey = fileKey
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/');
+
+    return `https://${this.assetsBucket}.s3.${this.region}.amazonaws.com/${encodedKey}`;
   }
 }

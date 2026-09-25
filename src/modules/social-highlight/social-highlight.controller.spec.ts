@@ -28,19 +28,39 @@ describe('SocialHighlightController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SocialHighlightController],
       providers: [
-        { provide: CreateSocialHighlightUseCase, useValue: createSocialHighlightUseCase },
-        { provide: FindAllSocialHighlightsUseCase, useValue: findAllSocialHighlightsUseCase },
-        { provide: FindListSocialHighlightsUseCase, useValue: findListSocialHighlightsUseCase },
-        { provide: GetSocialHighlightUseCase, useValue: getSocialHighlightUseCase },
-        { provide: UpdateSocialHighlightUseCase, useValue: updateSocialHighlightUseCase },
-        { provide: DeleteSocialHighlightUseCase, useValue: deleteSocialHighlightUseCase },
+        {
+          provide: CreateSocialHighlightUseCase,
+          useValue: createSocialHighlightUseCase,
+        },
+        {
+          provide: FindAllSocialHighlightsUseCase,
+          useValue: findAllSocialHighlightsUseCase,
+        },
+        {
+          provide: FindListSocialHighlightsUseCase,
+          useValue: findListSocialHighlightsUseCase,
+        },
+        {
+          provide: GetSocialHighlightUseCase,
+          useValue: getSocialHighlightUseCase,
+        },
+        {
+          provide: UpdateSocialHighlightUseCase,
+          useValue: updateSocialHighlightUseCase,
+        },
+        {
+          provide: DeleteSocialHighlightUseCase,
+          useValue: deleteSocialHighlightUseCase,
+        },
       ],
     })
       .overrideGuard(PlatformPermissionGuard)
       .useValue({ canActivate: jest.fn().mockResolvedValue(true) })
       .compile();
 
-    controller = module.get<SocialHighlightController>(SocialHighlightController);
+    controller = module.get<SocialHighlightController>(
+      SocialHighlightController,
+    );
   });
 
   describe('list', () => {
@@ -72,7 +92,10 @@ describe('SocialHighlightController', () => {
 
       await controller.list('org-1', {});
 
-      expect(findAllSocialHighlightsUseCase.execute).toHaveBeenCalledWith('org-1', {});
+      expect(findAllSocialHighlightsUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+        {},
+      );
     });
 
     it('deve usar filtros padrão quando query não for passada', async () => {
@@ -85,7 +108,10 @@ describe('SocialHighlightController', () => {
 
       await controller.list('org-1');
 
-      expect(findAllSocialHighlightsUseCase.execute).toHaveBeenCalledWith('org-1', {});
+      expect(findAllSocialHighlightsUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+        {},
+      );
     });
   });
 
@@ -97,7 +123,9 @@ describe('SocialHighlightController', () => {
       const result = await controller.listWeb('org-1');
 
       expect(result).toBe(payload);
-      expect(findListSocialHighlightsUseCase.execute).toHaveBeenCalledWith('org-1');
+      expect(findListSocialHighlightsUseCase.execute).toHaveBeenCalledWith(
+        'org-1',
+      );
     });
   });
 
@@ -107,7 +135,10 @@ describe('SocialHighlightController', () => {
 
       await controller.getById('b1', 'org-1');
 
-      expect(getSocialHighlightUseCase.execute).toHaveBeenCalledWith('b1', 'org-1');
+      expect(getSocialHighlightUseCase.execute).toHaveBeenCalledWith(
+        'b1',
+        'org-1',
+      );
     });
   });
 

@@ -44,4 +44,11 @@ describe('Users (e2e)', () => {
     expect(response.body.id).toBe(E2E_IDS.userId);
     expect(response.body.email).toBe('admin@admin.com');
   });
+
+  it('GET /api/users/:id não deve devolver usuário sem membership na org do header', async () => {
+    await e2eRequest(app)
+      .get(`/api/users/${E2E_IDS.portalUserId}`)
+      .set(e2eAuthHeaders(accessToken, E2E_IDS.otherOrgId))
+      .expect(404);
+  });
 });

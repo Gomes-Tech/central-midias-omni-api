@@ -91,4 +91,23 @@ describe('UpdateGlobalRoleUseCase', () => {
 
     expect(rolesRepository.updateGlobalRole).not.toHaveBeenCalled();
   });
+
+  it('deve recusar alteração de perfil global de sistema', async () => {
+    const role = makeRole({
+      id: 'r-admin',
+      name: 'ADMIN',
+      isSystem: true,
+      canAccessBackoffice: true,
+    });
+    const data = makeUpdateGlobalRoleDTO({
+      permissions: [{ moduleId: 'mod-1', action: 'READ' }],
+    });
+    findGlobalRoleByIdUseCase.execute.mockResolvedValue(role as never);
+
+    await expect(useCase.execute('r-admin', data)).rejects.toThrow(
+      'Não é possível alterar um perfil global de sistema',
+    );
+
+    expect(rolesRepository.updateGlobalRole).not.toHaveBeenCalled();
+  });
 });

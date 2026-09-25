@@ -25,9 +25,7 @@ describe('SyncCategoryGlobalRolesUseCase', () => {
       undefined,
     );
 
-    await expect(
-      useCase.execute('cat-1', 'org-1'),
-    ).resolves.toBeUndefined();
+    await expect(useCase.execute('cat-1', 'org-1')).resolves.toBeUndefined();
 
     expect(
       repository.syncCategoryWithGlobalRolesInOrganization,
@@ -39,8 +37,6 @@ describe('SyncCategoryGlobalRolesUseCase', () => {
       new Error('falhou'),
     );
 
-    await expect(useCase.execute('cat-1', 'org-1')).rejects.toThrow(
-      'falhou',
-    );
+    await expect(useCase.execute('cat-1', 'org-1')).rejects.toThrow('falhou');
   });
 });

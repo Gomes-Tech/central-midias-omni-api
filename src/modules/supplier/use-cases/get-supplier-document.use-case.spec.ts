@@ -22,7 +22,9 @@ describe('GetSupplierDocumentUseCase', () => {
   let supplierRepository: jest.Mocked<
     Pick<SupplierRepository, 'findDocumentKey'>
   >;
-  let findMemberRoleUseCase: jest.Mocked<Pick<FindMemberRoleUseCase, 'execute'>>;
+  let findMemberRoleUseCase: jest.Mocked<
+    Pick<FindMemberRoleUseCase, 'execute'>
+  >;
   let storageService: jest.Mocked<Pick<StorageService, 'getPublicUrl'>>;
   let useCase: GetSupplierDocumentUseCase;
 

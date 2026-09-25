@@ -1,6 +1,7 @@
 import {
   TopMaterialByDownloadRow,
   TopMaterialByViewRow,
+  MaterialEmailDispatchRow,
   TopSearchRow,
   TopUserByMaterialDownloadRow,
   TopUserByPlatformLoginRow,
@@ -72,6 +73,24 @@ export const buildTopMaterialsByDownloadsCsv = (
       escapeCsvValue(row.name),
       escapeCsvValue(row.categoryName),
       String(row.downloadCount),
+    ].join(','),
+  );
+
+  return [header, ...lines].join('\n');
+};
+
+export const buildMaterialEmailDispatchesCsv = (
+  rows: MaterialEmailDispatchRow[],
+): string => {
+  const header = 'material,assunto,conteudo,emails,quantidade,enviado_em';
+  const lines = rows.map((row) =>
+    [
+      escapeCsvValue(row.materialName),
+      escapeCsvValue(row.subject),
+      escapeCsvValue(row.content),
+      escapeCsvValue(row.recipientEmails),
+      String(row.recipientCount),
+      formatDate(row.sentAt),
     ].join(','),
   );
 

@@ -4,6 +4,10 @@ import { ReportRepository } from './report.repository';
 describe('ReportRepository', () => {
   let prisma: {
     $queryRawUnsafe: jest.Mock;
+    materialEmailDispatch: {
+      findMany: jest.Mock;
+      count: jest.Mock;
+    };
   };
   let logger: { error: jest.Mock };
   let repository: ReportRepository;
@@ -11,6 +15,10 @@ describe('ReportRepository', () => {
   beforeEach(() => {
     prisma = {
       $queryRawUnsafe: jest.fn(),
+      materialEmailDispatch: {
+        findMany: jest.fn(),
+        count: jest.fn(),
+      },
     };
     logger = { error: jest.fn() };
 
@@ -455,6 +463,73 @@ describe('ReportRepository', () => {
         'org-1',
         Number.MAX_SAFE_INTEGER,
         0,
+      );
+    });
+  });
+
+  describe('findMaterialEmailDispatches', () => {
+    it('deve retornar disparos paginados com e-mails agregados', async () => {
+      prisma.materialEmailDispatch.findMany.mockResolvedValue([
+        {
+          id: 'dispatch-1',
+          materialId: 'mat-1',
+          materialName: 'Campanha ABCDEF',
+          subject: 'Novo material: Campanha ABCDEF',
+          content: 'Conteúdo',
+          createdAt: new Date('2026-09-19T12:00:00.000Z'),
+          recipients: [{ email: 'ana@test.com' }, { email: 'bruno@test.com' }],
+        },
+      ]);
+      prisma.materialEmailDispatch.count.mockResolvedValue(1);
+
+      const result = await repository.findMaterialEmailDispatches('org-1', {
+        page: 1,
+        limit: 25,
+      });
+
+      expect(result).toEqual({
+        data: [
+          {
+            id: 'dispatch-1',
+            materialId: 'mat-1',
+            materialName: 'Campanha ABCDEF',
+            subject: 'Novo material: Campanha ABCDEF',
+            content: 'Conteúdo',
+            recipientEmails: 'ana@test.com; bruno@test.com',
+            recipientCount: 2,
+            sentAt: new Date('2026-09-19T12:00:00.000Z'),
+          },
+        ],
+        total: 1,
+        totalPages: 1,
+        page: 1,
+      });
+    });
+
+    it('deve lançar BadRequestException quando a busca falhar', async () => {
+      prisma.materialEmailDispatch.findMany.mockRejectedValue(
+        new Error('db down'),
+      );
+
+      await expect(
+        repository.findMaterialEmailDispatches('org-1'),
+      ).rejects.toThrow('Erro ao buscar relatório de disparos de e-mail');
+    });
+  });
+
+  describe('findAllMaterialEmailDispatches', () => {
+    it('deve buscar todos os registros sem paginação', async () => {
+      prisma.materialEmailDispatch.findMany.mockResolvedValue([]);
+      prisma.materialEmailDispatch.count.mockResolvedValue(0);
+
+      await expect(
+        repository.findAllMaterialEmailDispatches('org-1'),
+      ).resolves.toEqual([]);
+      expect(prisma.materialEmailDispatch.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 0,
+          take: Number.MAX_SAFE_INTEGER,
+        }),
       );
     });
   });

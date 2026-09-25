@@ -1,4 +1,5 @@
 import { BadRequestException } from '@common/filters';
+import { StorageService } from '@infrastructure/providers';
 import { FindCategoryByIdUseCase } from '@modules/category';
 import { MaterialRepository } from '../repository';
 import { UpdateMaterialUseCase } from './update-material.use-case';
@@ -6,7 +7,19 @@ import { FindMaterialByIdUseCase } from './find-material-by-id.use-case';
 import { EnqueueMaterialAcceptanceEmailsUseCase } from './enqueue-material-acceptance-emails.use-case';
 import { EnqueueMaterialNotificationEmailsUseCase } from './enqueue-material-notification-emails.use-case';
 import { ResolveMaterialTagIdsUseCase } from './resolve-material-tag-ids.use-case';
-import { makeMaterialDetails, makeUpdateMaterialDTO } from './test-helpers';
+import {
+  makeMaterialDetails,
+  makeMaterialFile,
+  makeUpdateMaterialDTO,
+} from './test-helpers';
+
+function makePngBuffer(): Buffer {
+  const png = Buffer.alloc(24);
+  Buffer.from('89504e470d0a1a0a', 'hex').copy(png);
+  png.writeUInt32BE(1080, 16);
+  png.writeUInt32BE(1080, 20);
+  return png;
+}
 
 describe('UpdateMaterialUseCase', () => {
   let materialRepository: jest.Mocked<MaterialRepository>;
@@ -15,12 +28,16 @@ describe('UpdateMaterialUseCase', () => {
   let resolveMaterialTagIdsUseCase: { execute: jest.Mock };
   let enqueueMaterialAcceptanceEmailsUseCase: { execute: jest.Mock };
   let enqueueMaterialNotificationEmailsUseCase: { execute: jest.Mock };
+  let storageService: { readFile: jest.Mock };
   let useCase: UpdateMaterialUseCase;
 
   beforeEach(() => {
     materialRepository = {
       findByName: jest.fn(),
+      findFilesByMaterialId: jest.fn(),
       update: jest.fn(),
+      isActivePrintPreset: jest.fn(),
+      hasPublishedTemplateLinks: jest.fn().mockResolvedValue(false),
     } as unknown as jest.Mocked<MaterialRepository>;
 
     findMaterialByIdUseCase = { execute: jest.fn() };
@@ -32,12 +49,16 @@ describe('UpdateMaterialUseCase', () => {
     enqueueMaterialNotificationEmailsUseCase = {
       execute: jest.fn().mockResolvedValue({ enqueued: 1 }),
     };
+    storageService = {
+      readFile: jest.fn().mockResolvedValue(makePngBuffer()),
+    };
 
     useCase = new UpdateMaterialUseCase(
       materialRepository,
       findMaterialByIdUseCase as unknown as FindMaterialByIdUseCase,
       findCategoryByIdUseCase as unknown as FindCategoryByIdUseCase,
       resolveMaterialTagIdsUseCase as unknown as ResolveMaterialTagIdsUseCase,
+      storageService as unknown as StorageService,
       enqueueMaterialAcceptanceEmailsUseCase as unknown as EnqueueMaterialAcceptanceEmailsUseCase,
       enqueueMaterialNotificationEmailsUseCase as unknown as EnqueueMaterialNotificationEmailsUseCase,
     );
@@ -166,16 +187,40 @@ describe('UpdateMaterialUseCase', () => {
     );
   });
 
-  it('deve atualizar configuração quando material for personalizável', async () => {
+  it('deve criar ou recuperar o template ao ativar a personalização', async () => {
     const material = makeMaterialDetails();
-    const dto = makeUpdateMaterialDTO({
-      isCustomizable: true,
-      customization: {
-        hasCity: true,
-      },
-    });
+    const dto = makeUpdateMaterialDTO({ isCustomizable: true });
+    const jpeg = Buffer.alloc(12);
+    jpeg[0] = 0xff;
+    jpeg[1] = 0xd8;
+    jpeg[2] = 0xff;
+    jpeg[3] = 0xc0;
+    jpeg.writeUInt16BE(8, 4);
+    jpeg[6] = 8;
+    jpeg.writeUInt16BE(720, 7);
+    jpeg.writeUInt16BE(1280, 9);
 
     findMaterialByIdUseCase.execute.mockResolvedValue(material);
+    materialRepository.findFilesByMaterialId.mockResolvedValue([
+      makeMaterialFile({
+        id: 'base-file-id',
+        materialId: material.id,
+        fileKey: 'materials/material-id/base.png',
+        mimeType: 'application/octet-stream',
+        size: 24,
+        sortOrder: 0,
+      }),
+      makeMaterialFile({
+        id: 'second-file-id',
+        materialId: material.id,
+        fileKey: 'materials/material-id/second.jpg',
+        mimeType: 'image/png',
+        size: jpeg.length,
+        sortOrder: 1,
+      }),
+    ]);
+    storageService.readFile.mockResolvedValueOnce(makePngBuffer());
+    storageService.readFile.mockResolvedValueOnce(jpeg);
     resolveMaterialTagIdsUseCase.execute.mockResolvedValue(undefined);
     materialRepository.update.mockResolvedValue(undefined);
 
@@ -190,24 +235,115 @@ describe('UpdateMaterialUseCase', () => {
       'user-id',
       {
         tags: undefined,
+        activateTemplate: {
+          baseMaterialFileId: 'base-file-id',
+          baseMimeType: 'image/png',
+          validatedFiles: [
+            {
+              id: 'base-file-id',
+              mimeType: 'image/png',
+              width: 1080,
+              height: 1080,
+            },
+            {
+              id: 'second-file-id',
+              mimeType: 'image/jpeg',
+              width: 1280,
+              height: 720,
+            },
+          ],
+        },
       },
+    );
+    expect(storageService.readFile).toHaveBeenNthCalledWith(
+      1,
+      'materials/material-id/base.png',
+    );
+    expect(storageService.readFile).toHaveBeenNthCalledWith(
+      2,
+      'materials/material-id/second.jpg',
     );
   });
 
-  it('deve impedir customização sem isCustomizable true', async () => {
-    const dto = makeUpdateMaterialDTO({
-      customization: {
-        hasAddress: true,
-      },
-    });
+  it('deve impedir ativação sem imagens', async () => {
+    const material = makeMaterialDetails();
+    const dto = makeUpdateMaterialDTO({ isCustomizable: true });
+    findMaterialByIdUseCase.execute.mockResolvedValue(material);
+    materialRepository.findFilesByMaterialId.mockResolvedValue([]);
 
     await expect(
       useCase.execute('material-id', 'org-id', dto, 'user-id'),
     ).rejects.toThrow(
-      'Customização só pode ser informada para materiais personalizáveis',
+      'Material customizável deve possuir de 1 a 20 imagens PNG ou JPEG',
     );
 
-    expect(findMaterialByIdUseCase.execute).not.toHaveBeenCalled();
+    expect(materialRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('deve impedir ativação quando qualquer arquivo não for imagem real', async () => {
+    const material = makeMaterialDetails();
+    const dto = makeUpdateMaterialDTO({ isCustomizable: true });
+    materialRepository.findFilesByMaterialId.mockResolvedValue([
+      makeMaterialFile({
+        id: 'pdf-file-id',
+        materialId: material.id,
+        fileKey: 'materials/material-id/falso.png',
+        mimeType: 'image/png',
+        size: 8,
+      }),
+    ]);
+    findMaterialByIdUseCase.execute.mockResolvedValue(material);
+    storageService.readFile.mockResolvedValue(Buffer.from('%PDF-1.7'));
+
+    await expect(
+      useCase.execute(material.id, 'org-id', dto, 'user-id'),
+    ).rejects.toThrow('A imagem base deve ser PNG ou JPEG válido');
+
+    expect(materialRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('deve impedir ativação com mais de 20 arquivos', async () => {
+    const material = makeMaterialDetails();
+    const dto = makeUpdateMaterialDTO({ isCustomizable: true });
+    materialRepository.findFilesByMaterialId.mockResolvedValue(
+      Array.from({ length: 21 }, (_, index) =>
+        makeMaterialFile({ id: `file-${index}`, sortOrder: index }),
+      ),
+    );
+    findMaterialByIdUseCase.execute.mockResolvedValue(material);
+
+    await expect(
+      useCase.execute(material.id, 'org-id', dto, 'user-id'),
+    ).rejects.toThrow(
+      'Material customizável deve possuir de 1 a 20 imagens PNG ou JPEG',
+    );
+
+    expect(storageService.readFile).not.toHaveBeenCalled();
+    expect(materialRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('deve exigir preset quando o material customizável marcar PDF para impressão', async () => {
+    const material = makeMaterialDetails({ isCustomizable: true });
+    const dto = makeUpdateMaterialDTO({ exportTypes: ['print_pdf'] });
+    findMaterialByIdUseCase.execute.mockResolvedValue(material);
+
+    await expect(
+      useCase.execute(material.id, 'org-id', dto, 'user-id'),
+    ).rejects.toThrow('Selecione um preset de impressão');
+    expect(materialRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('impede remover o PDF digital enquanto o template publicado mantiver links', async () => {
+    const material = makeMaterialDetails({ isCustomizable: true });
+    const dto = makeUpdateMaterialDTO({ exportTypes: ['png'] });
+    findMaterialByIdUseCase.execute.mockResolvedValue(material);
+    materialRepository.hasPublishedTemplateLinks.mockResolvedValue(true);
+
+    await expect(
+      useCase.execute(material.id, 'org-id', dto, 'user-id'),
+    ).rejects.toThrow(
+      'Remova os links do template antes de desabilitar o PDF digital',
+    );
     expect(materialRepository.update).not.toHaveBeenCalled();
   });
 

@@ -29,7 +29,9 @@ describe('UpsertSupplierDocumentUseCase', () => {
   let supplierRepository: jest.Mocked<
     Pick<SupplierRepository, 'findDocumentKey' | 'upsertDocument'>
   >;
-  let findMemberRoleUseCase: jest.Mocked<Pick<FindMemberRoleUseCase, 'execute'>>;
+  let findMemberRoleUseCase: jest.Mocked<
+    Pick<FindMemberRoleUseCase, 'execute'>
+  >;
   let storageService: jest.Mocked<
     Pick<StorageService, 'uploadFile' | 'deleteFile'>
   >;
@@ -56,9 +58,7 @@ describe('UpsertSupplierDocumentUseCase', () => {
   });
 
   it('deve lançar Forbidden quando o usuário não tiver canAccessBackoffice', async () => {
-    findMemberRoleUseCase.execute.mockResolvedValue(
-      makeMemberRole(false),
-    );
+    findMemberRoleUseCase.execute.mockResolvedValue(makeMemberRole(false));
 
     await expect(
       useCase.execute('org-1', 'user-1', makePdfFile()),

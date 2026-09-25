@@ -79,7 +79,9 @@ describe('FindAllOrganizationsUseCase', () => {
       page: 1,
       totalPages: 1,
     });
-    storageService.getPublicUrl.mockResolvedValue('https://cdn.test/avatars/org.png');
+    storageService.getPublicUrl.mockResolvedValue(
+      'https://cdn.test/avatars/org.png',
+    );
 
     await expect(useCase.execute()).resolves.toEqual({
       data: [

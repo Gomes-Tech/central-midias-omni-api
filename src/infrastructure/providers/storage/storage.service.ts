@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { MulterFile } from './local-storage.service';
-import { S3StorageService } from './s3-storage.service';
+import { Inject, Injectable } from '@nestjs/common';
+import type { MulterFile, StoredFile } from './local-storage.service';
+import type { PrivateFileWrite } from './storage-provider';
+import { STORAGE_PROVIDER, StorageProvider } from './storage-provider';
+import { unlinkUploadTemp } from './upload-body';
 
 /** Máximo permitido pelo SigV4 com credenciais IAM permanentes: 7 dias. */
 export const S3_MAX_SIGNED_URL_EXPIRES_IN = 7 * 24 * 60 * 60;
@@ -15,27 +17,53 @@ export interface StorageFile {
 @Injectable()
 export class StorageService {
   constructor(
-    // private readonly localStorageService: LocalStorageService,
-    // private readonly supabaseService: SupabaseService,
-    private readonly s3StorageService: S3StorageService,
+    @Inject(STORAGE_PROVIDER)
+    private readonly storageProvider: StorageProvider,
   ) {}
 
   async uploadFile(
     file: MulterFile,
     folder?: string,
   ): Promise<{ path: string }> {
-    return await this.s3StorageService.uploadFile(file, folder);
+    try {
+      return await this.storageProvider.uploadFile(file, folder);
+    } finally {
+      await unlinkUploadTemp(file);
+    }
   }
 
-  async getPublicUrl(path: string, expieresIn?: number): Promise<string> {
-    return await this.s3StorageService.getSignedUrl(path, expieresIn);
+  async readFile(path: string): Promise<Buffer> {
+    return this.storageProvider.readFile(path);
+  }
+
+  async getPublicUrl(path: string, expiresIn?: number): Promise<string> {
+    return this.storageProvider.getSignedUrl(path, expiresIn);
   }
 
   async getDownloadUrl(path: string, filename: string): Promise<string> {
-    return await this.s3StorageService.getSignedDownloadUrl(path, filename);
+    return this.storageProvider.getSignedDownloadUrl(path, filename);
   }
 
   async deleteFile(paths: string[]): Promise<void> {
-    console.log('deleteFile', paths);
+    return this.storageProvider.deleteFile(paths);
+  }
+
+  async readAsset(path: string): Promise<Buffer> {
+    return this.storageProvider.readAsset(path);
+  }
+
+  async writePrivateFile(file: PrivateFileWrite): Promise<void> {
+    return this.storageProvider.writePrivateFile(file);
+  }
+
+  async storePublicationAttachment(params: {
+    publicationId: string;
+    file: MulterFile;
+  }): Promise<StoredFile> {
+    try {
+      return await this.storageProvider.storePublicationAttachment(params);
+    } finally {
+      await unlinkUploadTemp(params.file);
+    }
   }
 }

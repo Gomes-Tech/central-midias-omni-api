@@ -84,8 +84,8 @@ describe('NotificationController', () => {
       updated: 2,
     });
 
-    await expect(
-      controller.markAllAsRead('user-1', 'org-1'),
-    ).resolves.toEqual({ updated: 2 });
+    await expect(controller.markAllAsRead('user-1', 'org-1')).resolves.toEqual({
+      updated: 2,
+    });
   });
 });

@@ -22,7 +22,9 @@ describe('DeleteMemberUseCase', () => {
   it('deve validar o membro antes de excluir', async () => {
     memberRepository.delete.mockResolvedValue(undefined);
 
-    await expect(useCase.execute('member-id', 'org-id')).resolves.toBeUndefined();
+    await expect(
+      useCase.execute('member-id', 'org-id'),
+    ).resolves.toBeUndefined();
 
     expect(findMemberByIdUseCase.execute).toHaveBeenCalledWith(
       'member-id',

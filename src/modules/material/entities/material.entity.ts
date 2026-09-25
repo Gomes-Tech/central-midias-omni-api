@@ -17,27 +17,24 @@ export interface MaterialListItem {
     name: string;
   };
   materialFilesCount: number;
+  isCustomizable: boolean;
+  templateStatus: 'DRAFT' | 'PUBLISHED' | null;
 }
 
 export interface MaterialFileItem {
   id: string;
   materialId: string;
   fileKey: string;
+  originalName: string | null;
   mimeType: string;
   size: number;
+  width: number | null;
+  height: number | null;
+  sortOrder: number;
 }
 
 export interface MaterialFileWithUrl extends Omit<MaterialFileItem, 'fileKey'> {
   url: string;
-}
-
-export interface MaterialCustomizationDetails {
-  position: 'TOP' | 'FOOTER';
-  hasName: boolean;
-  hasPhonePrimary: boolean;
-  hasPhoneSecondary: boolean;
-  hasAddress: boolean;
-  hasCity: boolean;
 }
 
 export interface MaterialDetails {
@@ -52,7 +49,9 @@ export interface MaterialDetails {
   onlyView: boolean;
   textCopy?: string | null;
   isCustomizable: boolean;
-  customization: MaterialCustomizationDetails | null;
+  templateStatus: 'DRAFT' | 'PUBLISHED' | null;
+  exportTypes: Array<'png' | 'jpg' | 'pdf' | 'print_pdf'>;
+  printPresetId: string | null;
   createdAt: Date;
   updatedAt: Date;
   category: MaterialCategorySummary;
@@ -94,6 +93,7 @@ export interface MaterialByCategorySlugItem {
   onlyView: boolean;
   textCopy: string | null;
   isCustomizable: boolean;
+  canCustomize: boolean;
   requiresAcceptance: boolean;
 }
 
@@ -106,6 +106,7 @@ export interface MaterialByCategorySlugRow {
   onlyView: boolean;
   textCopy: string | null;
   isCustomizable: boolean;
+  canCustomize: boolean;
   requiresAcceptance: boolean;
   imageKey: string | null;
   mimeType: string | null;

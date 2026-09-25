@@ -18,7 +18,10 @@ export class DeleteSocialHighlightUseCase {
   }
 
   async execute(id: string, organizationId: string, userId: string) {
-    const banner = await this.getSocialHighlightUseCase.execute(id, organizationId);
+    const banner = await this.getSocialHighlightUseCase.execute(
+      id,
+      organizationId,
+    );
 
     await this.socialHighlightRepository.softDelete(id, organizationId, userId);
 

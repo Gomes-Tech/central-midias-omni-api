@@ -19,7 +19,11 @@ describe('FindAllSocialHighlightsUseCase', () => {
     const paginated = {
       data: [
         makeSocialHighlight(),
-        makeSocialHighlight({ id: 'social-highlight-2', order: 2, name: 'Destaque secundário' }),
+        makeSocialHighlight({
+          id: 'social-highlight-2',
+          order: 2,
+          name: 'Destaque secundário',
+        }),
       ],
       total: 2,
       page: 1,

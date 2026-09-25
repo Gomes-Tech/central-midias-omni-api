@@ -41,25 +41,31 @@ describe('LogoutUserUseCase', () => {
     expect(tokenBlacklistService.addToBlacklist).toHaveBeenCalledWith(
       'access-jti',
     );
-    expect(tokenBlacklistService.addRefreshTokenToBlacklist).not.toHaveBeenCalled();
+    expect(
+      tokenBlacklistService.addRefreshTokenToBlacklist,
+    ).not.toHaveBeenCalled();
   });
 
   it('deve colocar o refresh token na blacklist quando houver jti', async () => {
     jwtService.verifyAsync.mockResolvedValue({ jti: 'refresh-jti' });
 
-    await expect(useCase.execute(undefined, 'refresh-token-raw')).resolves.toBeUndefined();
+    await expect(
+      useCase.execute(undefined, 'refresh-token-raw'),
+    ).resolves.toBeUndefined();
 
     expect(jwtService.verifyAsync).toHaveBeenCalledWith('refresh-token-raw', {
       secret: 'refresh-secret',
     });
-    expect(tokenBlacklistService.addRefreshTokenToBlacklist).toHaveBeenCalledWith(
-      'refresh-jti',
-    );
+    expect(
+      tokenBlacklistService.addRefreshTokenToBlacklist,
+    ).toHaveBeenCalledWith('refresh-jti');
     expect(tokenBlacklistService.addToBlacklist).not.toHaveBeenCalled();
   });
 
   it('não deve falhar quando não houver tokens', async () => {
-    await expect(useCase.execute(undefined, undefined)).resolves.toBeUndefined();
+    await expect(
+      useCase.execute(undefined, undefined),
+    ).resolves.toBeUndefined();
     expect(jwtService.verifyAsync).not.toHaveBeenCalled();
   });
 
@@ -122,5 +128,27 @@ describe('LogoutUserUseCase', () => {
     expect(
       tokenBlacklistService.addRefreshTokenToBlacklist,
     ).not.toHaveBeenCalled();
+  });
+
+  it('deve propagar falha ao persistir access token na blacklist', async () => {
+    jwtService.verifyAsync.mockResolvedValue({ jti: 'access-jti' });
+    tokenBlacklistService.addToBlacklist.mockRejectedValue(
+      new Error('redis down'),
+    );
+
+    await expect(useCase.execute('at', undefined)).rejects.toThrow(
+      'redis down',
+    );
+  });
+
+  it('deve propagar falha ao persistir refresh token na blacklist', async () => {
+    jwtService.verifyAsync.mockResolvedValue({ jti: 'refresh-jti' });
+    tokenBlacklistService.addRefreshTokenToBlacklist.mockRejectedValue(
+      new Error('redis down'),
+    );
+
+    await expect(useCase.execute(undefined, 'rt')).rejects.toThrow(
+      'redis down',
+    );
   });
 });

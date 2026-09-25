@@ -43,4 +43,24 @@ describe('Members (e2e)', () => {
 
     expect(response.body.id).toBe(E2E_IDS.memberId);
   });
+
+  it('GET /api/members/important-dates não deve vazar dados de outra organização', async () => {
+    const { accessToken: portalToken } = await e2eSignIn(app, 'portal@e2e.com');
+
+    await e2eRequest(app)
+      .get('/api/members/important-dates')
+      .set(e2eAuthHeaders(portalToken, E2E_IDS.otherOrgId))
+      .expect(403);
+  });
+
+  it('GET /api/members/important-dates deve listar quando o usuário for membro', async () => {
+    const { accessToken: portalToken } = await e2eSignIn(app, 'portal@e2e.com');
+
+    const response = await e2eRequest(app)
+      .get('/api/members/important-dates')
+      .set(e2eAuthHeaders(portalToken, E2E_IDS.orgId))
+      .expect(200);
+
+    expect(Array.isArray(response.body)).toBe(true);
+  });
 });

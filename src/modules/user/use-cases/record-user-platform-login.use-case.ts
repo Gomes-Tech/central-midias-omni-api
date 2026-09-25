@@ -28,6 +28,7 @@ export class RecordUserPlatformLoginUseCase {
         await this.userRepository.registerPlatformLoginEvent(userId);
       }
     } catch (error) {
+      console.error(error);
       // Repository já trata erros internamente; esta camada evita propagação acidental.
     }
   }

@@ -14,7 +14,7 @@ export type MulterFile = Readonly<{
   originalname: string;
   mimetype: string;
   size: number;
-  buffer: Buffer;
+  buffer?: Buffer;
   path?: string;
 }>;
 
@@ -58,13 +58,7 @@ export class LocalStorageService {
     await this.ensureDir(absoluteDir);
 
     try {
-      if (file.buffer && file.buffer.length >= 0) {
-        await fsp.writeFile(absolutePath, file.buffer);
-      } else {
-        throw new InternalServerErrorException(
-          'Upload sem buffer. Verifique se o FileInterceptor está usando memoryStorage().',
-        );
-      }
+      await this.persistUpload(absolutePath, file);
     } catch {
       throw new InternalServerErrorException(
         'Falha ao salvar arquivo no disco.',
@@ -111,13 +105,7 @@ export class LocalStorageService {
     await this.ensureDir(absoluteDir);
 
     try {
-      if (file.buffer && file.buffer.length >= 0) {
-        await fsp.writeFile(absolutePath, file.buffer);
-      } else {
-        throw new InternalServerErrorException(
-          'Upload sem buffer. Verifique se o FileInterceptor está usando memoryStorage().',
-        );
-      }
+      await this.persistUpload(absolutePath, file);
     } catch {
       throw new InternalServerErrorException(
         'Falha ao salvar arquivo no disco.',
@@ -130,6 +118,25 @@ export class LocalStorageService {
   async remove(relativePath: string): Promise<void> {
     const abs = this.safeJoin(this.rootDir, relativePath);
     await fsp.unlink(abs).catch(() => undefined);
+  }
+
+  private async persistUpload(
+    absolutePath: string,
+    file: MulterFile,
+  ): Promise<void> {
+    if (file.path) {
+      await fsp.copyFile(file.path, absolutePath);
+      return;
+    }
+
+    if (file.buffer) {
+      await fsp.writeFile(absolutePath, file.buffer);
+      return;
+    }
+
+    throw new InternalServerErrorException(
+      'Upload sem conteúdo. O parser deve fornecer buffer ou path.',
+    );
   }
 
   private guessExt(originalName: string, mimeType: string): string {

@@ -4,6 +4,20 @@ declare module 'sanitize-html' {
       allowedTags?: string[];
       allowedAttributes?: Record<string, string[]>;
       allowedStyles?: Record<string, Record<string, RegExp[]>>;
+      allowedSchemes?: string[];
+      allowProtocolRelative?: boolean;
+      nonTextTags?: string[];
+      parser?: {
+        lowerCaseTags?: boolean;
+        lowerCaseAttributeNames?: boolean;
+      };
+      transformTags?: Record<
+        string,
+        (
+          tagName: string,
+          attribs: Record<string, string>,
+        ) => { tagName: string; attribs: Record<string, string> }
+      >;
     }
   }
 

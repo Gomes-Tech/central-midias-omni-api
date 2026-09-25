@@ -2,6 +2,7 @@ jest.mock('node:fs', () => ({
   promises: {
     mkdir: jest.fn().mockResolvedValue(undefined),
     writeFile: jest.fn().mockResolvedValue(undefined),
+    copyFile: jest.fn().mockResolvedValue(undefined),
     unlink: jest.fn().mockResolvedValue(undefined),
   },
 }));
@@ -14,9 +15,11 @@ describe('LocalStorageService', () => {
   let service: LocalStorageService;
 
   beforeEach(() => {
+    jest.clearAllMocks();
     service = new LocalStorageService();
     jest.mocked(fsp.mkdir).mockResolvedValue(undefined);
     jest.mocked(fsp.writeFile).mockResolvedValue(undefined);
+    jest.mocked(fsp.copyFile).mockResolvedValue(undefined);
     jest.mocked(fsp.unlink).mockResolvedValue(undefined);
   });
 
@@ -39,6 +42,23 @@ describe('LocalStorageService', () => {
     );
     expect(result.publicUrl).toContain('/storage/');
     expect(fsp.writeFile).toHaveBeenCalled();
+  });
+
+  it('uploadFile deve copiar do path quando o parser gravar em disco', async () => {
+    const file: MulterFile = {
+      originalname: 'video.mp4',
+      mimetype: 'video/mp4',
+      size: 20,
+      path: '/tmp/omni-material-uploads/video.mp4',
+    };
+
+    await service.uploadFile(file, 'materials');
+
+    expect(fsp.copyFile).toHaveBeenCalledWith(
+      '/tmp/omni-material-uploads/video.mp4',
+      expect.stringContaining('materials'),
+    );
+    expect(fsp.writeFile).not.toHaveBeenCalled();
   });
 
   it('uploadFile deve lançar quando não houver buffer', async () => {

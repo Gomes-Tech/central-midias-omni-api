@@ -14,39 +14,35 @@ export class LogoutUserUseCase {
   ) {}
 
   async execute(accessToken?: string, refreshToken?: string): Promise<void> {
-    // Blacklista o access token se fornecido
     if (accessToken) {
-      try {
-        const payload = await this.jwtService.verifyAsync(accessToken);
-        if (payload.jti) {
-          await this.tokenBlacklistService.addToBlacklist(payload.jti);
-        }
-      } catch (error) {
-        // Se o token já expirou, não precisa blacklistar
-        // Mas se for inválido por outro motivo, ainda tentamos
-        if (error instanceof Error && error.name !== 'TokenExpiredError') {
-          // Token inválido, mas não fazemos nada
-        }
+      const payload = await this.decodeUsablePayload(accessToken);
+      if (payload?.jti) {
+        await this.tokenBlacklistService.addToBlacklist(payload.jti);
       }
     }
 
-    // Blacklista o refresh token se fornecido
     if (refreshToken) {
-      try {
-        const payload = await this.jwtService.verifyAsync(refreshToken, {
-          secret: this.configService.get<string>('jwt.refreshSecret'),
-        });
-        if (payload.jti) {
-          await this.tokenBlacklistService.addRefreshTokenToBlacklist(
-            payload.jti,
-          );
-        }
-      } catch (error) {
-        // Se o token já expirou, não precisa blacklistar
-        if (error instanceof Error && error.name !== 'TokenExpiredError') {
-          // Token inválido, mas não fazemos nada
-        }
+      const payload = await this.decodeUsablePayload(refreshToken, {
+        secret: this.configService.get<string>('jwt.refreshSecret'),
+      });
+      if (payload?.jti) {
+        await this.tokenBlacklistService.addRefreshTokenToBlacklist(
+          payload.jti,
+        );
       }
+    }
+  }
+
+  private async decodeUsablePayload(
+    token: string,
+    options?: { secret?: string },
+  ): Promise<{ jti?: string } | null> {
+    try {
+      return options
+        ? await this.jwtService.verifyAsync(token, options)
+        : await this.jwtService.verifyAsync(token);
+    } catch {
+      return null;
     }
   }
 }

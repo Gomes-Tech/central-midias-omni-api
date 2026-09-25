@@ -26,21 +26,24 @@ describe('FindRolesByCategoryUseCase', () => {
   });
 
   it('deve retornar isUnrestricted true quando não houver perfis vinculados', async () => {
-    repository.findActiveCategoryInOrganization.mockResolvedValue({ id: 'cat-1' });
+    repository.findActiveCategoryInOrganization.mockResolvedValue({
+      id: 'cat-1',
+    });
     repository.findRoleIdsByCategoryAndOrganization.mockResolvedValue([]);
 
-    await expect(
-      useCase.execute('cat-1', 'org-1'),
-    ).resolves.toEqual({ isUnrestricted: true, roles: [] });
+    await expect(useCase.execute('cat-1', 'org-1')).resolves.toEqual({
+      isUnrestricted: true,
+      roles: [],
+    });
 
     expect(repository.findRolesByIds).not.toHaveBeenCalled();
   });
 
   it('deve retornar perfis quando houver ids vinculados', async () => {
-    const roles = [
-      { id: 'r1', name: 'ADMIN', label: 'Admin' },
-    ];
-    repository.findActiveCategoryInOrganization.mockResolvedValue({ id: 'cat-1' });
+    const roles = [{ id: 'r1', name: 'ADMIN', label: 'Admin' }];
+    repository.findActiveCategoryInOrganization.mockResolvedValue({
+      id: 'cat-1',
+    });
     repository.findRoleIdsByCategoryAndOrganization.mockResolvedValue(['r1']);
     repository.findRolesByIds.mockResolvedValue(roles);
 
@@ -58,6 +61,8 @@ describe('FindRolesByCategoryUseCase', () => {
     await expect(useCase.execute('cat-x', 'org-1')).rejects.toBeInstanceOf(
       NotFoundException,
     );
-    expect(repository.findRoleIdsByCategoryAndOrganization).not.toHaveBeenCalled();
+    expect(
+      repository.findRoleIdsByCategoryAndOrganization,
+    ).not.toHaveBeenCalled();
   });
 });

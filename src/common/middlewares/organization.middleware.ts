@@ -29,6 +29,7 @@ export class OrganizationMiddleware implements NestMiddleware {
       throw new NotFoundException('Organização não encontrada ou inativa.');
     }
 
+    req.organizationId = organization.id;
     next();
   }
 }

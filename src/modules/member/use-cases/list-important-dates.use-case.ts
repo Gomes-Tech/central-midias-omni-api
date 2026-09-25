@@ -1,9 +1,6 @@
 import { StorageService } from '@infrastructure/providers';
 import { Injectable } from '@nestjs/common';
-import {
-  IMPORTANT_DATE_TYPE,
-  ImportantDateItem,
-} from '../entities';
+import { IMPORTANT_DATE_TYPE, ImportantDateItem } from '../entities';
 import { MemberRepository } from '../repository';
 
 function getCompletedYears(date: Date, now: Date): number {

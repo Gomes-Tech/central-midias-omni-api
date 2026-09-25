@@ -66,11 +66,13 @@ model User {
   members             Member[]
   materialAcceptances MaterialAcceptance[]
   materialDownloads   MaterialDownload[]
+  printExports        PrintExport[]
   tagSearches         TagSearch[]
   platformLogin       UserPlatformLogin?
   platformLoginEvents UserPlatformLoginEvent[]
   calendarEvents      CalendarEvent[]
   notifications       Notification[]
+  materialEmailDispatchRecipients MaterialEmailDispatchRecipient[]
 
   @@index([email])
   @@map("users")
@@ -234,10 +236,35 @@ model Organization {
   userHierarchies        UserHierarchy[]
   calendarEventTypes     CalendarEventType[]
   calendarEvents         CalendarEvent[]
+  assets                 Asset[]
+  materialTemplates      MaterialTemplate[]
+  printPresets           PrintPreset[]
+  printExports           PrintExport[]
   supplierDocument       SupplierDocument?
   notifications          Notification[]
+  materialEmailDispatches MaterialEmailDispatch[]
 
   @@map("organizations")
+}
+
+model Asset {
+  id             String @id @default(uuid())
+  organizationId String @map("organization_id")
+  name           String
+  fileKey        String @map("file_key")
+  mimeType       String @map("mime_type")
+  size           Int
+  width          Int?
+  height         Int?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization   Organization            @relation(fields: [organizationId], references: [id])
+  templateAssets MaterialTemplateAsset[]
+
+  @@index([organizationId, name])
+  @@map("assets")
 }
 
 // ============================================================
@@ -511,47 +538,215 @@ model Material {
   externalLink String? @map("external_link")
   textCopy     String? @map("text_copy")
 
-  createdAt             DateTime                @default(now()) @map("created_at")
-  updatedAt             DateTime                @updatedAt @map("updated_at")
-  deletedAt             DateTime?               @map("deleted_at")
-  materialFiles         MaterialFile[]
-  categoryId            String                  @map("category_id")
-  category              Category                @relation(fields: [categoryId], references: [id])
-  tags                  Tag[]                   @relation("MaterialTag")
-  materialAcceptances   MaterialAcceptance[]
-  materialViews         MaterialView[]
-  materialDownloads     MaterialDownload[]
-  materialCustomization MaterialCustomization?
-  calendarEvents        CalendarEventMaterial[]
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
+  deletedAt           DateTime?               @map("deleted_at")
+  materialFiles       MaterialFile[]
+  categoryId          String                  @map("category_id")
+  category            Category                @relation(fields: [categoryId], references: [id])
+  tags                Tag[]                   @relation("MaterialTag")
+  materialAcceptances MaterialAcceptance[]
+  materialViews       MaterialView[]
+  materialDownloads   MaterialDownload[]
+  materialTemplate        MaterialTemplate?
+  calendarEvents          CalendarEventMaterial[]
+  printExports            PrintExport[]
+  materialEmailDispatches MaterialEmailDispatch[]
 
   @@unique([categoryId, name])
   @@index([categoryId])
   @@map("materials")
 }
 
-model MaterialCustomization {
-  id         String @id @default(uuid())
-  materialId String @unique @map("material_id")
-
-  position CustomizationPosition @default(FOOTER)
-
-  hasName           Boolean @default(false) @map("has_name")
-  hasPhonePrimary   Boolean @default(false) @map("has_phone_primary")
-  hasPhoneSecondary Boolean @default(false) @map("has_phone_secondary")
-  hasAddress        Boolean @default(false) @map("has_address")
-  hasCity           Boolean @default(false) @map("has_city")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
-
-  @@map("material_customizations")
+enum MaterialTemplateStatus {
+  DRAFT
+  PUBLISHED
 }
 
-enum CustomizationPosition {
-  TOP
-  FOOTER
+enum PrintRenderingIntent {
+  RELATIVE_COLORIMETRIC
+  PERCEPTUAL
+  SATURATION
+  ABSOLUTE_COLORIMETRIC
+}
+
+enum PrintExportStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum PrintPreflightStatus {
+  PENDING
+  READY
+  FAILED
+}
+
+model MaterialTemplate {
+  id                    String                 @id @default(uuid())
+  organizationId        String                 @map("organization_id")
+  materialId            String                 @unique @map("material_id")
+  baseMaterialFileId    String?                @unique @map("base_material_file_id")
+  printPresetId         String?                @map("print_preset_id")
+  digitalExportMimeType String?                @map("digital_export_mime_type")
+  allowedExportTypes    String[]               @default([]) @map("allowed_export_types")
+  status                MaterialTemplateStatus @default(DRAFT)
+  schemaVersion         Int                    @default(1) @map("schema_version")
+  document              Json?
+  legacyImport          Json?                  @map("legacy_import")
+  revision              Int                    @default(0)
+  publishedAt           DateTime?              @map("published_at")
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
+
+  organization   Organization            @relation(fields: [organizationId], references: [id])
+  material       Material                @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  baseFile       MaterialFile?           @relation(fields: [baseMaterialFileId], references: [id], onDelete: Restrict)
+  printPreset    PrintPreset?            @relation(fields: [printPresetId], references: [id], onDelete: Restrict)
+  assets         MaterialTemplateAsset[]
+  printExports   PrintExport[]
+  printPreflight PrintPreflight?
+
+  @@index([organizationId, status])
+  @@index([printPresetId])
+  @@map("material_templates")
+}
+
+model MaterialTemplateAsset {
+  templateId String @map("template_id")
+  assetId    String @map("asset_id")
+
+  template MaterialTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  asset    Asset            @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([templateId, assetId])
+  @@index([assetId])
+  @@map("material_template_assets")
+}
+
+model PrintColorProfile {
+  id                        String   @id @default(uuid())
+  name                      String   @unique
+  storageKey                String   @unique @map("storage_key")
+  checksum                  String   @unique
+  outputConditionIdentifier String   @map("output_condition_identifier")
+  description               String?
+  isActive                  Boolean  @default(true) @map("is_active")
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+
+  presets PrintPreset[]
+
+  @@map("print_color_profiles")
+}
+
+model PrintPreset {
+  id                 String               @id @default(uuid())
+  organizationId     String               @map("organization_id")
+  colorProfileId     String               @map("color_profile_id")
+  name               String
+  trimWidthMm        Decimal              @map("trim_width_mm") @db.Decimal(10, 3)
+  trimHeightMm       Decimal              @map("trim_height_mm") @db.Decimal(10, 3)
+  bleedTopMm         Decimal              @default(0) @map("bleed_top_mm") @db.Decimal(10, 3)
+  bleedRightMm       Decimal              @default(0) @map("bleed_right_mm") @db.Decimal(10, 3)
+  bleedBottomMm      Decimal              @default(0) @map("bleed_bottom_mm") @db.Decimal(10, 3)
+  bleedLeftMm        Decimal              @default(0) @map("bleed_left_mm") @db.Decimal(10, 3)
+  safeMarginTopMm    Decimal              @default(0) @map("safe_margin_top_mm") @db.Decimal(10, 3)
+  safeMarginRightMm  Decimal              @default(0) @map("safe_margin_right_mm") @db.Decimal(10, 3)
+  safeMarginBottomMm Decimal              @default(0) @map("safe_margin_bottom_mm") @db.Decimal(10, 3)
+  safeMarginLeftMm   Decimal              @default(0) @map("safe_margin_left_mm") @db.Decimal(10, 3)
+  minimumDpi         Int                  @default(300) @map("minimum_dpi")
+  includeCropMarks   Boolean              @default(true) @map("include_crop_marks")
+  cropMarkOffsetMm   Decimal              @default(3) @map("crop_mark_offset_mm") @db.Decimal(10, 3)
+  renderingIntent    PrintRenderingIntent @default(RELATIVE_COLORIMETRIC) @map("rendering_intent")
+  isActive           Boolean              @default(true) @map("is_active")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  colorProfile PrintColorProfile  @relation(fields: [colorProfileId], references: [id], onDelete: Restrict)
+  templates    MaterialTemplate[]
+
+  @@unique([organizationId, name])
+  @@index([colorProfileId])
+  @@map("print_presets")
+}
+
+model PrintPreflight {
+  id               String               @id @default(uuid())
+  templateId       String               @unique @map("template_id")
+  templateRevision Int                  @map("template_revision")
+  presetUpdatedAt  DateTime             @map("preset_updated_at")
+  status           PrintPreflightStatus @default(PENDING)
+  issues           Json
+  checkedAt        DateTime?            @map("checked_at")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+
+  template MaterialTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("print_preflights")
+}
+
+model PrintExport {
+  id               String            @id @default(uuid())
+  organizationId   String            @map("organization_id")
+  materialId       String            @map("material_id")
+  templateId       String            @map("template_id")
+  userId           String            @map("user_id")
+  idempotencyKey   String            @map("idempotency_key")
+  templateRevision Int               @map("template_revision")
+  documentHash     String            @map("document_hash")
+  presetSnapshot   Json              @map("preset_snapshot")
+  status           PrintExportStatus @default(QUEUED)
+  progress         Int               @default(0)
+  errorCode        String?           @map("error_code")
+  errorMessage     String?           @map("error_message")
+  fileKey          String?           @map("file_key")
+  checksum         String?
+  size             Int?
+  expiresAt        DateTime?         @map("expires_at")
+  downloadedAt     DateTime?         @map("downloaded_at")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  material     Material         @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  template     MaterialTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, userId, idempotencyKey])
+  @@index([status, expiresAt])
+  @@index([materialId, userId, createdAt])
+  @@map("print_exports")
+}
+
+// Sem FKs: o rastreio de limpeza deve sobreviver à exclusão da exportação/template.
+model PrintExportInput {
+  id             String   @id @default(uuid())
+  exportId       String   @map("export_id")
+  organizationId String   @map("organization_id")
+  userId         String   @map("user_id")
+  materialFileId String?  @map("material_file_id")
+  layerId        String   @map("layer_id")
+  storageKey     String   @unique @map("storage_key")
+  checksum       String
+  mimeType       String   @map("mime_type")
+  size           Int
+  width          Int
+  height         Int
+  fitMode        String   @default("cover") @map("fit_mode")
+  positionX      Float    @default(0.5) @map("position_x")
+  positionY      Float    @default(0.5) @map("position_y")
+  zoom           Float    @default(1)
+  expiresAt      DateTime @map("expires_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([exportId])
+  @@index([expiresAt])
+  @@map("print_export_inputs")
 }
 
 model MaterialAcceptance {
@@ -598,15 +793,55 @@ model MaterialDownload {
   @@map("material_downloads")
 }
 
+model MaterialEmailDispatch {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  materialId     String?  @map("material_id")
+  materialName   String   @map("material_name")
+  subject        String
+  content        String   @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization                      @relation(fields: [organizationId], references: [id])
+  material     Material?                         @relation(fields: [materialId], references: [id], onDelete: SetNull)
+  recipients   MaterialEmailDispatchRecipient[]
+
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([materialId])
+  @@map("material_email_dispatches")
+}
+
+model MaterialEmailDispatchRecipient {
+  id         String   @id @default(uuid())
+  dispatchId String   @map("dispatch_id")
+  userId     String?  @map("user_id")
+  name       String
+  email      String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  dispatch MaterialEmailDispatch @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+  user     User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([dispatchId])
+  @@index([email])
+  @@map("material_email_dispatch_recipients")
+}
+
 model MaterialFile {
-  id         String @id @default(uuid())
-  materialId String @map("material_id")
-  imageKey   String @map("image_key")
-  mimeType   String @map("mime_type")
-  size       Int    @map("size")
+  id           String  @id @default(uuid())
+  materialId   String  @map("material_id")
+  imageKey     String  @map("image_key")
+  originalName String? @map("original_name")
+  mimeType     String  @map("mime_type")
+  size         Int     @map("size")
+  width        Int?
+  height       Int?
+  sortOrder    Int     @map("sort_order")
 
-  material Material @relation(fields: [materialId], references: [id])
+  material Material          @relation(fields: [materialId], references: [id])
+  template MaterialTemplate?
 
+  @@unique([materialId, sortOrder])
   @@map("material_files")
 }
 

@@ -1,13 +1,21 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-const {
+// const {
+//   convertAllDayDates,
+//   ensureHolidayEventType,
+//   getBrazilianHolidayEvents,
+//   parseBrazilianHolidaysIcs,
+//   seedHolidaysForOrganization,
+// } = require('../../../../prisma/lib/brazilian-holidays');
+
+import {
   convertAllDayDates,
   ensureHolidayEventType,
   getBrazilianHolidayEvents,
   parseBrazilianHolidaysIcs,
   seedHolidaysForOrganization,
-} = require('../../../../prisma/lib/brazilian-holidays');
+} from '../../../../prisma/lib/brazilian-holidays';
 
 const SAMPLE_ICS = `BEGIN:VCALENDAR
 BEGIN:VEVENT
@@ -51,9 +59,9 @@ describe('parseBrazilianHolidaysIcs', () => {
     const events = getBrazilianHolidayEvents();
 
     expect(events).toHaveLength(275);
-    expect(events.some((event: { title: string }) => event.title === 'Natal')).toBe(
-      true,
-    );
+    expect(
+      events.some((event: { title: string }) => event.title === 'Natal'),
+    ).toBe(true);
   });
 
   it('deve converter DTEND exclusivo para o fim do dia anterior em BRT', () => {

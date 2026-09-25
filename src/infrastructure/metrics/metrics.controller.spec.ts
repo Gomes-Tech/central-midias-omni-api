@@ -10,9 +10,7 @@ describe('MetricsController', () => {
 
     const moduleRef = await Test.createTestingModule({
       controllers: [MetricsController],
-      providers: [
-        { provide: MetricsService, useValue: metricsService },
-      ],
+      providers: [{ provide: MetricsService, useValue: metricsService }],
     }).compile();
 
     const controller = moduleRef.get(MetricsController);

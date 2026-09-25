@@ -6,7 +6,9 @@ import { makeSocialHighlight } from './test-helpers';
 
 describe('FindListSocialHighlightsUseCase', () => {
   let useCase: FindListSocialHighlightsUseCase;
-  let socialHighlightRepository: jest.Mocked<Pick<SocialHighlightRepository, 'findList'>>;
+  let socialHighlightRepository: jest.Mocked<
+    Pick<SocialHighlightRepository, 'findList'>
+  >;
   let storageService: jest.Mocked<Pick<StorageService, 'getPublicUrl'>>;
   let cacheService: jest.Mocked<Pick<CacheService, 'get' | 'set'>>;
 
@@ -50,7 +52,9 @@ describe('FindListSocialHighlightsUseCase', () => {
 
     await expect(useCase.execute(organizationId)).resolves.toEqual([expected]);
 
-    expect(socialHighlightRepository.findList).toHaveBeenCalledWith(organizationId);
+    expect(socialHighlightRepository.findList).toHaveBeenCalledWith(
+      organizationId,
+    );
     expect(storageService.getPublicUrl).toHaveBeenCalledWith(
       banner.mobileImageKey,
       900,

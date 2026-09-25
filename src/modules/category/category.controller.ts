@@ -104,6 +104,7 @@ export class CategoryController {
   async findMaterialsBySlug(
     @Param('slugPath') slugPath: string | string[],
     @OrgId() organizationId: string,
+    @UserId() userId: string,
     @Query() filters: FindMaterialsByCategorySlugFiltersDTO = {},
   ) {
     const normalizedSlugPath = Array.isArray(slugPath)
@@ -113,6 +114,7 @@ export class CategoryController {
     return await this.findMaterialsByCategorySlugUseCase.execute(
       organizationId,
       normalizedSlugPath,
+      userId,
       filters,
     );
   }

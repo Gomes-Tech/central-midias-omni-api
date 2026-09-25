@@ -21,7 +21,9 @@ export class AcceptMaterialUseCase {
     dto: AcceptMaterialDTO,
   ): Promise<{ acceptedAt: Date }> {
     if (dto.accepted !== true) {
-      throw new BadRequestException('É necessário confirmar a leitura do material');
+      throw new BadRequestException(
+        'É necessário confirmar a leitura do material',
+      );
     }
 
     const material = await this.materialRepository.findById(
@@ -46,9 +48,7 @@ export class AcceptMaterialUseCase {
     );
 
     if (!hasAccess) {
-      throw new ForbiddenException(
-        'Você não possui acesso a este material',
-      );
+      throw new ForbiddenException('Você não possui acesso a este material');
     }
 
     const acceptedAt = new Date();

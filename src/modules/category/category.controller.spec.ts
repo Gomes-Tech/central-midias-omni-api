@@ -274,6 +274,7 @@ describe('CategoryController', () => {
       const result = await controller.findMaterialsBySlug(
         ['marketing', 'redes'],
         'org-1',
+        'user-1',
         { page: 1 },
       );
 
@@ -281,6 +282,7 @@ describe('CategoryController', () => {
       expect(findMaterialsByCategorySlugUseCase.execute).toHaveBeenCalledWith(
         'org-1',
         'marketing/redes',
+        'user-1',
         { page: 1 },
       );
     });
@@ -293,11 +295,12 @@ describe('CategoryController', () => {
         totalPages: 0,
       });
 
-      await controller.findMaterialsBySlug('marketing', 'org-1');
+      await controller.findMaterialsBySlug('marketing', 'org-1', 'user-1');
 
       expect(findMaterialsByCategorySlugUseCase.execute).toHaveBeenCalledWith(
         'org-1',
         'marketing',
+        'user-1',
         {},
       );
     });

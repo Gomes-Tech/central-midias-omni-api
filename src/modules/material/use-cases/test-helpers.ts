@@ -58,6 +58,8 @@ export function makeMaterialListItem(
       name: 'Categoria',
     },
     materialFilesCount: 0,
+    isCustomizable: false,
+    templateStatus: null,
     ...overrides,
   };
 }
@@ -79,7 +81,9 @@ export function makeMaterialDetails(
     onlyView: false,
     textCopy: null,
     isCustomizable: false,
-    customization: null,
+    templateStatus: null,
+    exportTypes: [],
+    printPresetId: null,
     createdAt: now,
     updatedAt: now,
     category: {
@@ -102,8 +106,12 @@ export function makeMaterialFile(
     id: 'material-file-id',
     materialId: 'material-id',
     fileKey: 'materials/material-id/file.pdf',
+    originalName: 'arquivo.pdf',
     mimeType: 'application/pdf',
     size: 1024,
+    width: null,
+    height: null,
+    sortOrder: 0,
     ...overrides,
   };
 }

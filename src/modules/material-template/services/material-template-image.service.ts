@@ -1,0 +1,109 @@
+import { BadRequestException } from '@common/filters';
+import { Injectable } from '@nestjs/common';
+import { readFileSync } from 'node:fs';
+
+export const MATERIAL_TEMPLATE_IMAGE_MAX_MB = 30;
+export const MATERIAL_TEMPLATE_IMAGE_MAX_BYTES =
+  MATERIAL_TEMPLATE_IMAGE_MAX_MB * 1024 * 1024;
+export const MATERIAL_TEMPLATE_IMAGE_MAX_SIZE_MESSAGE = `A imagem base deve ter no máximo ${MATERIAL_TEMPLATE_IMAGE_MAX_MB} MB`;
+export const MATERIAL_TEMPLATE_IMAGE_MAX_SIDE = 12000;
+export const MATERIAL_TEMPLATE_IMAGE_MAX_PIXELS = 120_000_000;
+export const MATERIAL_TEMPLATE_IMAGE_RESOLUTION_MESSAGE = `A imagem base deve ter no máximo ${MATERIAL_TEMPLATE_IMAGE_MAX_SIDE} px por lado e ${MATERIAL_TEMPLATE_IMAGE_MAX_PIXELS / 1_000_000} megapixels`;
+
+function readPngDimensions(buffer: Buffer) {
+  const signature = '89504e470d0a1a0a';
+  if (
+    buffer.length < 24 ||
+    buffer.subarray(0, 8).toString('hex') !== signature
+  ) {
+    return null;
+  }
+  return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+}
+
+function readJpegDimensions(buffer: Buffer) {
+  if (buffer.length < 4 || buffer[0] !== 0xff || buffer[1] !== 0xd8) {
+    return null;
+  }
+  let offset = 2;
+  const sofMarkers = new Set([
+    0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce,
+    0xcf,
+  ]);
+  while (offset + 8 < buffer.length) {
+    if (buffer[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+    const marker = buffer[offset + 1];
+    offset += 2;
+    if (marker === 0xd8 || marker === 0xd9) continue;
+    if (offset + 2 > buffer.length) break;
+    const length = buffer.readUInt16BE(offset);
+    if (length < 2 || offset + length > buffer.length) break;
+    if (sofMarkers.has(marker)) {
+      return {
+        height: buffer.readUInt16BE(offset + 3),
+        width: buffer.readUInt16BE(offset + 5),
+      };
+    }
+    offset += length;
+  }
+  return null;
+}
+
+type MaterialTemplateImageInput = {
+  buffer?: Buffer;
+  size: number;
+  path?: string;
+};
+
+function resolveTemplateImageBuffer(file: MaterialTemplateImageInput): Buffer {
+  if (file.buffer && file.buffer.length > 0) {
+    return file.buffer;
+  }
+  if (file.path) {
+    return readFileSync(file.path);
+  }
+  throw new BadRequestException('A imagem base deve ser PNG ou JPEG válido');
+}
+
+export function validateMaterialTemplateImage(
+  file: MaterialTemplateImageInput,
+): {
+  width: number;
+  height: number;
+  mimeType: 'image/png' | 'image/jpeg';
+} {
+  if (!file || file.size > MATERIAL_TEMPLATE_IMAGE_MAX_BYTES) {
+    throw new BadRequestException(MATERIAL_TEMPLATE_IMAGE_MAX_SIZE_MESSAGE);
+  }
+  const buffer = resolveTemplateImageBuffer(file);
+  if (buffer.length > MATERIAL_TEMPLATE_IMAGE_MAX_BYTES) {
+    throw new BadRequestException(MATERIAL_TEMPLATE_IMAGE_MAX_SIZE_MESSAGE);
+  }
+  const png = readPngDimensions(buffer);
+  const jpeg = png ? null : readJpegDimensions(buffer);
+  const dimensions = png ?? jpeg;
+  const mimeType = png ? 'image/png' : jpeg ? 'image/jpeg' : null;
+  if (!dimensions || !mimeType) {
+    throw new BadRequestException('A imagem base deve ser PNG ou JPEG válido');
+  }
+  if (
+    dimensions.width <= 0 ||
+    dimensions.height <= 0 ||
+    Math.max(dimensions.width, dimensions.height) >
+      MATERIAL_TEMPLATE_IMAGE_MAX_SIDE ||
+    dimensions.width * dimensions.height > MATERIAL_TEMPLATE_IMAGE_MAX_PIXELS
+  ) {
+    throw new BadRequestException(MATERIAL_TEMPLATE_IMAGE_RESOLUTION_MESSAGE);
+  }
+  return { ...dimensions, mimeType };
+}
+
+@Injectable()
+export class MaterialTemplateImageService {
+  validate(file: MaterialTemplateImageInput) {
+    return validateMaterialTemplateImage(file);
+  }
+}

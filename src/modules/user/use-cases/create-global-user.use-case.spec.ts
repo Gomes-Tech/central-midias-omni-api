@@ -1,4 +1,4 @@
-import { BadRequestException } from '@common/filters';
+import { BadRequestException, ForbiddenException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
 import { MailService } from '@infrastructure/providers';
 import { SyncGlobalRoleCategoryAccessesUseCase } from '@modules/category-role-access/use-cases/sync-global-role-category-accesses.use-case';
@@ -11,7 +11,14 @@ import { makeCreateGlobalUserDTO, makeUser } from './test-helpers';
 describe('CreateGlobalUserUseCase', () => {
   let useCase: CreateGlobalUserUseCase;
   let userRepository: jest.Mocked<
-    Pick<UserRepository, 'findByTaxIdentifier' | 'createGlobalUser'>
+    Pick<
+      UserRepository,
+      | 'findByTaxIdentifier'
+      | 'createGlobalUser'
+      | 'hasPlatformAdminRole'
+      | 'findExistingActiveOrganizationIds'
+      | 'findActiveMembershipOrganizationIds'
+    >
   >;
   let findByEmailUseCase: jest.Mocked<FindUserByEmailUseCase>;
   let cryptographyService: jest.Mocked<CryptographyService>;
@@ -25,6 +32,11 @@ describe('CreateGlobalUserUseCase', () => {
     userRepository = {
       findByTaxIdentifier: jest.fn().mockResolvedValue(null),
       createGlobalUser: jest.fn(),
+      hasPlatformAdminRole: jest.fn().mockResolvedValue(true),
+      findExistingActiveOrganizationIds: jest
+        .fn()
+        .mockImplementation(async (ids: string[]) => ids),
+      findActiveMembershipOrganizationIds: jest.fn().mockResolvedValue([]),
     };
 
     findByEmailUseCase = {
@@ -185,5 +197,61 @@ describe('CreateGlobalUserUseCase', () => {
     } finally {
       process.env.NODE_ENV = originalEnv;
     }
+  });
+
+  it('não deve provisionar organizações fora das memberships do caller', async () => {
+    const dto = makeCreateGlobalUserDTO({
+      organizationIds: ['org-own', 'org-foreign'],
+    });
+    userRepository.hasPlatformAdminRole.mockResolvedValue(false);
+    userRepository.findActiveMembershipOrganizationIds.mockResolvedValue([
+      'org-own',
+    ]);
+    findByEmailUseCase.execute.mockRejectedValue(new Error('not found'));
+
+    await expect(useCase.execute(dto, 'editor-id')).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(userRepository.createGlobalUser).not.toHaveBeenCalled();
+    expect(
+      syncGlobalRoleCategoryAccessesUseCase.execute,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('deve permitir provisionar apenas organizações em que o caller é membro', async () => {
+    const dto = makeCreateGlobalUserDTO({
+      organizationIds: ['org-own'],
+    });
+    userRepository.hasPlatformAdminRole.mockResolvedValue(false);
+    userRepository.findActiveMembershipOrganizationIds.mockResolvedValue([
+      'org-own',
+      'org-other',
+    ]);
+    findByEmailUseCase.execute.mockRejectedValue(new Error('not found'));
+    cryptographyService.hash.mockResolvedValue('hashed-tax');
+    userRepository.createGlobalUser.mockResolvedValue({ id: 'new-user-id' });
+
+    await useCase.execute(dto, 'editor-id');
+
+    expect(
+      userRepository.findExistingActiveOrganizationIds,
+    ).not.toHaveBeenCalled();
+    expect(userRepository.createGlobalUser).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationIds: ['org-own'] }),
+      'editor-id',
+    );
+  });
+
+  it('deve recusar ADMIN que informar organização inexistente ou inativa', async () => {
+    const dto = makeCreateGlobalUserDTO({
+      organizationIds: ['org-missing'],
+    });
+    userRepository.findExistingActiveOrganizationIds.mockResolvedValue([]);
+    findByEmailUseCase.execute.mockRejectedValue(new Error('not found'));
+
+    await expect(useCase.execute(dto, 'admin-id')).rejects.toMatchObject({
+      message: 'Organização não encontrada ou inativa.',
+    });
+    expect(userRepository.createGlobalUser).not.toHaveBeenCalled();
   });
 });

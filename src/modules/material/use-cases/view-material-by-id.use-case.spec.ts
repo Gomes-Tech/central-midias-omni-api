@@ -5,7 +5,9 @@ import { makeMaterialDetails } from './test-helpers';
 import { ViewMaterialByIdUseCase } from './view-material-by-id.use-case';
 
 describe('ViewMaterialByIdUseCase', () => {
-  let findMaterialByIdUseCase: jest.Mocked<Pick<FindMaterialByIdUseCase, 'execute'>>;
+  let findMaterialByIdUseCase: jest.Mocked<
+    Pick<FindMaterialByIdUseCase, 'execute'>
+  >;
   let materialRepository: jest.Mocked<
     Pick<MaterialRepository, 'userHasCategoryAccess' | 'registerView'>
   >;
@@ -71,7 +73,9 @@ describe('ViewMaterialByIdUseCase', () => {
     const result = useCase.execute(material.id, 'org-id', 'user-id');
 
     await expect(result).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(result).rejects.toThrow('Você não possui acesso a este material');
+    await expect(result).rejects.toThrow(
+      'Você não possui acesso a este material',
+    );
     expect(materialRepository.registerView).not.toHaveBeenCalled();
   });
 });

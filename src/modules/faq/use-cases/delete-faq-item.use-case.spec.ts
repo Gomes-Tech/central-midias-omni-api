@@ -62,8 +62,8 @@ describe('DeleteFaqItemUseCase', () => {
     faqRepository.findItemByIdOnly.mockResolvedValue(item);
     faqRepository.softDeleteItem.mockRejectedValue(error);
 
-    await expect(
-      useCase.execute('item-1', 'org-1', 'user-1'),
-    ).rejects.toBe(error);
+    await expect(useCase.execute('item-1', 'org-1', 'user-1')).rejects.toBe(
+      error,
+    );
   });
 });

@@ -17,9 +17,7 @@ describe('FindAllFaqsUseCase', () => {
       findAll: jest.fn(),
     };
 
-    useCase = new FindAllFaqsUseCase(
-      faqRepository as unknown as FaqRepository,
-    );
+    useCase = new FindAllFaqsUseCase(faqRepository as unknown as FaqRepository);
   });
 
   it('deve usar filtros vazios quando não informados', async () => {
@@ -34,9 +32,7 @@ describe('FindAllFaqsUseCase', () => {
     const filters = { searchTerm: 'termo', onlyActive: true };
     faqRepository.findAll.mockResolvedValue(paginated);
 
-    await expect(
-      useCase.execute('org-1', filters),
-    ).resolves.toEqual(paginated);
+    await expect(useCase.execute('org-1', filters)).resolves.toEqual(paginated);
 
     expect(faqRepository.findAll).toHaveBeenCalledWith(filters, 'org-1');
   });

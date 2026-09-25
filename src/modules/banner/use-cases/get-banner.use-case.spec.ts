@@ -48,7 +48,9 @@ describe('GetBannerUseCase', () => {
       mobileImageUrl: 'https://cdn.test/banner.png',
       desktopImageUrl: 'https://cdn.test/banner.png',
     };
-    storageService.getPublicUrl.mockResolvedValue('https://cdn.test/banner.png');
+    storageService.getPublicUrl.mockResolvedValue(
+      'https://cdn.test/banner.png',
+    );
 
     bannerRepository.findById.mockResolvedValue(banner);
 

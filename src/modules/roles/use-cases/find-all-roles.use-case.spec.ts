@@ -8,9 +8,7 @@ describe('FindAllRolesUseCase', () => {
 
   beforeEach(() => {
     repository = { findAll: jest.fn() };
-    useCase = new FindAllRolesUseCase(
-      repository as unknown as RolesRepository,
-    );
+    useCase = new FindAllRolesUseCase(repository as unknown as RolesRepository);
   });
 
   it('deve delegar ao repositório com filtros', async () => {

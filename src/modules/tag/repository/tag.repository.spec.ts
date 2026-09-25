@@ -251,9 +251,9 @@ describe('TagRepository', () => {
 
   describe('findManyByIds', () => {
     it('deve retornar array vazio quando não houver ids', async () => {
-      await expect(repository.findManyByIds([], organizationId)).resolves.toEqual(
-        [],
-      );
+      await expect(
+        repository.findManyByIds([], organizationId),
+      ).resolves.toEqual([]);
       expect(prisma.tag.findMany).not.toHaveBeenCalled();
     });
 
@@ -307,9 +307,9 @@ describe('TagRepository', () => {
 
   describe('findManyByNames', () => {
     it('deve retornar array vazio quando não houver nomes', async () => {
-      await expect(repository.findManyByNames([], organizationId)).resolves.toEqual(
-        [],
-      );
+      await expect(
+        repository.findManyByNames([], organizationId),
+      ).resolves.toEqual([]);
       expect(prisma.tag.findMany).not.toHaveBeenCalled();
     });
 

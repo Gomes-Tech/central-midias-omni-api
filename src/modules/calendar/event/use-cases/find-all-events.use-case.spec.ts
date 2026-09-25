@@ -5,7 +5,9 @@ import { makeEventEntity, makeMemberRole } from './test-helpers';
 
 describe('FindAllEventsUseCase', () => {
   let eventRepository: jest.Mocked<Pick<EventRepository, 'findAll'>>;
-  let findMemberRoleUseCase: jest.Mocked<Pick<FindMemberRoleUseCase, 'execute'>>;
+  let findMemberRoleUseCase: jest.Mocked<
+    Pick<FindMemberRoleUseCase, 'execute'>
+  >;
   let useCase: FindAllEventsUseCase;
 
   beforeEach(() => {
@@ -42,7 +44,10 @@ describe('FindAllEventsUseCase', () => {
       makeMemberRole({
         canAccessBackoffice: false,
         roleId: 'role-portal',
-        categoryRoleAccesses: [{ categoryId: 'cat-a' }, { categoryId: 'cat-b' }],
+        categoryRoleAccesses: [
+          { categoryId: 'cat-a' },
+          { categoryId: 'cat-b' },
+        ],
       }),
     );
 

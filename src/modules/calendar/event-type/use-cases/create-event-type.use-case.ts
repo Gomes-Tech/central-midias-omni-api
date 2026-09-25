@@ -1,4 +1,4 @@
-import { ConflictException, NotFoundException } from '@common/filters';
+import { ConflictException } from '@common/filters';
 import { toSlug } from '@common/utils';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateEventTypeDTO } from '../dto';

@@ -17,6 +17,7 @@ describe('FindMemberByIdUseCase', () => {
   it('deve retornar o membro quando existir', async () => {
     const member = {
       id: 'member-id',
+      userId: 'user-id',
       name: 'Ana',
       socialReason: 'Razão Social',
       email: 'ana@test.com',
@@ -29,13 +30,14 @@ describe('FindMemberByIdUseCase', () => {
       roleId: 'role-id',
       globalRoleId: null,
       isActive: true,
+      managerId: null,
     };
 
     memberRepository.findById.mockResolvedValue(member);
 
-    await expect(
-      useCase.execute('member-id', 'org-id'),
-    ).resolves.toEqual(member);
+    await expect(useCase.execute('member-id', 'org-id')).resolves.toEqual(
+      member,
+    );
     expect(memberRepository.findById).toHaveBeenCalledWith(
       'member-id',
       'org-id',

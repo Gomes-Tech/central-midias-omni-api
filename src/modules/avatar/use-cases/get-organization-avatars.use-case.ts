@@ -1,4 +1,3 @@
-import { getUploadFileExtension } from '@common/constants/allowed-upload-files';
 import {
   S3_MAX_SIGNED_URL_EXPIRES_IN,
   StorageService,

@@ -35,7 +35,9 @@ describe('requestIdMiddleware', () => {
 
     requestIdMiddleware(req, res, next);
 
-    const rid = (req as unknown as Record<string, unknown>)[REQUEST_ID_KEY] as string;
+    const rid = (req as unknown as Record<string, unknown>)[
+      REQUEST_ID_KEY
+    ] as string;
     expect(rid).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );

@@ -2,7 +2,7 @@ import { BadRequestException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
 import { FindGlobalRoleByIdUseCase } from '@modules/roles';
 import { Inject, Injectable } from '@nestjs/common';
-import { UpdateUserDTO } from '../dto';
+import { UserUpdateInput } from '../dto';
 import { UserRepository } from '../repository';
 import { FindUserByEmailUseCase } from './find-user-by-email.use-case';
 import { FindUserByIdUseCase } from './find-user-by-id.use-case';
@@ -20,15 +20,20 @@ export class UpdateUserUseCase {
 
   async execute(
     id: string,
-    data: UpdateUserDTO,
+    data: UserUpdateInput,
     userId: string,
     organizationId?: string,
   ) {
-    const user = await this.findUserByIdUseCase.execute(id);
+    const payload = await this.sanitizeUpdatePayload(
+      data,
+      userId,
+      organizationId,
+    );
+    const user = await this.findUserByIdUseCase.execute(id, organizationId);
 
-    if (data.email && data.email !== user.email) {
+    if (payload.email && payload.email !== user.email) {
       const userWithEmail = await this.findUserByEmailUseCase
-        .execute(data.email)
+        .execute(payload.email)
         .catch(() => null);
 
       if (userWithEmail && userWithEmail.id !== id) {
@@ -37,11 +42,11 @@ export class UpdateUserUseCase {
     }
 
     if (
-      data.taxIdentifier !== undefined &&
-      data.taxIdentifier !== user.taxIdentifier
+      payload.taxIdentifier !== undefined &&
+      payload.taxIdentifier !== user.taxIdentifier
     ) {
       const userWithTax = await this.userRepository.findByTaxIdentifier(
-        data.taxIdentifier,
+        payload.taxIdentifier,
       );
 
       if (userWithTax && userWithTax.id !== id) {
@@ -51,9 +56,9 @@ export class UpdateUserUseCase {
       }
     }
 
-    if (data.password) {
+    if (payload.password) {
       const isOldPassword = await this.cryptographyService.compare(
-        data.password,
+        payload.password,
         user.password,
       );
 
@@ -63,21 +68,46 @@ export class UpdateUserUseCase {
         );
       }
 
-      data.password = await this.cryptographyService.hash(data.password);
+      payload.password = await this.cryptographyService.hash(payload.password);
     }
 
-    if (data.globalRoleId) {
-      await this.findGlobalRoleByIdUseCase.execute(data.globalRoleId);
+    if (payload.globalRoleId) {
+      await this.findGlobalRoleByIdUseCase.execute(payload.globalRoleId);
     }
 
-    if (organizationId && data.managerAssignments !== undefined) {
+    if (organizationId && payload.managerAssignments !== undefined) {
       await this.userRepository.assertValidManagerAssignments(
         organizationId,
-        data.managerAssignments,
+        payload.managerAssignments,
         id,
       );
     }
 
-    await this.userRepository.update(id, data, userId, organizationId);
+    await this.userRepository.update(id, payload, userId, organizationId);
+  }
+
+  private async sanitizeUpdatePayload(
+    data: UserUpdateInput,
+    actorId: string,
+    organizationId?: string,
+  ): Promise<UserUpdateInput> {
+    if (!organizationId) {
+      return { ...data };
+    }
+
+    const payload: UserUpdateInput = { ...data };
+    delete payload.password;
+    delete payload.isFirstAccess;
+
+    if (payload.globalRoleId) {
+      const actorIsPlatformAdmin =
+        await this.userRepository.hasPlatformAdminRole(actorId);
+
+      if (!actorIsPlatformAdmin) {
+        delete payload.globalRoleId;
+      }
+    }
+
+    return payload;
   }
 }

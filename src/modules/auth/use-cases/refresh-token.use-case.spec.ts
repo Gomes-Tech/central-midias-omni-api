@@ -2,7 +2,7 @@ import { TokenBlacklistService } from '@infrastructure/security';
 import { FindUserBackofficeAccessUseCase } from '@modules/roles';
 import { FindUserByIdUseCase } from '@modules/user/use-cases/find-user-by-id.use-case';
 import { RecordUserPlatformLoginUseCase } from '@modules/user/use-cases/record-user-platform-login.use-case';
-import { makeUser } from '@modules/user/use-cases/test-helpers';
+import { makeUser, makeUserById } from '@modules/user/use-cases/test-helpers';
 import { UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -68,7 +68,9 @@ describe('RefreshTokenUseCase', () => {
       jti: 'old-jti',
     });
     tokenBlacklistService.isRefreshTokenBlacklisted.mockResolvedValue(false);
-    findUserByIdUseCase.execute.mockResolvedValue({ id: user.id } as never);
+    findUserByIdUseCase.execute.mockResolvedValue(
+      makeUserById({ id: user.id }),
+    );
     jwtService.sign
       .mockReturnValueOnce('new-access')
       .mockReturnValueOnce('new-refresh');
@@ -82,12 +84,12 @@ describe('RefreshTokenUseCase', () => {
     expect(jwtService.verifyAsync).toHaveBeenCalledWith(refreshToken, {
       secret: 'refresh-secret',
     });
-    expect(tokenBlacklistService.isRefreshTokenBlacklisted).toHaveBeenCalledWith(
-      'old-jti',
-    );
-    expect(tokenBlacklistService.addRefreshTokenToBlacklist).toHaveBeenCalledWith(
-      'old-jti',
-    );
+    expect(
+      tokenBlacklistService.isRefreshTokenBlacklisted,
+    ).toHaveBeenCalledWith('old-jti');
+    expect(
+      tokenBlacklistService.addRefreshTokenToBlacklist,
+    ).toHaveBeenCalledWith('old-jti');
     expect(jwtService.sign).toHaveBeenCalledTimes(2);
     expect(recordUserPlatformLoginUseCase.execute).not.toHaveBeenCalled();
   });
@@ -101,7 +103,9 @@ describe('RefreshTokenUseCase', () => {
       jti: 'old-jti',
     });
     tokenBlacklistService.isRefreshTokenBlacklisted.mockResolvedValue(false);
-    findUserByIdUseCase.execute.mockResolvedValue({ id: user.id } as never);
+    findUserByIdUseCase.execute.mockResolvedValue(
+      makeUserById({ id: user.id }),
+    );
     findUserBackofficeAccessUseCase.execute.mockResolvedValue({
       canAccessBackoffice: false,
     });
@@ -122,7 +126,9 @@ describe('RefreshTokenUseCase', () => {
 
     jwtService.verifyAsync.mockResolvedValue({ id: user.id, jti: 'jti' });
     tokenBlacklistService.isRefreshTokenBlacklisted.mockResolvedValue(false);
-    findUserByIdUseCase.execute.mockResolvedValue({ id: user.id } as never);
+    findUserByIdUseCase.execute.mockResolvedValue(
+      makeUserById({ id: user.id }),
+    );
     findUserBackofficeAccessUseCase.execute.mockResolvedValue({
       canAccessBackoffice: false,
     });
@@ -154,10 +160,29 @@ describe('RefreshTokenUseCase', () => {
     consoleSpy.mockRestore();
   });
 
+  it('deve lançar UnauthorizedException quando a consulta à blacklist falhar', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    jwtService.verifyAsync.mockResolvedValue({ id: 'u1', jti: 'jti-1' });
+    tokenBlacklistService.isRefreshTokenBlacklisted.mockRejectedValue(
+      new Error('redis down'),
+    );
+
+    await expect(useCase.execute('token')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+
+    expect(findUserByIdUseCase.execute).not.toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
+  });
+
   it('deve renovar tokens sem blacklist quando payload não tiver jti', async () => {
     const user = makeUser();
     jwtService.verifyAsync.mockResolvedValue({ id: user.id });
-    findUserByIdUseCase.execute.mockResolvedValue({ id: user.id } as never);
+    findUserByIdUseCase.execute.mockResolvedValue(
+      makeUserById({ id: user.id }),
+    );
     jwtService.sign
       .mockReturnValueOnce('access')
       .mockReturnValueOnce('refresh');
@@ -165,8 +190,12 @@ describe('RefreshTokenUseCase', () => {
     const result = await useCase.execute('token-sem-jti');
 
     expect(result.accessToken).toBe('access');
-    expect(tokenBlacklistService.isRefreshTokenBlacklisted).not.toHaveBeenCalled();
-    expect(tokenBlacklistService.addRefreshTokenToBlacklist).not.toHaveBeenCalled();
+    expect(
+      tokenBlacklistService.isRefreshTokenBlacklisted,
+    ).not.toHaveBeenCalled();
+    expect(
+      tokenBlacklistService.addRefreshTokenToBlacklist,
+    ).not.toHaveBeenCalled();
   });
 
   it('deve lançar UnauthorizedException quando verifyAsync falhar', async () => {
@@ -177,6 +206,26 @@ describe('RefreshTokenUseCase', () => {
     await expect(useCase.execute('bad-token')).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
+
+    consoleSpy.mockRestore();
+  });
+
+  it('deve recusar refresh e revogar o token quando a conta estiver inativa', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    const user = makeUserById({ isActive: false });
+
+    jwtService.verifyAsync.mockResolvedValue({ id: user.id, jti: 'old-jti' });
+    tokenBlacklistService.isRefreshTokenBlacklisted.mockResolvedValue(false);
+    findUserByIdUseCase.execute.mockResolvedValue(user);
+
+    await expect(useCase.execute('token')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+
+    expect(
+      tokenBlacklistService.addRefreshTokenToBlacklist,
+    ).toHaveBeenCalledWith('old-jti');
+    expect(jwtService.sign).not.toHaveBeenCalled();
 
     consoleSpy.mockRestore();
   });

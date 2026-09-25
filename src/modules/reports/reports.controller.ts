@@ -12,6 +12,7 @@ import { FindReportFiltersDTO } from './dto';
 import { ReportType } from './entities';
 import {
   EnqueueReportExportUseCase,
+  FindMaterialEmailDispatchesUseCase,
   FindTopMaterialsByDownloadsUseCase,
   FindTopMaterialsByViewsUseCase,
   FindTopSearchesUseCase,
@@ -28,6 +29,7 @@ export class ReportsController {
     private readonly findTopMaterialsByViewsUseCase: FindTopMaterialsByViewsUseCase,
     private readonly findTopMaterialsByDownloadsUseCase: FindTopMaterialsByDownloadsUseCase,
     private readonly findTopSearchesUseCase: FindTopSearchesUseCase,
+    private readonly findMaterialEmailDispatchesUseCase: FindMaterialEmailDispatchesUseCase,
     private readonly enqueueReportExportUseCase: EnqueueReportExportUseCase,
   ) {}
 
@@ -173,6 +175,37 @@ export class ReportsController {
   ) {
     await this.enqueueReportExportUseCase.execute(
       ReportType.SEARCHES_TOP,
+      organizationId,
+      userId,
+    );
+
+    return {
+      message:
+        'Relatório enfileirado. Você receberá o CSV por e-mail em breve.',
+    };
+  }
+
+  @RequirePermission('reports', 'read')
+  @Get('materials/email-dispatches')
+  async findMaterialEmailDispatches(
+    @OrgId() organizationId: string,
+    @Query() filters: FindReportFiltersDTO = {},
+  ) {
+    return await this.findMaterialEmailDispatchesUseCase.execute(
+      organizationId,
+      filters,
+    );
+  }
+
+  @RequirePermission('reports', 'read')
+  @Get('materials/email-dispatches/export')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async exportMaterialEmailDispatches(
+    @OrgId() organizationId: string,
+    @UserId() userId: string,
+  ) {
+    await this.enqueueReportExportUseCase.execute(
+      ReportType.MATERIALS_EMAIL_DISPATCHES,
       organizationId,
       userId,
     );

@@ -1,5 +1,6 @@
 import { PlatformPermissionGuard } from '@common/guards';
 import { CategoryModule } from '@modules/category/category.module';
+import { MaterialTemplateDocumentService } from '@modules/material-template/services/material-template-document.service';
 import { NotificationModule } from '@modules/notification';
 import { TagModule } from '@modules/tag';
 import { UserModule } from '@modules/user';
@@ -25,6 +26,7 @@ import {
   FindMaterialMosaicUseCase,
   FindMaterialsByCategorySlugUseCase,
   FindMostAccessedMaterialsUseCase,
+  ReplaceMaterialFileUseCase,
   ResolveMaterialTagIdsUseCase,
   ResolveMaterialTagsUseCase,
   SearchMaterialsUseCase,
@@ -48,6 +50,7 @@ import {
   providers: [
     PlatformPermissionGuard,
     MaterialRepository,
+    MaterialTemplateDocumentService,
     FindAllMaterialsUseCase,
     FindMaterialByIdUseCase,
     FindMaterialsByCategorySlugUseCase,
@@ -65,6 +68,7 @@ import {
     UploadMaterialFilesUseCase,
     FindMaterialFilesUseCase,
     DeleteMaterialFileUseCase,
+    ReplaceMaterialFileUseCase,
     AcceptMaterialUseCase,
     ExportMaterialAcceptanceReportUseCase,
     EnqueueMaterialAcceptanceExportUseCase,
@@ -94,6 +98,7 @@ import {
     UploadMaterialFilesUseCase,
     FindMaterialFilesUseCase,
     DeleteMaterialFileUseCase,
+    ReplaceMaterialFileUseCase,
     {
       provide: 'MaterialRepository',
       useExisting: MaterialRepository,

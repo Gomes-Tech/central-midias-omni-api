@@ -59,15 +59,17 @@ export class UpdateBannerUseCase {
       desktopImageKey?: string;
     } = { ...data };
 
+    const uploadedKeys: string[] = [];
+    const keysToReplace: string[] = [];
+
     if (mobileImage) {
       const uploaded = await this.storageService.uploadFile(
         mobileImage,
         'banners',
       );
       updatePayload.mobileImageKey = uploaded.path;
-      await this.storageService.deleteFile([
-        this.toStoragePath(banner.mobileImageKey),
-      ]);
+      uploadedKeys.push(uploaded.path);
+      keysToReplace.push(this.toStoragePath(banner.mobileImageKey));
     }
 
     if (desktopImage) {
@@ -76,16 +78,30 @@ export class UpdateBannerUseCase {
         'banners',
       );
       updatePayload.desktopImageKey = uploaded.path;
-      await this.storageService.deleteFile([
-        this.toStoragePath(banner.desktopImageKey),
-      ]);
+      uploadedKeys.push(uploaded.path);
+      keysToReplace.push(this.toStoragePath(banner.desktopImageKey));
     }
 
-    await this.bannerRepository.update(
-      id,
-      organizationId,
-      updatePayload,
-      userId,
-    );
+    try {
+      await this.bannerRepository.update(
+        id,
+        organizationId,
+        updatePayload,
+        userId,
+      );
+    } catch (error) {
+      if (uploadedKeys.length > 0) {
+        await this.storageService
+          .deleteFile(uploadedKeys)
+          .catch(() => undefined);
+      }
+      throw error;
+    }
+
+    if (keysToReplace.length > 0) {
+      await this.storageService
+        .deleteFile(keysToReplace)
+        .catch(() => undefined);
+    }
   }
 }

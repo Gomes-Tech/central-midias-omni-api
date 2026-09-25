@@ -9,6 +9,7 @@ export const E2E_IDS = {
   roleId: '22222222-2222-4222-8222-222222222222',
   editorRoleId: '99999999-9999-4999-8999-999999999999',
   orgId: '33333333-3333-4333-8333-333333333333',
+  otherOrgId: '34343434-3434-4434-8434-343434343434',
   memberId: '44444444-4444-4444-8444-444444444444',
   portalMemberId: '45454545-4545-4454-8454-454545454545',
   tagId: '55555555-5555-4555-8555-555555555555',
@@ -19,11 +20,15 @@ export const E2E_IDS = {
   socialHighlightId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
   materialId: '88888888-8888-4888-8888-888888888888',
   materialCategoryCId: '89898989-8989-4898-8989-898989898989',
+  customizableMaterialId: '8a8a8a8a-8a8a-4a8a-8a8a-8a8a8a8a8a8a',
+  materialTemplateId: '8b8b8b8b-8b8b-4b8b-8b8b-8b8b8b8b8b8b',
+  materialBaseFileId: '8c8c8c8c-8c8c-4c8c-8c8c-8c8c8c8c8c8c',
   eventTypeId: 'a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1',
   eventNoCategoryId: 'e1e1e1e1-e1e1-4e1e-8e1e-e1e1e1e1e1e1',
   eventCategoryAId: 'e2e2e2e2-e2e2-4e2e-8e2e-e2e2e2e2e2e2',
   eventCategoryCId: 'e3e3e3e3-e3e3-4e3e-8e3e-e3e3e3e3e3e3',
   eventDeletedId: 'e4e4e4e4-e4e4-4e4e-8e4e-e4e4e4e4e4e4',
+  assetId: 'f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1',
 } as const;
 
 const MODULE_DEFS = [
@@ -39,6 +44,8 @@ const MODULE_DEFS = [
   { name: 'reports', label: 'Relatórios' },
   { name: 'faqs', label: 'FAQ' },
   { name: 'calendar', label: 'Calendário' },
+  { name: 'assets', label: 'Assets' },
+  { name: 'suppliers', label: 'Fornecedores' },
 ] as const;
 
 const ALL_ACTIONS: Action[] = [
@@ -61,6 +68,8 @@ export type E2eStore = {
   socialHighlights: Record<string, unknown>[];
   materials: Record<string, unknown>[];
   materialFiles: Record<string, unknown>[];
+  materialTemplates: Record<string, unknown>[];
+  materialTemplateAssets: Record<string, unknown>[];
   categoryRoleAccesses: Record<string, unknown>[];
   calendarEventTypes: Record<string, unknown>[];
   calendarEvents: Record<string, unknown>[];
@@ -68,6 +77,7 @@ export type E2eStore = {
   passwordResetTokens: Record<string, unknown>[];
   logs: Record<string, unknown>[];
   tagSearches: Record<string, unknown>[];
+  assets: Record<string, unknown>[];
   supplierDocuments: Record<string, unknown>[];
 };
 
@@ -175,6 +185,13 @@ export function createE2eSeed(): E2eStore {
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
+  };
+
+  const otherOrganization = {
+    ...organization,
+    id: E2E_IDS.otherOrgId,
+    name: 'Outra Organização E2E',
+    slug: 'outra-org-e2e',
   };
 
   const member = {
@@ -293,6 +310,17 @@ export function createE2eSeed(): E2eStore {
     _count: { material: 0, tagSearches: 0 },
   };
 
+  const asset = {
+    id: E2E_IDS.assetId,
+    organizationId: E2E_IDS.orgId,
+    name: 'Logo E2E',
+    fileKey: `organizations/${E2E_IDS.orgId}/assets/${E2E_IDS.assetId}/logo.png`,
+    mimeType: 'image/png',
+    size: 8,
+    createdAt: now,
+    updatedAt: now,
+  };
+
   const banner = {
     id: E2E_IDS.bannerId,
     organizationId: E2E_IDS.orgId,
@@ -351,6 +379,84 @@ export function createE2eSeed(): E2eStore {
     tags: [] as Record<string, unknown>[],
     materialFiles: [] as Record<string, unknown>[],
     category: categoryC,
+  };
+
+  const materialBaseFile = {
+    id: E2E_IDS.materialBaseFileId,
+    materialId: E2E_IDS.customizableMaterialId,
+    imageKey: 'materials/customizable/base.png',
+    mimeType: 'image/png',
+    size: 1024,
+  };
+
+  const customizableMaterial = {
+    id: E2E_IDS.customizableMaterialId,
+    name: 'Material Customizável E2E',
+    description: 'Descrição',
+    categoryId: E2E_IDS.categoryId,
+    requiresAcceptance: false,
+    hasExternalLink: false,
+    externalLink: null,
+    hasTextCopy: false,
+    textCopy: null,
+    isCustomizable: true,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    tags: [] as Record<string, unknown>[],
+    category,
+  };
+
+  const templateDocument = {
+    version: 1,
+    canvas: { width: 1080, height: 1080 },
+    layerOrder: ['template-asset', 'template-text'],
+    layers: [
+      {
+        id: 'template-asset',
+        type: 'asset',
+        name: 'Logo',
+        assetId: E2E_IDS.assetId,
+        x: 20,
+        y: 20,
+        width: 100,
+        height: 100,
+        rotation: 0,
+        isVisible: true,
+        editableProperties: [],
+      },
+      {
+        id: 'template-text',
+        type: 'text',
+        name: 'Nome',
+        value: 'Nome do agente',
+        x: 100,
+        y: 900,
+        rotation: 0,
+        fontSize: 40,
+        fontFamily: 'Arial',
+        fill: '#111111',
+        isVisible: true,
+        editableProperties: ['value'],
+        profileBinding: 'NAME',
+      },
+    ],
+  };
+
+  const materialTemplate = {
+    id: E2E_IDS.materialTemplateId,
+    organizationId: E2E_IDS.orgId,
+    materialId: E2E_IDS.customizableMaterialId,
+    baseMaterialFileId: E2E_IDS.materialBaseFileId,
+    allowedExportTypes: [],
+    status: 'PUBLISHED',
+    schemaVersion: 1,
+    document: templateDocument,
+    legacyImport: null,
+    revision: 0,
+    publishedAt: now,
+    createdAt: now,
+    updatedAt: now,
   };
 
   const eventType = {
@@ -452,14 +558,18 @@ export function createE2eSeed(): E2eStore {
     roles: [role, memberRole],
     modules,
     rolePermissions,
-    organizations: [organization],
+    organizations: [organization, otherOrganization],
     members: [member, portalMember],
     tags: [tag],
     categories: [category, categoryB, categoryC],
     banners: [banner],
     socialHighlights: [socialHighlight],
-    materials: [material, materialCategoryC],
-    materialFiles: [],
+    materials: [material, materialCategoryC, customizableMaterial],
+    materialFiles: [materialBaseFile],
+    materialTemplates: [materialTemplate],
+    materialTemplateAssets: [
+      { templateId: E2E_IDS.materialTemplateId, assetId: E2E_IDS.assetId },
+    ],
     categoryRoleAccesses: [
       categoryRoleAccess,
       editorAccessA,
@@ -477,6 +587,7 @@ export function createE2eSeed(): E2eStore {
     passwordResetTokens: [],
     logs: [],
     tagSearches: [],
+    assets: [asset],
     supplierDocuments: [],
   };
 }

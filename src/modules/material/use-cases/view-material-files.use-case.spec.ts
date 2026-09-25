@@ -46,8 +46,12 @@ describe('ViewMaterialFilesUseCase', () => {
       {
         id: 'material-file-id',
         materialId: 'material-id',
+        originalName: 'arquivo.pdf',
         mimeType: 'application/pdf',
         size: 1024,
+        width: null,
+        height: null,
+        sortOrder: 0,
         url: 'https://cdn.test/file.pdf',
       },
     ]);

@@ -73,8 +73,11 @@ export class UserController {
 
   @RequirePermission('users', 'read')
   @Get('/:id')
-  async findById(@Param('id') id: string): Promise<UserById> {
-    const user = await this.findUserByIdUseCase.execute(id);
+  async findById(
+    @Param('id') id: string,
+    @OrgId() organizationId: string,
+  ): Promise<UserById> {
+    const user = await this.findUserByIdUseCase.execute(id, organizationId);
 
     delete user.password;
 
@@ -113,7 +116,7 @@ export class UserController {
 
   @RequirePermission('users', 'delete')
   @Delete('/:id')
-  async delete(@Param('id') id: string) {
-    await this.deleteUserUseCase.execute(id);
+  async delete(@Param('id') id: string, @OrgId() organizationId: string) {
+    await this.deleteUserUseCase.execute(id, organizationId);
   }
 }

@@ -20,7 +20,17 @@ describe('FindUserByIdUseCase', () => {
 
     userRepository.findById.mockResolvedValue(user);
 
+    await expect(useCase.execute(user.id, 'org-1')).resolves.toEqual(user);
+    expect(userRepository.findById).toHaveBeenCalledWith(user.id, 'org-1');
+  });
+
+  it('deve buscar usuário sem filtro de org quando organizationId não for informado', async () => {
+    const user = makeUserById();
+
+    userRepository.findById.mockResolvedValue(user);
+
     await expect(useCase.execute(user.id)).resolves.toEqual(user);
+    expect(userRepository.findById).toHaveBeenCalledWith(user.id, undefined);
   });
 
   it('deve lançar not found quando usuário não existir', async () => {

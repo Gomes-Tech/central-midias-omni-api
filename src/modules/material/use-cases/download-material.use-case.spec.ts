@@ -6,7 +6,9 @@ import { DownloadMaterialUseCase } from './download-material.use-case';
 import { makeMaterialDetails, makeMaterialFile } from './test-helpers';
 
 describe('DownloadMaterialUseCase', () => {
-  let findMaterialByIdUseCase: jest.Mocked<Pick<FindMaterialByIdUseCase, 'execute'>>;
+  let findMaterialByIdUseCase: jest.Mocked<
+    Pick<FindMaterialByIdUseCase, 'execute'>
+  >;
   let materialRepository: jest.Mocked<
     Pick<
       MaterialRepository,
@@ -39,8 +41,18 @@ describe('DownloadMaterialUseCase', () => {
   it('deve registrar um download e retornar URLs de todos os arquivos', async () => {
     const material = makeMaterialDetails();
     const files = [
-      makeMaterialFile({ id: 'file-1', fileKey: 'materials/material-id/a.pdf' }),
-      makeMaterialFile({ id: 'file-2', fileKey: 'materials/material-id/b.pdf' }),
+      makeMaterialFile({
+        id: 'file-1',
+        fileKey: 'materials/material-id/a.pdf',
+        originalName: 'campanha-a.pdf',
+        sortOrder: 0,
+      }),
+      makeMaterialFile({
+        id: 'file-2',
+        fileKey: 'materials/material-id/b.pdf',
+        originalName: 'campanha-b.pdf',
+        sortOrder: 1,
+      }),
     ];
 
     findMaterialByIdUseCase.execute.mockResolvedValue(material);
@@ -57,15 +69,23 @@ describe('DownloadMaterialUseCase', () => {
       {
         id: 'file-1',
         materialId: 'material-id',
+        originalName: 'campanha-a.pdf',
         mimeType: 'application/pdf',
         size: 1024,
+        width: null,
+        height: null,
+        sortOrder: 0,
         url: 'https://cdn.test/a.pdf',
       },
       {
         id: 'file-2',
         materialId: 'material-id',
+        originalName: 'campanha-b.pdf',
         mimeType: 'application/pdf',
         size: 1024,
+        width: null,
+        height: null,
+        sortOrder: 1,
         url: 'https://cdn.test/b.pdf',
       },
     ]);
@@ -77,11 +97,11 @@ describe('DownloadMaterialUseCase', () => {
     );
     expect(storageService.getDownloadUrl).toHaveBeenCalledWith(
       'materials/material-id/a.pdf',
-      'a.pdf',
+      'campanha-a.pdf',
     );
     expect(storageService.getDownloadUrl).toHaveBeenCalledWith(
       'materials/material-id/b.pdf',
-      'b.pdf',
+      'campanha-b.pdf',
     );
   });
 
@@ -105,7 +125,9 @@ describe('DownloadMaterialUseCase', () => {
     const result = useCase.execute(material.id, 'org-id', 'user-id');
 
     await expect(result).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(result).rejects.toThrow('Você não possui acesso a este material');
+    await expect(result).rejects.toThrow(
+      'Você não possui acesso a este material',
+    );
     expect(materialRepository.findFilesByMaterialId).not.toHaveBeenCalled();
     expect(materialRepository.registerDownload).not.toHaveBeenCalled();
   });

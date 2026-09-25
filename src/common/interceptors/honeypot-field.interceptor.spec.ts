@@ -37,7 +37,10 @@ describe('HoneypotFieldInterceptor', () => {
 
   it('deve remover userSource null antes de continuar', async () => {
     const next = { handle: jest.fn(() => of('ok')) };
-    const request = { method: 'POST', body: { name: 'Teste', userSource: null } };
+    const request = {
+      method: 'POST',
+      body: { name: 'Teste', userSource: null },
+    };
 
     await expect(
       lastValueFrom(interceptor.intercept(createContext(request), next)),

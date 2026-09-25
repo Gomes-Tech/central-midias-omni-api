@@ -90,9 +90,11 @@ describe('ResolveMaterialTagsUseCase', () => {
   it('deve classificar todas as tags como novas quando nenhuma existir no banco', async () => {
     tagRepository.findManyByNames.mockResolvedValue([]);
 
-    await expect(useCase.execute('org-id', ['Alpha', 'Beta'])).resolves.toEqual({
-      existingTagIds: [],
-      newTagNames: ['Alpha', 'Beta'],
-    });
+    await expect(useCase.execute('org-id', ['Alpha', 'Beta'])).resolves.toEqual(
+      {
+        existingTagIds: [],
+        newTagNames: ['Alpha', 'Beta'],
+      },
+    );
   });
 });

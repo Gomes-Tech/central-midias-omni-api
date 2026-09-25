@@ -362,23 +362,18 @@ Validações globais:
 
 Provider ativo:
 
-- `StorageService` usa somente `S3StorageService`.
-- `getPublicUrl` gera URL assinada S3 com `GetObjectCommand`.
-- `uploadFile` grava objeto em S3 com key segura por pasta.
-
-Providers não ativos pela facade:
-
-- `SupabaseService` existe, mas está comentado no `StorageService`.
-- `LocalStorageService` existe, mas está comentado no `StorageService`.
-
-Atenção: `StorageService.deleteFile` atualmente só faz `console.log` e não chama S3/Supabase/local; remoções de arquivos no domínio não apagam efetivamente os objetos remotos pela facade atual.
+- `StorageService` delega ao provider definido por `STORAGE_PROVIDER`.
+- O padrão atual é `supabase`; use `s3` para retornar ao provider AWS.
+- Upload, URLs assinadas/download, remoções e anexos usam o mesmo provider.
+- Assets do editor também usam o provider ativo. `SUPABASE_ASSETS_BUCKET` é opcional e recua para `SUPABASE_BUCKET`; o bucket de assets deve ser público.
+- No S3 permanecem separados `S3_BUCKET` e `S3_ASSETS_BUCKET`.
 
 ## Integrações Externas
 
 - PostgreSQL via `DATABASE_URL`.
-- AWS S3 via `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET`.
+- AWS S3 via `STORAGE_PROVIDER=s3`, `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET` e `S3_ASSETS_BUCKET`.
 - SMTP via `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`.
-- Supabase Storage existe no código, mas não está ativo na facade.
+- Supabase Storage é o provider padrão de homologação.
 - Prometheus coleta `/api/metrics`.
 - Grafana possui dashboard provisionado em `docker/observability/grafana`.
 - Sentry é citado no `SecurityLoggerService`, mas o código força `Sentry = null`; não há integração efetiva.
@@ -414,6 +409,7 @@ Usadas pelo código, embora não estejam todas no schema Joi:
 ```text
 ALLOWED_ORIGINS
 TOKEN_PASSWORD_EXPIRES_MINUTES
+STORAGE_PROVIDER
 AWS_REGION
 AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY
@@ -423,6 +419,7 @@ SUPABASE_URL
 SUBAPASE_URL
 SUPABASE_KEY
 SUPABASE_BUCKET
+SUPABASE_ASSETS_BUCKET
 SUPABASE_SIGNED_URL_EXPIRES_SECONDS
 POSTGRES_USER
 POSTGRES_PASSWORD
@@ -564,7 +561,7 @@ Configuração Jest no `package.json`:
 
 ## Pontos Críticos e Débitos Técnicos
 
-- O repositório contém `.env` com segredos reais e uma chave `.pem`. Remover do versionamento, rotacionar credenciais e manter apenas `.env.example`.
+- Não versionar `.env` com segredos reais; manter apenas `.env.example`. A chave `.pem` obsoleta (`minha-chave-nova.pem`) já foi removida do tree (`9f5fb15`).
 - O README anterior era o template padrão do Nest e foi substituído por esta documentação.
 - `StorageService.deleteFile` não apaga arquivos no provider ativo; apenas loga os paths.
 - `CategoryRepository.findTreeBySlug` usa raw SQL com nomes `"Category"`, `"Role"`, `"Member"` e campos camelCase, mas o Prisma schema mapeia tabelas para `categories`, `roles`, `members` e campos snake_case. Esse endpoint tende a falhar no PostgreSQL real.

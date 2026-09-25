@@ -48,9 +48,9 @@ describe('FindAccessibleOrganizationsUseCase', () => {
         secondaryColor: null,
       },
     ]);
-    expect(organizationRepository.findAccessibleSelectForUser).toHaveBeenCalledWith(
-      'user-1',
-    );
+    expect(
+      organizationRepository.findAccessibleSelectForUser,
+    ).toHaveBeenCalledWith('user-1');
   });
 
   it('deve resolver avatarUrl quando avatarKey existir', async () => {
@@ -61,7 +61,9 @@ describe('FindAccessibleOrganizationsUseCase', () => {
         avatarKey: 'avatars/org.png',
       },
     ]);
-    storageService.getPublicUrl.mockResolvedValue('https://cdn.test/avatars/org.png');
+    storageService.getPublicUrl.mockResolvedValue(
+      'https://cdn.test/avatars/org.png',
+    );
 
     await expect(useCase.execute('user-1')).resolves.toEqual([
       {

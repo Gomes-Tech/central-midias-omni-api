@@ -6,6 +6,7 @@ import {
   buildReportExportFilename,
   buildTopMaterialsByDownloadsCsv,
   buildTopMaterialsByViewsCsv,
+  buildMaterialEmailDispatchesCsv,
   buildTopSearchesCsv,
   buildTopUsersByMaterialDownloadsCsv,
   buildTopUsersByPlatformLoginsCsv,
@@ -74,6 +75,17 @@ export class ExportReportUseCase {
         return {
           filename: buildReportExportFilename('buscas'),
           content: buildTopSearchesCsv(rows),
+        };
+      }
+      case ReportType.MATERIALS_EMAIL_DISPATCHES: {
+        const rows =
+          await this.reportRepository.findAllMaterialEmailDispatches(
+            organizationId,
+          );
+
+        return {
+          filename: buildReportExportFilename('disparos-email'),
+          content: buildMaterialEmailDispatchesCsv(rows),
         };
       }
       default:

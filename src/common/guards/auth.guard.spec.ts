@@ -155,6 +155,36 @@ describe('AuthGuard', () => {
     expect(tokenBlacklist.isTokenBlacklisted).not.toHaveBeenCalled();
   });
 
+  it('deve negar quando a consulta à blacklist falhar', async () => {
+    reflector.getAllAndOverride.mockReturnValue(false);
+    jwtService.verifyAsync.mockResolvedValue({ jti: 'jti-1' });
+    tokenBlacklist.isTokenBlacklisted.mockRejectedValue(
+      new Error('redis down'),
+    );
+
+    const ctx = createExecutionContext({
+      headers: {
+        'x-api-key': 'server-secret-key',
+        authorization: 'Bearer t.k.n',
+      },
+      method: 'GET',
+      url: '/p',
+      ip: '2.2.2.2',
+      get: jest.fn().mockReturnValue('ua2'),
+    });
+
+    let thrown: unknown;
+    try {
+      await guard.canActivate(ctx);
+    } catch (e) {
+      thrown = e;
+    }
+    expect(thrown).toBeInstanceOf(UnauthorizedException);
+    expect((thrown as UnauthorizedException).message).toBe(
+      'Token inválido ou expirado!',
+    );
+  });
+
   it('deve negar quando jti está na blacklist', async () => {
     reflector.getAllAndOverride.mockReturnValue(false);
     jwtService.verifyAsync.mockResolvedValue({ jti: 'revoked-id' });
@@ -178,7 +208,9 @@ describe('AuthGuard', () => {
       thrown = e;
     }
     expect(thrown).toBeInstanceOf(UnauthorizedException);
-    expect((thrown as UnauthorizedException).message).toBe('Token foi revogado!');
+    expect((thrown as UnauthorizedException).message).toBe(
+      'Token foi revogado!',
+    );
     expect(securityLogger.logInvalidToken).toHaveBeenCalled();
   });
 
@@ -231,9 +263,9 @@ describe('AuthGuard', () => {
       get: jest.fn().mockReturnValue('ua'),
     } as unknown as Partial<Request>;
 
-    await expect(
-      guard.canActivate(createExecutionContext(req)),
-    ).resolves.toBe(true);
+    await expect(guard.canActivate(createExecutionContext(req))).resolves.toBe(
+      true,
+    );
   });
 
   it('deve usar ip e user-agent desconhecidos quando ausentes', async () => {

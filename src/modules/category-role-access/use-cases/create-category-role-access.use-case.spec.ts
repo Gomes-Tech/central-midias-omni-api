@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  NotFoundException,
-} from '@common/filters';
+import { BadRequestException, NotFoundException } from '@common/filters';
 import { CreateCategoryRoleAccessDTO } from '../dto/create-category-role-access.dto';
 import { CategoryRoleAccessRepository } from '../repository';
 import { CreateCategoryRoleAccessUseCase } from './create-category-role-access.use-case';
@@ -29,7 +26,9 @@ describe('CreateCategoryRoleAccessUseCase', () => {
 
   it('deve criar vínculo quando categoria, perfil existirem e não houver duplicata', async () => {
     const created = { id: 'cra-1' } as never;
-    repository.findActiveCategoryInOrganization.mockResolvedValue({ id: 'cat-1' });
+    repository.findActiveCategoryInOrganization.mockResolvedValue({
+      id: 'cat-1',
+    });
     repository.findActiveRole.mockResolvedValue({ id: dto.roleId });
     repository.findByCategoryRoleAndOrganization.mockResolvedValue(null);
     repository.create.mockResolvedValue(created);
@@ -53,7 +52,9 @@ describe('CreateCategoryRoleAccessUseCase', () => {
   });
 
   it('deve lançar NotFound quando o perfil não existir', async () => {
-    repository.findActiveCategoryInOrganization.mockResolvedValue({ id: 'cat-1' });
+    repository.findActiveCategoryInOrganization.mockResolvedValue({
+      id: 'cat-1',
+    });
     repository.findActiveRole.mockResolvedValue(null);
 
     await expect(useCase.execute(orgId, dto)).rejects.toBeInstanceOf(
@@ -63,7 +64,9 @@ describe('CreateCategoryRoleAccessUseCase', () => {
   });
 
   it('deve lançar BadRequest quando já existir vínculo categoria–perfil', async () => {
-    repository.findActiveCategoryInOrganization.mockResolvedValue({ id: 'cat-1' });
+    repository.findActiveCategoryInOrganization.mockResolvedValue({
+      id: 'cat-1',
+    });
     repository.findActiveRole.mockResolvedValue({ id: dto.roleId });
     repository.findByCategoryRoleAndOrganization.mockResolvedValue({
       id: 'existing',

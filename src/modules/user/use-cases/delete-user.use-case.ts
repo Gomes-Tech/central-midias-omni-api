@@ -10,8 +10,8 @@ export class DeleteUserUseCase {
     private readonly findByIdUseCase: FindUserByIdUseCase,
   ) {}
 
-  async execute(id: string) {
-    await this.findByIdUseCase.execute(id);
+  async execute(id: string, organizationId: string) {
+    await this.findByIdUseCase.execute(id, organizationId);
 
     await this.userRepository.delete(id);
   }

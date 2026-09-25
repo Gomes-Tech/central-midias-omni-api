@@ -1,4 +1,4 @@
-import { BadRequestException } from '@common/filters';
+import { BadRequestException, ForbiddenException } from '@common/filters';
 import { CryptographyService } from '@infrastructure/criptography';
 import { MailService } from '@infrastructure/providers';
 import { SyncGlobalRoleCategoryAccessesUseCase } from '@modules/category-role-access/use-cases/sync-global-role-category-accesses.use-case';
@@ -39,12 +39,17 @@ export class CreateGlobalUserUseCase {
 
     await this.findGlobalRoleByIdUseCase.execute(data.globalRoleId);
 
+    const organizationIds = await this.resolveProvisionableOrganizationIds(
+      userId,
+      data.organizationIds,
+    );
+
     const hashedPassword = await this.cryptographyService.hash(
       data.taxIdentifier,
     );
 
     await Promise.all(
-      data.organizationIds.map((organizationId) =>
+      organizationIds.map((organizationId) =>
         this.syncGlobalRoleCategoryAccessesUseCase.execute(
           data.globalRoleId,
           organizationId,
@@ -55,6 +60,7 @@ export class CreateGlobalUserUseCase {
     const newUser = await this.userRepository.createGlobalUser(
       {
         ...data,
+        organizationIds,
         password: hashedPassword,
       },
       userId,
@@ -78,5 +84,40 @@ export class CreateGlobalUserUseCase {
         },
       });
     }
+  }
+
+  private async resolveProvisionableOrganizationIds(
+    actorId: string,
+    requestedIds: string[],
+  ): Promise<string[]> {
+    const organizationIds = [...new Set(requestedIds)];
+    const isPlatformAdmin =
+      await this.userRepository.hasPlatformAdminRole(actorId);
+
+    if (isPlatformAdmin) {
+      const existingIds =
+        await this.userRepository.findExistingActiveOrganizationIds(
+          organizationIds,
+        );
+
+      if (existingIds.length !== organizationIds.length) {
+        throw new BadRequestException('Organização não encontrada ou inativa.');
+      }
+
+      return organizationIds;
+    }
+
+    const membershipIds =
+      await this.userRepository.findActiveMembershipOrganizationIds(actorId);
+    const allowed = new Set(membershipIds);
+    const denied = organizationIds.some((id) => !allowed.has(id));
+
+    if (denied) {
+      throw new ForbiddenException(
+        'Não é possível provisionar o usuário em organizações às quais você não tem acesso.',
+      );
+    }
+
+    return organizationIds;
   }
 }

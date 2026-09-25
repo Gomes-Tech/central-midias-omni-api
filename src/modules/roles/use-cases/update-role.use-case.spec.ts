@@ -1,7 +1,6 @@
-import { BadRequestException } from '@common/filters';
 import { RolesRepository } from '../repository';
-import { makeRole, makeUpdateRoleDTO } from './test-helpers';
 import { FindRoleByIdUseCase } from './find-role-by-id.use-case';
+import { makeRole, makeUpdateRoleDTO } from './test-helpers';
 import { UpdateRoleUseCase } from './update-role.use-case';
 
 describe('UpdateRoleUseCase', () => {

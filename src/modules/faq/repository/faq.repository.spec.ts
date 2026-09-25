@@ -4,10 +4,7 @@ import { PrismaService } from '@infrastructure/prisma';
 import { FaqRepository } from './faq.repository';
 
 jest.mock('@common/utils', () => {
-  const actual = jest.requireActual('@common/utils') as Record<
-    string,
-    unknown
-  >;
+  const actual = jest.requireActual('@common/utils') as Record<string, unknown>;
   return {
     ...actual,
     generateId: jest.fn(() => 'generated-id'),
@@ -58,9 +55,7 @@ describe('FaqRepository', () => {
       prisma.faq.findMany.mockResolvedValue(rows);
       prisma.faq.count.mockResolvedValue(1);
 
-      await expect(
-        repository.findAll(undefined, 'org-1'),
-      ).resolves.toEqual({
+      await expect(repository.findAll(undefined, 'org-1')).resolves.toEqual({
         data: rows,
         total: 1,
         page: 1,
@@ -117,9 +112,7 @@ describe('FaqRepository', () => {
 
   describe('findAllItems', () => {
     it('deve buscar items paginados com filtros padrão', async () => {
-      const rows = [
-        { id: 'item-1', question: 'P', answer: 'R', order: 1 },
-      ];
+      const rows = [{ id: 'item-1', question: 'P', answer: 'R', order: 1 }];
       prisma.faqItem.findMany.mockResolvedValue(rows);
       prisma.faqItem.count.mockResolvedValue(1);
 
@@ -174,9 +167,9 @@ describe('FaqRepository', () => {
     it('deve lançar BadRequest quando a consulta falhar', async () => {
       prisma.faqItem.findMany.mockRejectedValue(new Error('db'));
 
-      await expect(
-        repository.findAllItems(undefined, 'org-1'),
-      ).rejects.toThrow('Erro ao buscar items do FAQ');
+      await expect(repository.findAllItems(undefined, 'org-1')).rejects.toThrow(
+        'Erro ao buscar items do FAQ',
+      );
       expect(logger.error).toHaveBeenCalledWith(
         'FaqRepository.findAllItems falhou',
         expect.objectContaining({ organizationId: 'org-1' }),
@@ -195,9 +188,9 @@ describe('FaqRepository', () => {
       };
       prisma.faq.findFirst.mockResolvedValue(faq);
 
-      await expect(
-        repository.findByOrganizationId('org-1'),
-      ).resolves.toEqual(faq);
+      await expect(repository.findByOrganizationId('org-1')).resolves.toEqual(
+        faq,
+      );
 
       expect(prisma.faq.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -209,9 +202,9 @@ describe('FaqRepository', () => {
     it('deve lançar BadRequest quando a consulta falhar', async () => {
       prisma.faq.findFirst.mockRejectedValue(new Error('db'));
 
-      await expect(
-        repository.findByOrganizationId('org-1'),
-      ).rejects.toThrow('Erro ao buscar FAQ');
+      await expect(repository.findByOrganizationId('org-1')).rejects.toThrow(
+        'Erro ao buscar FAQ',
+      );
     });
   });
 
@@ -241,11 +234,7 @@ describe('FaqRepository', () => {
       prisma.faq.create.mockResolvedValue({} as never);
 
       await expect(
-        repository.create(
-          'org-1',
-          { name: 'FAQ', order: 1 },
-          'user-1',
-        ),
+        repository.create('org-1', { name: 'FAQ', order: 1 }, 'user-1'),
       ).resolves.toEqual({ id: 'generated-id' });
 
       expect(prisma.faq.create).toHaveBeenCalledWith({
@@ -754,9 +743,9 @@ describe('FaqRepository', () => {
       const detail = { id: 'detail-1', imageKey: null, description: null };
       prisma.faqDetail.findUnique.mockResolvedValue(detail as never);
 
-      await expect(
-        repository.findDetailByFaqId('faq-1'),
-      ).resolves.toEqual(detail);
+      await expect(repository.findDetailByFaqId('faq-1')).resolves.toEqual(
+        detail,
+      );
 
       expect(prisma.faqDetail.findUnique).toHaveBeenCalledWith({
         where: { faqId: 'faq-1' },
@@ -767,9 +756,9 @@ describe('FaqRepository', () => {
     it('deve lançar BadRequest quando a consulta falhar', async () => {
       prisma.faqDetail.findUnique.mockRejectedValue(new Error('db'));
 
-      await expect(
-        repository.findDetailByFaqId('faq-1'),
-      ).rejects.toThrow('Erro ao buscar detalhes do FAQ');
+      await expect(repository.findDetailByFaqId('faq-1')).rejects.toThrow(
+        'Erro ao buscar detalhes do FAQ',
+      );
     });
   });
 });

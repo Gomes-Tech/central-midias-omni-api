@@ -4,7 +4,8 @@ import { PrismaService } from '@infrastructure/prisma';
 import { MaterialRepository } from './material.repository';
 
 function createPrismaMock() {
-  return {
+  const prisma = {
+    $transaction: jest.fn(),
     material: {
       findMany: jest.fn(),
       groupBy: jest.fn(),
@@ -18,7 +19,26 @@ function createPrismaMock() {
       create: jest.fn(),
       findMany: jest.fn(),
       findFirst: jest.fn(),
+      update: jest.fn(),
       deleteMany: jest.fn(),
+    },
+    materialTemplate: {
+      findFirst: jest.fn(),
+      deleteMany: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    printExport: {
+      count: jest.fn(),
+    },
+    printPreset: {
+      findFirst: jest.fn(),
+    },
+    printPreflight: {
+      deleteMany: jest.fn(),
+    },
+    materialTemplateAsset: {
+      deleteMany: jest.fn(),
+      createMany: jest.fn(),
     },
     member: {
       findFirst: jest.fn(),
@@ -46,7 +66,17 @@ function createPrismaMock() {
     materialDownload: {
       create: jest.fn(),
     },
+    materialEmailDispatch: {
+      create: jest.fn(),
+    },
   };
+
+  prisma.$transaction.mockImplementation(
+    async (callback: (tx: typeof prisma) => Promise<unknown>) =>
+      callback(prisma),
+  );
+
+  return prisma;
 }
 
 describe('MaterialRepository', () => {
@@ -96,6 +126,8 @@ describe('MaterialRepository', () => {
           category: {
             name: 'Categoria',
           },
+          isCustomizable: false,
+          materialTemplate: null,
           materialFiles: [{ id: 'file-1' }, { id: 'file-2' }],
         },
       ]);
@@ -119,6 +151,8 @@ describe('MaterialRepository', () => {
               name: 'Categoria',
             },
             materialFilesCount: 2,
+            isCustomizable: false,
+            templateStatus: null,
           },
         ],
         total: 1,
@@ -248,10 +282,12 @@ describe('MaterialRepository', () => {
           id: 'material-id',
           name: 'Material campanha',
           description: 'Descricao',
+          category: { name: 'Categoria' },
+          isCustomizable: false,
+          materialTemplate: null,
           externalLink: 'https://example.com',
           hasTextCopy: true,
           textCopy: 'Texto',
-          isCustomizable: false,
           requiresAcceptance: false,
           materialFiles: [
             {
@@ -280,6 +316,7 @@ describe('MaterialRepository', () => {
             hasTextCopy: true,
             textCopy: 'Texto',
             isCustomizable: false,
+            canCustomize: false,
             requiresAcceptance: false,
             imageKey: 'materials/material-id/preview.png',
             mimeType: 'image/png',
@@ -326,14 +363,17 @@ describe('MaterialRepository', () => {
           textCopy: true,
           isCustomizable: true,
           requiresAcceptance: true,
+          onlyView: true,
           materialFiles: {
             select: {
               imageKey: true,
               mimeType: true,
               size: true,
             },
+            orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
             take: 1,
           },
+          materialTemplate: { select: { status: true } },
         },
         orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
         skip: 10,
@@ -564,7 +604,7 @@ describe('MaterialRepository', () => {
         hasTextCopy: true,
         textCopy: 'Texto livre para copiar',
         isCustomizable: false,
-        materialCustomization: null,
+        materialTemplate: null,
         createdAt: new Date('2024-01-01T00:00:00.000Z'),
         updatedAt: new Date('2024-01-02T00:00:00.000Z'),
         deletedAt: null,
@@ -587,7 +627,9 @@ describe('MaterialRepository', () => {
           hasTextCopy: true,
           textCopy: 'Texto livre para copiar',
           isCustomizable: false,
-          customization: null,
+          templateStatus: null,
+          exportTypes: [],
+          printPresetId: null,
           mimeType: null,
         }),
       );
@@ -605,7 +647,7 @@ describe('MaterialRepository', () => {
         hasTextCopy: false,
         textCopy: null,
         isCustomizable: false,
-        materialCustomization: null,
+        materialTemplate: null,
         createdAt: new Date('2024-01-01T00:00:00.000Z'),
         updatedAt: new Date('2024-01-02T00:00:00.000Z'),
         deletedAt: null,
@@ -631,7 +673,7 @@ describe('MaterialRepository', () => {
       );
     });
 
-    it('deve retornar os dados de customização quando material for personalizável', async () => {
+    it('deve retornar o status do template quando material for personalizável', async () => {
       prisma.material.findFirst.mockResolvedValue({
         id: 'material-id',
         name: 'Material institucional',
@@ -641,14 +683,7 @@ describe('MaterialRepository', () => {
         hasExternalLink: false,
         externalLink: null,
         isCustomizable: true,
-        materialCustomization: {
-          position: 'TOP',
-          hasName: true,
-          hasPhonePrimary: true,
-          hasPhoneSecondary: false,
-          hasAddress: true,
-          hasCity: false,
-        },
+        materialTemplate: { status: 'PUBLISHED' },
         createdAt: new Date('2024-01-01T00:00:00.000Z'),
         updatedAt: new Date('2024-01-02T00:00:00.000Z'),
         deletedAt: null,
@@ -666,14 +701,7 @@ describe('MaterialRepository', () => {
       ).resolves.toEqual(
         expect.objectContaining({
           isCustomizable: true,
-          customization: {
-            position: 'TOP',
-            hasName: true,
-            hasPhonePrimary: true,
-            hasPhoneSecondary: false,
-            hasAddress: true,
-            hasCity: false,
-          },
+          templateStatus: 'PUBLISHED',
         }),
       );
     });
@@ -756,7 +784,7 @@ describe('MaterialRepository', () => {
             },
           },
         ),
-      ).resolves.toBe(undefined);
+      ).resolves.toBe('material-id');
 
       expect(prisma.material.create).toHaveBeenCalledWith({
         data: {
@@ -925,9 +953,12 @@ describe('MaterialRepository', () => {
             id: 'material-id',
             files: [
               {
+                id: 'file-id',
                 fileKey: 'materials/material-id/file.pdf',
+                originalName: 'file.pdf',
                 mimeType: 'application/pdf',
                 size: 1024,
+                sortOrder: 0,
               },
             ],
             tags: {
@@ -936,7 +967,7 @@ describe('MaterialRepository', () => {
             },
           },
         ),
-      ).resolves.toBe(undefined);
+      ).resolves.toBe('material-id');
 
       expect(prisma.material.create).toHaveBeenCalledWith({
         data: {
@@ -970,10 +1001,14 @@ describe('MaterialRepository', () => {
           materialFiles: {
             create: [
               {
-                id: 'mocked-uuid',
+                id: 'file-id',
                 imageKey: 'materials/material-id/file.pdf',
+                originalName: 'file.pdf',
                 mimeType: 'application/pdf',
                 size: 1024,
+                width: undefined,
+                height: undefined,
+                sortOrder: 0,
               },
             ],
           },
@@ -984,7 +1019,7 @@ describe('MaterialRepository', () => {
       });
     });
 
-    it('deve criar customização quando material for personalizável', async () => {
+    it('deve criar template rascunho junto com material personalizável', async () => {
       prisma.material.create.mockResolvedValue({ id: 'material-id' });
 
       await repository.create(
@@ -993,14 +1028,20 @@ describe('MaterialRepository', () => {
           name: 'Material',
           categoryId: 'category-id',
           isCustomizable: true,
-          customization: {
-            position: 'TOP',
-            hasName: true,
-            hasPhonePrimary: true,
-            hasAddress: true,
-          },
         },
         'user-id',
+        {
+          files: [
+            {
+              id: 'base-file-id',
+              fileKey: 'materials/material-id/base.png',
+              originalName: 'base.png',
+              mimeType: 'image/png',
+              size: 1024,
+              sortOrder: 0,
+            },
+          ],
+        },
       );
 
       expect(prisma.material.create).toHaveBeenCalledWith({
@@ -1015,16 +1056,95 @@ describe('MaterialRepository', () => {
           hasTextCopy: false,
           textCopy: null,
           isCustomizable: true,
-          materialCustomization: {
+          materialFiles: {
+            create: [
+              {
+                id: 'base-file-id',
+                imageKey: 'materials/material-id/base.png',
+                originalName: 'base.png',
+                mimeType: 'image/png',
+                size: 1024,
+                width: undefined,
+                height: undefined,
+                sortOrder: 0,
+              },
+            ],
+          },
+          materialTemplate: {
             create: {
               id: 'mocked-uuid',
-              position: 'TOP',
-              hasName: true,
-              hasPhonePrimary: true,
-              hasAddress: true,
+              organizationId: 'org-id',
+              baseMaterialFileId: 'base-file-id',
+              allowedExportTypes: [],
+              digitalExportMimeType: 'image/png',
+              printPresetId: null,
+              status: 'DRAFT',
             },
           },
         },
+        select: { id: true },
+      });
+    });
+
+    it('deve ancorar template de várias imagens no primeiro arquivo', async () => {
+      prisma.material.create.mockResolvedValue({ id: 'material-id' });
+
+      await repository.create(
+        'org-id',
+        {
+          name: 'Material frente e verso',
+          categoryId: 'category-id',
+          isCustomizable: true,
+        },
+        'user-id',
+        {
+          files: [
+            {
+              id: 'front-file-id',
+              fileKey: 'materials/material-id/front.png',
+              originalName: 'front.png',
+              mimeType: 'image/png',
+              size: 1024,
+              width: 1080,
+              height: 1080,
+              sortOrder: 0,
+            },
+            {
+              id: 'back-file-id',
+              fileKey: 'materials/material-id/back.jpg',
+              originalName: 'back.jpg',
+              mimeType: 'image/jpeg',
+              size: 2048,
+              width: 1280,
+              height: 720,
+              sortOrder: 1,
+            },
+          ],
+        },
+      );
+
+      expect(prisma.material.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          isCustomizable: true,
+          materialFiles: {
+            create: [
+              expect.objectContaining({
+                id: 'front-file-id',
+                sortOrder: 0,
+              }),
+              expect.objectContaining({
+                id: 'back-file-id',
+                sortOrder: 1,
+              }),
+            ],
+          },
+          materialTemplate: {
+            create: expect.objectContaining({
+              baseMaterialFileId: 'front-file-id',
+              status: 'DRAFT',
+            }),
+          },
+        }),
         select: { id: true },
       });
     });
@@ -1034,7 +1154,7 @@ describe('MaterialRepository', () => {
     it('deve atualizar campos informados no escopo da organização', async () => {
       prisma.material.findFirst.mockResolvedValue({
         id: 'material-id',
-        materialCustomization: null,
+        materialTemplate: null,
       });
       prisma.material.update.mockResolvedValue({ id: 'material-id' });
 
@@ -1070,9 +1190,13 @@ describe('MaterialRepository', () => {
         },
         select: {
           id: true,
-          materialCustomization: {
+          materialTemplate: {
             select: {
               id: true,
+              allowedExportTypes: true,
+              printPresetId: true,
+              digitalExportMimeType: true,
+              baseFile: { select: { mimeType: true } },
             },
           },
         },
@@ -1112,7 +1236,7 @@ describe('MaterialRepository', () => {
     it('deve limpar tags quando o payload vier vazio', async () => {
       prisma.material.findFirst.mockResolvedValue({
         id: 'material-id',
-        materialCustomization: null,
+        materialTemplate: null,
       });
       prisma.material.update.mockResolvedValue({ id: 'material-id' });
 
@@ -1157,7 +1281,7 @@ describe('MaterialRepository', () => {
     it('deve atualizar apenas description quando informada', async () => {
       prisma.material.findFirst.mockResolvedValue({
         id: 'material-id',
-        materialCustomization: null,
+        materialTemplate: null,
       });
       prisma.material.update.mockResolvedValue({ id: 'material-id' });
 
@@ -1174,10 +1298,10 @@ describe('MaterialRepository', () => {
       });
     });
 
-    it('deve criar ou atualizar customização quando material for personalizável', async () => {
+    it('deve criar ou recuperar template ao ativar personalização', async () => {
       prisma.material.findFirst.mockResolvedValue({
         id: 'material-id',
-        materialCustomization: null,
+        materialTemplate: null,
       });
       prisma.material.update.mockResolvedValue({ id: 'material-id' });
 
@@ -1186,42 +1310,84 @@ describe('MaterialRepository', () => {
         'org-id',
         {
           isCustomizable: true,
-          customization: {
-            position: 'TOP',
-            hasName: true,
-            hasPhonePrimary: true,
-          },
         },
         'user-id',
+        {
+          activateTemplate: {
+            baseMaterialFileId: 'base-file-id',
+            baseMimeType: 'image/png',
+            validatedFiles: [
+              {
+                id: 'base-file-id',
+                mimeType: 'image/png',
+                width: 1080,
+                height: 1080,
+              },
+              {
+                id: 'second-file-id',
+                mimeType: 'image/jpeg',
+                width: 1280,
+                height: 720,
+              },
+            ],
+          },
+        },
       );
 
       expect(prisma.material.update).toHaveBeenCalledWith({
         where: { id: 'material-id' },
         data: {
           isCustomizable: true,
-          materialCustomization: {
+          materialTemplate: {
             upsert: {
               create: {
                 id: 'mocked-uuid',
-                position: 'TOP',
-                hasName: true,
-                hasPhonePrimary: true,
+                organizationId: 'org-id',
+                baseMaterialFileId: 'base-file-id',
+                allowedExportTypes: [],
+                digitalExportMimeType: 'image/png',
+                printPresetId: null,
+                status: 'DRAFT',
               },
               update: {
-                position: 'TOP',
-                hasName: true,
-                hasPhonePrimary: true,
+                baseMaterialFileId: 'base-file-id',
+                allowedExportTypes: [],
+                digitalExportMimeType: 'image/png',
+                printPresetId: null,
+                status: 'DRAFT',
+                publishedAt: null,
+                revision: { increment: 1 },
               },
             },
+          },
+          materialFiles: {
+            update: [
+              {
+                where: { id: 'base-file-id' },
+                data: {
+                  mimeType: 'image/png',
+                  width: 1080,
+                  height: 1080,
+                },
+              },
+              {
+                where: { id: 'second-file-id' },
+                data: {
+                  mimeType: 'image/jpeg',
+                  width: 1280,
+                  height: 720,
+                },
+              },
+            ],
           },
         },
       });
     });
 
-    it('deve remover customização ao desativar personalização', async () => {
+    it('deve remover o template ao desativar personalização', async () => {
       prisma.material.findFirst.mockResolvedValue({
         id: 'material-id',
-        materialCustomization: { id: 'customization-id' },
+        materialTemplate: { id: 'template-id' },
       });
       prisma.material.update.mockResolvedValue({ id: 'material-id' });
 
@@ -1236,7 +1402,7 @@ describe('MaterialRepository', () => {
         where: { id: 'material-id' },
         data: {
           isCustomizable: false,
-          materialCustomization: {
+          materialTemplate: {
             delete: true,
           },
         },
@@ -1246,7 +1412,7 @@ describe('MaterialRepository', () => {
     it('deve lançar BadRequest quando update falhar', async () => {
       prisma.material.findFirst.mockResolvedValue({
         id: 'material-id',
-        materialCustomization: null,
+        materialTemplate: null,
       });
       prisma.material.update.mockRejectedValue(new Error('db'));
 
@@ -1294,9 +1460,14 @@ describe('MaterialRepository', () => {
         id: 'file-id',
         materialId: 'material-id',
         imageKey: 'materials/material-id/file.pdf',
+        originalName: 'file.pdf',
         mimeType: 'application/pdf',
         size: 1024,
+        width: null,
+        height: null,
+        sortOrder: 3,
       });
+      prisma.materialFile.findFirst.mockResolvedValue({ sortOrder: 2 });
 
       await expect(
         repository.createFiles(
@@ -1304,9 +1475,12 @@ describe('MaterialRepository', () => {
           'org-id',
           [
             {
+              id: 'file-id',
               fileKey: 'materials/material-id/file.pdf',
+              originalName: 'file.pdf',
               mimeType: 'application/pdf',
               size: 1024,
+              sortOrder: 0,
             },
           ],
           'user-id',
@@ -1316,25 +1490,44 @@ describe('MaterialRepository', () => {
           id: 'file-id',
           materialId: 'material-id',
           fileKey: 'materials/material-id/file.pdf',
+          originalName: 'file.pdf',
           mimeType: 'application/pdf',
           size: 1024,
+          width: null,
+          height: null,
+          sortOrder: 3,
         },
       ]);
 
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(prisma.materialFile.findFirst).toHaveBeenCalledWith({
+        where: { materialId: 'material-id' },
+        select: { sortOrder: true },
+        orderBy: { sortOrder: 'desc' },
+      });
+
       expect(prisma.materialFile.create).toHaveBeenCalledWith({
         data: {
-          id: 'mocked-uuid',
+          id: 'file-id',
           materialId: 'material-id',
           imageKey: 'materials/material-id/file.pdf',
+          originalName: 'file.pdf',
           mimeType: 'application/pdf',
           size: 1024,
+          width: undefined,
+          height: undefined,
+          sortOrder: 3,
         },
         select: {
           id: true,
           materialId: true,
           imageKey: true,
+          originalName: true,
           mimeType: true,
           size: true,
+          width: true,
+          height: true,
+          sortOrder: true,
         },
       });
       expect(logger.info).toHaveBeenCalledWith(
@@ -1355,11 +1548,319 @@ describe('MaterialRepository', () => {
           'org-id',
           [
             {
+              id: 'file-id',
               fileKey: 'materials/material-id/file.pdf',
+              originalName: 'file.pdf',
               mimeType: 'application/pdf',
               size: 1024,
+              sortOrder: 0,
             },
           ],
+          'user-id',
+        ),
+      ).rejects.toThrow('Erro ao salvar arquivos do material');
+    });
+
+    it('deve persistir o lote inteiro na mesma transação e preservar sua ordem', async () => {
+      prisma.materialFile.findFirst.mockResolvedValue({ sortOrder: 4 });
+      prisma.materialFile.create
+        .mockResolvedValueOnce({
+          id: 'file-a',
+          materialId: 'material-id',
+          imageKey: 'materials/material-id/a.pdf',
+          originalName: 'a.pdf',
+          mimeType: 'application/pdf',
+          size: 10,
+          width: null,
+          height: null,
+          sortOrder: 5,
+        })
+        .mockResolvedValueOnce({
+          id: 'file-b',
+          materialId: 'material-id',
+          imageKey: 'materials/material-id/b.pdf',
+          originalName: 'b.pdf',
+          mimeType: 'application/pdf',
+          size: 20,
+          width: null,
+          height: null,
+          sortOrder: 6,
+        });
+
+      await expect(
+        repository.createFiles(
+          'material-id',
+          'org-id',
+          [
+            {
+              id: 'file-a',
+              fileKey: 'materials/material-id/a.pdf',
+              originalName: 'a.pdf',
+              mimeType: 'application/pdf',
+              size: 10,
+              sortOrder: 0,
+            },
+            {
+              id: 'file-b',
+              fileKey: 'materials/material-id/b.pdf',
+              originalName: 'b.pdf',
+              mimeType: 'application/pdf',
+              size: 20,
+              sortOrder: 1,
+            },
+          ],
+          'user-id',
+        ),
+      ).resolves.toEqual([
+        expect.objectContaining({ id: 'file-a', sortOrder: 5 }),
+        expect.objectContaining({ id: 'file-b', sortOrder: 6 }),
+      ]);
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(prisma.materialFile.create).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          data: expect.objectContaining({ id: 'file-a', sortOrder: 5 }),
+        }),
+      );
+      expect(prisma.materialFile.create).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          data: expect.objectContaining({ id: 'file-b', sortOrder: 6 }),
+        }),
+      );
+    });
+  });
+
+  describe('findCustomizableUploadContext', () => {
+    it('devolve documento, arquivos ordenados e exportações ativas', async () => {
+      prisma.materialTemplate.findFirst.mockResolvedValue({
+        id: 'template-id',
+        revision: 3,
+        document: { version: 2 },
+        printPresetId: 'preset-id',
+        material: {
+          materialFiles: [
+            { id: 'file-1', width: 100, height: 80, sortOrder: 0 },
+          ],
+        },
+      });
+      prisma.printExport.count.mockResolvedValue(1);
+
+      await expect(
+        repository.findCustomizableUploadContext('material-id', 'org-id'),
+      ).resolves.toEqual({
+        templateId: 'template-id',
+        revision: 3,
+        document: { version: 2 },
+        printPresetId: 'preset-id',
+        files: [{ id: 'file-1', width: 100, height: 80, sortOrder: 0 }],
+        activePrintExportCount: 1,
+      });
+      expect(prisma.printExport.count).toHaveBeenCalledWith({
+        where: {
+          materialId: 'material-id',
+          organizationId: 'org-id',
+          status: { in: ['QUEUED', 'PROCESSING'] },
+        },
+      });
+    });
+
+    it('retorna nulo quando o template customizável não existe', async () => {
+      prisma.materialTemplate.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findCustomizableUploadContext('material-id', 'org-id'),
+      ).resolves.toBeNull();
+      expect(prisma.printExport.count).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('addCustomizableFiles', () => {
+    const document = {
+      version: 3,
+      pages: [
+        {
+          materialFileId: 'file-1',
+          canvas: { width: 100, height: 80 },
+          layerOrder: ['text-1'],
+          layers: [],
+        },
+        {
+          materialFileId: 'file-2',
+          canvas: { width: 1200, height: 800 },
+          layerOrder: [],
+          layers: [],
+        },
+      ],
+    };
+    const input = {
+      id: 'file-2',
+      fileKey: 'materials/material-id/verso.png',
+      originalName: 'verso.png',
+      mimeType: 'image/png',
+      size: 24,
+      width: 1200,
+      height: 800,
+      sortOrder: 0,
+    };
+
+    it('grava V3 em rascunho, apaga o preflight e aloca sortOrder em série', async () => {
+      prisma.printExport.count.mockResolvedValue(0);
+      prisma.materialFile.findMany.mockResolvedValue([
+        { id: 'file-1', sortOrder: 4 },
+      ]);
+      prisma.materialFile.create.mockResolvedValue({
+        id: 'file-2',
+        materialId: 'material-id',
+        imageKey: 'materials/material-id/verso.png',
+        originalName: 'verso.png',
+        mimeType: 'image/png',
+        size: 24,
+        width: 1200,
+        height: 800,
+        sortOrder: 5,
+      });
+      prisma.materialTemplate.updateMany.mockResolvedValue({ count: 1 });
+      prisma.printPreflight.deleteMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        repository.addCustomizableFiles(
+          'material-id',
+          'org-id',
+          [input],
+          {
+            templateId: 'template-id',
+            revision: 4,
+            document,
+            existingFileIds: ['file-1'],
+          },
+          'user-id',
+        ),
+      ).resolves.toEqual([
+        expect.objectContaining({ id: 'file-2', sortOrder: 5 }),
+      ]);
+
+      expect(prisma.materialFile.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ id: 'file-2', sortOrder: 5 }),
+        }),
+      );
+      expect(prisma.materialTemplate.updateMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          id: 'template-id',
+          materialId: 'material-id',
+          organizationId: 'org-id',
+          revision: 4,
+        }),
+        data: {
+          document,
+          schemaVersion: 3,
+          status: 'DRAFT',
+          publishedAt: null,
+          revision: { increment: 1 },
+        },
+      });
+      expect(prisma.printPreflight.deleteMany).toHaveBeenCalledWith({
+        where: { templateId: 'template-id' },
+      });
+    });
+
+    it('recusa a operação quando há exportação de impressão em andamento', async () => {
+      prisma.printExport.count.mockResolvedValue(1);
+
+      await expect(
+        repository.addCustomizableFiles(
+          'material-id',
+          'org-id',
+          [input],
+          {
+            templateId: 'template-id',
+            revision: 4,
+            document,
+            existingFileIds: ['file-1'],
+          },
+          'user-id',
+        ),
+      ).rejects.toThrow(
+        'Não é possível incluir imagens enquanto houver uma exportação de impressão em andamento',
+      );
+      expect(prisma.materialFile.create).not.toHaveBeenCalled();
+      expect(prisma.materialTemplate.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('recusa quando as imagens atuais mudaram ou a revisão não confere', async () => {
+      prisma.printExport.count.mockResolvedValue(0);
+      prisma.materialFile.findMany.mockResolvedValue([
+        { id: 'file-1', sortOrder: 0 },
+        { id: 'file-extra', sortOrder: 1 },
+      ]);
+
+      await expect(
+        repository.addCustomizableFiles(
+          'material-id',
+          'org-id',
+          [input],
+          {
+            templateId: 'template-id',
+            revision: 4,
+            document,
+            existingFileIds: ['file-1'],
+          },
+          'user-id',
+        ),
+      ).rejects.toThrow(
+        'O template foi alterado em outra sessão. Recarregue para continuar.',
+      );
+
+      prisma.materialFile.findMany.mockResolvedValue([
+        { id: 'file-1', sortOrder: 0 },
+      ]);
+      prisma.materialFile.create.mockResolvedValue({
+        id: 'file-2',
+        materialId: 'material-id',
+        imageKey: input.fileKey,
+        originalName: input.originalName,
+        mimeType: input.mimeType,
+        size: input.size,
+        width: input.width,
+        height: input.height,
+        sortOrder: 1,
+      });
+      prisma.materialTemplate.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        repository.addCustomizableFiles(
+          'material-id',
+          'org-id',
+          [input],
+          {
+            templateId: 'template-id',
+            revision: 4,
+            document,
+            existingFileIds: ['file-1'],
+          },
+          'user-id',
+        ),
+      ).rejects.toThrow(
+        'O template foi alterado em outra sessão. Recarregue para continuar.',
+      );
+    });
+
+    it('envolve falha inesperada do banco', async () => {
+      prisma.printExport.count.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.addCustomizableFiles(
+          'material-id',
+          'org-id',
+          [input],
+          {
+            templateId: 'template-id',
+            revision: 4,
+            document,
+            existingFileIds: ['file-1'],
+          },
           'user-id',
         ),
       ).rejects.toThrow('Erro ao salvar arquivos do material');
@@ -1373,8 +1874,12 @@ describe('MaterialRepository', () => {
           id: 'file-id',
           materialId: 'material-id',
           imageKey: 'materials/material-id/file.pdf',
+          originalName: 'file.pdf',
           mimeType: 'application/pdf',
           size: 1024,
+          width: null,
+          height: null,
+          sortOrder: 0,
         },
       ]);
 
@@ -1385,8 +1890,12 @@ describe('MaterialRepository', () => {
           id: 'file-id',
           materialId: 'material-id',
           fileKey: 'materials/material-id/file.pdf',
+          originalName: 'file.pdf',
           mimeType: 'application/pdf',
           size: 1024,
+          width: null,
+          height: null,
+          sortOrder: 0,
         },
       ]);
 
@@ -1402,9 +1911,7 @@ describe('MaterialRepository', () => {
           },
         },
         select: expect.any(Object),
-        orderBy: {
-          id: 'asc',
-        },
+        orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
       });
     });
 
@@ -1457,12 +1964,28 @@ describe('MaterialRepository', () => {
 
   describe('deleteFile', () => {
     it('deve remover arquivo no escopo da organização', async () => {
+      prisma.materialTemplate.deleteMany.mockResolvedValue({ count: 1 });
       prisma.materialFile.deleteMany.mockResolvedValue({ count: 1 });
 
       await expect(
         repository.deleteFile('file-id', 'material-id', 'org-id', 'user-id'),
       ).resolves.toBe(undefined);
 
+      expect(prisma.materialTemplate.deleteMany).toHaveBeenCalledWith({
+        where: {
+          materialId: 'material-id',
+          organizationId: 'org-id',
+          baseMaterialFileId: 'file-id',
+          material: {
+            isCustomizable: false,
+            deletedAt: null,
+            category: {
+              organizationId: 'org-id',
+              isDeleted: false,
+            },
+          },
+        },
+      });
       expect(prisma.materialFile.deleteMany).toHaveBeenCalledWith({
         where: {
           id: 'file-id',
@@ -1486,11 +2009,371 @@ describe('MaterialRepository', () => {
     });
 
     it('deve lançar BadRequest quando deleteMany falhar', async () => {
+      prisma.materialTemplate.deleteMany.mockResolvedValue({ count: 0 });
       prisma.materialFile.deleteMany.mockRejectedValue(new Error('db'));
 
       await expect(
         repository.deleteFile('file-id', 'material-id', 'org-id', 'user-id'),
       ).rejects.toThrow('Erro ao remover arquivo do material');
+    });
+  });
+
+  describe('deleteCustomizableFile', () => {
+    const files = [
+      { id: 'file-1', sortOrder: 0 },
+      { id: 'file-2', sortOrder: 2 },
+      { id: 'file-3', sortOrder: 5 },
+    ];
+    const document = {
+      version: 3,
+      pages: [
+        {
+          materialFileId: 'file-1',
+          canvas: { width: 100, height: 80 },
+          layerOrder: [],
+          layers: [],
+        },
+        {
+          materialFileId: 'file-3',
+          canvas: { width: 300, height: 100 },
+          layerOrder: [],
+          layers: [],
+        },
+      ],
+    };
+    const options = {
+      templateId: 'template-id',
+      revision: 4,
+      document,
+      assetIds: ['library-asset-1'],
+      existingFileIds: ['file-1', 'file-2', 'file-3'],
+    };
+
+    function mockReady(baseMaterialFileId = 'file-1') {
+      prisma.printExport.count.mockResolvedValue(0);
+      prisma.materialFile.findMany.mockResolvedValue(files);
+      prisma.materialTemplate.findFirst.mockResolvedValue({
+        baseMaterialFileId,
+      });
+      prisma.materialTemplate.updateMany.mockResolvedValue({ count: 1 });
+      prisma.materialTemplateAsset.deleteMany.mockResolvedValue({ count: 1 });
+      prisma.materialTemplateAsset.createMany.mockResolvedValue({ count: 1 });
+      prisma.printPreflight.deleteMany.mockResolvedValue({ count: 1 });
+      prisma.materialFile.deleteMany.mockResolvedValue({ count: 1 });
+    }
+
+    it('exclui a imagem do meio sem renumerar e invalida publicação e preflight', async () => {
+      mockReady();
+
+      await repository.deleteCustomizableFile(
+        'material-id',
+        'file-2',
+        'org-id',
+        options,
+        'user-id',
+      );
+
+      expect(prisma.materialFile.update).not.toHaveBeenCalled();
+      expect(prisma.materialTemplate.updateMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          id: 'template-id',
+          revision: 4,
+        }),
+        data: {
+          document,
+          schemaVersion: 3,
+          status: 'DRAFT',
+          publishedAt: null,
+          revision: { increment: 1 },
+        },
+      });
+      expect(prisma.materialTemplateAsset.deleteMany).toHaveBeenCalledWith({
+        where: { templateId: 'template-id' },
+      });
+      expect(prisma.materialTemplateAsset.createMany).toHaveBeenCalledWith({
+        data: [{ templateId: 'template-id', assetId: 'library-asset-1' }],
+        skipDuplicates: true,
+      });
+      expect(prisma.printPreflight.deleteMany).toHaveBeenCalledWith({
+        where: { templateId: 'template-id' },
+      });
+      expect(prisma.materialFile.deleteMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          id: 'file-2',
+          materialId: 'material-id',
+        }),
+      });
+      expect(
+        prisma.materialTemplate.updateMany.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        prisma.materialFile.deleteMany.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('move a âncora para a menor sortOrder restante ao excluir a primeira imagem', async () => {
+      mockReady('file-1');
+
+      await repository.deleteCustomizableFile(
+        'material-id',
+        'file-1',
+        'org-id',
+        options,
+        'user-id',
+      );
+
+      expect(prisma.materialFile.update).not.toHaveBeenCalled();
+      expect(prisma.materialTemplate.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ baseMaterialFileId: 'file-2' }),
+        }),
+      );
+    });
+
+    it('recusa excluir a única imagem e exportação em andamento', async () => {
+      prisma.printExport.count.mockResolvedValue(0);
+      prisma.materialFile.findMany.mockResolvedValue([
+        { id: 'file-1', sortOrder: 0 },
+      ]);
+
+      await expect(
+        repository.deleteCustomizableFile(
+          'material-id',
+          'file-1',
+          'org-id',
+          { ...options, existingFileIds: ['file-1'] },
+          'user-id',
+        ),
+      ).rejects.toThrow(
+        'Não é possível excluir a última imagem do material customizável',
+      );
+
+      prisma.printExport.count.mockResolvedValue(1);
+      prisma.materialFile.findMany.mockResolvedValue(files);
+
+      await expect(
+        repository.deleteCustomizableFile(
+          'material-id',
+          'file-2',
+          'org-id',
+          options,
+          'user-id',
+        ),
+      ).rejects.toThrow(
+        'Não é possível excluir imagens enquanto houver uma exportação de impressão em andamento',
+      );
+      expect(prisma.materialFile.deleteMany).not.toHaveBeenCalled();
+      expect(prisma.materialTemplate.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('não remove o arquivo quando a revisão não confere', async () => {
+      mockReady();
+      prisma.materialTemplate.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        repository.deleteCustomizableFile(
+          'material-id',
+          'file-2',
+          'org-id',
+          options,
+          'user-id',
+        ),
+      ).rejects.toThrow(
+        'O template foi alterado em outra sessão. Recarregue para continuar.',
+      );
+      expect(prisma.materialFile.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('limpa assets quando a página removida era a única referência', async () => {
+      mockReady();
+
+      await repository.deleteCustomizableFile(
+        'material-id',
+        'file-2',
+        'org-id',
+        { ...options, assetIds: [] },
+        'user-id',
+      );
+
+      expect(prisma.materialTemplateAsset.deleteMany).toHaveBeenCalled();
+      expect(prisma.materialTemplateAsset.createMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('replaceCustomizableFile', () => {
+    const document = {
+      version: 3 as const,
+      pages: [
+        {
+          materialFileId: 'file-1',
+          canvas: { width: 100, height: 80 },
+          layerOrder: [],
+          layers: [],
+        },
+        {
+          materialFileId: 'file-2',
+          canvas: { width: 400, height: 180 },
+          layerOrder: [],
+          layers: [],
+        },
+      ],
+    };
+    const options = {
+      templateId: 'template-id',
+      revision: 4,
+      document,
+      fileKey: 'materials/material-id/novo.png',
+      originalName: 'nova.png',
+      mimeType: 'image/png' as const,
+      size: 24,
+      width: 400,
+      height: 180,
+    };
+    const updatedRow = {
+      id: 'file-2',
+      materialId: 'material-id',
+      imageKey: 'materials/material-id/novo.png',
+      originalName: 'nova.png',
+      mimeType: 'image/png',
+      size: 24,
+      width: 400,
+      height: 180,
+      sortOrder: 2,
+    };
+
+    function mockReady() {
+      prisma.printExport.count.mockResolvedValue(0);
+      prisma.materialFile.findFirst.mockResolvedValue({
+        imageKey: 'materials/material-id/antigo.png',
+      });
+      prisma.materialFile.update.mockResolvedValue(updatedRow);
+      prisma.materialTemplate.updateMany.mockResolvedValue({ count: 1 });
+      prisma.printPreflight.deleteMany.mockResolvedValue({ count: 1 });
+    }
+
+    it('preserva id e sortOrder, troca metadados e invalida publicação e preflight', async () => {
+      mockReady();
+
+      await expect(
+        repository.replaceCustomizableFile(
+          'material-id',
+          'file-2',
+          'org-id',
+          options,
+          'user-id',
+        ),
+      ).resolves.toEqual({
+        file: {
+          id: 'file-2',
+          materialId: 'material-id',
+          fileKey: 'materials/material-id/novo.png',
+          originalName: 'nova.png',
+          mimeType: 'image/png',
+          size: 24,
+          width: 400,
+          height: 180,
+          sortOrder: 2,
+        },
+        previousFileKey: 'materials/material-id/antigo.png',
+      });
+
+      expect(prisma.materialFile.update).toHaveBeenCalledWith({
+        where: { id: 'file-2' },
+        data: {
+          imageKey: 'materials/material-id/novo.png',
+          originalName: 'nova.png',
+          mimeType: 'image/png',
+          size: 24,
+          width: 400,
+          height: 180,
+        },
+        select: expect.any(Object),
+      });
+      expect(prisma.materialTemplate.updateMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          id: 'template-id',
+          materialId: 'material-id',
+          organizationId: 'org-id',
+          revision: 4,
+        }),
+        data: {
+          document,
+          schemaVersion: 3,
+          status: 'DRAFT',
+          publishedAt: null,
+          revision: { increment: 1 },
+        },
+      });
+      expect(prisma.printPreflight.deleteMany).toHaveBeenCalledWith({
+        where: { templateId: 'template-id' },
+      });
+    });
+
+    it('não reescreve o documento quando ele é nulo', async () => {
+      mockReady();
+
+      await repository.replaceCustomizableFile(
+        'material-id',
+        'file-2',
+        'org-id',
+        { ...options, document: null },
+        'user-id',
+      );
+
+      const updateArgs = prisma.materialTemplate.updateMany.mock.calls[0][0];
+      expect(updateArgs.data).not.toHaveProperty('document');
+      expect(updateArgs.data).not.toHaveProperty('schemaVersion');
+    });
+
+    it('recusa substituição quando há exportação de impressão em andamento', async () => {
+      prisma.printExport.count.mockResolvedValue(1);
+
+      await expect(
+        repository.replaceCustomizableFile(
+          'material-id',
+          'file-2',
+          'org-id',
+          options,
+          'user-id',
+        ),
+      ).rejects.toThrow(
+        'Não é possível substituir imagens enquanto houver uma exportação de impressão em andamento',
+      );
+      expect(prisma.materialFile.update).not.toHaveBeenCalled();
+      expect(prisma.materialTemplate.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('não troca o arquivo quando ele não pertence ao material', async () => {
+      mockReady();
+      prisma.materialFile.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.replaceCustomizableFile(
+          'material-id',
+          'file-2',
+          'org-id',
+          options,
+          'user-id',
+        ),
+      ).rejects.toThrow('Arquivo do material não encontrado');
+      expect(prisma.materialFile.update).not.toHaveBeenCalled();
+    });
+
+    it('não troca o arquivo quando a revisão não confere', async () => {
+      mockReady();
+      prisma.materialTemplate.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        repository.replaceCustomizableFile(
+          'material-id',
+          'file-2',
+          'org-id',
+          options,
+          'user-id',
+        ),
+      ).rejects.toThrow(
+        'O template foi alterado em outra sessão. Recarregue para continuar.',
+      );
+      expect(prisma.printPreflight.deleteMany).not.toHaveBeenCalled();
     });
   });
 
@@ -1631,8 +2514,12 @@ describe('MaterialRepository', () => {
                 id: 'file-1',
                 materialId: 'fallback-1',
                 imageKey: 'materials/fallback-1/a.png',
+                originalName: 'a.png',
                 mimeType: 'image/png',
                 size: 1024,
+                width: null,
+                height: null,
+                sortOrder: 0,
               },
             ],
           },
@@ -1651,8 +2538,12 @@ describe('MaterialRepository', () => {
               id: 'file-1',
               materialId: 'fallback-1',
               imageKey: 'materials/fallback-1/a.png',
+              originalName: 'a.png',
               mimeType: 'image/png',
               size: 1024,
+              width: null,
+              height: null,
+              sortOrder: 0,
             },
           ],
         },
@@ -1685,8 +2576,12 @@ describe('MaterialRepository', () => {
             id: 'file-1',
             materialId: 'fallback-1',
             imageKey: 'materials/fallback-1/a.png',
+            originalName: 'a.png',
             mimeType: 'image/png',
             size: 1024,
+            width: null,
+            height: null,
+            sortOrder: 0,
           },
         ],
       };
@@ -2029,6 +2924,8 @@ describe('MaterialRepository', () => {
                 imageKey: 'materials/material-1/a.png',
                 mimeType: 'image/png',
                 size: 1024,
+                width: null,
+                height: null,
               },
             ],
           },
@@ -2061,6 +2958,8 @@ describe('MaterialRepository', () => {
                 imageKey: 'materials/material-2/a2.png',
                 mimeType: 'image/png',
                 size: 1024,
+                width: null,
+                height: null,
               },
             ],
           },
@@ -2076,6 +2975,8 @@ describe('MaterialRepository', () => {
                 imageKey: 'materials/material-4/b2.png',
                 mimeType: 'image/png',
                 size: 1024,
+                width: null,
+                height: null,
               },
             ],
           },
@@ -2252,6 +3153,67 @@ describe('MaterialRepository', () => {
     });
   });
 
+  describe('createMaterialEmailDispatch', () => {
+    it('deve criar o disparo com destinatários', async () => {
+      prisma.materialEmailDispatch.create.mockResolvedValue({
+        id: 'dispatch-id',
+      });
+
+      await expect(
+        repository.createMaterialEmailDispatch({
+          organizationId: 'org-id',
+          materialId: 'material-id',
+          materialName: 'Campanha ABCDEF',
+          subject: 'Novo material: Campanha ABCDEF',
+          content: 'Conteúdo',
+          recipients: [
+            {
+              userId: 'user-1',
+              name: 'João',
+              email: 'joao@teste.com',
+            },
+          ],
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(prisma.materialEmailDispatch.create).toHaveBeenCalledWith({
+        data: {
+          id: expect.any(String),
+          organizationId: 'org-id',
+          materialId: 'material-id',
+          materialName: 'Campanha ABCDEF',
+          subject: 'Novo material: Campanha ABCDEF',
+          content: 'Conteúdo',
+          recipients: {
+            create: [
+              {
+                id: expect.any(String),
+                userId: 'user-1',
+                name: 'João',
+                email: 'joao@teste.com',
+              },
+            ],
+          },
+        },
+      });
+    });
+
+    it('deve lançar BadRequest quando create falhar', async () => {
+      prisma.materialEmailDispatch.create.mockRejectedValue(new Error('db'));
+
+      await expect(
+        repository.createMaterialEmailDispatch({
+          organizationId: 'org-id',
+          materialId: 'material-id',
+          materialName: 'Campanha ABCDEF',
+          subject: 'Novo material: Campanha ABCDEF',
+          content: 'Conteúdo',
+          recipients: [],
+        }),
+      ).rejects.toThrow('Erro ao registrar disparo de e-mail do material');
+    });
+  });
+
   describe('findPlatformMembersForCategory', () => {
     it('deve filtrar membros da plataforma com acesso à categoria', async () => {
       prisma.categoryRoleAccess.findMany.mockResolvedValue([
@@ -2402,6 +3364,7 @@ describe('MaterialRepository', () => {
             hasTextCopy: true,
             textCopy: 'texto',
             isCustomizable: false,
+            canCustomize: false,
             requiresAcceptance: true,
             imageKey: 'materials/m1.png',
             mimeType: 'image/png',
@@ -2461,6 +3424,24 @@ describe('MaterialRepository', () => {
           skip: 0,
           take: 24,
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        }),
+      );
+    });
+
+    it('deve usar a imagem de menor sortOrder como capa do card', async () => {
+      prisma.material.findMany.mockResolvedValue([]);
+      prisma.material.count.mockResolvedValue(0);
+
+      await repository.findByCategorySlugPath('org-id', 'cat');
+
+      expect(prisma.material.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({
+            materialFiles: expect.objectContaining({
+              orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+              take: 1,
+            }),
+          }),
         }),
       );
     });

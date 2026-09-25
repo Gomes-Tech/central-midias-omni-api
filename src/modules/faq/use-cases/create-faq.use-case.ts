@@ -9,11 +9,7 @@ export class CreateFaqUseCase {
     private readonly faqRepository: FaqRepository,
   ) {}
 
-  async execute(
-    organizationId: string,
-    data: CreateFaqDTO,
-    userId: string,
-  ) {
+  async execute(organizationId: string, data: CreateFaqDTO, userId: string) {
     return await this.faqRepository.create(organizationId, data, userId);
   }
 }

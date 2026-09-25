@@ -1,5 +1,5 @@
 import { OrgId, RequirePermission } from '@common/decorators';
-import { PlatformPermissionGuard } from '@common/guards';
+import { PlatformAdminGuard, PlatformPermissionGuard } from '@common/guards';
 import {
   Body,
   Controller,
@@ -101,12 +101,14 @@ export class RolesController {
   }
 
   @RequirePermission('roles', 'create')
+  @UseGuards(PlatformAdminGuard)
   @Post()
   async create(@Body() dto: CreateGlobalRoleDTO) {
     return await this.createGlobalRoleUseCase.execute(dto);
   }
 
   @RequirePermission('roles', 'update')
+  @UseGuards(PlatformAdminGuard)
   @Patch('/global/:id')
   async updateGlobalRole(
     @Param('id') id: string,
@@ -116,6 +118,7 @@ export class RolesController {
   }
 
   @RequirePermission('roles', 'delete')
+  @UseGuards(PlatformAdminGuard)
   @Delete('/global/:id')
   async deleteGlobalRole(@Param('id') id: string) {
     return await this.deleteGlobalRoleUseCase.execute(id);

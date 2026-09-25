@@ -26,14 +26,22 @@ describe('CircuitBreakerService', () => {
     const opts = { failureThreshold: 2, resetTimeout: 1000 };
 
     await expect(
-      service.execute('c2', async () => {
-        throw new Error('boom');
-      }, opts),
+      service.execute(
+        'c2',
+        async () => {
+          throw new Error('boom');
+        },
+        opts,
+      ),
     ).rejects.toThrow('boom');
     await expect(
-      service.execute('c2', async () => {
-        throw new Error('boom');
-      }, opts),
+      service.execute(
+        'c2',
+        async () => {
+          throw new Error('boom');
+        },
+        opts,
+      ),
     ).rejects.toThrow('boom');
 
     expect(service.getCircuitState('c2')).toBe('OPEN');
@@ -52,9 +60,13 @@ describe('CircuitBreakerService', () => {
     };
 
     await expect(
-      service.execute('c3', async () => {
-        throw new Error('fail');
-      }, opts),
+      service.execute(
+        'c3',
+        async () => {
+          throw new Error('fail');
+        },
+        opts,
+      ),
     ).rejects.toThrow('fail');
     expect(service.getCircuitState('c3')).toBe('OPEN');
 
@@ -68,11 +80,10 @@ describe('CircuitBreakerService', () => {
 
   it('deve lançar TimeoutError quando a operação exceder timeout', async () => {
     const service = new CircuitBreakerService();
-    const p = service.execute(
-      'c4',
-      () => new Promise<string>(() => {}),
-      { timeout: 50, failureThreshold: 10 },
-    );
+    const p = service.execute('c4', () => new Promise<string>(() => {}), {
+      timeout: 50,
+      failureThreshold: 10,
+    });
     jest.advanceTimersByTime(50);
     await expect(p).rejects.toBeInstanceOf(TimeoutError);
   });
@@ -129,17 +140,25 @@ describe('CircuitBreakerService', () => {
     const opts = { failureThreshold: 1, resetTimeout: 400 };
 
     await expect(
-      service.execute('hx', async () => {
-        throw new Error('a');
-      }, opts),
+      service.execute(
+        'hx',
+        async () => {
+          throw new Error('a');
+        },
+        opts,
+      ),
     ).rejects.toThrow('a');
 
     jest.advanceTimersByTime(400);
 
     await expect(
-      service.execute('hx', async () => {
-        throw new Error('b');
-      }, opts),
+      service.execute(
+        'hx',
+        async () => {
+          throw new Error('b');
+        },
+        opts,
+      ),
     ).rejects.toThrow('b');
 
     expect(service.getCircuitState('hx')).toBe('OPEN');

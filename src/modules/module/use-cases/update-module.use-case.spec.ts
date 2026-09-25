@@ -1,9 +1,6 @@
 import { BadRequestException } from '@common/filters';
 import { ModuleRepository } from '../repository';
-import {
-  makeModule,
-  makeUpdateModuleDTO,
-} from './test-helpers';
+import { makeModule, makeUpdateModuleDTO } from './test-helpers';
 import { FindModuleByIdUseCase } from './find-module-by-id.use-case';
 import { UpdateModuleUseCase } from './update-module.use-case';
 

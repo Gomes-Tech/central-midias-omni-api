@@ -8,7 +8,9 @@ describe('FindEventByIdUseCase', () => {
   let eventRepository: jest.Mocked<
     Pick<EventRepository, 'findById' | 'isVisibleToPortalUser'>
   >;
-  let findMemberRoleUseCase: jest.Mocked<Pick<FindMemberRoleUseCase, 'execute'>>;
+  let findMemberRoleUseCase: jest.Mocked<
+    Pick<FindMemberRoleUseCase, 'execute'>
+  >;
   let useCase: FindEventByIdUseCase;
 
   beforeEach(() => {
@@ -49,8 +51,8 @@ describe('FindEventByIdUseCase', () => {
     eventRepository.isVisibleToPortalUser.mockResolvedValue(true);
     eventRepository.findById.mockResolvedValue(event);
 
-    await expect(
-      useCase.execute('event-1', 'org-1', 'user-1'),
-    ).resolves.toBe(event);
+    await expect(useCase.execute('event-1', 'org-1', 'user-1')).resolves.toBe(
+      event,
+    );
   });
 });

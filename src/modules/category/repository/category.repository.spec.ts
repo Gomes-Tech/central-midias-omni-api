@@ -970,6 +970,7 @@ describe('CategoryRepository', () => {
           hasExternalLink: false,
           externalLink: null,
           isActive: true,
+          showSuppliersList: false,
         },
       });
       expect(logger.info).toHaveBeenCalledWith(
@@ -1139,7 +1140,9 @@ describe('CategoryRepository', () => {
 
   describe('delete', () => {
     it('deve remover a categoria e os acessos sem transferir materiais', async () => {
-      prisma.categoryRoleAccess.deleteMany.mockResolvedValue({ count: 2 } as never);
+      prisma.categoryRoleAccess.deleteMany.mockResolvedValue({
+        count: 2,
+      } as never);
       prisma.category.updateMany.mockResolvedValue({ count: 0 } as never);
       prisma.category.deleteMany.mockResolvedValue({ count: 1 } as never);
 
@@ -1175,7 +1178,9 @@ describe('CategoryRepository', () => {
 
     it('deve transferir materiais antes de remover a categoria', async () => {
       prisma.material.updateMany.mockResolvedValue({ count: 3 } as never);
-      prisma.categoryRoleAccess.deleteMany.mockResolvedValue({ count: 1 } as never);
+      prisma.categoryRoleAccess.deleteMany.mockResolvedValue({
+        count: 1,
+      } as never);
       prisma.category.updateMany.mockResolvedValue({ count: 0 } as never);
       prisma.category.deleteMany.mockResolvedValue({ count: 1 } as never);
 

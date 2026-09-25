@@ -29,9 +29,7 @@ describe('SyncGlobalRoleCategoryAccessesUseCase', () => {
       undefined,
     );
 
-    await expect(
-      useCase.execute('role-1', 'org-1'),
-    ).resolves.toBeUndefined();
+    await expect(useCase.execute('role-1', 'org-1')).resolves.toBeUndefined();
 
     expect(
       repository.syncGlobalRoleWithOrganizationCategories,
@@ -39,7 +37,10 @@ describe('SyncGlobalRoleCategoryAccessesUseCase', () => {
   });
 
   it('deve sincronizar um perfil global em todas as organizações ativas', async () => {
-    repository.findAllActiveOrganizationIds.mockResolvedValue(['org-1', 'org-2']);
+    repository.findAllActiveOrganizationIds.mockResolvedValue([
+      'org-1',
+      'org-2',
+    ]);
     repository.syncGlobalRoleWithOrganizationCategories.mockResolvedValue(
       undefined,
     );
@@ -48,13 +49,16 @@ describe('SyncGlobalRoleCategoryAccessesUseCase', () => {
       useCase.executeForAllOrganizations('role-1'),
     ).resolves.toBeUndefined();
 
-    expect(repository.syncGlobalRoleWithOrganizationCategories).toHaveBeenCalledTimes(
-      2,
-    );
+    expect(
+      repository.syncGlobalRoleWithOrganizationCategories,
+    ).toHaveBeenCalledTimes(2);
   });
 
   it('deve sincronizar todos os perfis globais existentes', async () => {
-    repository.findAllActiveGlobalRoleIds.mockResolvedValue(['role-1', 'role-2']);
+    repository.findAllActiveGlobalRoleIds.mockResolvedValue([
+      'role-1',
+      'role-2',
+    ]);
     repository.findAllActiveOrganizationIds.mockResolvedValue(['org-1']);
     repository.syncGlobalRoleWithOrganizationCategories.mockResolvedValue(
       undefined,
@@ -65,8 +69,8 @@ describe('SyncGlobalRoleCategoryAccessesUseCase', () => {
       organizationCount: 1,
     });
 
-    expect(repository.syncGlobalRoleWithOrganizationCategories).toHaveBeenCalledTimes(
-      2,
-    );
+    expect(
+      repository.syncGlobalRoleWithOrganizationCategories,
+    ).toHaveBeenCalledTimes(2);
   });
 });

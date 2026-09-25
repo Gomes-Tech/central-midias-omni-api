@@ -1,14 +1,21 @@
 import { CreateEventDTO } from '../dto';
 import { CalendarEventEntity } from '../entities';
 
+function atFutureLocalDay(dayOffset: number, hours: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() + dayOffset);
+  date.setHours(hours, 0, 0, 0);
+  return date;
+}
+
 export function makeCreateEventDTO(
   overrides: Partial<CreateEventDTO> = {},
 ): CreateEventDTO {
   return {
     title: 'Campanha Dia das Mães',
     description: 'Materiais disponíveis',
-    startDate: new Date('2026-08-01T00:00:00.000Z'),
-    endDate: new Date('2026-08-10T23:59:59.000Z'),
+    startDate: atFutureLocalDay(7, 10),
+    endDate: atFutureLocalDay(10, 18),
     eventTypeId: 'event-type-1',
     ...overrides,
   };

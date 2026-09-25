@@ -9,6 +9,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { MaterialNotificationEmailJobPayload } from '../queue/material-notification-email.job';
 import { MaterialRepository } from '../repository';
+import {
+  buildMaterialNotificationEmailContent,
+  buildMaterialNotificationEmailSubject,
+} from '../utils/material-notification-email-content';
 
 @Injectable()
 export class EnqueueMaterialNotificationEmailsUseCase {
@@ -53,6 +57,19 @@ export class EnqueueMaterialNotificationEmailsUseCase {
       return { enqueued: 0 };
     }
 
+    try {
+      await this.materialRepository.createMaterialEmailDispatch({
+        organizationId,
+        materialId,
+        materialName: material.name,
+        subject: buildMaterialNotificationEmailSubject(material.name),
+        content: buildMaterialNotificationEmailContent(material.name),
+        recipients: platformMembers,
+      });
+    } catch {
+      // O relatório não deve impedir o disparo dos e-mails.
+    }
+
     const materialLink = buildPortalMaterialLink(materialId);
 
     let enqueued = 0;
@@ -72,7 +89,7 @@ export class EnqueueMaterialNotificationEmailsUseCase {
         MATERIAL_NOTIFICATION_EMAIL_JOB,
         payload,
         {
-          jobId: `${materialId}:${member.userId}:notification`,
+          jobId: `${materialId}-${member.userId}-notification`,
         },
       );
 

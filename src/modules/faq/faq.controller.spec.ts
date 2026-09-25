@@ -82,16 +82,19 @@ describe('FaqController', () => {
       const result = await controller.list('org-1', filters);
 
       expect(result).toBe(payload);
-      expect(findAllFaqsUseCase.execute).toHaveBeenCalledWith(
-        'org-1',
-        filters,
-      );
+      expect(findAllFaqsUseCase.execute).toHaveBeenCalledWith('org-1', filters);
     });
   });
 
   describe('get', () => {
     it('deve delegar ao GetFaqUseCase', async () => {
-      const faq = { id: 'faq-1', name: 'FAQ', order: 1, isActive: true, detail: null };
+      const faq = {
+        id: 'faq-1',
+        name: 'FAQ',
+        order: 1,
+        isActive: true,
+        detail: null,
+      };
       getFaqUseCase.execute.mockResolvedValue(faq);
 
       const result = await controller.get('org-1');
@@ -110,10 +113,7 @@ describe('FaqController', () => {
 
       await controller.listItems('org-1');
 
-      expect(findAllFaqItemsUseCase.execute).toHaveBeenCalledWith(
-        'org-1',
-        {},
-      );
+      expect(findAllFaqItemsUseCase.execute).toHaveBeenCalledWith('org-1', {});
     });
 
     it('deve delegar ao FindAllFaqItemsUseCase com org e filtros', async () => {

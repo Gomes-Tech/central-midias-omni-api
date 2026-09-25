@@ -25,7 +25,9 @@ describe('RecordUserPlatformLoginUseCase', () => {
     expect(userRepository.registerPlatformLoginEvent).toHaveBeenCalledWith(
       'user-1',
     );
-    expect(userRepository.updatePlatformLoginIfDifferentDay).not.toHaveBeenCalled();
+    expect(
+      userRepository.updatePlatformLoginIfDifferentDay,
+    ).not.toHaveBeenCalled();
   });
 
   it('deve registrar evento apenas em dia diferente no refresh', async () => {
@@ -33,9 +35,9 @@ describe('RecordUserPlatformLoginUseCase', () => {
 
     await useCase.execute('user-1', 'refresh');
 
-    expect(userRepository.updatePlatformLoginIfDifferentDay).toHaveBeenCalledWith(
-      'user-1',
-    );
+    expect(
+      userRepository.updatePlatformLoginIfDifferentDay,
+    ).toHaveBeenCalledWith('user-1');
     expect(userRepository.registerPlatformLoginEvent).toHaveBeenCalledWith(
       'user-1',
     );

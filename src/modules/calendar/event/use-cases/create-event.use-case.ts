@@ -23,11 +23,7 @@ export class CreateEventUseCase {
     private readonly findEventTypeByIdUseCase: FindEventTypeByIdUseCase,
   ) {}
 
-  async execute(
-    organizationId: string,
-    data: CreateEventDTO,
-    userId: string,
-  ) {
+  async execute(organizationId: string, data: CreateEventDTO, userId: string) {
     if (toCalendarDateKey(data.startDate) < toCalendarDateKey(new Date())) {
       throw new BadRequestException(
         'Não é possível criar eventos em dias anteriores à data atual',

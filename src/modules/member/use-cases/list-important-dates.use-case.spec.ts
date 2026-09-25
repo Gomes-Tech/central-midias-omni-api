@@ -40,7 +40,9 @@ describe('ListImportantDatesUseCase', () => {
         },
       },
     ]);
-    storageService.getPublicUrl.mockResolvedValue('https://cdn.test/avatar.png');
+    storageService.getPublicUrl.mockResolvedValue(
+      'https://cdn.test/avatar.png',
+    );
 
     const result = await useCase.execute(organizationId);
 
@@ -97,7 +99,9 @@ describe('ListImportantDatesUseCase', () => {
         },
       },
     ]);
-    storageService.getPublicUrl.mockResolvedValue('https://cdn.test/avatar.png');
+    storageService.getPublicUrl.mockResolvedValue(
+      'https://cdn.test/avatar.png',
+    );
 
     const result = await useCase.execute(organizationId);
 

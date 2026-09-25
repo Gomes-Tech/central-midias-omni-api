@@ -1,5 +1,9 @@
 import { HttpExceptionFilter } from '@common/filters';
-import { AuthGuard, CategoryPermissionGuard } from '@common/guards';
+import {
+  AuthGuard,
+  CategoryPermissionGuard,
+  OrganizationMembershipGuard,
+} from '@common/guards';
 import {
   FileSizeValidationInterceptor,
   FileTypeValidationInterceptor,
@@ -24,16 +28,19 @@ import { SecurityModule } from '@infrastructure/security';
 import { ThrottlerConfigModule } from '@infrastructure/throttler';
 import { AvatarModule } from '@modules/avatar';
 import { AuthModule } from '@modules/auth';
+import { AssetModule } from '@modules/asset';
 import { BannerModule } from '@modules/banner';
 import { CalendarModule } from '@modules/calendar';
 import { CategoryModule } from '@modules/category';
 import { CategoryRoleAccessModule } from '@modules/category-role-access/category-role-access.module';
 import { FaqModule } from '@modules/faq';
 import { MaterialModule } from '@modules/material';
+import { MaterialTemplateModule } from '@modules/material-template';
 import { MemberModule } from '@modules/member';
 import { ModuleModule } from '@modules/module';
 import { NotificationModule } from '@modules/notification';
 import { OrganizationModule } from '@modules/organization';
+import { PrintModule } from '@modules/print';
 import { ReportsModule } from '@modules/reports';
 import { RolesModule } from '@modules/roles';
 import { SocialHighlightModule } from '@modules/social-highlight';
@@ -70,8 +77,10 @@ import { AppService } from './app.service';
     HealthModule,
     ThrottlerConfigModule,
     CategoryModule,
+    AssetModule,
     CalendarModule,
     MaterialModule,
+    MaterialTemplateModule,
     MemberModule,
     ModuleModule,
     OrganizationModule,
@@ -88,6 +97,7 @@ import { AppService } from './app.service';
     FaqModule,
     NotificationModule,
     ReportsModule,
+    PrintModule,
   ],
   controllers: [AppController],
   providers: [
@@ -120,6 +130,7 @@ import { AppService } from './app.service';
       useClass: FileSizeValidationInterceptor,
     },
     { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useClass: OrganizationMembershipGuard },
   ],
 })
 export class AppModule implements NestModule {

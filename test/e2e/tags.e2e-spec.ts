@@ -22,9 +22,11 @@ describe('Tags (e2e)', () => {
       .set(e2eAuthHeaders(accessToken))
       .expect(200);
 
-    expect(response.body.some((t: { id: string }) => t.id === E2E_IDS.tagId)).toBe(
-      true,
-    );
+    expect(
+      response.body.data.some(
+        (tag: { id: string }) => tag.id === E2E_IDS.tagId,
+      ),
+    ).toBe(true);
   });
 
   it('GET /api/tags/select deve retornar opções', async () => {

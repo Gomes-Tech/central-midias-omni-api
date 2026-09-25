@@ -31,10 +31,7 @@ describe('RequestIdInterceptor', () => {
     const next = { handle: () => of('done') };
 
     await lastValueFrom(
-      interceptor.intercept(
-        createContext(request, { setHeader }),
-        next,
-      ),
+      interceptor.intercept(createContext(request, { setHeader }), next),
     );
 
     const rid = request[REQUEST_ID_KEY] as string;
@@ -50,10 +47,7 @@ describe('RequestIdInterceptor', () => {
     const next = { handle: () => of(1) };
 
     await lastValueFrom(
-      interceptor.intercept(
-        createContext(request, { setHeader }),
-        next,
-      ),
+      interceptor.intercept(createContext(request, { setHeader }), next),
     );
 
     expect(request[REQUEST_ID_KEY]).toBe('client-rid');
@@ -66,10 +60,9 @@ describe('RequestIdInterceptor', () => {
 
     await expect(
       lastValueFrom(
-        interceptor.intercept(
-          createContext(request, { setHeader }),
-          { handle: () => throwError(() => new Error('fail')) },
-        ),
+        interceptor.intercept(createContext(request, { setHeader }), {
+          handle: () => throwError(() => new Error('fail')),
+        }),
       ),
     ).rejects.toThrow('fail');
 
